@@ -5,7 +5,7 @@
  * Description: Create and manage shipments for orders and use shipping rules to build extensive shipping scenarios.
  * Author: vendidero
  * Author URI: https://vendidero.de
- * Version: 3.5.2
+ * Version: 1.0.0
  * Requires PHP: 5.6
  * License: GPLv3
  * Requires Plugins: woocommerce
