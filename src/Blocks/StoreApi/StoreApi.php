@@ -1,7 +1,7 @@
 <?php
-namespace Vendidero\Germanized\Shipments\Blocks\StoreApi;
+namespace Vendidero\Shiptastic\Blocks\StoreApi;
 
-use Vendidero\Germanized\Shipments\Package;
+use Vendidero\Shiptastic\Package;
 
 /**
  * StoreApi Main Class.

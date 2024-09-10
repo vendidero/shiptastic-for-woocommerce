@@ -1,17 +1,17 @@
 <?php
 
-namespace Vendidero\Germanized\Shipments\Admin;
+namespace Vendidero\Shiptastic\Admin;
 
 use Exception;
-use Vendidero\Germanized\Shipments\Package;
-use Vendidero\Germanized\Shipments\PDFMerger;
+use Vendidero\Shiptastic\Package;
+use Vendidero\Shiptastic\PDFMerger;
 
 defined( 'ABSPATH' ) || exit;
 
 /**
  * Shipment Order
  *
- * @class       WC_GZD_Shipment_Order
+ * @class       WC_STC_Shipment_Order
  * @version     1.0.0
  * @author      Vendidero
  */
@@ -28,7 +28,7 @@ class BulkLabel extends BulkActionHandler {
 	}
 
 	public function get_title() {
-		return _x( 'Generating labels...', 'shipments', 'woocommerce-germanized-shipments' );
+		return _x( 'Generating labels...', 'shipments', 'shiptastic-for-woocommerce' );
 	}
 
 	public function get_file() {
@@ -51,7 +51,7 @@ class BulkLabel extends BulkActionHandler {
 	protected function get_file_option_name() {
 		$action = sanitize_key( $this->get_action() );
 
-		return "woocommerce_gzd_shipments_{$action}_bulk_path";
+		return "woocommerce_shiptastic_{$action}_bulk_path";
 	}
 
 	public function get_filename() {
@@ -78,13 +78,13 @@ class BulkLabel extends BulkActionHandler {
 
 			$download_url = add_query_arg(
 				array(
-					'action' => 'wc-gzd-download-export-shipment-label',
+					'action' => 'wc-stc-download-export-shipment-label',
 					'force'  => 'no',
 				),
 				wp_nonce_url( admin_url(), 'download-export-shipment-label' )
 			);
 
-			$download_button = '<a class="button button-primary bulk-download-button" style="margin-left: 1em;" href="' . esc_url( $download_url ) . '" target="_blank">' . esc_html_x( 'Download labels', 'shipments', 'woocommerce-germanized-shipments' ) . '</a>';
+			$download_button = '<a class="button button-primary bulk-download-button" style="margin-left: 1em;" href="' . esc_url( $download_url ) . '" target="_blank">' . esc_html_x( 'Download labels', 'shipments', 'shiptastic-for-woocommerce' ) . '</a>';
 		}
 
 		return $download_button;
@@ -94,9 +94,9 @@ class BulkLabel extends BulkActionHandler {
 		$download_button = $this->get_download_button();
 
 		if ( empty( $download_button ) ) {
-			return sprintf( _x( 'The chosen shipments were not suitable for automatic label creation. Please check the shipping provider option of the corresponding shipments.', 'shipments', 'woocommerce-germanized-shipments' ), $download_button );
+			return sprintf( _x( 'The chosen shipments were not suitable for automatic label creation. Please check the shipping provider option of the corresponding shipments.', 'shipments', 'shiptastic-for-woocommerce' ), $download_button );
 		} else {
-			return sprintf( _x( 'Successfully generated labels. %s', 'shipments', 'woocommerce-germanized-shipments' ), $download_button );
+			return sprintf( _x( 'Successfully generated labels. %s', 'shipments', 'shiptastic-for-woocommerce' ), $download_button );
 		}
 	}
 
@@ -104,14 +104,14 @@ class BulkLabel extends BulkActionHandler {
 		$download_button = $this->get_download_button();
 
 		if ( ! empty( $download_button ) ) {
-			echo '<div class="notice"><p>' . sprintf( esc_html_x( 'Labels partially generated. %s', 'shipments', 'woocommerce-germanized-shipments' ), $download_button ) . '</p></div>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+			echo '<div class="notice"><p>' . sprintf( esc_html_x( 'Labels partially generated. %s', 'shipments', 'shiptastic-for-woocommerce' ), $download_button ) . '</p></div>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 		}
 	}
 
 	protected function get_files_option_name() {
 		$action = sanitize_key( $this->get_action() );
 
-		return "woocommerce_gzd_shipments_{$action}_bulk_files";
+		return "woocommerce_shiptastic_{$action}_bulk_files";
 	}
 
 	protected function get_files() {
@@ -140,22 +140,22 @@ class BulkLabel extends BulkActionHandler {
 			foreach ( $current as $shipment_id ) {
 				$label = false;
 
-				if ( $shipment = wc_gzd_get_shipment( $shipment_id ) ) {
+				if ( $shipment = wc_stc_get_shipment( $shipment_id ) ) {
 					if ( $shipment->supports_label() ) {
 						if ( $shipment->needs_label() ) {
 							$result = $shipment->create_label();
 
 							if ( is_wp_error( $result ) ) {
-								$result = wc_gzd_get_shipment_error( $result );
+								$result = wc_stc_get_shipment_error( $result );
 							}
 
 							if ( is_wp_error( $result ) ) {
 								foreach ( $result->get_error_messages_by_type() as $type => $messages ) {
 									foreach ( $messages as $message ) {
 										if ( 'soft' === $type ) {
-											$this->add_notice( sprintf( _x( 'Notice while creating label for %1$s: %2$s', 'shipments', 'woocommerce-germanized-shipments' ), '<a href="' . esc_url( $shipment->get_edit_shipment_url() ) . '" target="_blank">' . sprintf( _x( 'shipment #%d', 'shipments', 'woocommerce-germanized-shipments' ), $shipment_id ) . '</a>', $message ), 'info' );
+											$this->add_notice( sprintf( _x( 'Notice while creating label for %1$s: %2$s', 'shipments', 'shiptastic-for-woocommerce' ), '<a href="' . esc_url( $shipment->get_edit_shipment_url() ) . '" target="_blank">' . sprintf( _x( 'shipment #%d', 'shipments', 'shiptastic-for-woocommerce' ), $shipment_id ) . '</a>', $message ), 'info' );
 										} else {
-											$this->add_notice( sprintf( _x( 'Error while creating label for %1$s: %2$s', 'shipments', 'woocommerce-germanized-shipments' ), '<a href="' . esc_url( $shipment->get_edit_shipment_url() ) . '" target="_blank">' . sprintf( _x( 'shipment #%d', 'shipments', 'woocommerce-germanized-shipments' ), $shipment_id ) . '</a>', $message ), 'error' );
+											$this->add_notice( sprintf( _x( 'Error while creating label for %1$s: %2$s', 'shipments', 'shiptastic-for-woocommerce' ), '<a href="' . esc_url( $shipment->get_edit_shipment_url() ) . '" target="_blank">' . sprintf( _x( 'shipment #%d', 'shipments', 'shiptastic-for-woocommerce' ), $shipment_id ) . '</a>', $message ), 'error' );
 										}
 									}
 								}
@@ -197,12 +197,12 @@ class BulkLabel extends BulkActionHandler {
 					 * @param BulkLabel $this The `BulkLabel instance.
 					 *
 					 * @since 3.0.0
-					 * @package Vendidero/Germanized/shipments
+					 * @package Vendidero/Shiptastic
 					 */
-					$filename = apply_filters( 'woocommerce_gzd_shipment_labels_bulk_filename', 'export.pdf', $this );
+					$filename = apply_filters( 'woocommerce_shiptastic_shipment_labels_bulk_filename', 'export.pdf', $this );
 					$file     = $pdf->output( $filename, 'S' );
 
-					if ( $path = wc_gzd_shipments_upload_data( $filename, $file ) ) {
+					if ( $path = wc_shiptastic_upload_data( $filename, $file ) ) {
 						$this->update_file( $path );
 					}
 				}

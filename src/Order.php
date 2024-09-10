@@ -1,16 +1,16 @@
 <?php
 
-namespace Vendidero\Germanized\Shipments;
+namespace Vendidero\Shiptastic;
 
 use Exception;
-use Vendidero\Germanized\Shipments\Admin\Settings;
-use Vendidero\Germanized\Shipments\Packing\Helper;
-use Vendidero\Germanized\Shipments\Packing\ItemList;
-use Vendidero\Germanized\Shipments\Packing\OrderItem;
-use Vendidero\Germanized\Shipments\Packing\PackagingList;
-use Vendidero\Germanized\Shipments\ShippingMethod\MethodHelper;
-use Vendidero\Germanized\Shipments\ShippingMethod\ProviderMethod;
-use Vendidero\Germanized\Shipments\ShippingMethod\ShippingMethod;
+use Vendidero\Shiptastic\Admin\Settings;
+use Vendidero\Shiptastic\Packing\Helper;
+use Vendidero\Shiptastic\Packing\ItemList;
+use Vendidero\Shiptastic\Packing\OrderItem;
+use Vendidero\Shiptastic\Packing\PackagingList;
+use Vendidero\Shiptastic\ShippingMethod\MethodHelper;
+use Vendidero\Shiptastic\ShippingMethod\ProviderMethod;
+use Vendidero\Shiptastic\ShippingMethod\ShippingMethod;
 use WC_DateTime;
 use DateTimeZone;
 use WC_Order;
@@ -22,7 +22,7 @@ defined( 'ABSPATH' ) || exit;
 /**
  * Shipment Order
  *
- * @class       WC_GZD_Shipment_Order
+ * @class       WC_STC_Shipment_Order
  * @version     1.0.0
  * @author      Vendidero
  */
@@ -90,7 +90,7 @@ class Order {
 	public function is_shipped() {
 		$shipping_status = $this->get_shipping_status();
 
-		return apply_filters( 'woocommerce_gzd_shipment_order_shipping_status', ( in_array( $shipping_status, array( 'shipped', 'delivered' ), true ) || ( 'partially-delivered' === $shipping_status && ! $this->needs_shipping( array( 'sent_only' => true ) ) ) ), $this );
+		return apply_filters( 'woocommerce_shiptastic_shipment_order_shipping_status', ( in_array( $shipping_status, array( 'shipped', 'delivered' ), true ) || ( 'partially-delivered' === $shipping_status && ! $this->needs_shipping( array( 'sent_only' => true ) ) ) ), $this );
 	}
 
 	/**
@@ -106,7 +106,7 @@ class Order {
 			}
 		}
 
-		return apply_filters( 'woocommerce_gzd_shipment_order_last_shipment_with_tracking', $last_shipment, $this );
+		return apply_filters( 'woocommerce_shiptastic_shipment_order_last_shipment_with_tracking', $last_shipment, $this );
 	}
 
 	public function get_last_tracking_id() {
@@ -116,7 +116,7 @@ class Order {
 			$tracking_id = $last_shipment->get_tracking_id();
 		}
 
-		return apply_filters( 'woocommerce_gzd_shipment_order_last_tracking_id', $tracking_id, $this );
+		return apply_filters( 'woocommerce_shiptastic_shipment_order_last_tracking_id', $tracking_id, $this );
 	}
 
 	public function get_shipping_status() {
@@ -154,7 +154,7 @@ class Order {
 			$status = 'no-shipping-needed';
 		}
 
-		return apply_filters( 'woocommerce_gzd_shipment_order_shipping_status', $status, $this );
+		return apply_filters( 'woocommerce_shiptastic_shipment_order_shipping_status', $status, $this );
 	}
 
 	public function supports_third_party_email_transmission() {
@@ -168,9 +168,9 @@ class Order {
 		 * @param Order   $order The order instance.
 		 *
 		 * @since 3.0.0
-		 * @package Vendidero/Germanized/Shipments
+		 * @package Vendidero/Shiptastic
 		 */
-		return apply_filters( 'woocommerce_gzd_shipment_order_supports_email_transmission', $supports_email_transmission, $this );
+		return apply_filters( 'woocommerce_shiptastic_shipment_order_supports_email_transmission', $supports_email_transmission, $this );
 	}
 
 	public function has_shipped_shipments() {
@@ -216,7 +216,7 @@ class Order {
 			}
 		}
 
-		return apply_filters( 'woocommerce_gzd_shipment_order_return_default_shipping_provider', $default_provider, $this );
+		return apply_filters( 'woocommerce_shiptastic_shipment_order_return_default_shipping_provider', $default_provider, $this );
 	}
 
 	/**
@@ -228,10 +228,10 @@ class Order {
 		$s_product = null;
 
 		if ( is_callable( array( $order_item, 'get_product' ) ) && ( $product = $order_item->get_product() ) ) {
-			$s_product = wc_gzd_shipments_get_product( $product );
+			$s_product = wc_shiptastic_get_product( $product );
 		}
 
-		return apply_filters( 'woocommerce_gzd_shipments_order_item_product', $s_product, $order_item );
+		return apply_filters( 'woocommerce_shiptastic_order_item_product', $s_product, $order_item );
 	}
 
 	protected function get_package_data() {
@@ -314,10 +314,10 @@ class Order {
 				if ( $method = $this->get_builtin_shipping_method() ) {
 					$packaging_boxes = $method->get_method()->get_available_packaging_boxes( $this->get_package_data() );
 				} else {
-					$available_packaging = wc_gzd_get_packaging_list();
+					$available_packaging = wc_stc_get_packaging_list();
 
 					if ( $provider = $this->get_shipping_provider() ) {
-						$available_packaging = wc_gzd_get_packaging_list( array( 'shipping_provider' => $provider->get_name() ) );
+						$available_packaging = wc_stc_get_packaging_list( array( 'shipping_provider' => $provider->get_name() ) );
 					}
 
 					$packaging_boxes = Helper::get_packaging_boxes( $available_packaging );
@@ -327,7 +327,7 @@ class Order {
 				$packed_boxes = Helper::pack( $items, $packaging_boxes, 'order' );
 
 				if ( empty( $packaging_boxes ) && 0 === count( $packed_boxes ) ) {
-					$shipment = wc_gzd_create_shipment( $this, array( 'props' => array( 'status' => $default_status ) ) );
+					$shipment = wc_stc_create_shipment( $this, array( 'props' => array( 'status' => $default_status ) ) );
 
 					if ( ! is_wp_error( $shipment ) ) {
 						$this->add_shipment( $shipment );
@@ -339,7 +339,7 @@ class Order {
 					}
 				} else {
 					if ( 0 === count( $packed_boxes ) ) {
-						$errors->add( 404, sprintf( _x( 'Seems like none of your <a href="%1$s">packaging options</a> is available for this order.', 'shipments', 'woocommerce-germanized-shipments' ), Settings::get_settings_url( 'packaging' ) ) );
+						$errors->add( 404, sprintf( _x( 'Seems like none of your <a href="%1$s">packaging options</a> is available for this order.', 'shipments', 'shiptastic-for-woocommerce' ), Settings::get_settings_url( 'packaging' ) ) );
 					} else {
 						foreach ( $packed_boxes as $box ) {
 							$packaging      = $box->getBox();
@@ -356,7 +356,7 @@ class Order {
 								}
 							}
 
-							$shipment = wc_gzd_create_shipment(
+							$shipment = wc_stc_create_shipment(
 								$this,
 								array(
 									'items' => $shipment_items,
@@ -385,7 +385,7 @@ class Order {
 					}
 				}
 			} else {
-				$shipment = wc_gzd_create_shipment( $this, array( 'props' => array( 'status' => $default_status ) ) );
+				$shipment = wc_stc_create_shipment( $this, array( 'props' => array( 'status' => $default_status ) ) );
 
 				if ( ! is_wp_error( $shipment ) ) {
 					$this->add_shipment( $shipment );
@@ -398,7 +398,7 @@ class Order {
 			}
 		}
 
-		if ( wc_gzd_shipment_wp_error_has_errors( $errors ) ) {
+		if ( wc_stc_shipment_wp_error_has_errors( $errors ) ) {
 			return $errors;
 		} else {
 			$this->save();
@@ -468,7 +468,7 @@ class Order {
 		$order_items = $this->get_shippable_items();
 
 		foreach ( $shipments as $shipment ) {
-			if ( ! is_a( $shipment, 'Vendidero\Germanized\Shipments\Shipment' ) ) {
+			if ( ! is_a( $shipment, 'Vendidero\Shiptastic\Shipment' ) ) {
 				continue;
 			}
 
@@ -486,9 +486,9 @@ class Order {
 						 * @param Shipment $shipment The shipment object.
 						 *
 						 * @since 3.0.0
-						 * @package Vendidero/Germanized/Shipments
+						 * @package Vendidero/Shiptastic
 						 */
-						if ( ! apply_filters( 'woocommerce_gzd_shipment_order_keep_non_order_item', false, $item, $shipment ) ) {
+						if ( ! apply_filters( 'woocommerce_shiptastic_shipment_order_keep_non_order_item', false, $item, $shipment ) ) {
 							$shipment->remove_item( $item->get_id() );
 						}
 
@@ -539,7 +539,7 @@ class Order {
 		);
 
 		if ( is_null( $this->shipments ) ) {
-			$this->shipments = wc_gzd_get_shipments(
+			$this->shipments = wc_stc_get_shipments(
 				array(
 					'order_id' => $this->get_order()->get_id(),
 					'limit'    => -1,
@@ -554,7 +554,7 @@ class Order {
 			 * we need to update the cache after, e.g. loading shipments to make sure
 			 * those shipments are not reloaded on the next cache hit.
 			 */
-			if ( $cache = \Vendidero\Germanized\Shipments\Caches\Helper::get_cache_object( 'shipment-orders' ) ) {
+			if ( $cache = \Vendidero\Shiptastic\Caches\Helper::get_cache_object( 'shipment-orders' ) ) {
 				$cache->set( $this, $this->get_order()->get_id() );
 			}
 		}
@@ -596,7 +596,7 @@ class Order {
 			}
 		}
 
-		return apply_filters( 'woocommerce_gzd_shipment_order_shipment_position_number', $number, $shipment, $this );
+		return apply_filters( 'woocommerce_shiptastic_shipment_order_shipment_position_number', $number, $shipment, $this );
 	}
 
 	/**
@@ -717,9 +717,9 @@ class Order {
 		 * @param Order $this The shipment order object.
 		 *
 		 * @since 3.0.0
-		 * @package Vendidero/Germanized/Shipments
+		 * @package Vendidero/Shiptastic
 		 */
-		return apply_filters( 'woocommerce_gzd_shipment_order_item_quantity_left_for_shipping', $quantity_left, $order_item, $this );
+		return apply_filters( 'woocommerce_shiptastic_shipment_order_item_quantity_left_for_shipping', $quantity_left, $order_item, $this );
 	}
 
 	public function get_item_quantity_sent_by_order_item_id( $order_item_id ) {
@@ -752,7 +752,7 @@ class Order {
 			}
 		}
 
-		return apply_filters( 'woocommerce_gzd_shipment_order_item_is_non_returnable', $is_non_returnable, $order_item_id, $this );
+		return apply_filters( 'woocommerce_shiptastic_shipment_order_item_is_non_returnable', $is_non_returnable, $order_item_id, $this );
 	}
 
 	/**
@@ -800,9 +800,9 @@ class Order {
 		 * @param Order         $this The shipment order object.
 		 *
 		 * @since 3.0.0
-		 * @package Vendidero/Germanized/Shipments
+		 * @package Vendidero/Shiptastic
 		 */
-		return apply_filters( 'woocommerce_gzd_shipment_order_item_quantity_left_for_returning', $quantity_left, $order_item_id, $this );
+		return apply_filters( 'woocommerce_shiptastic_shipment_order_item_quantity_left_for_returning', $quantity_left, $order_item_id, $this );
 	}
 
 	/**
@@ -826,7 +826,7 @@ class Order {
 				if ( $product = $this->get_order_item_product( $order_item ) ) {
 					$product_group = '';
 
-					if ( 'yes' === get_option( 'woocommerce_gzd_shipments_packing_group_by_shipping_class' ) ) {
+					if ( 'yes' === get_option( 'woocommerce_shiptastic_packing_group_by_shipping_class' ) ) {
 						$product_group = $product->get_shipping_class();
 					}
 				}
@@ -839,7 +839,7 @@ class Order {
 			}
 		}
 
-		return apply_filters( 'woocommerce_gzd_shipment_order_items_to_pack_left_for_shipping', $items_to_be_packed );
+		return apply_filters( 'woocommerce_shiptastic_shipment_order_items_to_pack_left_for_shipping', $items_to_be_packed );
 	}
 
 	/**
@@ -986,9 +986,9 @@ class Order {
 		 * @param Order $order The shipment order object.
 		 *
 		 * @since 3.0.0
-		 * @package Vendidero/Germanized/Shipments
+		 * @package Vendidero/Shiptastic
 		 */
-		return apply_filters( 'woocommerce_gzd_shipment_order_item_needs_shipping', $needs_shipping, $order_item, $args, $this );
+		return apply_filters( 'woocommerce_shiptastic_shipment_order_item_needs_shipping', $needs_shipping, $order_item, $args, $this );
 	}
 
 	/**
@@ -1022,9 +1022,9 @@ class Order {
 		 * @param Order $order The shipment order object.
 		 *
 		 * @since 3.0.0
-		 * @package Vendidero/Germanized/Shipments
+		 * @package Vendidero/Shiptastic
 		 */
-		return apply_filters( 'woocommerce_gzd_shipment_item_needs_return', $needs_return, $item, $args, $this );
+		return apply_filters( 'woocommerce_shiptastic_shipment_item_needs_return', $needs_return, $item, $args, $this );
 	}
 
 	/**
@@ -1072,12 +1072,12 @@ class Order {
 		 * @param Order $order The shipment order object.
 		 *
 		 * @since 3.0.0
-		 * @package Vendidero/Germanized/Shipments
+		 * @package Vendidero/Shiptastic
 		 */
 
-		do_action( 'woocommerce_gzd_shipments_order_after_get_items', $this->get_order() );
+		do_action( 'woocommerce_shiptastic_order_after_get_items', $this->get_order() );
 
-		return apply_filters( 'woocommerce_gzd_shipment_order_shippable_items', $items, $this->get_order(), $this );
+		return apply_filters( 'woocommerce_shiptastic_shipment_order_shippable_items', $items, $this->get_order(), $this );
 	}
 
 	/**
@@ -1116,9 +1116,9 @@ class Order {
 		 * @param Order          $order The shipment order object.
 		 *
 		 * @since 3.0.0
-		 * @package Vendidero/Germanized/Shipments
+		 * @package Vendidero/Shiptastic
 		 */
-		return apply_filters( 'woocommerce_gzd_shipment_order_returnable_items', $items, $this->get_order(), $this );
+		return apply_filters( 'woocommerce_shiptastic_shipment_order_returnable_items', $items, $this->get_order(), $this );
 	}
 
 	public function get_shippable_item_quantity( $order_item ) {
@@ -1139,9 +1139,9 @@ class Order {
 		 * @param Order $order The shipment order object.
 		 *
 		 * @since 3.0.0
-		 * @package Vendidero/Germanized/Shipments
+		 * @package Vendidero/Shiptastic
 		 */
-		return apply_filters( 'woocommerce_gzd_shipment_order_item_shippable_quantity', $quantity_left, $order_item, $this );
+		return apply_filters( 'woocommerce_shiptastic_shipment_order_item_shippable_quantity', $quantity_left, $order_item, $this );
 	}
 
 	/**
@@ -1163,9 +1163,9 @@ class Order {
 		 * @param Order $order The shipment order object.
 		 *
 		 * @since 3.0.0
-		 * @package Vendidero/Germanized/Shipments
+		 * @package Vendidero/Shiptastic
 		 */
-		return apply_filters( 'woocommerce_gzd_shipment_order_shippable_item_count', $count, $this );
+		return apply_filters( 'woocommerce_shiptastic_shipment_order_shippable_item_count', $count, $this );
 	}
 
 	/**
@@ -1187,16 +1187,16 @@ class Order {
 		 * @param Order   $order The shipment order object.
 		 *
 		 * @since 3.0.0
-		 * @package Vendidero/Germanized/Shipments
+		 * @package Vendidero/Shiptastic
 		 */
-		return apply_filters( 'woocommerce_gzd_shipment_order_returnable_item_count', $count, $this );
+		return apply_filters( 'woocommerce_shiptastic_shipment_order_returnable_item_count', $count, $this );
 	}
 
 	public function supports_pickup_location() {
 		$supports_pickup_location = false;
 
 		if ( $provider = $this->get_shipping_provider() ) {
-			if ( is_a( $provider, 'Vendidero\Germanized\Shipments\Interfaces\ShippingProviderAuto' ) ) {
+			if ( is_a( $provider, 'Vendidero\Shiptastic\Interfaces\ShippingProviderAuto' ) ) {
 				$supports_pickup_location = $provider->supports_pickup_location_delivery( $this->get_order()->get_address( 'shipping' ) );
 			}
 		}
@@ -1205,20 +1205,20 @@ class Order {
 			$supports_pickup_location = true;
 		}
 
-		return apply_filters( 'woocommerce_gzd_shipment_order_supports_pickup_location', $supports_pickup_location, $this->get_order(), $this );
+		return apply_filters( 'woocommerce_shiptastic_shipment_order_supports_pickup_location', $supports_pickup_location, $this->get_order(), $this );
 	}
 
 	/**
 	 * @return bool|Interfaces\ShippingProvider
 	 */
 	public function get_shipping_provider() {
-		return wc_gzd_get_order_shipping_provider( $this->order );
+		return wc_stc_get_order_shipping_provider( $this->order );
 	}
 
 	public function has_pickup_location() {
 		$pickup_location_code = $this->get_pickup_location_code();
 
-		return apply_filters( 'woocommerce_gzd_shipment_order_has_pickup_location', ! empty( $pickup_location_code ), $this->get_order(), $this );
+		return apply_filters( 'woocommerce_shiptastic_shipment_order_has_pickup_location', ! empty( $pickup_location_code ), $this->get_order(), $this );
 	}
 
 	public function get_pickup_location_customer_number() {
@@ -1228,13 +1228,13 @@ class Order {
 			$customer_number = $this->get_order()->get_meta( '_pickup_location_customer_number', true );
 		}
 
-		return apply_filters( 'woocommerce_gzd_shipment_order_pickup_location_customer_number', $customer_number, $this->get_order(), $this );
+		return apply_filters( 'woocommerce_shiptastic_shipment_order_pickup_location_customer_number', $customer_number, $this->get_order(), $this );
 	}
 
 	public function get_pickup_location_code() {
 		$pickup_location_code = $this->get_order()->get_meta( '_pickup_location_code', true );
 
-		return apply_filters( 'woocommerce_gzd_shipment_order_pickup_location_code', $pickup_location_code, $this->get_order(), $this );
+		return apply_filters( 'woocommerce_shiptastic_shipment_order_pickup_location_code', $pickup_location_code, $this->get_order(), $this );
 	}
 
 	protected function has_local_pickup() {
@@ -1248,9 +1248,9 @@ class Order {
 		 * @param string[] $pickup_methods Array of local pickup shipping method ids.
 		 *
 		 * @since 3.1.6
-		 * @package Vendidero/Germanized/Shipments
+		 * @package Vendidero/Shiptastic
 		 */
-		$pickup_methods = apply_filters( 'woocommerce_gzd_shipment_local_pickup_shipping_methods', array( 'local_pickup' ) );
+		$pickup_methods = apply_filters( 'woocommerce_shiptastic_shipment_local_pickup_shipping_methods', array( 'local_pickup' ) );
 
 		foreach ( $shipping_methods as $shipping_method ) {
 			if ( in_array( $shipping_method->get_method_id(), $pickup_methods, true ) ) {
@@ -1269,7 +1269,7 @@ class Order {
 		$method = false;
 
 		if ( Package::is_packing_supported() ) {
-			$shipping_method_id = wc_gzd_get_shipment_order_shipping_method_id( $this->get_order() );
+			$shipping_method_id = wc_stc_get_shipment_order_shipping_method_id( $this->get_order() );
 
 			if ( 'shipping_provider_' === substr( $shipping_method_id, 0, 18 ) ) {
 				$method = MethodHelper::get_provider_method( $shipping_method_id );
@@ -1296,7 +1296,7 @@ class Order {
 			}
 		}
 
-		return apply_filters( 'woocommerce_gzd_shipment_order_has_auto_packing', $has_auto_packing, $this->get_order(), $this );
+		return apply_filters( 'woocommerce_shiptastic_shipment_order_has_auto_packing', $has_auto_packing, $this->get_order(), $this );
 	}
 
 	/**
@@ -1336,9 +1336,9 @@ class Order {
 		 * @param Order    $order The shipment order object.
 		 *
 		 * @since 3.0.0
-		 * @package Vendidero/Germanized/Shipments
+		 * @package Vendidero/Shiptastic
 		 */
-		return apply_filters( 'woocommerce_gzd_shipment_order_needs_shipping', $needs_shipping, $this->get_order(), $this );
+		return apply_filters( 'woocommerce_shiptastic_shipment_order_needs_shipping', $needs_shipping, $this->get_order(), $this );
 	}
 
 	/**
@@ -1373,9 +1373,9 @@ class Order {
 		 * @param Order    $order The shipment order object.
 		 *
 		 * @since 3.0.0
-		 * @package Vendidero/Germanized/Shipments
+		 * @package Vendidero/Shiptastic
 		 */
-		return apply_filters( 'woocommerce_gzd_shipment_order_needs_return', $needs_return, $this->get_order(), $this );
+		return apply_filters( 'woocommerce_shiptastic_shipment_order_needs_return', $needs_return, $this->get_order(), $this );
 	}
 
 	public function save() {
@@ -1393,7 +1393,7 @@ class Order {
 		$this->shipments           = null;
 		$this->shipments_to_delete = null;
 
-		if ( $cache = \Vendidero\Germanized\Shipments\Caches\Helper::get_cache_object( 'shipment-orders' ) ) {
+		if ( $cache = \Vendidero\Shiptastic\Caches\Helper::get_cache_object( 'shipment-orders' ) ) {
 			$cache->remove( $this->get_order()->get_id() );
 		}
 	}

@@ -1,11 +1,11 @@
 <?php
 
-namespace Vendidero\Germanized\Shipments\Labels;
+namespace Vendidero\Shiptastic\Labels;
 
-use Vendidero\Germanized\Shipments\Interfaces\ShipmentLabel;
-use Vendidero\Germanized\Shipments\Interfaces\ShipmentReturnLabel;
-use Vendidero\Germanized\Shipments\Package;
-use Vendidero\Germanized\Shipments\Shipment;
+use Vendidero\Shiptastic\Interfaces\ShipmentLabel;
+use Vendidero\Shiptastic\Interfaces\ShipmentReturnLabel;
+use Vendidero\Shiptastic\Package;
+use Vendidero\Shiptastic\Shipment;
 use WC_Data;
 use WC_Data_Store;
 use Exception;
@@ -82,7 +82,7 @@ class ReturnLabel extends Label implements ShipmentReturnLabel {
 			return $this->get_sender_address_prop( 'street', $context );
 		}
 
-		$split = wc_gzd_split_shipment_street( $this->{'get_sender_address_1'}() );
+		$split = wc_stc_split_shipment_street( $this->{'get_sender_address_1'}() );
 
 		return $split['street'];
 	}
@@ -94,7 +94,7 @@ class ReturnLabel extends Label implements ShipmentReturnLabel {
 			return $this->get_sender_address_prop( 'street_number', $context );
 		}
 
-		$split = wc_gzd_split_shipment_street( $this->{'get_sender_address_1'}() );
+		$split = wc_stc_split_shipment_street( $this->{'get_sender_address_1'}() );
 
 		return $split['number'];
 	}
@@ -106,7 +106,7 @@ class ReturnLabel extends Label implements ShipmentReturnLabel {
 			return $this->get_sender_address_prop( 'street_addition', $context );
 		}
 
-		$split = wc_gzd_split_shipment_street( $this->{'get_sender_address_1'}() );
+		$split = wc_stc_split_shipment_street( $this->{'get_sender_address_1'}() );
 
 		return $split['addition'];
 	}
@@ -138,7 +138,7 @@ class ReturnLabel extends Label implements ShipmentReturnLabel {
 			return $this->get_sender_name();
 		}
 
-		return sprintf( _x( '%1$s %2$s', 'full name', 'woocommerce-germanized-shipments' ), $this->get_sender_first_name(), $this->get_sender_last_name() );
+		return sprintf( _x( '%1$s %2$s', 'full name', 'shiptastic-for-woocommerce' ), $this->get_sender_first_name(), $this->get_sender_last_name() );
 	}
 
 	public function get_sender_postcode( $context = 'view' ) {

@@ -5,12 +5,11 @@
  * The label factory creates the right label objects.
  *
  * @version 1.0.0
- * @package Vendidero/Germanized/DHL
  */
-namespace Vendidero\Germanized\Shipments\Labels;
+namespace Vendidero\Shiptastic\Labels;
 
-use Vendidero\Germanized\Shipments\Caches\Helper;
-use Vendidero\Germanized\Shipments\Interfaces\ShipmentLabel;
+use Vendidero\Shiptastic\Caches\Helper;
+use Vendidero\Shiptastic\Interfaces\ShipmentLabel;
 use \WC_Data_Store;
 use \Exception;
 
@@ -47,16 +46,16 @@ class Factory {
 			}
 		}
 
-		$shipping_provider_name = apply_filters( 'woocommerce_gzd_shipment_label_shipping_provider_name', $shipping_provider_name, $label_id, $label_type );
+		$shipping_provider_name = apply_filters( 'woocommerce_shiptastic_shipment_label_shipping_provider_name', $shipping_provider_name, $label_id, $label_type );
 
-		if ( ! $shipping_provider = wc_gzd_get_shipping_provider( $shipping_provider_name ) ) {
+		if ( ! $shipping_provider = wc_stc_get_shipping_provider( $shipping_provider_name ) ) {
 			return false;
 		}
 
 		/**
 		 * Simple shipping provider do not support labels
 		 */
-		if ( ! is_a( $shipping_provider, '\Vendidero\Germanized\Shipments\Interfaces\ShippingProviderAuto' ) ) {
+		if ( ! is_a( $shipping_provider, '\Vendidero\Shiptastic\Interfaces\ShippingProviderAuto' ) ) {
 			return false;
 		}
 
@@ -70,9 +69,8 @@ class Factory {
 		 * @param string  $label_type The label type.
 		 *
 		 * @since 3.0.0
-		 * @package Vendidero/Germanized/DHL
 		 */
-		$classname = apply_filters( 'woocommerce_gzd_shipment_label_class', $classname, $label_id, $label_type, $shipping_provider );
+		$classname = apply_filters( 'woocommerce_shiptastic_shipment_label_class', $classname, $label_id, $label_type, $shipping_provider );
 
 		if ( ! class_exists( $classname ) ) {
 			return false;

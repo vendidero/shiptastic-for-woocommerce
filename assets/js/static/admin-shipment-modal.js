@@ -1,23 +1,23 @@
-window.shipments = window.shipments || {};
-window.shipments.admin = window.shipments.admin || {};
+window.shiptastic = window.shiptastic || {};
+window.shiptastic.admin = window.shiptastic.admin || {};
 
 ( function( $, window, document, shipments ) {
 
     var AdminShipmentModal = function( $modalTrigger ) {
         var self = this;
 
-        self.params        = wc_gzd_shipments_admin_shipment_modal_params;
+        self.params        = wc_shiptastic_admin_shipment_modal_params;
         self.$modalTrigger = $modalTrigger;
 
         self.destroy();
         self.setup();
 
-        self.$modalTrigger.on( 'click.gzd-modal-' + self.modalId, { adminShipmentModal: self }, self.onClick )
+        self.$modalTrigger.on( 'click.wc-stc-modal-' + self.modalId, { adminShipmentModal: self }, self.onClick )
 
         $( document.body )
-            .on( 'wc_backbone_modal_loaded.gzd-modal-' + self.modalId, { adminShipmentModal: self }, self.onOpen )
-            .on( 'wc_backbone_modal_response.gzd-modal-' + self.modalId, { adminShipmentModal: self }, self.response )
-            .on( 'wc_backbone_modal_before_remove.gzd-modal-' + self.modalId, { adminShipmentModal: self }, self.onClose );
+            .on( 'wc_backbone_modal_loaded.wc-stc-modal-' + self.modalId, { adminShipmentModal: self }, self.onOpen )
+            .on( 'wc_backbone_modal_response.wc-stc-modal-' + self.modalId, { adminShipmentModal: self }, self.response )
+            .on( 'wc_backbone_modal_before_remove.wc-stc-modal-' + self.modalId, { adminShipmentModal: self }, self.onClose );
     };
 
     AdminShipmentModal.prototype.setup = function() {
@@ -27,7 +27,7 @@ window.shipments.admin = window.shipments.admin || {};
         self.modalClass    = self.$modalTrigger.data( 'id' );
         self.modalId       = self.modalClass + '-' + self.referenceId;
         self.loadAsync     = self.$modalTrigger.data( 'load-async' ) ? self.$modalTrigger.data( 'load-async' ) : false;
-        self.nonceParams   = self.$modalTrigger.data( 'nonce-params' ) ? self.$modalTrigger.data( 'nonce-params' ) : 'wc_gzd_shipments_admin_shipments_params';
+        self.nonceParams   = self.$modalTrigger.data( 'nonce-params' ) ? self.$modalTrigger.data( 'nonce-params' ) : 'wc_shiptastic_admin_shipments_params';
         self.$modal        = false;
 
         self.$modalTrigger.data( 'self', this );
@@ -36,10 +36,10 @@ window.shipments.admin = window.shipments.admin || {};
     AdminShipmentModal.prototype.destroy = function() {
         var self = this;
 
-        self.$modalTrigger.off( '.gzd-modal-' + self.modalId );
+        self.$modalTrigger.off( '.wc-stc-modal-' + self.modalId );
 
-        $( document ).off( '.gzd-modal-' + self.modalId );
-        $( document.body ).off( '.gzd-modal-' + self.modalId );
+        $( document ).off( '.wc-stc-modal-' + self.modalId );
+        $( document.body ).off( '.wc-stc-modal-' + self.modalId );
     };
 
     AdminShipmentModal.prototype.getShipment = function( id ) {
@@ -138,8 +138,8 @@ window.shipments.admin = window.shipments.admin || {};
                     $show.hide();
                 }
 
-                $( document.body ).trigger( 'wc_gzd_shipments_admin_shipment_modal_show_if', [self] );
-                self.$modalTrigger.trigger( 'wc_gzd_shipments_admin_shipment_modal_show_if', [self] );
+                $( document.body ).trigger( 'wc_shiptastic_admin_shipment_modal_show_if', [self] );
+                self.$modalTrigger.trigger( 'wc_shiptastic_admin_shipment_modal_show_if', [self] );
             }
         } else {
             $wrapper.find( ':input[data-show-if-' + fieldId + ']' ).parents( '.form-field' ).hide();
@@ -186,7 +186,7 @@ window.shipments.admin = window.shipments.admin || {};
 
         if ( target.indexOf( self.modalId ) !== -1 ) {
             if ( self.$modal && self.$modal.length > 0 ) {
-                self.$modal.off( 'click.gzd-modal-' + self.modalId );
+                self.$modal.off( 'click.wc-stc-modal-' + self.modalId );
             }
         }
     };
@@ -212,16 +212,16 @@ window.shipments.admin = window.shipments.admin || {};
                 self.initData();
             }
 
-            $( document.body ).trigger( 'wc_gzd_shipments_admin_shipment_modal_open', [self] );
-            self.$modalTrigger.trigger( 'wc_gzd_shipments_admin_shipment_modal_open', [self] );
+            $( document.body ).trigger( 'wc_shiptastic_admin_shipment_modal_open', [self] );
+            self.$modalTrigger.trigger( 'wc_shiptastic_admin_shipment_modal_open', [self] );
         }
     };
 
     AdminShipmentModal.prototype.onLoadSuccess = function( data, self ) {
         self.initData();
 
-        $( document.body ).trigger( 'wc_gzd_shipments_admin_shipment_modal_after_load_success', [data, self] );
-        self.$modalTrigger.trigger( 'wc_gzd_shipments_admin_shipment_modal_after_load_success', [data, self] );
+        $( document.body ).trigger( 'wc_shiptastic_admin_shipment_modal_after_load_success', [data, self] );
+        self.$modalTrigger.trigger( 'wc_shiptastic_admin_shipment_modal_after_load_success', [data, self] );
     };
 
     AdminShipmentModal.prototype.onAjaxSuccess = function( data, self ) {
@@ -281,8 +281,8 @@ window.shipments.admin = window.shipments.admin || {};
                         shipments.admin.shipments.refresh( data );
                     }
 
-                    $( document.body ).trigger( 'wc_gzd_shipments_admin_shipment_modal_ajax_success', [data, self] );
-                    self.$modalTrigger.trigger( 'wc_gzd_shipments_admin_shipment_modal_ajax_success', [data, self] );
+                    $( document.body ).trigger( 'wc_shiptastic_admin_shipment_modal_ajax_success', [data, self] );
+                    self.$modalTrigger.trigger( 'wc_shiptastic_admin_shipment_modal_ajax_success', [data, self] );
 
                     /**
                      * Init JS form field types.
@@ -303,8 +303,8 @@ window.shipments.admin = window.shipments.admin || {};
                         scrollTop: 0
                     }, 500 );
 
-                    $( document.body ).trigger( 'wc_gzd_shipments_admin_shipment_modal_ajax_error', [data, self] );
-                    self.$modalTrigger.trigger( 'wc_gzd_shipments_admin_shipment_modal_ajax_error', [data, self] );
+                    $( document.body ).trigger( 'wc_shiptastic_admin_shipment_modal_ajax_error', [data, self] );
+                    self.$modalTrigger.trigger( 'wc_shiptastic_admin_shipment_modal_ajax_error', [data, self] );
                 }
             },
             error: function( data ) {},
@@ -332,17 +332,17 @@ window.shipments.admin = window.shipments.admin || {};
 
         self.afterRefresh();
 
-        self.$modal.on( 'click.gzd-modal-' + self.modalId, '#btn-ok', { adminShipmentModal: self }, self.onSubmit );
-        self.$modal.on( 'touchstart.gzd-modal-' + self.modalId, '#btn-ok', { adminShipmentModal: self }, self.onSubmit );
-        self.$modal.on( 'keydown.gzd-modal-' + self.modalId, { adminShipmentModal: self }, self.onKeyDown );
+        self.$modal.on( 'click.wc-stc-modal-' + self.modalId, '#btn-ok', { adminShipmentModal: self }, self.onSubmit );
+        self.$modal.on( 'touchstart.wc-stc-modal-' + self.modalId, '#btn-ok', { adminShipmentModal: self }, self.onSubmit );
+        self.$modal.on( 'keydown.wc-stc-modal-' + self.modalId, { adminShipmentModal: self }, self.onKeyDown );
 
-        self.$modal.on( 'click.gzd-modal-' + self.modalId, '.notice .notice-dismiss', { adminShipmentModal: self }, self.onRemoveNotice );
-        self.$modal.on( 'change.gzd-modal-' + self.modalId, ':input[id]', { adminShipmentModal: self }, self.onChangeField );
-        self.$modal.on( 'click.gzd-modal-' + self.modalId, '.show-more', { adminShipmentModal: self }, self.onExpandMore );
-        self.$modal.on( 'click.gzd-modal-' + self.modalId, '.show-fewer', { adminShipmentModal: self }, self.onHideMore );
+        self.$modal.on( 'click.wc-stc-modal-' + self.modalId, '.notice .notice-dismiss', { adminShipmentModal: self }, self.onRemoveNotice );
+        self.$modal.on( 'change.wc-stc-modal-' + self.modalId, ':input[id]', { adminShipmentModal: self }, self.onChangeField );
+        self.$modal.on( 'click.wc-stc-modal-' + self.modalId, '.show-more', { adminShipmentModal: self }, self.onExpandMore );
+        self.$modal.on( 'click.wc-stc-modal-' + self.modalId, '.show-fewer', { adminShipmentModal: self }, self.onHideMore );
 
-        $( document.body ).trigger( 'wc_gzd_shipments_admin_shipment_modal_after_init_data', [self] );
-        self.$modalTrigger.trigger( 'wc_gzd_shipments_admin_shipment_modal_after_init_data', [self] );
+        $( document.body ).trigger( 'wc_shiptastic_admin_shipment_modal_after_init_data', [self] );
+        self.$modalTrigger.trigger( 'wc_shiptastic_admin_shipment_modal_after_init_data', [self] );
 
         self.$modal.find( ':input:visible' ).trigger( "change", [self] );
     };
@@ -380,15 +380,15 @@ window.shipments.admin = window.shipments.admin || {};
             shipments.admin.shipments.initShipment( data['shipment_id'] );
         }
 
-        $( document.body ).trigger( 'wc_gzd_shipments_admin_shipment_modal_after_submit_success', [data, self] );
-        self.$modalTrigger.trigger( 'wc_gzd_shipments_admin_shipment_modal_after_submit_success', [data, self] );
+        $( document.body ).trigger( 'wc_shiptastic_admin_shipment_modal_after_submit_success', [data, self] );
+        self.$modalTrigger.trigger( 'wc_shiptastic_admin_shipment_modal_after_submit_success', [data, self] );
     };
 
     AdminShipmentModal.prototype.getCleanId = function( removePrefix = false ) {
         var clean = this.modalClass.split( '-' ).join( '_' ).replace( '_modal_', '_' );
 
         if ( removePrefix ) {
-            clean = clean.replace( 'wc_gzd_', '' ).replace( 'wc_gzdp_', '' );
+            clean = clean.replace( 'wc_stc_', '' ).replace( 'wc_gzdp_', '' );
         }
 
         return clean;
@@ -486,16 +486,16 @@ window.shipments.admin = window.shipments.admin || {};
         var self = event.data.adminShipmentModal;
 
         if ( target.indexOf( self.modalId ) !== -1 ) {
-            $( document.body ).trigger( 'wc_gzd_shipments_admin_shipment_modal_response', [self, data] );
-            self.$modalTrigger.trigger( 'wc_gzd_shipments_admin_shipment_modal_response', [self, data] );
+            $( document.body ).trigger( 'wc_shiptastic_admin_shipment_modal_response', [self, data] );
+            self.$modalTrigger.trigger( 'wc_shiptastic_admin_shipment_modal_response', [self, data] );
         }
     };
 
-    $.fn.wc_gzd_shipments_admin_shipment_modal = function() {
+    $.fn.wc_shiptastic_admin_shipment_modal = function() {
         return this.each( function() {
             new AdminShipmentModal( $( this ) );
 
             return this;
         });
     };
-})( jQuery, window, document, window.shipments );
+})( jQuery, window, document, window.shiptastic );

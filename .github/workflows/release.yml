@@ -70,6 +70,18 @@ jobs:
           coverage: xdebug #optional, setup coverage driver
       - name: Composer install
         run: composer install --no-dev && composer dump-autoload
+      - name: WP i18n JSON
+        uses: ./.github/actions/wp-i18n # Uses an action in the root directory
+        id: i18n_json
+        with:
+          type: 'json'
+          save_path: 'i18n/languages'
+      - name: WP i18n PHP
+        uses: ./.github/actions/wp-i18n # Uses an action in the root directory
+        id: i18n_php
+        with:
+          type: 'php'
+          save_path: 'i18n/languages'
       - name: Use Node.js
         uses: actions/setup-node@v1
         with:
@@ -84,7 +96,10 @@ jobs:
           git add vendor/. --force
           git add build/. --force
           git add .
-          git commit -m "Adding /vendor + /build directory to release" --no-verify
+          git diff-index --quiet HEAD || git commit -m "Adding /vendor + /build directory to release" --no-verify
+          git add i18n/languages/. --force
+          git add .
+          git diff-index --quiet HEAD || git commit -m "Adding /i18n/languages directory to release" --no-verify
       - name: Push new branch
         run: git push origin release/v${{ steps.bump_version.outputs.VERSION }}
       - name: Create Release

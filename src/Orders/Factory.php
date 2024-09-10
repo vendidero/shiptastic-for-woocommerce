@@ -5,12 +5,11 @@
  * The label factory creates the right label objects.
  *
  * @version 1.0.0
- * @package Vendidero/Germanized/DHL
  */
-namespace Vendidero\Germanized\Shipments\Orders;
+namespace Vendidero\Shiptastic\Orders;
 
-use Vendidero\Germanized\Shipments\Caches\Helper;
-use Vendidero\Germanized\Shipments\Order;
+use Vendidero\Shiptastic\Caches\Helper;
+use Vendidero\Shiptastic\Order;
 use \Exception;
 
 defined( 'ABSPATH' ) || exit;
@@ -54,7 +53,7 @@ class Factory {
 				wc_caught_exception( $e, __FUNCTION__, array( $order ) );
 				return false;
 			}
-		} elseif ( is_a( $order, 'Vendidero\Germanized\Shipments\Order' ) ) {
+		} elseif ( is_a( $order, 'Vendidero\Shiptastic\Order' ) ) {
 			return $order;
 		}
 

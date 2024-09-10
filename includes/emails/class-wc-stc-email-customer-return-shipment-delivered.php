@@ -1,30 +1,30 @@
 <?php
 /**
- * Class WC_GZD_Email_Customer_Return_Shipment_Delivered file.
+ * Class WC_STC_Email_Customer_Return_Shipment_Delivered file.
  *
- * @package Vendidero/Germanized/Shipments/Emails
+ * @package Vendidero/Shiptastic/Emails
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit; // Exit if accessed directly.
 }
 
-use Vendidero\Germanized\Shipments\Package;
-use Vendidero\Germanized\Shipments\ReturnShipment;
+use Vendidero\Shiptastic\Package;
+use Vendidero\Shiptastic\ReturnShipment;
 
-if ( ! class_exists( 'WC_GZD_Email_Customer_Return_Shipment_Delivered', false ) ) :
+if ( ! class_exists( 'WC_STC_Email_Customer_Return_Shipment_Delivered', false ) ) :
 
 	/**
 	 * Customer return shipment delivered notification.
 	 *
 	 * This notification is being sent to the customer to inform him that his return was delivered successfully.
 	 *
-	 * @class    WC_GZD_Email_Customer_Return_Shipment_Delivered
+	 * @class    WC_STC_Email_Customer_Return_Shipment_Delivered
 	 * @version  1.0.0
-	 * @package  Vendidero/Germanized/Shipments/Emails
+	 * @package  Vendidero/Shiptastic/Emails
 	 * @extends  WC_Email
 	 */
-	class WC_GZD_Email_Customer_Return_Shipment_Delivered extends WC_Email {
+	class WC_STC_Email_Customer_Return_Shipment_Delivered extends WC_Email {
 
 		/**
 		 * Shipment.
@@ -41,13 +41,13 @@ if ( ! class_exists( 'WC_GZD_Email_Customer_Return_Shipment_Delivered', false ) 
 		public function __construct() {
 			$this->customer_email = true;
 			$this->id             = 'customer_return_shipment_delivered';
-			$this->title          = _x( 'Order return delivered', 'shipments', 'woocommerce-germanized-shipments' );
-			$this->description    = _x( 'Order return notifications are sent to the customer after a return shipment has been returned (delivered) successfully.', 'shipments', 'woocommerce-germanized-shipments' );
+			$this->title          = _x( 'Order return delivered', 'shipments', 'shiptastic-for-woocommerce' );
+			$this->description    = _x( 'Order return notifications are sent to the customer after a return shipment has been returned (delivered) successfully.', 'shipments', 'shiptastic-for-woocommerce' );
 
 			$this->template_html  = 'emails/customer-return-shipment-delivered.php';
 			$this->template_plain = 'emails/plain/customer-return-shipment-delivered.php';
 			$this->template_base  = Package::get_path() . '/templates/';
-			$this->helper         = function_exists( 'wc_gzd_get_email_helper' ) ? wc_gzd_get_email_helper( $this ) : false;
+			$this->helper         = function_exists( 'wc_stc_get_email_helper' ) ? wc_stc_get_email_helper( $this ) : false;
 
 			$this->placeholders = array(
 				'{site_title}'      => $this->get_blogname(),
@@ -58,8 +58,8 @@ if ( ! class_exists( 'WC_GZD_Email_Customer_Return_Shipment_Delivered', false ) 
 			);
 
 			// Triggers for this email.
-			add_action( 'woocommerce_gzd_return_shipment_status_processing_to_delivered_notification', array( $this, 'trigger' ), 10 );
-			add_action( 'woocommerce_gzd_return_shipment_status_shipped_to_delivered_notification', array( $this, 'trigger' ), 10 );
+			add_action( 'woocommerce_shiptastic_return_shipment_status_processing_to_delivered_notification', array( $this, 'trigger' ), 10 );
+			add_action( 'woocommerce_shiptastic_return_shipment_status_shipped_to_delivered_notification', array( $this, 'trigger' ), 10 );
 
 			// Call parent constructor.
 			parent::__construct();
@@ -72,7 +72,7 @@ if ( ! class_exists( 'WC_GZD_Email_Customer_Return_Shipment_Delivered', false ) 
 		 * @return string
 		 */
 		public function get_default_subject() {
-			return _x( 'Return to your order {order_number} has been received', 'shipments', 'woocommerce-germanized-shipments' );
+			return _x( 'Return to your order {order_number} has been received', 'shipments', 'shiptastic-for-woocommerce' );
 		}
 
 		/**
@@ -82,28 +82,20 @@ if ( ! class_exists( 'WC_GZD_Email_Customer_Return_Shipment_Delivered', false ) 
 		 * @return string
 		 */
 		public function get_default_heading() {
-			return _x( 'Received return to your order: {order_number}', 'shipments', 'woocommerce-germanized-shipments' );
+			return _x( 'Received return to your order: {order_number}', 'shipments', 'shiptastic-for-woocommerce' );
 		}
 
-		/**
-		 * Switch Woo and Germanized locale
-		 */
 		public function setup_locale() {
-
-			if ( $this->is_customer_email() && function_exists( 'wc_gzd_switch_to_site_locale' ) && apply_filters( 'woocommerce_email_setup_locale', true ) ) {
-				wc_gzd_switch_to_site_locale();
+			if ( $this->is_customer_email() && function_exists( 'wc_stc_switch_to_site_locale' ) && apply_filters( 'woocommerce_email_setup_locale', true ) ) {
+				wc_stc_switch_to_site_locale();
 			}
 
 			parent::setup_locale();
 		}
 
-		/**
-		 * Restore Woo and Germanized locale
-		 */
 		public function restore_locale() {
-
-			if ( $this->is_customer_email() && function_exists( 'wc_gzd_restore_locale' ) && apply_filters( 'woocommerce_email_restore_locale', true ) ) {
-				wc_gzd_restore_locale();
+			if ( $this->is_customer_email() && function_exists( 'wc_stc_restore_locale' ) && apply_filters( 'woocommerce_email_restore_locale', true ) ) {
+				wc_stc_restore_locale();
 			}
 
 			parent::restore_locale();
@@ -122,7 +114,7 @@ if ( ! class_exists( 'WC_GZD_Email_Customer_Return_Shipment_Delivered', false ) 
 				$this->setup_locale();
 			}
 
-			if ( $this->shipment = wc_gzd_get_shipment( $shipment_id ) ) {
+			if ( $this->shipment = wc_stc_get_shipment( $shipment_id ) ) {
 
 				if ( 'return' !== $this->shipment->get_type() ) {
 					return;
@@ -130,7 +122,7 @@ if ( ! class_exists( 'WC_GZD_Email_Customer_Return_Shipment_Delivered', false ) 
 
 				$this->placeholders['{shipment_number}'] = $this->shipment->get_shipment_number();
 
-				if ( $order_shipment = wc_gzd_get_shipment_order( $this->shipment->get_order() ) ) {
+				if ( $order_shipment = wc_stc_get_shipment_order( $this->shipment->get_order() ) ) {
 
 					$this->object                         = $this->shipment->get_order();
 					$this->recipient                      = $order_shipment->get_order()->get_billing_email();
@@ -231,4 +223,4 @@ if ( ! class_exists( 'WC_GZD_Email_Customer_Return_Shipment_Delivered', false ) 
 
 endif;
 
-return new WC_GZD_Email_Customer_Return_Shipment_Delivered();
+return new WC_STC_Email_Customer_Return_Shipment_Delivered();

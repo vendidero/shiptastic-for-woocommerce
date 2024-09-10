@@ -1,0 +1,21 @@
+# action.yml
+name: 'WP i18n'
+description: 'Generate i18n files'
+branding:
+  icon: 'edit'
+  color: 'gray-dark'
+inputs:
+  type:
+    description: 'The file type, either json or php.'
+    default: 'json'
+    required: true
+  save_path:
+    description: 'Location / Path to save translation files'
+    default: './i18n/languages'
+    required: false
+runs:
+  using: 'docker'
+  image: 'Dockerfile'
+  args:
+    - ${{ inputs.type }}
+    - ${{ inputs.save_path }}

@@ -1,5 +1,5 @@
 <?php
-namespace Vendidero\Germanized\Shipments\Blocks\StoreApi;
+namespace Vendidero\Shiptastic\Blocks\StoreApi;
 
 use Automattic\WooCommerce\StoreApi\Routes\V1\AbstractRoute;
 

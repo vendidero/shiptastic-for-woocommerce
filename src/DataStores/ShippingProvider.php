@@ -1,7 +1,8 @@
 <?php
 
-namespace Vendidero\Germanized\Shipments\DataStores;
+namespace Vendidero\Shiptastic\DataStores;
 
+use Vendidero\Shiptastic\Package;
 use WC_Data_Store_WP;
 use WC_Object_Data_Store_Interface;
 use Exception;
@@ -15,13 +16,6 @@ defined( 'ABSPATH' ) || exit;
  * @version  3.0.0
  */
 class ShippingProvider extends WC_Data_Store_WP implements WC_Object_Data_Store_Interface {
-
-	/**
-	 * Internal meta type used to store order data.
-	 *
-	 * @var string
-	 */
-	protected $meta_type = 'gzd_shipping_provider';
 
 	/**
 	 * Data stored in meta keys, but not considered "meta" for an order.
@@ -46,6 +40,8 @@ class ShippingProvider extends WC_Data_Store_WP implements WC_Object_Data_Store_
 		'order',
 	);
 
+	protected $meta_type = 'stc_shipping_provider';
+
 	/*
 	|--------------------------------------------------------------------------
 	| CRUD Methods
@@ -55,7 +51,7 @@ class ShippingProvider extends WC_Data_Store_WP implements WC_Object_Data_Store_
 	/**
 	 * Method to create a new provider in the database.
 	 *
-	 * @param \Vendidero\Germanized\Shipments\ShippingProvider\Simple $provider Shipping provider object.
+	 * @param \Vendidero\Shiptastic\ShippingProvider\Simple $provider Shipping provider object.
 	 */
 	public function create( &$provider ) {
 		global $wpdb;
@@ -64,7 +60,7 @@ class ShippingProvider extends WC_Data_Store_WP implements WC_Object_Data_Store_
 
 		if ( 0 === $provider->get_order( 'edit' ) ) {
 			$max_order     = 1;
-			$max_order_col = $wpdb->get_col( "SELECT MAX(shipping_provider_order) FROM {$wpdb->gzd_shipping_provider}" );
+			$max_order_col = $wpdb->get_col( "SELECT MAX(shipping_provider_order) FROM {$wpdb->stc_shipping_provider}" );
 
 			if ( ! empty( $max_order_col ) ) {
 				$max_order = absint( $max_order_col[0] ) + 1;
@@ -81,7 +77,7 @@ class ShippingProvider extends WC_Data_Store_WP implements WC_Object_Data_Store_
 		);
 
 		$wpdb->insert(
-			$wpdb->gzd_shipping_provider,
+			$wpdb->stc_shipping_provider,
 			$data
 		);
 
@@ -102,12 +98,12 @@ class ShippingProvider extends WC_Data_Store_WP implements WC_Object_Data_Store_
 			 * Action that indicates that a new Shipping Provider has been created in the DB.
 			 *
 			 * @param integer                                                     $provider_id The provider id.
-			 * @param \Vendidero\Germanized\Shipments\ShippingProvider\Simple $shipping_provider The shipping provider instance.
+			 * @param \Vendidero\Shiptastic\ShippingProvider\Simple $shipping_provider The shipping provider instance.
 			 *
 			 * @since 3.0.0
-			 * @package Vendidero/Germanized/Shipments
+			 * @package Vendidero/Shiptastic
 			 */
-			do_action( 'woocommerce_gzd_new_shipping_provider', $provider_id, $provider );
+			do_action( 'woocommerce_shiptastic_new_shipping_provider', $provider_id, $provider );
 		}
 	}
 
@@ -115,7 +111,7 @@ class ShippingProvider extends WC_Data_Store_WP implements WC_Object_Data_Store_
 	 * Generate a unique name to save to the object.
 	 *
 	 * @since 3.6.0
-	 * @param \Vendidero\Germanized\Shipments\ShippingProvider\Simple $provider Shipping provider object.
+	 * @param \Vendidero\Shiptastic\ShippingProvider\Simple $provider Shipping provider object.
 	 * @return string
 	 */
 	protected function get_unqiue_name( $provider ) {
@@ -124,7 +120,7 @@ class ShippingProvider extends WC_Data_Store_WP implements WC_Object_Data_Store_
 		$slug = sanitize_key( $provider->get_title() );
 
 		// Post slugs must be unique across all posts.
-		$check_sql           = "SELECT shipping_provider_name FROM $wpdb->gzd_shipping_provider WHERE shipping_provider_name = %s AND shipping_provider_id != %d LIMIT 1";
+		$check_sql           = "SELECT shipping_provider_name FROM $wpdb->stc_shipping_provider WHERE shipping_provider_name = %s AND shipping_provider_id != %d LIMIT 1";
 		$provider_name_check = $wpdb->get_var( $wpdb->prepare( $check_sql, $slug, $provider->get_id() ) ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 
 		if ( $provider_name_check || ( $this->is_manual_creation_request() && $this->is_reserved_name( $slug ) ) ) {
@@ -141,7 +137,7 @@ class ShippingProvider extends WC_Data_Store_WP implements WC_Object_Data_Store_
 	}
 
 	protected function is_manual_creation_request() {
-		return apply_filters( 'woocommerce_gzd_shipments_shipping_provider_is_manual_creation_request', false );
+		return apply_filters( 'woocommerce_shiptastic_shipping_provider_is_manual_creation_request', false );
 	}
 
 	protected function is_reserved_name( $name ) {
@@ -155,13 +151,13 @@ class ShippingProvider extends WC_Data_Store_WP implements WC_Object_Data_Store_
 			'fedex',
 		);
 
-		return apply_filters( 'woocommerce_gzd_shipments_shipping_provider_is_reserved_name', in_array( $name, $reserved_names, true ) );
+		return apply_filters( 'woocommerce_shiptastic_shipping_provider_is_reserved_name', in_array( $name, $reserved_names, true ) );
 	}
 
 	/**
 	 * Method to update a shipping provider in the database.
 	 *
-	 * @param \Vendidero\Germanized\Shipments\ShippingProvider\Simple $provider Shipping provider object.
+	 * @param \Vendidero\Shiptastic\ShippingProvider\Simple $provider Shipping provider object.
 	 */
 	public function update( &$provider ) {
 		global $wpdb;
@@ -191,7 +187,7 @@ class ShippingProvider extends WC_Data_Store_WP implements WC_Object_Data_Store_
 
 		if ( ! empty( $provider_data ) ) {
 			$wpdb->update(
-				$wpdb->gzd_shipping_provider,
+				$wpdb->stc_shipping_provider,
 				$provider_data,
 				array( 'shipping_provider_id' => $provider->get_id() )
 			);
@@ -208,26 +204,26 @@ class ShippingProvider extends WC_Data_Store_WP implements WC_Object_Data_Store_
 		 * Action that indicates that a shipping provider has been updated in the DB.
 		 *
 		 * @param integer                                                     $shipping_provider_id The shipping provider id.
-		 * @param \Vendidero\Germanized\Shipments\ShippingProvider\Simple $shipping_provider The shipping provider instance.
+		 * @param \Vendidero\Shiptastic\ShippingProvider\Simple $shipping_provider The shipping provider instance.
 		 *
 		 * @since 3.0.0
-		 * @package Vendidero/Germanized/Shipments
+		 * @package Vendidero/Shiptastic
 		 */
-		do_action( 'woocommerce_gzd_shipping_provider_updated', $provider->get_id(), $provider );
+		do_action( 'woocommerce_shiptastic_shipping_provider_updated', $provider->get_id(), $provider );
 	}
 
 	/**
 	 * Remove a shipping provider from the database.
 	 *
 	 * @since 3.0.0
-	 * @param \Vendidero\Germanized\Shipments\ShippingProvider\Simple $provider Shipping provider object.
+	 * @param \Vendidero\Shiptastic\ShippingProvider\Simple $provider Shipping provider object.
 	 * @param bool                $force_delete Unused param.
 	 */
 	public function delete( &$provider, $force_delete = false ) {
 		global $wpdb;
 
-		$wpdb->delete( $wpdb->gzd_shipping_provider, array( 'shipping_provider_id' => $provider->get_id() ), array( '%d' ) );
-		$wpdb->delete( $wpdb->gzd_shipping_providermeta, array( 'gzd_shipping_provider_id' => $provider->get_id() ), array( '%d' ) );
+		$wpdb->delete( $wpdb->stc_shipping_provider, array( 'shipping_provider_id' => $provider->get_id() ), array( '%d' ) );
+		$wpdb->delete( $wpdb->stc_shipping_providermeta, array( 'stc_shipping_provider_id' => $provider->get_id() ), array( '%d' ) );
 
 		$this->clear_caches( $provider );
 
@@ -235,12 +231,12 @@ class ShippingProvider extends WC_Data_Store_WP implements WC_Object_Data_Store_
 		 * Action that indicates that a shipping provider has been deleted from the DB.
 		 *
 		 * @param integer                                                     $shipping_provider_id The shipping provider id.
-		 * @param \Vendidero\Germanized\Shipments\ShippingProvider\Simple $provider The shipping provider object.
+		 * @param \Vendidero\Shiptastic\ShippingProvider\Simple $provider The shipping provider object.
 		 *
 		 * @since 3.0.0
-		 * @package Vendidero/Germanized/Shipments
+		 * @package Vendidero/Shiptastic
 		 */
-		do_action( 'woocommerce_gzd_shipping_provider_deleted', $provider->get_id(), $provider );
+		do_action( 'woocommerce_shiptastic_shipping_provider_deleted', $provider->get_id(), $provider );
 	}
 
 	/**
@@ -248,7 +244,7 @@ class ShippingProvider extends WC_Data_Store_WP implements WC_Object_Data_Store_
 	 *
 	 * @since 3.0.0
 	 *
-	 * @param \Vendidero\Germanized\Shipments\ShippingProvider\Simple $provider Shipping provider object.
+	 * @param \Vendidero\Shiptastic\ShippingProvider\Simple $provider Shipping provider object.
 	 *
 	 * @throws Exception Throw exception if invalid shipping provider.
 	 */
@@ -257,7 +253,7 @@ class ShippingProvider extends WC_Data_Store_WP implements WC_Object_Data_Store_
 
 		$data = $wpdb->get_row(
 			$wpdb->prepare(
-				"SELECT * FROM {$wpdb->gzd_shipping_provider} WHERE shipping_provider_id = %d LIMIT 1",
+				"SELECT * FROM {$wpdb->stc_shipping_provider} WHERE shipping_provider_id = %d LIMIT 1",
 				$provider->get_id()
 			)
 		);
@@ -280,14 +276,14 @@ class ShippingProvider extends WC_Data_Store_WP implements WC_Object_Data_Store_
 			/**
 			 * Action that indicates that a shipping provider has been loaded from DB.
 			 *
-			 * @param \Vendidero\Germanized\Shipments\ShippingProvider\Simple $provider The shipping provider object.
+			 * @param \Vendidero\Shiptastic\ShippingProvider\Simple $provider The shipping provider object.
 			 *
 			 * @since 3.0.0
-			 * @package Vendidero/Germanized/Shipments
+			 * @package Vendidero/Shiptastic
 			 */
-			do_action( 'woocommerce_gzd_shipping_provider_loaded', $provider );
+			do_action( 'woocommerce_shiptastic_shipping_provider_loaded', $provider );
 		} else {
-			throw new Exception( _x( 'Invalid shipping provider.', 'shipments', 'woocommerce-germanized-shipments' ) );
+			throw new Exception( _x( 'Invalid shipping provider.', 'shipments', 'shiptastic-for-woocommerce' ) );
 		}
 	}
 
@@ -300,14 +296,14 @@ class ShippingProvider extends WC_Data_Store_WP implements WC_Object_Data_Store_
 	/**
 	 * Clear any caches.
 	 *
-	 * @param \Vendidero\Germanized\Shipments\ShippingProvider\Simple $provider Shipping provider object.
+	 * @param \Vendidero\Shiptastic\ShippingProvider\Simple $provider Shipping provider object.
 	 * @since 3.0.0
 	 */
 	protected function clear_caches( &$provider ) {
 		wp_cache_delete( $provider->get_id(), $this->meta_type . '_meta' );
-		wp_cache_delete( 'all-providers', 'shipping-providers' );
+		wp_cache_delete( 'all-providers', 'shiptastic-shipping-providers' );
 
-		if ( $cache = \Vendidero\Germanized\Shipments\Caches\Helper::get_cache_object( 'shipping-providers' ) ) {
+		if ( $cache = \Vendidero\Shiptastic\Caches\Helper::get_cache_object( 'shipping-providers' ) ) {
 			$cache->remove( $provider->get_name() );
 		}
 	}
@@ -321,7 +317,7 @@ class ShippingProvider extends WC_Data_Store_WP implements WC_Object_Data_Store_
 	/**
 	 * Read extra data associated with the shipping provider.
 	 *
-	 * @param \Vendidero\Germanized\Shipments\ShippingProvider\Simple $provider Shipping provider object.
+	 * @param \Vendidero\Shiptastic\ShippingProvider\Simple $provider Shipping provider object.
 	 * @since 3.0.0
 	 */
 	protected function read_provider_data( &$provider ) {
@@ -334,12 +330,12 @@ class ShippingProvider extends WC_Data_Store_WP implements WC_Object_Data_Store_
 
 		foreach ( $meta_keys as $meta_key ) {
 			if ( function_exists( 'get_metadata_raw' ) ) {
-				$value = get_metadata_raw( 'gzd_shipping_provider', $provider->get_id(), $meta_key, true );
+				$value = get_metadata_raw( 'stc_shipping_provider', $provider->get_id(), $meta_key, true );
 			} else {
 				$value = null;
 
-				if ( metadata_exists( 'gzd_shipping_provider', $provider->get_id(), $meta_key ) ) {
-					$value = get_metadata( 'gzd_shipping_provider', $provider->get_id(), $meta_key, true );
+				if ( metadata_exists( 'stc_shipping_provider', $provider->get_id(), $meta_key ) ) {
+					$value = get_metadata( 'stc_shipping_provider', $provider->get_id(), $meta_key, true );
 				}
 			}
 
@@ -354,7 +350,7 @@ class ShippingProvider extends WC_Data_Store_WP implements WC_Object_Data_Store_
 	/**
 	 * Save shipping provider data.
 	 *
-	 * @param \Vendidero\Germanized\Shipments\ShippingProvider\Simple $provider Shipping provider object.
+	 * @param \Vendidero\Shiptastic\ShippingProvider\Simple $provider Shipping provider object.
 	 */
 	protected function save_provider_data( &$provider ) {
 		$updated_props     = array();
@@ -377,7 +373,7 @@ class ShippingProvider extends WC_Data_Store_WP implements WC_Object_Data_Store_
 			$meta_key_to_props[ '_' . $key ] = $key;
 		}
 
-		$props_to_update = $this->get_props_to_update( $provider, $meta_key_to_props, 'gzd_shipping_provider' );
+		$props_to_update = $this->get_props_to_update( $provider, $meta_key_to_props, 'stc_shipping_provider' );
 
 		foreach ( $props_to_update as $meta_key => $prop ) {
 
@@ -402,13 +398,13 @@ class ShippingProvider extends WC_Data_Store_WP implements WC_Object_Data_Store_
 		/**
 		 * Action that fires after updating a shipping providers' properties.
 		 *
-		 * @param \Vendidero\Germanized\Shipments\ShippingProvider\Simple $provider The shipping provider object.
+		 * @param \Vendidero\Shiptastic\ShippingProvider\Simple $provider The shipping provider object.
 		 * @param array                                                       $changed_props The updated properties.
 		 *
 		 * @since 3.0.0
-		 * @package Vendidero/Germanized/Shipments
+		 * @package Vendidero/Shiptastic
 		 */
-		do_action( 'woocommerce_gzd_shipping_provider_object_updated_props', $provider, $updated_props );
+		do_action( 'woocommerce_shiptastic_shipping_provider_object_updated_props', $provider, $updated_props );
 	}
 
 	/**
@@ -430,9 +426,9 @@ class ShippingProvider extends WC_Data_Store_WP implements WC_Object_Data_Store_
 	 */
 	protected function update_or_delete_meta( $object, $meta_key, $meta_value ) {
 		if ( in_array( $meta_value, array( array(), '' ), true ) && ! in_array( $meta_key, $this->must_exist_meta_keys, true ) ) {
-			$updated = delete_metadata( 'gzd_shipping_provider', $object->get_id(), $meta_key );
+			$updated = delete_metadata( 'stc_shipping_provider', $object->get_id(), $meta_key );
 		} else {
-			$updated = update_metadata( 'gzd_shipping_provider', $object->get_id(), $meta_key, $meta_value );
+			$updated = update_metadata( 'stc_shipping_provider', $object->get_id(), $meta_key, $meta_value );
 		}
 
 		return (bool) $updated;
@@ -448,7 +444,7 @@ class ShippingProvider extends WC_Data_Store_WP implements WC_Object_Data_Store_
 		global $wpdb;
 
 		$meta_id_field   = 'meta_id'; // for some reason users calls this umeta_id so we need to track this as well.
-		$table           = $wpdb->gzd_shipping_providermeta;
+		$table           = $wpdb->stc_shipping_providermeta;
 		$object_id_field = $this->meta_type . '_id';
 
 		if ( ! empty( $this->object_id_field_for_meta ) ) {
@@ -479,10 +475,10 @@ class ShippingProvider extends WC_Data_Store_WP implements WC_Object_Data_Store_
 	public function get_shipping_providers() {
 		global $wpdb;
 
-		$shipping_providers = wp_cache_get( 'all-providers', 'shipping-providers' );
+		$shipping_providers = wp_cache_get( 'all-providers', 'shiptastic-shipping-providers' );
 
 		if ( false === $shipping_providers ) {
-			$providers          = $wpdb->get_results( "SELECT * FROM $wpdb->gzd_shipping_provider ORDER BY shipping_provider_order ASC" );
+			$providers          = $wpdb->get_results( "SELECT * FROM $wpdb->stc_shipping_provider ORDER BY shipping_provider_order ASC" );
 			$shipping_providers = array();
 
 			foreach ( $providers as $provider ) {
@@ -493,7 +489,7 @@ class ShippingProvider extends WC_Data_Store_WP implements WC_Object_Data_Store_
 				}
 			}
 
-			wp_cache_set( 'all-providers', $shipping_providers, 'shipping-providers' );
+			wp_cache_set( 'all-providers', $shipping_providers, 'shiptastic-shipping-providers' );
 		}
 
 		return $shipping_providers;

@@ -1,5 +1,5 @@
-window.shipments = window.shipments || {};
-window.shipments.admin = window.shipments.admin || {};
+window.shiptastic = window.shiptastic || {};
+window.shiptastic.admin = window.shiptastic.admin || {};
 
 ( function( $, shipments ) {
 
@@ -50,33 +50,33 @@ window.shipments.admin = window.shipments.admin || {};
             } );
 
             self.vars.modals = [];
-            $modals = $( '#shipment-' + self.vars.id + ' a.has-shipment-modal' ).wc_gzd_shipments_admin_shipment_modal();
+            $modals = $( '#shipment-' + self.vars.id + ' a.has-shipment-modal' ).wc_shiptastic_admin_shipment_modal();
 
             $modals.each( function() {
                 self.vars.modals.push( $( this ).data( 'self' ) );
             } );
 
-            $( '#shipment-' + self.vars.id + ' #shipment-items-' + self.vars.id ).off( '.gzd-shipment' );
-            $( '#shipment-' + self.vars.id + ' #shipment-footer-' + self.vars.id ).off( '.gzd-shipment' );
-            $( '#shipment-' + self.vars.id + ' #shipment-shipping-provider-' + self.vars.id ).off( '.gzd-shipment' );
-            $( '#shipment-' + self.vars.id + ' #shipment-packaging-' + self.vars.id ).off( '.gzd-shipment' );
-            $( '#shipment-' + self.vars.id + ' .wc-gzd-shipment-label' ).off( '.gzd-shipment' );
+            $( '#shipment-' + self.vars.id + ' #shipment-items-' + self.vars.id ).off( '.wc-stc-shipment' );
+            $( '#shipment-' + self.vars.id + ' #shipment-footer-' + self.vars.id ).off( '.wc-stc-shipment' );
+            $( '#shipment-' + self.vars.id + ' #shipment-shipping-provider-' + self.vars.id ).off( '.wc-stc-shipment' );
+            $( '#shipment-' + self.vars.id + ' #shipment-packaging-' + self.vars.id ).off( '.wc-stc-shipment' );
+            $( '#shipment-' + self.vars.id + ' .wc-stc-shipment-label' ).off( '.wc-stc-shipment' );
 
             $( '#shipment-' + self.vars.id + ' #shipment-shipping-provider-' + self.vars.id ).on( 'change', self.onChangeProvider.bind( self ) );
             $( '#shipment-' + self.vars.id + ' #shipment-packaging-' + self.vars.id ).on( 'change', self.refreshDimensions.bind( self ) );
 
             $( '#shipment-' + self.vars.id + ' #shipment-items-' + self.vars.id )
-                .on( 'change.gzd-shipment', '.item-quantity', self.onChangeQuantity.bind( self ) )
-                .on( 'click.gzd-shipment', 'a.remove-shipment-item', self.onRemoveItem.bind( self ) )
-                .on( 'wc_gzd_shipments_admin_shipment_modal_after_load_success.gzd-shipment', 'a.add-shipment-item', self.onLoadedItemsSuccess.bind( self ) )
-                .on( 'wc_gzd_shipments_admin_shipment_modal_after_submit_success.gzd-shipment', 'a.add-shipment-item', self.onAddedItem.bind( self ) )
-                .on( 'click.gzd-shipment', 'a.sync-shipment-items', self.onSyncItems.bind( self ) );
+                .on( 'change.wc-stc-shipment', '.item-quantity', self.onChangeQuantity.bind( self ) )
+                .on( 'click.wc-stc-shipment', 'a.remove-shipment-item', self.onRemoveItem.bind( self ) )
+                .on( 'wc_shiptastic_admin_shipment_modal_after_load_success.wc-stc-shipment', 'a.add-shipment-item', self.onLoadedItemsSuccess.bind( self ) )
+                .on( 'wc_shiptastic_admin_shipment_modal_after_submit_success.wc-stc-shipment', 'a.add-shipment-item', self.onAddedItem.bind( self ) )
+                .on( 'click.wc-stc-shipment', 'a.sync-shipment-items', self.onSyncItems.bind( self ) );
 
             $( '#shipment-' + self.vars.id + ' #shipment-footer-' + self.vars.id )
-                .on( 'click.gzd-shipment', '.send-return-shipment-notification', self.onSendReturnNotification.bind( self ) )
-                .on( 'click.gzd-shipment', '.confirm-return-shipment', self.onConfirmReturnRequest.bind( self ) );
+                .on( 'click.wc-stc-shipment', '.send-return-shipment-notification', self.onSendReturnNotification.bind( self ) )
+                .on( 'click.wc-stc-shipment', '.confirm-return-shipment', self.onConfirmReturnRequest.bind( self ) );
 
-            $( '#shipment-' + self.vars.id + ' .wc-gzd-shipment-label' ).on( 'click.gzd-shipment', '.remove-shipment-label', self.onRemoveLabel.bind( self ) );
+            $( '#shipment-' + self.vars.id + ' .wc-stc-shipment-label' ).on( 'click.wc-stc-shipment', '.remove-shipment-label', self.onRemoveLabel.bind( self ) );
         };
 
         this.refreshDimensions = function() {
@@ -107,7 +107,7 @@ window.shipments.admin = window.shipments.admin || {};
         };
 
         this.blockPackaging = function() {
-            this.getShipmentContent().find( '.wc-gzd-shipment-packaging-wrapper' ).block({
+            this.getShipmentContent().find( '.wc-stc-shipment-packaging-wrapper' ).block({
                 message: null,
                 overlayCSS: {
                     background: '#fff',
@@ -117,12 +117,12 @@ window.shipments.admin = window.shipments.admin || {};
         };
 
         this.unblockPackaging = function() {
-            this.getShipmentContent().find( '.wc-gzd-shipment-packaging-wrapper' ).unblock();
+            this.getShipmentContent().find( '.wc-stc-shipment-packaging-wrapper' ).unblock();
         };
 
         this.refreshPackaging = function() {
             var params = {
-                'action'       : 'woocommerce_gzd_refresh_shipment_packaging',
+                'action'       : 'woocommerce_stc_refresh_shipment_packaging',
                 'shipment_id'  : this.getId(),
                 'security'     : shipments.admin.shipments.getParams().refresh_packaging_nonce
             };
@@ -133,7 +133,7 @@ window.shipments.admin = window.shipments.admin || {};
 
         this.onSendReturnNotification = function() {
             var params = {
-                'action'       : 'woocommerce_gzd_send_return_shipment_notification_email',
+                'action'       : 'woocommerce_stc_send_return_shipment_notification_email',
                 'shipment_id'  : this.getId(),
                 'security'     : shipments.admin.shipments.getParams().send_return_notification_nonce
             };
@@ -146,7 +146,7 @@ window.shipments.admin = window.shipments.admin || {};
 
         this.onConfirmReturnRequest = function() {
             var params = {
-                'action'       : 'woocommerce_gzd_confirm_return_request',
+                'action'       : 'woocommerce_stc_confirm_return_request',
                 'shipment_id'  : this.getId(),
                 'security'     : shipments.admin.shipments.getParams().confirm_return_request_nonce
             };
@@ -169,7 +169,7 @@ window.shipments.admin = window.shipments.admin || {};
 
         this.removeLabel = function() {
             var params = {
-                'action'       : 'woocommerce_gzd_remove_shipment_label',
+                'action'       : 'woocommerce_stc_remove_shipment_label',
                 'shipment_id'  : this.getId(),
                 'security'     : shipments.admin.shipments.getParams().remove_label_nonce
             };
@@ -209,7 +209,7 @@ window.shipments.admin = window.shipments.admin || {};
             this.blockItems();
 
             var params = {
-                'action'       : 'woocommerce_gzd_limit_shipment_item_quantity',
+                'action'       : 'woocommerce_stc_limit_shipment_item_quantity',
                 'shipment_id'  : this.getId(),
                 'item_id'      : itemId,
                 'quantity'     : newQuantity
@@ -310,7 +310,7 @@ window.shipments.admin = window.shipments.admin || {};
             this.blockItems();
 
             var params = {
-                'action'     : 'woocommerce_gzd_sync_shipment_items',
+                'action'     : 'woocommerce_stc_sync_shipment_items',
                 'shipment_id': this.getId()
             };
 
@@ -327,7 +327,7 @@ window.shipments.admin = window.shipments.admin || {};
 
         this.onAddItem = function( e, adminShipmentModal ) {
             adminShipmentModal.doAjax( {
-                'action'       : 'woocommerce_gzd_get_available_shipment_items',
+                'action'       : 'woocommerce_stc_get_available_shipment_items',
                 'reference_id' : adminShipmentModal.reference_id,
                 'security'     : shipments.admin.shipments.getParams().edit_shipments_nonce
             }, this.onLoadedItemsSuccess.bind( this ) );
@@ -343,10 +343,10 @@ window.shipments.admin = window.shipments.admin || {};
         };
 
         this.onLoadedItemsSuccess = function( e, data, adminShipmentModal ) {
-            $select   = adminShipmentModal.$modal.find( 'select#wc-gzd-shipment-add-items-select' );
-            $quantity = adminShipmentModal.$modal.find( 'input#wc-gzd-shipment-add-items-quantity' );
+            $select   = adminShipmentModal.$modal.find( 'select#wc-stc-shipment-add-items-select' );
+            $quantity = adminShipmentModal.$modal.find( 'input#wc-stc-shipment-add-items-quantity' );
 
-            $( document.body ).on( 'change', 'select#wc-gzd-shipment-add-items-select', function() {
+            $( document.body ).on( 'change', 'select#wc-stc-shipment-add-items-select', function() {
                 var $selected = $( this ).find( 'option:selected' );
 
                 $quantity.val( $selected.data( 'max-quantity' ) );
@@ -362,7 +362,7 @@ window.shipments.admin = window.shipments.admin || {};
             this.blockItems();
 
             var params = {
-                'action'           : 'woocommerce_gzd_add_shipment_item',
+                'action'           : 'woocommerce_stc_add_shipment_item',
                 'shipment_id'      : this.getId(),
                 'original_item_id' : orderItemId,
                 'quantity'         : quantity
@@ -375,7 +375,7 @@ window.shipments.admin = window.shipments.admin || {};
             this.block();
 
             var params = {
-                'action'       : 'woocommerce_gzd_add_shipment_return',
+                'action'       : 'woocommerce_stc_add_shipment_return',
                 'shipment_id'  : this.getId()
             };
 
@@ -452,7 +452,7 @@ window.shipments.admin = window.shipments.admin || {};
             var $item = this.getShipment().find( '.shipment-item[data-id="' + itemId + '"]' );
 
             var params = {
-                'action'       : 'woocommerce_gzd_remove_shipment_item',
+                'action'       : 'woocommerce_stc_remove_shipment_item',
                 'shipment_id'  : this.getId(),
                 'item_id'      : itemId
             };
@@ -492,4 +492,4 @@ window.shipments.admin = window.shipments.admin || {};
         this.construct( shipmentId );
     };
 
-})( jQuery, window.shipments );
+})( jQuery, window.shiptastic );

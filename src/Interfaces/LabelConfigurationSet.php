@@ -1,12 +1,11 @@
 <?php
-namespace Vendidero\Germanized\Shipments\Interfaces;
+namespace Vendidero\Shiptastic\Interfaces;
 
-use Vendidero\Germanized\Shipments\Labels\ConfigurationSet;
+use Vendidero\Shiptastic\Labels\ConfigurationSet;
 
 /**
  * Shipment Label Interface
  *
- * @package  Germanized/Shipments/Interfaces
  * @version  3.1.0
  */
 if ( ! defined( 'ABSPATH' ) ) {

@@ -1,6 +1,6 @@
 <?php
 
-namespace Vendidero\Germanized\Shipments\Utilities;
+namespace Vendidero\Shiptastic\Utilities;
 
 class VariableStreamHandler {
 

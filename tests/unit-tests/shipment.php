@@ -1,22 +1,22 @@
 <?php
 
-use Vendidero\Germanized\Shipments\Tests\Helpers\ShipmentHelper;
-use Vendidero\Germanized\Shipments\Tests\Helpers\PackagingHelper;
+use Vendidero\Shiptastic\Tests\Helpers\ShipmentHelper;
+use Vendidero\Shiptastic\Tests\Helpers\PackagingHelper;
 
 /**
  * Class WC_Tests_Install.
  * @package WooCommerce\Tests\Util
  */
-class Shipment extends \Vendidero\Germanized\Shipments\Tests\Framework\UnitTestCase {
+class Shipment extends \Vendidero\Shiptastic\Tests\Framework\UnitTestCase {
 
 	function test_shipment_weight() {
-		$shipment = new \Vendidero\Germanized\Shipments\SimpleShipment();
+		$shipment = new \Vendidero\Shiptastic\SimpleShipment();
 		$this->assertEquals( 0, $shipment->get_total_weight() );
 		$this->assertEquals( 0, $shipment->get_weight() );
 		$this->assertEquals( 0, $shipment->get_packaging_weight() );
 
 		$id = $shipment->save();
-		$shipment = wc_gzd_get_shipment( $id );
+		$shipment = wc_stc_get_shipment( $id );
 
 		$this->assertEquals( 0, $shipment->get_total_weight() );
 		$this->assertEquals( 0, $shipment->get_weight() );
@@ -29,12 +29,12 @@ class Shipment extends \Vendidero\Germanized\Shipments\Tests\Framework\UnitTestC
 	}
 
 	function test_shipment_content_weight() {
-		$shipment = new \Vendidero\Germanized\Shipments\SimpleShipment();
+		$shipment = new \Vendidero\Shiptastic\SimpleShipment();
 
-		$item = new \Vendidero\Germanized\Shipments\ShipmentItem();
+		$item = new \Vendidero\Shiptastic\ShipmentItem();
 		$item->set_weight( 1.5 );
 
-		$item_2 = new \Vendidero\Germanized\Shipments\ShipmentItem();
+		$item_2 = new \Vendidero\Shiptastic\ShipmentItem();
 		$item_2->set_quantity( 3 );
 		$item_2->set_weight( 5 );
 

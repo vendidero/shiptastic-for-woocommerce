@@ -1,11 +1,11 @@
-/* global wc_gzd_shipments_admin_shipping_rules_params, ajaxurl */
+/* global wc_shiptastic_admin_shipping_rules_params, ajaxurl */
 ( function( $, data, wp, ajaxurl ) {
     $( function() {
-        var $tbody            = $( '.wc-gzd-shipments-shipping-rules-rows' ),
-            $table            = $( '.wc-gzd-shipments-shipping-rules' ),
-            $row_template     = wp.template( 'wc-gzd-shipments-shipping-rules-row' ),
-            $condition_row_template = wp.template( 'wc-gzd-shipments-shipping-rules-condition-row' ),
-            $packaging_info   = wp.template( 'wc-gzd-shipments-shipping-rules-packaging-info' ),
+        var $tbody            = $( '.wc-shiptastic-shipping-rules-rows' ),
+            $table            = $( '.wc-shiptastic-shipping-rules' ),
+            $row_template     = wp.template( 'wc-shiptastic-shipping-rules-row' ),
+            $condition_row_template = wp.template( 'wc-shiptastic-shipping-rules-condition-row' ),
+            $packaging_info   = wp.template( 'wc-shiptastic-shipping-rules-packaging-info' ),
             shippingRuleViews = {},
 
             // Backbone model
@@ -101,7 +101,7 @@
 
                     var condition = new ConditionRowView({
                         model: view.model,
-                        el: $tr.find( '.wc-gzd-shipments-shipping-rules-condition-rows' )[0]
+                        el: $tr.find( '.wc-shiptastic-shipping-rules-condition-rows' )[0]
                     } );
 
                     condition.ruleId     = rowData.rule_id;
@@ -153,9 +153,9 @@
                     $tr.find( '.shipping-rule-remove' ).on( 'click', { view: this }, this.onDeleteRow );
                     $tr.find( '.shipping-rule-add' ).on( 'click', { view: this }, this.onAddRow );
 
-                    if ( $tbody.find( 'tr.wc-gzd-shipments-shipping-rules-packaging-info' ).length <= 0 ) {
+                    if ( $tbody.find( 'tr.wc-shiptastic-shipping-rules-packaging-info' ).length <= 0 ) {
                         $tbody.prepend( $packaging_info );
-                        var $packagingTr = $tbody.find( 'tr.wc-gzd-shipments-shipping-rules-packaging-info' );
+                        var $packagingTr = $tbody.find( 'tr.wc-shiptastic-shipping-rules-packaging-info' );
 
                         $packagingTr.find( '.packaging-title' ).html( $tbody.data( 'title' ) );
 
@@ -251,7 +251,7 @@
                         value      = $target.val(),
                         rules      = view.getRules();
 
-                    if ( $target.parents( '.wc-gzd-shipments-shipping-rules-condition-rows' ).length > 0 ) {
+                    if ( $target.parents( '.wc-shiptastic-shipping-rules-condition-rows' ).length > 0 ) {
                         return false;
                     }
 
@@ -481,7 +481,7 @@
             } );
         } );
 
-        $( document ).on( 'change', '.wc-gzd-shipments-shipping-rules-cb-all', function() {
+        $( document ).on( 'change', '.wc-shiptastic-shipping-rules-cb-all', function() {
             var $table = $( this ).parents( 'table' );
 
             if ( $( this ).is( ':checked' ) ) {
@@ -491,7 +491,7 @@
             }
         } );
 
-        $( document ).on( 'click', '.wc-gzd-shipments-shipping-rule-add', function() {
+        $( document ).on( 'click', '.wc-shiptastic-shipping-rule-add', function() {
             var packagingId = $( '.new-shipping-packaging' ).val(),
                 view = shippingRuleViews[ packagingId ],
                 rules = view.model.getRulesByPackaging( packagingId ),
@@ -519,7 +519,7 @@
             return false;
         } );
 
-        $( document ).on( 'click', '.wc-gzd-shipments-shipping-rule-remove', function() {
+        $( document ).on( 'click', '.wc-shiptastic-shipping-rule-remove', function() {
             var rules = shippingRule.get( 'rules' ),
                 $button = $( this ),
                 $table = $button.parents( 'table' ),
@@ -545,14 +545,14 @@
             });
 
             $button.addClass( 'disabled' );
-            $table.find( '.wc-gzd-shipments-shipping-rules-cb-all' ).prop( 'checked', false );
+            $table.find( '.wc-shiptastic-shipping-rules-cb-all' ).prop( 'checked', false );
 
             return false;
         } );
 
         $( document ).on( 'keydown', function( e ) {
             var $selectedRow   = $table.find( 'tr.current' ),
-                $selectedTable = $( '.wc-gzd-shipments-shipping-rules.has-focus' );
+                $selectedTable = $( '.wc-shiptastic-shipping-rules.has-focus' );
 
             if ( $selectedRow.length === 0 && $selectedTable.length === 0 ) {
                 return;
@@ -564,7 +564,7 @@
                 $selected = $table.find( 'input.cb:checked' );
 
                 if ( $selected.length > 0 ) {
-                    $table.find( '.wc-gzd-shipments-shipping-rule-remove' ).trigger( 'click' );
+                    $table.find( '.wc-shiptastic-shipping-rule-remove' ).trigger( 'click' );
                 } else if ( $selectedRow ) {
                     $selectedRow.find( '.shipping-rule-remove' ).trigger( 'click' );
                 }
@@ -581,8 +581,8 @@
 
                 return false;
             } else if ( $selectedTable && command_or_ctrl && 'a' === e.key ) {
-                $selectedTable.find( '.wc-gzd-shipments-shipping-rules-cb-all' ).prop( 'checked', ! $selectedTable.find( '.wc-gzd-shipments-shipping-rules-cb-all' ).is( ':checked' ) );
-                $selectedTable.find( '.wc-gzd-shipments-shipping-rules-cb-all' ).trigger( 'change' );
+                $selectedTable.find( '.wc-shiptastic-shipping-rules-cb-all' ).prop( 'checked', ! $selectedTable.find( '.wc-shiptastic-shipping-rules-cb-all' ).is( ':checked' ) );
+                $selectedTable.find( '.wc-shiptastic-shipping-rules-cb-all' ).trigger( 'change' );
 
                 e.preventDefault();
                 e.stopPropagation();
@@ -591,19 +591,19 @@
             }
         } );
 
-        $( document ).on( 'change', '.wc-gzd-shipments-shipping-rules-rows input.cb, .wc-gzd-shipments-shipping-rules-cb-all', function() {
+        $( document ).on( 'change', '.wc-shiptastic-shipping-rules-rows input.cb, .wc-shiptastic-shipping-rules-cb-all', function() {
              $selected = $( this ).parents( 'table' ).find( 'input.cb:checked' );
 
              if ( $selected.length > 0 ) {
-                 $table.find( '.wc-gzd-shipments-shipping-rule-remove' ).removeClass( 'disabled' );
+                 $table.find( '.wc-shiptastic-shipping-rule-remove' ).removeClass( 'disabled' );
              } else {
-                 $table.find( '.wc-gzd-shipments-shipping-rule-remove' ).addClass( 'disabled' );
+                 $table.find( '.wc-shiptastic-shipping-rule-remove' ).addClass( 'disabled' );
              }
         } );
 
         // Remove current focus
         $( document ).on( 'mouseup', function( e ) {
-            var container = $( 'table.wc-gzd-shipments-shipping-rules' );
+            var container = $( 'table.wc-shiptastic-shipping-rules' );
 
             // if the target of the click isn't the container nor a descendant of the container
             if ( ! container.is( e.target ) && container.has( e.target ).length === 0 ) {
@@ -615,13 +615,13 @@
         } );
 
         // Focus on inputs within the table if clicked instead of trying to sort.
-        $( document ).on( 'click', '.wc-gzd-shipments-shipping-rules tbody, .wc-gzd-shipments-shipping-rules input', function () {
+        $( document ).on( 'click', '.wc-shiptastic-shipping-rules tbody, .wc-shiptastic-shipping-rules input', function () {
             $( this ).trigger( 'focus' );
         } );
 
-        $( document ).on( 'focus click', '.wc-gzd-shipments-shipping-rules input, .wc-gzd-shipments-shipping-rules tr', function (e) {
+        $( document ).on( 'focus click', '.wc-shiptastic-shipping-rules input, .wc-shiptastic-shipping-rules tr', function (e) {
             $( this ).parents( 'table' ).find( 'tr' ).removeClass( 'current' );
             $( this ).closest( 'tr.shipping-rule' ).addClass( 'current' );
         } );
     });
-})( jQuery, wc_gzd_shipments_admin_shipping_rules_params, wp, ajaxurl );
+})( jQuery, wc_shiptastic_admin_shipping_rules_params, wp, ajaxurl );

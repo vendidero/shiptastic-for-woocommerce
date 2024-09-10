@@ -1,8 +1,8 @@
 <?php
 
-namespace Vendidero\Germanized\Shipments\Packaging;
+namespace Vendidero\Shiptastic\Packaging;
 
-use Vendidero\Germanized\Shipments\Package;
+use Vendidero\Shiptastic\Package;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -26,7 +26,7 @@ class AsyncReportGenerator {
 				'limit'     => ReportQueue::get_batch_size(),
 				'status'    => ReportQueue::get_shipment_statuses(),
 				'offset'    => 0,
-				'type'      => apply_filters( 'woocommerce_gzd_shipments_packaging_report_default_shipment_types', array( 'simple' ) ),
+				'type'      => apply_filters( 'woocommerce_shiptastic_packaging_report_default_shipment_types', array( 'simple' ) ),
 				'processed' => 0,
 			)
 		);
@@ -122,7 +122,7 @@ class AsyncReportGenerator {
 
 			return true;
 		} else {
-			return new \WP_Error( 'empty', _x( 'No shipments found.', 'shipments', 'woocommerce-germanized-shipments' ) );
+			return new \WP_Error( 'empty', _x( 'No shipments found.', 'shipments', 'shiptastic-for-woocommerce' ) );
 		}
 	}
 

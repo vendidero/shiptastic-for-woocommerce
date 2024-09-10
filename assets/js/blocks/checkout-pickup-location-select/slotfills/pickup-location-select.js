@@ -12,7 +12,7 @@ import {
 } from '@woocommerce/blocks-checkout';
 
 import { decodeEntities } from '@wordpress/html-entities';
-import { getSelectedShippingProviders, Combobox, hasShippingProvider, getCheckoutData, hasPickupLocation, Spinner } from '@woocommerceGzdShipments/blocks-checkout';
+import { getSelectedShippingProviders, Combobox, hasShippingProvider, getCheckoutData, hasPickupLocation, Spinner } from '@woocommerceShiptastic/blocks-checkout';
 import { useDebouncedCallback, useDebounce } from 'use-debounce';
 
 import './style.scss';
@@ -48,7 +48,7 @@ const PickupLocationDomWatcher = ({
                     const header = blockElement.getElementsByClassName( 'wc-block-components-title' )[0];
 
                     if ( header ) {
-                        header.innerHTML += '<span class="managed-by-pickup-location-notice">' + _x( 'Managed by&nbsp;<a href="#current-pickup-location">pickup location</a>', 'shipments', 'woocommerce-germanized-shipments' ) + '</span>';
+                        header.innerHTML += '<span class="managed-by-pickup-location-notice">' + _x( 'Managed by&nbsp;<a href="#current-pickup-location">pickup location</a>', 'shipments', 'shiptastic-for-woocommerce' ) + '</span>';
                     }
                 }
             }
@@ -117,7 +117,7 @@ const CurrentPickupLocationHeader = ({
     return (
         <h4 className="current-pickup-location" id="current-pickup-location">
             <span className="currently-shipping-to-title">
-                {sprintf(_x('Currently shipping to: %s', 'shipments', 'woocommerce-germanized-shipments'), currentPickupLocation['label'])}
+                {sprintf(_x('Currently shipping to: %s', 'shipments', 'shiptastic-for-woocommerce'), currentPickupLocation['label'])}
             </span>
             <a
                 className="pickup-location-remove"
@@ -161,11 +161,11 @@ const PickupLocationSelectForm = ({
 
     if (isAvailable) {
         return (
-            <div className="wc-gzd-shipments-pickup-location-delivery">
+            <div className="wc-shiptastic-pickup-location-delivery">
                 {!currentPickupLocation && (
                     <h4>
                         <span
-                            className="pickup-location-notice-title">{_x('Not at home? Choose a pickup location', 'shipments', 'woocommerce-germanized-shipments')}</span>
+                            className="pickup-location-notice-title">{_x('Not at home? Choose a pickup location', 'shipments', 'shiptastic-for-woocommerce')}</span>
                     </h4>
                 )}
                 {currentPickupLocation && (
@@ -179,7 +179,7 @@ const PickupLocationSelectForm = ({
                         key="pickup_location_search_address"
                         value={pickupLocationSearchAddress['address_1'] ? pickupLocationSearchAddress['address_1'] : ''}
                         id="pickup-location-search-address"
-                        label={_x('Address', 'shipments', 'woocommerce-germanized-shipments')}
+                        label={_x('Address', 'shipments', 'shiptastic-for-woocommerce')}
                         name="pickup_location_search_address"
                         onChange={(address) => {
                             onChangePickupLocationSearch({'address_1': address})
@@ -190,7 +190,7 @@ const PickupLocationSelectForm = ({
                         key="pickup_location_search_postcode"
                         value={pickupLocationSearchAddress['postcode'] ? pickupLocationSearchAddress['postcode'] : ''}
                         id="pickup-location-search-postcode"
-                        label={_x('Postcode', 'shipments', 'woocommerce-germanized-shipments')}
+                        label={_x('Postcode', 'shipments', 'shiptastic-for-woocommerce')}
                         name="pickup_location_search_postcode"
                         onChange={(postcode) => {
                             onChangePickupLocationSearch({'postcode': postcode})
@@ -214,7 +214,7 @@ const PickupLocationSelectForm = ({
                             id="pickup-location-search"
                             key="pickup-location-search"
                             name="pickup_location-search"
-                            label={_x('Choose a pickup location', 'shipments', 'woocommerce-germanized-shipments')}
+                            label={_x('Choose a pickup location', 'shipments', 'shiptastic-for-woocommerce')}
                             errorId="pickup-location-search"
                             allowReset={ currentPickupLocation ? true : false }
                             value={ currentPickupLocation ? currentPickupLocation.code : '' }
@@ -226,7 +226,7 @@ const PickupLocationSelectForm = ({
                     )}
 
                     {!hasSearchResults && (
-                        <p>{_x('Sorry, we did not find any pickup locations nearby.', 'shipments', 'woocommerce-germanized-shipments')}</p>
+                        <p>{_x('Sorry, we did not find any pickup locations nearby.', 'shipments', 'shiptastic-for-woocommerce')}</p>
                     )}
                 </div>
 
@@ -283,7 +283,7 @@ const render = () => {
             'default_pickup_location': '',
             'default_pickup_location_customer_number': '',
         };
-        const shipmentsData = cartData.extensions.hasOwnProperty( 'woocommerce-gzd-shipments' ) ? cartData.extensions['woocommerce-gzd-shipments'] : defaultData;
+        const shipmentsData = cartData.extensions.hasOwnProperty( 'woocommerce-shiptastic' ) ? cartData.extensions['woocommerce-shiptastic'] : defaultData;
 
         return {
             shippingRates: rates,
@@ -386,7 +386,7 @@ const render = () => {
             checkoutOptions['pickup_location_customer_number'] = '';
         }
 
-        dispatch( CHECKOUT_STORE_KEY ).__internalSetExtensionData( 'woocommerce-gzd-shipments', checkoutOptions );
+        dispatch( CHECKOUT_STORE_KEY ).__internalSetExtensionData( 'woocommerce-shiptastic', checkoutOptions );
     }, [ checkoutOptions ] );
 
     useEffect(() => {
@@ -448,9 +448,9 @@ const render = () => {
 
                 dispatch( 'core/notices' ).createNotice(
                     'warning',
-                    _x( 'Your pickup location chosen is not available any longer. Please review your shipping address.', 'shipments', 'woocommerce-germanized-shipments' ),
+                    _x( 'Your pickup location chosen is not available any longer. Please review your shipping address.', 'shipments', 'shiptastic-for-woocommerce' ),
                     {
-                        id: 'wc-gzd-shipments-pickup-location-missing',
+                        id: 'wc-shiptastic-pickup-location-missing',
                         context: 'wc/checkout/shipping-address',
                     }
                 );
@@ -530,9 +530,9 @@ const render = () => {
         setOption( 'pickup_location', '' );
         dispatch( 'core/notices' ).createNotice(
             'warning',
-            _x( 'Please review your shipping address.', 'shipments', 'woocommerce-germanized-shipments' ),
+            _x( 'Please review your shipping address.', 'shipments', 'shiptastic-for-woocommerce' ),
             {
-                id: 'wc-gzd-shipments-review-shipping-address',
+                id: 'wc-shiptastic-review-shipping-address',
                 context: 'wc/checkout/shipping-address',
             }
         );
@@ -549,8 +549,8 @@ const render = () => {
 
             const { removeNotice } = dispatch( 'core/notices' );
 
-            removeNotice( 'wc-gzd-shipments-review-shipping-address', 'wc/checkout/shipping-address' );
-            removeNotice( 'wc-gzd-shipments-pickup-location-missing', 'wc/checkout/shipping-address' );
+            removeNotice( 'wc-shiptastic-review-shipping-address', 'wc/checkout/shipping-address' );
+            removeNotice( 'wc-shiptastic-pickup-location-missing', 'wc/checkout/shipping-address' );
         } else if ( ! pickupLocation ) {
             onRemovePickupLocation();
         } else {
@@ -613,7 +613,7 @@ const render = () => {
     );
 };
 
-registerPlugin('woocommerce-gzd-shipments-pickup-location-select', {
+registerPlugin('woocommerce-shiptastic-pickup-location-select', {
     render,
     scope: 'woocommerce-checkout',
 });

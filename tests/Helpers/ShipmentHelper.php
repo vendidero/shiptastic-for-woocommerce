@@ -5,7 +5,7 @@
  * @package WooCommerce\Tests\Framework\Helpers
  */
 
-namespace Vendidero\Germanized\Shipments\Tests\Helpers;
+namespace Vendidero\Shiptastic\Tests\Helpers;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -22,7 +22,7 @@ class ShipmentHelper {
 	/**
 	 * Create simple shipment.
 	 *
-	 * @return \Vendidero\Germanized\Shipments\Shipment|\WP_Error
+	 * @return \Vendidero\Shiptastic\Shipment|\WP_Error
 	 */
 	public static function create_simple_shipment( $props = array(), $items = array() ) {
 		$order = WC_Helper_Order::create_order();
@@ -39,8 +39,8 @@ class ShipmentHelper {
 			'order_id' => $order->get_id(),
 		) );
 
-		$order_shipment = wc_gzd_get_shipment_order( $order );
-		$shipment       = wc_gzd_create_shipment( $order_shipment, array( 'props' => $props, 'items' => $items ) );
+		$order_shipment = wc_stc_get_shipment_order( $order );
+		$shipment       = wc_stc_create_shipment( $order_shipment, array( 'props' => $props, 'items' => $items ) );
 
 		return $shipment;
 	}

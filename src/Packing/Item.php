@@ -1,9 +1,9 @@
 <?php
 
-namespace Vendidero\Germanized\Shipments\Packing;
+namespace Vendidero\Shiptastic\Packing;
 
-use Vendidero\Germanized\Shipments\Interfaces\PackingItem;
-use Vendidero\Germanized\Shipments\Product;
+use Vendidero\Shiptastic\Interfaces\PackingItem;
+use Vendidero\Shiptastic\Product;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -71,7 +71,7 @@ abstract class Item implements PackingItem {
 			 * In case grouping is activated make sure that a new item with a different shipping class
 			 * is not being packed within the same already existing package.
 			 */
-			if ( $fits && 'yes' === get_option( 'woocommerce_gzd_shipments_packing_group_by_shipping_class' ) ) {
+			if ( $fits && 'yes' === get_option( 'woocommerce_shiptastic_packing_group_by_shipping_class' ) ) {
 				$count     = $already_packed_items->count();
 				$last_item = $count > 0 ? $already_packed_items->getIterator()[ $count - 1 ]->getItem() : false;
 
@@ -83,14 +83,14 @@ abstract class Item implements PackingItem {
 			}
 		}
 
-		return apply_filters( 'woocommerce_gzd_shipments_item_fits_packaging', $fits, $this, $box->get_packaging(), $already_packed_items, $args );
+		return apply_filters( 'woocommerce_shiptastic_item_fits_packaging', $fits, $this, $box->get_packaging(), $already_packed_items, $args );
 	}
 
 	/**
 	 * Does this item need to be kept flat / packed "this way up"?
 	 */
 	public function getKeepFlat(): bool {
-		return apply_filters( 'woocommerce_gzd_packing_item_keep_flat', false, $this );
+		return apply_filters( 'woocommerce_shiptastic_packing_item_keep_flat', false, $this );
 	}
 
 	/**
@@ -109,35 +109,35 @@ abstract class Item implements PackingItem {
 			$description = $title . ' (' . $description . ')';
 		}
 
-		return apply_filters( 'woocommerce_gzd_packing_item_description', $description, $this );
+		return apply_filters( 'woocommerce_shiptastic_packing_item_description', $description, $this );
 	}
 
 	/**
 	 * Item width in mm.
 	 */
 	public function getWidth(): int {
-		return apply_filters( 'woocommerce_gzd_packing_item_width_in_mm', $this->dimensions['width'], $this );
+		return apply_filters( 'woocommerce_shiptastic_packing_item_width_in_mm', $this->dimensions['width'], $this );
 	}
 
 	/**
 	 * Item length in mm.
 	 */
 	public function getLength(): int {
-		return apply_filters( 'woocommerce_gzd_packing_item_length_in_mm', $this->dimensions['length'], $this );
+		return apply_filters( 'woocommerce_shiptastic_packing_item_length_in_mm', $this->dimensions['length'], $this );
 	}
 
 	/**
 	 * Item depth in mm.
 	 */
 	public function getDepth(): int {
-		return apply_filters( 'woocommerce_gzd_packing_item_depth_in_mm', $this->dimensions['depth'], $this );
+		return apply_filters( 'woocommerce_shiptastic_packing_item_depth_in_mm', $this->dimensions['depth'], $this );
 	}
 
 	/**
 	 * Item weight in g.
 	 */
 	public function getWeight(): int {
-		return apply_filters( 'woocommerce_gzd_packing_item_weight_in_g', $this->weight, $this );
+		return apply_filters( 'woocommerce_shiptastic_packing_item_weight_in_g', $this->weight, $this );
 	}
 
 	public function get_dimensions() {
@@ -150,7 +150,7 @@ abstract class Item implements PackingItem {
 	 * @return int
 	 */
 	public function get_total(): int {
-		return apply_filters( 'woocommerce_gzd_packing_item_total_in_cents', $this->total, $this );
+		return apply_filters( 'woocommerce_shiptastic_packing_item_total_in_cents', $this->total, $this );
 	}
 
 	/**
@@ -159,6 +159,6 @@ abstract class Item implements PackingItem {
 	 * @return int
 	 */
 	public function get_subtotal(): int {
-		return apply_filters( 'woocommerce_gzd_packing_item_subtotal_in_cents', $this->subtotal, $this );
+		return apply_filters( 'woocommerce_shiptastic_packing_item_subtotal_in_cents', $this->subtotal, $this );
 	}
 }

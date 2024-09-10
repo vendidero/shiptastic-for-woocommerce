@@ -1,4 +1,4 @@
-WooCommerce Germanized Shipments
+Shiptastic for WooCommerce
 
 Copyright 2019 by the contributors
 

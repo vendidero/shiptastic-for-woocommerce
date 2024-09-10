@@ -1,6 +1,6 @@
 <?php
 
-namespace Vendidero\Germanized\Shipments\Tests\Framework;
+namespace Vendidero\Shiptastic\Tests\Framework;
 
 class UnitTestCase extends \WP_UnitTestCase {
 

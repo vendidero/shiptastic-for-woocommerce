@@ -1,10 +1,10 @@
 <?php
 
-namespace Vendidero\Germanized\Shipments\ShippingProvider;
+namespace Vendidero\Shiptastic\ShippingProvider;
 
-use Vendidero\Germanized\Shipments\Extensions;
-use Vendidero\Germanized\Shipments\Interfaces\ShippingProvider;
-use Vendidero\Germanized\Shipments\Package;
+use Vendidero\Shiptastic\Extensions;
+use Vendidero\Shiptastic\Interfaces\ShippingProvider;
+use Vendidero\Shiptastic\Package;
 use WC_Data_Store;
 
 defined( 'ABSPATH' ) || exit;
@@ -27,7 +27,7 @@ class Helper {
 	public $shipping_providers = null;
 
 	/**
-	 * @var null|\Vendidero\Germanized\Shipments\ShippingProvider\Placeholder[]
+	 * @var null|\Vendidero\Shiptastic\ShippingProvider\Placeholder[]
 	 */
 	private $integrations = null;
 
@@ -79,9 +79,9 @@ class Helper {
 		 * This action fires as soon as the shipping provider wrapper instance is loaded.
 		 *
 		 * @since 1.0.5
-		 * @package Vendidero/Germanized/Shipments
+		 * @package Vendidero/Shiptastic
 		 */
-		do_action( 'woocommerce_gzd_shipping_providers_init' );
+		do_action( 'woocommerce_shiptastic_shipping_providers_init' );
 	}
 
 	/**
@@ -103,31 +103,31 @@ class Helper {
 			$this->integrations = array();
 			$available          = array(
 				'dhl'           => array(
-					'title'               => _x( 'DHL', 'shipments', 'woocommerce-germanized-shipments' ),
+					'title'               => _x( 'DHL', 'shipments', 'shiptastic-for-woocommerce' ),
 					'countries_supported' => array( 'DE' ),
 					'is_pro'              => false,
 					'extension_name'      => 'woocommerce-germanized-dhl',
 				),
 				'deutsche_post' => array(
-					'title'               => _x( 'Deutsche Post', 'shipments', 'woocommerce-germanized-shipments' ),
+					'title'               => _x( 'Deutsche Post', 'shipments', 'shiptastic-for-woocommerce' ),
 					'countries_supported' => array( 'DE' ),
 					'is_pro'              => false,
 					'extension_name'      => 'woocommerce-germanized-dhl',
 				),
 				'dpd'           => array(
-					'title'               => _x( 'DPD', 'shipments', 'woocommerce-germanized-shipments' ),
+					'title'               => _x( 'DPD', 'shipments', 'shiptastic-for-woocommerce' ),
 					'countries_supported' => array( 'DE', 'AT' ),
 					'is_pro'              => true,
 					'extension_name'      => 'woocommerce-germanized-dpd',
 				),
 				'gls'           => array(
-					'title'               => _x( 'GLS', 'shipments', 'woocommerce-germanized-shipments' ),
+					'title'               => _x( 'GLS', 'shipments', 'shiptastic-for-woocommerce' ),
 					'countries_supported' => array( 'DE', 'AT', 'CH', 'BE', 'LU', 'FR', 'IE', 'ES' ),
 					'is_pro'              => true,
 					'extension_name'      => 'woocommerce-germanized-gls',
 				),
 				'hermes'        => array(
-					'title'               => _x( 'Hermes', 'shipments', 'woocommerce-germanized-shipments' ),
+					'title'               => _x( 'Hermes', 'shipments', 'shiptastic-for-woocommerce' ),
 					'countries_supported' => array( 'DE' ),
 					'is_pro'              => true,
 					'extension_name'      => 'woocommerce-germanized-hermes',
@@ -171,22 +171,22 @@ class Helper {
 
 			$provider = new $provider();
 		} else {
-			$classname = '\Vendidero\Germanized\Shipments\ShippingProvider\Simple';
+			$classname = '\Vendidero\Shiptastic\ShippingProvider\Simple';
 
 			if ( array_key_exists( $provider->shipping_provider_name, $classes ) ) {
 				$classname = $classes[ $provider->shipping_provider_name ];
 			}
 
-			$classname = apply_filters( 'woocommerce_gzd_shipping_provider_class_name', $classname, $provider->shipping_provider_name, $provider );
+			$classname = apply_filters( 'woocommerce_shiptastic_shipping_provider_class_name', $classname, $provider->shipping_provider_name, $provider );
 
 			if ( ! class_exists( $classname ) ) {
-				$classname = '\Vendidero\Germanized\Shipments\ShippingProvider\Simple';
+				$classname = '\Vendidero\Shiptastic\ShippingProvider\Simple';
 			}
 
 			$provider = new $classname( $provider );
 		}
 
-		if ( ! $provider || ! is_a( $provider, '\Vendidero\Germanized\Shipments\Interfaces\ShippingProvider' ) ) {
+		if ( ! $provider || ! is_a( $provider, '\Vendidero\Shiptastic\Interfaces\ShippingProvider' ) ) {
 			return false;
 		}
 
@@ -196,13 +196,13 @@ class Helper {
 
 		$this->shipping_providers[ $provider->get_name() ] = $provider;
 
-		if ( $cache = \Vendidero\Germanized\Shipments\Caches\Helper::get_cache_object( 'shipping-providers' ) ) {
+		if ( $cache = \Vendidero\Shiptastic\Caches\Helper::get_cache_object( 'shipping-providers' ) ) {
 			$cache->set( $provider, $provider->get_name() );
 		}
 	}
 
 	/**
-	 * Shipping providers register themselves by returning their main class name through the woocommerce_gzd_shipping_provider_integrations filter.
+	 * Shipping providers register themselves by returning their main class name through the woocommerce_stc_shipping_provider_integrations filter.
 	 *
 	 * @return array
 	 */
@@ -216,16 +216,16 @@ class Helper {
 		 * @param array $shipping_providers The shipping provider array
 		 *
 		 * @since 1.0.5
-		 * @package Vendidero/Germanized/Shipments
+		 * @package Vendidero/Shiptastic
 		 */
-		return apply_filters( 'woocommerce_gzd_shipping_provider_class_names', $class_names );
+		return apply_filters( 'woocommerce_shiptastic_shipping_provider_class_names', $class_names );
 	}
 
 	public function is_shipping_provider_activated( $name ) {
 		/**
 		 * Make sure that the plugin has initialised, e.g. during installs of shipping provider
 		 */
-		if ( ! did_action( 'woocommerce_gzd_shipments_init' ) ) {
+		if ( ! did_action( 'woocommerce_shiptastic_init' ) ) {
 			Package::init();
 		}
 
@@ -239,7 +239,7 @@ class Helper {
 	 */
 	public function load_shipping_providers() {
 		if ( ! did_action( 'plugins_loaded' ) || doing_action( 'plugins_loaded' ) ) {
-			wc_doing_it_wrong( __FUNCTION__, _x( 'Loading shipping providers should only be triggered after the plugins_loaded action has fully been executed', 'shipments', 'woocommerce-germanized-shipments' ), '2.2.3' );
+			wc_doing_it_wrong( __FUNCTION__, _x( 'Loading shipping providers should only be triggered after the plugins_loaded action has fully been executed', 'shipments', 'shiptastic-for-woocommerce' ), '2.2.3' );
 			return array();
 		}
 
@@ -255,9 +255,10 @@ class Helper {
 
 		// For the settings in the backend, and for non-shipping zone methods, we still need to load any registered classes here.
 		foreach ( $shipping_providers as $provider_name => $provider_class ) {
-			if ( $cache = \Vendidero\Germanized\Shipments\Caches\Helper::get_cache_object( 'shipping-providers' ) ) {
+			if ( $cache = \Vendidero\Shiptastic\Caches\Helper::get_cache_object( 'shipping-providers' ) ) {
 				if ( $provider = $cache->get( $provider_name ) ) {
 					$this->shipping_providers[ $provider_name ] = $provider;
+
 					continue;
 				}
 			}
@@ -272,9 +273,9 @@ class Helper {
 		 * @param Helper $providers The shipping providers instance
 		 *
 		 * @since 3.0.6
-		 * @package Vendidero/Germanized/Shipments
+		 * @package Vendidero/Shiptastic
 		 */
-		do_action( 'woocommerce_gzd_load_shipping_providers', $this );
+		do_action( 'woocommerce_shiptastic_load_shipping_providers', $this );
 
 		// Return loaded methods.
 		return $this->get_shipping_providers();
@@ -322,7 +323,7 @@ class Helper {
 	 * @return false|Simple|Auto|ShippingProvider
 	 */
 	public function get_shipping_provider( $name ) {
-		if ( is_a( $name, 'Vendidero\Germanized\Shipments\Interfaces\ShippingProvider' ) ) {
+		if ( is_a( $name, 'Vendidero\Shiptastic\Interfaces\ShippingProvider' ) ) {
 			$name = $name->get_name();
 		}
 

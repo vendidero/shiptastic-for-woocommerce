@@ -1,5 +1,5 @@
-window.shipments = window.shipments || {};
-window.shipments.admin = window.shipments.admin || {};
+window.shiptastic = window.shiptastic || {};
+window.shiptastic.admin = window.shiptastic.admin || {};
 
 ( function( $, shipments ) {
 
@@ -11,13 +11,13 @@ window.shipments.admin = window.shipments.admin || {};
 
         init: function() {
             var self    = shipments.admin.shipments_table;
-            self.params = wc_gzd_shipments_admin_shipments_table_params;
+            self.params = wc_shiptastic_admin_shipments_table_params;
 
             self.initEnhanced();
 
             $( document ).on( 'click', '#doaction, #doaction2', self.onBulkSubmit );
 
-            $( '.has-shipment-modal' ).wc_gzd_shipments_admin_shipment_modal();
+            $( '.has-shipment-modal' ).wc_shiptastic_admin_shipment_modal();
 
             $( document.body ).on( 'init_tooltips', function() {
                 self.initTipTip();
@@ -59,7 +59,7 @@ window.shipments.admin = window.shipments.admin || {};
                 type: 'POST',
                 url: self.params.ajax_url,
                 data: {
-                    action           : 'woocommerce_gzd_shipments_bulk_action_handle',
+                    action           : 'woocommerce_shiptastic_bulk_action_handle',
                     bulk_action      : action,
                     step             : step,
                     type             : type,
@@ -91,7 +91,7 @@ window.shipments.admin = window.shipments.admin || {};
         },
 
         initTipTip: function() {
-            $( '.column-actions .wc-gzd-shipment-action-button' ).tipTip( {
+            $( '.column-actions .wc-stc-shipment-action-button' ).tipTip( {
                 'fadeIn': 50,
                 'fadeOut': 50,
                 'delay': 200
@@ -103,7 +103,7 @@ window.shipments.admin = window.shipments.admin || {};
                 $( document.body )
                     .on( 'wc-enhanced-select-init', function() {
                         // Ajax order search boxes
-                        $( ':input.wc-gzd-order-search' ).filter( ':not(.enhanced)' ).each( function() {
+                        $( ':input.wc-stc-order-search' ).filter( ':not(.enhanced)' ).each( function() {
                             var select2_args = {
                                 allowClear:  $( this ).data( 'allow_clear' ) ? true : false,
                                 placeholder: $( this ).data( 'placeholder' ),
@@ -112,14 +112,14 @@ window.shipments.admin = window.shipments.admin || {};
                                     return m;
                                 },
                                 ajax: {
-                                    url:         wc_gzd_shipments_admin_shipments_table_params.ajax_url,
+                                    url:         wc_shiptastic_admin_shipments_table_params.ajax_url,
                                     dataType:    'json',
                                     delay:       1000,
                                     data:        function( params ) {
                                         return {
                                             term:     params.term,
-                                            action:   'woocommerce_gzd_json_search_orders',
-                                            security: wc_gzd_shipments_admin_shipments_table_params.search_orders_nonce,
+                                            action:   'woocommerce_stc_json_search_orders',
+                                            security: wc_shiptastic_admin_shipments_table_params.search_orders_nonce,
                                             exclude:  $( this ).data( 'exclude' )
                                         };
                                     },
@@ -144,7 +144,7 @@ window.shipments.admin = window.shipments.admin || {};
                             $( this ).selectWoo( select2_args ).addClass( 'enhanced' );
                         });
 
-                        $( ':input.wc-gzd-shipping-provider-search' ).filter( ':not(.enhanced)' ).each( function() {
+                        $( ':input.wc-stc-shipping-provider-search' ).filter( ':not(.enhanced)' ).each( function() {
                             var select2_args = {
                                 allowClear:  $( this ).data( 'allow_clear' ) ? true : false,
                                 placeholder: $( this ).data( 'placeholder' ),
@@ -153,14 +153,14 @@ window.shipments.admin = window.shipments.admin || {};
                                     return m;
                                 },
                                 ajax: {
-                                    url:         wc_gzd_shipments_admin_shipments_table_params.ajax_url,
+                                    url:         wc_shiptastic_admin_shipments_table_params.ajax_url,
                                     dataType:    'json',
                                     delay:       1000,
                                     data:        function( params ) {
                                         return {
                                             term:     params.term,
-                                            action:   'woocommerce_gzd_json_search_shipping_provider',
-                                            security: wc_gzd_shipments_admin_shipments_table_params.search_shipping_provider_nonce,
+                                            action:   'woocommerce_stc_json_search_shipping_provider',
+                                            security: wc_shiptastic_admin_shipments_table_params.search_shipping_provider_nonce,
                                             exclude:  $( this ).data( 'exclude' )
                                         };
                                     },
@@ -188,8 +188,8 @@ window.shipments.admin = window.shipments.admin || {};
 
                 $( 'html' ).on( 'click', function( event ) {
                     if ( this === event.target ) {
-                        $( ':input.wc-gzd-order-search' ).filter( '.select2-hidden-accessible' ).selectWoo( 'close' );
-                        $( ':input.wc-gzd-shipping-provider-search' ).filter( '.select2-hidden-accessible' ).selectWoo( 'close' );
+                        $( ':input.wc-stc-order-search' ).filter( '.select2-hidden-accessible' ).selectWoo( 'close' );
+                        $( ':input.wc-stc-shipping-provider-search' ).filter( '.select2-hidden-accessible' ).selectWoo( 'close' );
                     }
                 } );
             } catch( err ) {
@@ -203,4 +203,4 @@ window.shipments.admin = window.shipments.admin || {};
         shipments.admin.shipments_table.init();
     });
 
-})( jQuery, window.shipments );
+})( jQuery, window.shiptastic );

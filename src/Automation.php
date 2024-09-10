@@ -4,10 +4,10 @@
  *
  * @package WooCommerce/Blocks
  */
-namespace Vendidero\Germanized\Shipments;
+namespace Vendidero\Shiptastic;
 
-use Vendidero\Germanized\Shipments\Admin\Settings;
-use Vendidero\Germanized\Shipments\Packing\Helper;
+use Vendidero\Shiptastic\Admin\Settings;
+use Vendidero\Shiptastic\Packing\Helper;
 use WC_Order;
 
 defined( 'ABSPATH' ) || exit;
@@ -42,11 +42,11 @@ class Automation {
 			);
 
 			add_filter( 'wcs_renewal_order_created', array( __CLASS__, 'maybe_create_subscription_shipments' ), 10 );
-			add_action( 'woocommerce_gzd_shipments_order_auto_sync_callback', array( __CLASS__, 'auto_sync_callback' ) );
+			add_action( 'woocommerce_shiptastic_order_auto_sync_callback', array( __CLASS__, 'auto_sync_callback' ) );
 		}
 
 		if ( 'yes' === Package::get_setting( 'auto_order_shipped_completed_enable' ) ) {
-			add_action( 'woocommerce_gzd_shipments_order_shipped', array( __CLASS__, 'mark_order_completed' ), 10 );
+			add_action( 'woocommerce_shiptastic_order_shipped', array( __CLASS__, 'mark_order_completed' ), 10 );
 		}
 
 		if ( 'yes' === Package::get_setting( 'auto_order_completed_shipped_enable' ) ) {
@@ -60,7 +60,7 @@ class Automation {
 		/**
 		 * Cancel outstanding events and queue new.
 		 */
-		$queue->cancel_all( 'woocommerce_gzd_shipments_order_auto_sync_callback', $args, 'woocommerce-gzd-shipments-order-sync' );
+		$queue->cancel_all( 'woocommerce_shiptastic_order_auto_sync_callback', $args, 'woocommerce-shiptastic-order-sync' );
 	}
 
 	/**
@@ -95,9 +95,9 @@ class Automation {
 		 * @param integer $order_id The order id.
 		 *
 		 * @since 3.0.5
-		 * @package Vendidero/Germanized/Shipments
+		 * @package Vendidero/Shiptastic
 		 */
-		if ( apply_filters( 'woocommerce_gzd_shipments_order_completed_status', 'completed', $order_id ) === $new_status ) {
+		if ( apply_filters( 'woocommerce_shiptastic_order_completed_status', 'completed', $order_id ) === $new_status ) {
 			// Make sure that MetaBox is saved before we process automation
 			if ( self::is_admin_edit_order_request() ) {
 				add_action( 'woocommerce_process_shop_order_meta', array( __CLASS__, 'mark_shipments_shipped' ), 80 );
@@ -122,7 +122,7 @@ class Automation {
 
 	public static function mark_shipments_shipped( $order_id ) {
 		if ( $order = wc_get_order( $order_id ) ) {
-			if ( $shipment_order = wc_gzd_get_shipment_order( $order ) ) {
+			if ( $shipment_order = wc_stc_get_shipment_order( $order ) ) {
 				foreach ( $shipment_order->get_simple_shipments() as $shipment ) {
 					if ( ! $shipment->is_shipped() ) {
 						$shipment->update_status( 'shipped' );
@@ -154,9 +154,9 @@ class Automation {
 			 * @param integer $order_id The order id.
 			 *
 			 * @since 3.2.3
-			 * @package Vendidero/Germanized/Shipments
+			 * @package Vendidero/Shiptastic
 			 */
-			if ( ! apply_filters( 'woocommerce_gzd_shipment_order_mark_as_completed', $mark_as_completed, $order_id ) ) {
+			if ( ! apply_filters( 'woocommerce_shiptastic_shipment_order_mark_as_completed', $mark_as_completed, $order_id ) ) {
 				return;
 			}
 
@@ -169,9 +169,9 @@ class Automation {
 			 * @param integer $order_id The order id.
 			 *
 			 * @since 3.0.5
-			 * @package Vendidero/Germanized/Shipments
+			 * @package Vendidero/Shiptastic
 			 */
-			$order->update_status( apply_filters( 'woocommerce_gzd_shipment_order_completed_status', 'completed', $order_id ), _x( 'Order is fully shipped.', 'shipments', 'woocommerce-germanized-shipments' ) );
+			$order->update_status( apply_filters( 'woocommerce_shiptastic_shipment_order_completed_status', 'completed', $order_id ), _x( 'Order is fully shipped.', 'shipments', 'shiptastic-for-woocommerce' ) );
 		}
 	}
 
@@ -200,7 +200,7 @@ class Automation {
 		/**
 		 * In case the order is already completed, e.g. while asynchronously creating shipments, make sure to update the shipment status.
 		 */
-		if ( 'yes' === Package::get_setting( 'auto_order_completed_shipped_enable' ) && apply_filters( 'woocommerce_gzd_shipments_order_completed_status', 'completed', $order->get_id() ) === $order->get_status() ) {
+		if ( 'yes' === Package::get_setting( 'auto_order_completed_shipped_enable' ) && apply_filters( 'woocommerce_shiptastic_order_completed_status', 'completed', $order->get_id() ) === $order->get_status() ) {
 			$shipment_status = 'shipped';
 		}
 
@@ -212,13 +212,13 @@ class Automation {
 		 * @param WC_Order $order The order instance.
 		 *
 		 * @since 3.1.0
-		 * @package Vendidero/Germanized/Shipments
+		 * @package Vendidero/Shiptastic
 		 */
-		if ( ! apply_filters( 'woocommerce_gzd_auto_create_shipments_for_order', true, $order->get_id(), $order ) ) {
+		if ( ! apply_filters( 'woocommerce_shiptastic_auto_create_shipments_for_order', true, $order->get_id(), $order ) ) {
 			return $result;
 		}
 
-		if ( $order_shipment = wc_gzd_get_shipment_order( $order ) ) {
+		if ( $order_shipment = wc_stc_get_shipment_order( $order ) ) {
 			/**
 			 * Sync existing shipments before creating new shipments
 			 */
@@ -229,11 +229,11 @@ class Automation {
 				}
 			}
 
-			do_action( 'woocommerce_gzd_before_auto_create_shipments_for_order', $order->get_id(), $shipment_status, $order );
+			do_action( 'woocommerce_shiptastic_before_auto_create_shipments_for_order', $order->get_id(), $shipment_status, $order );
 
 			$result = $order_shipment->create_shipments( $shipment_status );
 
-			do_action( 'woocommerce_gzd_after_auto_create_shipments_for_order', $order->get_id(), $shipment_status, $order, $result );
+			do_action( 'woocommerce_shiptastic_after_auto_create_shipments_for_order', $order->get_id(), $shipment_status, $order, $result );
 		}
 
 		if ( is_wp_error( $result ) ) {
@@ -264,7 +264,7 @@ class Automation {
 		$args = wp_parse_args(
 			(array) $args,
 			array(
-				'allow_deferred_sync' => wc_gzd_shipments_allow_deferred_sync( 'shipments' ),
+				'allow_deferred_sync' => wc_shiptastic_allow_deferred_sync( 'shipments' ),
 			)
 		);
 
@@ -272,7 +272,7 @@ class Automation {
 		$has_status = empty( $statuses ) ? true : false;
 
 		if ( ! $has_status ) {
-			if ( $order_shipment = wc_gzd_get_shipment_order( $order_id ) ) {
+			if ( $order_shipment = wc_stc_get_shipment_order( $order_id ) ) {
 				$has_status = $order_shipment->get_order()->has_status( $statuses );
 			}
 		}
@@ -303,9 +303,9 @@ class Automation {
 
 					$queue->schedule_single(
 						time() + 50,
-						'woocommerce_gzd_shipments_order_auto_sync_callback',
+						'woocommerce_shiptastic_order_auto_sync_callback',
 						$defer_args,
-						'woocommerce-gzd-shipments-order-sync'
+						'woocommerce-shiptastic-order-sync'
 					);
 				} else {
 					self::create_shipments( $order_id );

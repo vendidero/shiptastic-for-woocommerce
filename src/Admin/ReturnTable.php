@@ -1,18 +1,18 @@
 <?php
 
-namespace Vendidero\Germanized\Shipments\Admin;
+namespace Vendidero\Shiptastic\Admin;
 
-use Vendidero\Germanized\Shipments\Package;
-use Vendidero\Germanized\Shipments\Shipment;
-use Vendidero\Germanized\Shipments\ReturnShipment;
+use Vendidero\Shiptastic\Package;
+use Vendidero\Shiptastic\Shipment;
+use Vendidero\Shiptastic\ReturnShipment;
 use WP_List_Table;
-use Vendidero\Germanized\Shipments\ShipmentQuery;
+use Vendidero\Shiptastic\ShipmentQuery;
 
 defined( 'ABSPATH' ) || exit;
 
 /**
  * Class Table
- * @package Vendidero/Germanized/Shipments\Admin
+ * @package Vendidero/Shiptastic\Admin
  */
 class ReturnTable extends Table {
 
@@ -20,15 +20,15 @@ class ReturnTable extends Table {
 		$columns = array();
 
 		$columns['cb']         = '<input type="checkbox" />';
-		$columns['title']      = _x( 'Title', 'shipments', 'woocommerce-germanized-shipments' );
-		$columns['date']       = _x( 'Date', 'shipments', 'woocommerce-germanized-shipments' );
-		$columns['status']     = _x( 'Status', 'shipments', 'woocommerce-germanized-shipments' );
-		$columns['items']      = _x( 'Items', 'shipments', 'woocommerce-germanized-shipments' );
-		$columns['sender']     = _x( 'Sender', 'shipments', 'woocommerce-germanized-shipments' );
-		$columns['weight']     = _x( 'Weight', 'shipments', 'woocommerce-germanized-shipments' );
-		$columns['dimensions'] = _x( 'Dimensions', 'shipments', 'woocommerce-germanized-shipments' );
-		$columns['order']      = _x( 'Order', 'shipments', 'woocommerce-germanized-shipments' );
-		$columns['actions']    = _x( 'Actions', 'shipments', 'woocommerce-germanized-shipments' );
+		$columns['title']      = _x( 'Title', 'shipments', 'shiptastic-for-woocommerce' );
+		$columns['date']       = _x( 'Date', 'shipments', 'shiptastic-for-woocommerce' );
+		$columns['status']     = _x( 'Status', 'shipments', 'shiptastic-for-woocommerce' );
+		$columns['items']      = _x( 'Items', 'shipments', 'shiptastic-for-woocommerce' );
+		$columns['sender']     = _x( 'Sender', 'shipments', 'shiptastic-for-woocommerce' );
+		$columns['weight']     = _x( 'Weight', 'shipments', 'shiptastic-for-woocommerce' );
+		$columns['dimensions'] = _x( 'Dimensions', 'shipments', 'shiptastic-for-woocommerce' );
+		$columns['order']      = _x( 'Order', 'shipments', 'shiptastic-for-woocommerce' );
+		$columns['actions']    = _x( 'Actions', 'shipments', 'shiptastic-for-woocommerce' );
 
 		return $columns;
 	}
@@ -47,24 +47,24 @@ class ReturnTable extends Table {
 
 		if ( ! $shipment->has_status( 'delivered' ) && ! $shipment->has_status( 'requested' ) ) {
 			$actions['received'] = array(
-				'url'    => wp_nonce_url( admin_url( 'admin-ajax.php?action=woocommerce_gzd_update_shipment_status&status=delivered&shipment_id=' . $shipment->get_id() ), 'update-shipment-status' ),
-				'name'   => _x( 'Delivered', 'shipments', 'woocommerce-germanized-shipments' ),
+				'url'    => wp_nonce_url( admin_url( 'admin-ajax.php?action=woocommerce_stc_update_shipment_status&status=delivered&shipment_id=' . $shipment->get_id() ), 'update-shipment-status' ),
+				'name'   => _x( 'Delivered', 'shipments', 'shiptastic-for-woocommerce' ),
 				'action' => 'delivered',
 			);
 		}
 
 		if ( $shipment->has_status( 'processing' ) ) {
 			$actions['email_notification'] = array(
-				'url'    => wp_nonce_url( admin_url( 'admin-ajax.php?action=woocommerce_gzd_send_return_shipment_notification_email&shipment_id=' . $shipment->get_id() ), 'send-return-shipment-notification' ),
-				'name'   => _x( 'Send notification to customer', 'shipments', 'woocommerce-germanized-shipments' ),
+				'url'    => wp_nonce_url( admin_url( 'admin-ajax.php?action=woocommerce_stc_send_return_shipment_notification_email&shipment_id=' . $shipment->get_id() ), 'send-return-shipment-notification' ),
+				'name'   => _x( 'Send notification to customer', 'shipments', 'shiptastic-for-woocommerce' ),
 				'action' => 'send-return-notification email',
 			);
 		}
 
 		if ( $shipment->is_customer_requested() && $shipment->has_status( 'requested' ) ) {
 			$actions['confirm'] = array(
-				'url'    => wp_nonce_url( admin_url( 'admin-ajax.php?action=woocommerce_gzd_confirm_return_request&shipment_id=' . $shipment->get_id() ), 'confirm-return-request' ),
-				'name'   => _x( 'Confirm return request', 'shipments', 'woocommerce-germanized-shipments' ),
+				'url'    => wp_nonce_url( admin_url( 'admin-ajax.php?action=woocommerce_stc_confirm_return_request&shipment_id=' . $shipment->get_id() ), 'confirm-return-request' ),
+				'name'   => _x( 'Confirm return request', 'shipments', 'shiptastic-for-woocommerce' ),
 				'action' => 'confirm',
 			);
 		}
@@ -73,11 +73,11 @@ class ReturnTable extends Table {
 	}
 
 	public function get_main_page() {
-		return 'admin.php?page=wc-gzd-return-shipments';
+		return 'admin.php?page=wc-stc-return-shipments';
 	}
 
 	protected function get_custom_bulk_actions( $actions ) {
-		$actions['confirm_requests'] = _x( 'Confirm open return requests', 'shipments', 'woocommerce-germanized-shipments' );
+		$actions['confirm_requests'] = _x( 'Confirm open return requests', 'shipments', 'shiptastic-for-woocommerce' );
 
 		return $actions;
 	}

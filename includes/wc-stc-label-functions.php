@@ -4,7 +4,7 @@
  *
  * Functions for shipment specific things.
  *
- * @package WooCommerce_Germanized/Shipments/Functions
+ * @package WooCommerce_Shiptastic/Functions
  * @version 3.4.0
  */
 defined( 'ABSPATH' ) || exit;
@@ -14,24 +14,24 @@ defined( 'ABSPATH' ) || exit;
  *
  * @since  2.6.0
  * @param  array $args Array of args (above).
- * @return \Vendidero\Germanized\Shipments\Interfaces\ShipmentLabel[] Number of pages and an array of order objects if
+ * @return \Vendidero\Shiptastic\Interfaces\ShipmentLabel[] Number of pages and an array of order objects if
  * paginate is true, or just an array of values.
  */
-function wc_gzd_get_shipment_labels( $args ) {
-	$query = new \Vendidero\Germanized\Shipments\Labels\Query( $args );
+function wc_stc_get_shipment_labels( $args ) {
+	$query = new \Vendidero\Shiptastic\Labels\Query( $args );
 
 	return $query->get_labels();
 }
 
-function wc_gzd_get_label_type_by_shipment( $shipment ) {
-	$type = is_a( $shipment, '\Vendidero\Germanized\Shipments\Shipment' ) ? $shipment->get_type() : $shipment;
+function wc_stc_get_label_type_by_shipment( $shipment ) {
+	$type = is_a( $shipment, '\Vendidero\Shiptastic\Shipment' ) ? $shipment->get_type() : $shipment;
 
-	return apply_filters( 'woocommerce_gzd_shipment_label_type', $type, $shipment );
+	return apply_filters( 'woocommerce_shiptastic_shipment_label_type', $type, $shipment );
 }
 
-function wc_gzd_get_shipment_label_types() {
+function wc_stc_get_shipment_label_types() {
 	return apply_filters(
-		'woocommerce_gzd_shipment_label_types',
+		'woocommerce_shiptastic_shipment_label_types',
 		array(
 			'simple',
 			'return',
@@ -39,8 +39,8 @@ function wc_gzd_get_shipment_label_types() {
 	);
 }
 
-function wc_gzd_get_label_by_shipment( $the_shipment, $type = '' ) {
-	$shipment_id = \Vendidero\Germanized\Shipments\ShipmentFactory::get_shipment_id( $the_shipment );
+function wc_stc_get_label_by_shipment( $the_shipment, $type = '' ) {
+	$shipment_id = \Vendidero\Shiptastic\ShipmentFactory::get_shipment_id( $the_shipment );
 	$label       = false;
 
 	if ( $shipment_id ) {
@@ -53,14 +53,14 @@ function wc_gzd_get_label_by_shipment( $the_shipment, $type = '' ) {
 			$args['type'] = $type;
 		}
 
-		$labels = wc_gzd_get_shipment_labels( $args );
+		$labels = wc_stc_get_shipment_labels( $args );
 
 		if ( ! empty( $labels ) ) {
 			$label = $labels[0];
 		}
 	}
 
-	return apply_filters( 'woocommerce_gzd_shipment_label_for_shipment', $label, $the_shipment );
+	return apply_filters( 'woocommerce_shiptastic_shipment_label_for_shipment', $label, $the_shipment );
 }
 
 /**
@@ -68,20 +68,20 @@ function wc_gzd_get_label_by_shipment( $the_shipment, $type = '' ) {
  * @param string $shipping_provider
  * @param string $type
  *
- * @return \Vendidero\Germanized\Shipments\Interfaces\ShipmentLabel|boolean
+ * @return \Vendidero\Shiptastic\Interfaces\ShipmentLabel|boolean
  */
-function wc_gzd_get_shipment_label( $the_label = false, $shipping_provider = '', $type = 'simple' ) {
-	return apply_filters( 'woocommerce_gzd_shipment_label', \Vendidero\Germanized\Shipments\Labels\Factory::get_label( $the_label, $shipping_provider, $type ), $the_label, $shipping_provider, $type );
+function wc_stc_get_shipment_label( $the_label = false, $shipping_provider = '', $type = 'simple' ) {
+	return apply_filters( 'woocommerce_shiptastic_shipment_label', \Vendidero\Shiptastic\Labels\Factory::get_label( $the_label, $shipping_provider, $type ), $the_label, $shipping_provider, $type );
 }
 
 /**
- * @param \Vendidero\Germanized\Shipments\Shipment $shipment
+ * @param \Vendidero\Shiptastic\Shipment $shipment
  * @param bool $net_weight
  * @param string $unit
  *
  * @return float
  */
-function wc_gzd_get_shipment_label_weight( $shipment, $net_weight = false, $unit = 'kg' ) {
+function wc_stc_get_shipment_label_weight( $shipment, $net_weight = false, $unit = 'kg' ) {
 	$shipment_weight           = $shipment->get_total_weight();
 	$shipment_content_weight   = $shipment->get_weight();
 	$shipment_packaging_weight = $shipment->get_packaging_weight();
@@ -125,15 +125,15 @@ function wc_gzd_get_shipment_label_weight( $shipment, $net_weight = false, $unit
 
 	$shipment_weight = wc_format_decimal( $shipment_weight, 3 );
 
-	return apply_filters( 'woocommerce_gzd_shipment_label_weight', $shipment_weight, $shipment, $unit );
+	return apply_filters( 'woocommerce_shiptastic_shipment_label_weight', $shipment_weight, $shipment, $unit );
 }
 
 /**
- * @param \Vendidero\Germanized\Shipments\Shipment $shipment
+ * @param \Vendidero\Shiptastic\Shipment $shipment
  * @param string $dimension
  * @param string $unit
  */
-function wc_gzd_get_shipment_label_dimensions( $shipment, $unit = 'cm' ) {
+function wc_stc_get_shipment_label_dimensions( $shipment, $unit = 'cm' ) {
 	$dimensions = array(
 		'length' => 0,
 		'width'  => 0,
@@ -148,5 +148,5 @@ function wc_gzd_get_shipment_label_dimensions( $shipment, $unit = 'cm' ) {
 		}
 	}
 
-	return apply_filters( 'woocommerce_gzd_shipment_label_dimensions', $dimensions, $shipment, $unit );
+	return apply_filters( 'woocommerce_shiptastic_shipment_label_dimensions', $dimensions, $shipment, $unit );
 }

@@ -2,23 +2,22 @@
 /**
  * Shipment details
  *
- * This template can be overridden by copying it to yourtheme/woocommerce-germanized/shipment/shipment-details.php.
+ * This template can be overridden by copying it to yourtheme/shiptastic/shipment/shipment-details.php.
  *
- * HOWEVER, on occasion Germanized will need to update template files and you
+ * HOWEVER, on occasion Shiptastic will need to update template files and you
  * (the theme developer) will need to copy the new files to your theme to
  * maintain compatibility. We try to do this as little as possible, but it does
  * happen. When this occurs the version of the template file will be bumped and
  * the readme will list any important changes.
  *
- * @see https://github.com/vendidero/woocommerce-germanized/wiki/Overriding-Germanized-Templates
- * @package Vendidero/Germanized/Shipments/Templates
+ * @package Vendidero/Shiptastic/Templates
  * @version 3.3.0
  */
-use Vendidero\Germanized\Shipments\Shipment;
+use Vendidero\Shiptastic\Shipment;
 
 defined( 'ABSPATH' ) || exit;
 
-$shipment = wc_gzd_get_shipment( $shipment_id ); // phpcs:ignore WordPress.WP.GlobalVariablesOverride.OverrideProhibited
+$shipment = wc_stc_get_shipment( $shipment_id ); // phpcs:ignore WordPress.WP.GlobalVariablesOverride.OverrideProhibited
 
 if ( ! $shipment ) {
 	return;
@@ -29,7 +28,7 @@ $show_receiver_details = is_user_logged_in() && $order && $order->get_user_id() 
 $show_tracking         = $show_receiver_details && $shipment->has_tracking();
 $shipment_items        = $shipment->get_items( 'customer' );
 
-if ( is_a( $shipment, 'Vendidero\Germanized\Shipments\ReturnShipment' ) ) {
+if ( is_a( $shipment, 'Vendidero\Shiptastic\ReturnShipment' ) ) {
 	if ( $shipment->hide_return_address() ) {
 		$show_receiver_details = false;
 	}
@@ -43,18 +42,18 @@ if ( is_a( $shipment, 'Vendidero\Germanized\Shipments\ReturnShipment' ) ) {
 	 * @param Shipment $shipment The shipment instance.
 	 *
 	 * @since 3.0.0
-	 * @package Vendidero/Germanized/Shipments
+	 * @package Vendidero/Shiptastic
 	 */
-	do_action( 'woocommerce_gzd_shipment_details_before_shipment_table', $shipment );
+	do_action( 'woocommerce_shiptastic_shipment_details_before_shipment_table', $shipment );
 	?>
 
-	<h2 class="woocommerce-shipment-details__title"><?php echo esc_html_x( 'Shipment details', 'shipments', 'woocommerce-germanized-shipments' ); ?></h2>
+	<h2 class="woocommerce-shipment-details__title"><?php echo esc_html_x( 'Shipment details', 'shipments', 'shiptastic-for-woocommerce' ); ?></h2>
 
 	<table class="woocommerce-table woocommerce-table--shipment-details shop_table shipment_details">
 		<thead>
 		<tr>
-			<th class="woocommerce-table__product-name product-name"><?php echo esc_html_x( 'Product', 'shipments', 'woocommerce-germanized-shipments' ); ?></th>
-			<th class="woocommerce-table__product-table product-quantity"><?php echo esc_html_x( 'Quantity', 'shipments', 'woocommerce-germanized-shipments' ); ?></th>
+			<th class="woocommerce-table__product-name product-name"><?php echo esc_html_x( 'Product', 'shipments', 'shiptastic-for-woocommerce' ); ?></th>
+			<th class="woocommerce-table__product-table product-quantity"><?php echo esc_html_x( 'Quantity', 'shipments', 'shiptastic-for-woocommerce' ); ?></th>
 		</tr>
 		</thead>
 		<tbody>
@@ -65,9 +64,9 @@ if ( is_a( $shipment, 'Vendidero\Germanized\Shipments\ReturnShipment' ) ) {
 		 * @param Shipment $shipment The shipment instance.
 		 *
 		 * @since 3.0.0
-		 * @package Vendidero/Germanized/Shipments
+		 * @package Vendidero/Shiptastic
 		 */
-		do_action( 'woocommerce_gzd_shipment_details_before_shipment_table_items', $shipment );
+		do_action( 'woocommerce_shiptastic_shipment_details_before_shipment_table_items', $shipment );
 
 		foreach ( $shipment_items as $item_id => $item ) {
 			$product = $item->get_product();
@@ -89,9 +88,9 @@ if ( is_a( $shipment, 'Vendidero\Germanized\Shipments\ReturnShipment' ) ) {
 		 * @param Shipment $shipment The shipment instance.
 		 *
 		 * @since 3.0.0
-		 * @package Vendidero/Germanized/Shipments
+		 * @package Vendidero/Shiptastic
 		 */
-		do_action( 'woocommerce_gzd_shipment_details_after_shipment_table_items', $shipment );
+		do_action( 'woocommerce_shiptastic_shipment_details_after_shipment_table_items', $shipment );
 		?>
 		</tbody>
 	</table>
@@ -103,9 +102,9 @@ if ( is_a( $shipment, 'Vendidero\Germanized\Shipments\ReturnShipment' ) ) {
 	 * @param Shipment $shipment The shipment instance.
 	 *
 	 * @since 3.0.0
-	 * @package Vendidero/Germanized/Shipments
+	 * @package Vendidero/Shiptastic
 	 */
-	do_action( 'woocommerce_gzd_shipment_details_after_shipment_table', $shipment );
+	do_action( 'woocommerce_shiptastic_shipment_details_after_shipment_table', $shipment );
 	?>
 </section>
 

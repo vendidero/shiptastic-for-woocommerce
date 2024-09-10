@@ -5,12 +5,12 @@
  * The shipment factory creates the right shipment objects.
  *
  * @version 1.0.0
- * @package Vendidero/Germanized/Shipments
+ * @package Vendidero/Shiptastic
  */
-namespace Vendidero\Germanized\Shipments;
+namespace Vendidero\Shiptastic;
 
-use Vendidero\Germanized\Shipments\Caches\Helper;
-use Vendidero\Germanized\Shipments\Shipment;
+use Vendidero\Shiptastic\Caches\Helper;
+use Vendidero\Shiptastic\Shipment;
 use \WC_Data_Store;
 use \Exception;
 
@@ -48,9 +48,9 @@ class ShipmentFactory {
 				return false;
 			}
 
-			$shipment_type_data = wc_gzd_get_shipment_type_data( $shipment_type );
+			$shipment_type_data = wc_stc_get_shipment_type_data( $shipment_type );
 		} else {
-			$shipment_type_data = wc_gzd_get_shipment_type_data( $shipment_type );
+			$shipment_type_data = wc_stc_get_shipment_type_data( $shipment_type );
 		}
 
 		if ( $shipment_type_data ) {
@@ -67,9 +67,9 @@ class ShipmentFactory {
 		 * @param string  $shipment_type The shipment type.
 		 *
 		 * @since 3.0.0
-		 * @package Vendidero/Germanized/Shipments
+		 * @package Vendidero/Shiptastic
 		 */
-		$classname = apply_filters( 'woocommerce_gzd_shipment_class', $classname, $shipment_id, $shipment_type );
+		$classname = apply_filters( 'woocommerce_shiptastic_shipment_class', $classname, $shipment_id, $shipment_type );
 
 		if ( ! class_exists( $classname ) ) {
 			return false;

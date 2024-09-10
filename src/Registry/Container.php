@@ -1,5 +1,5 @@
 <?php
-namespace Vendidero\Germanized\Shipments\Registry;
+namespace Vendidero\Shiptastic\Registry;
 
 use Closure;
 use Exception;

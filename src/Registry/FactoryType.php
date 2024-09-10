@@ -1,5 +1,5 @@
 <?php
-namespace Vendidero\Germanized\Shipments\Registry;
+namespace Vendidero\Shiptastic\Registry;
 
 /**
  * Definition for the FactoryType dependency type.

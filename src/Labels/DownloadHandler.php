@@ -1,8 +1,8 @@
 <?php
 
-namespace Vendidero\Germanized\Shipments\Labels;
+namespace Vendidero\Shiptastic\Labels;
 
-use Vendidero\Germanized\Shipments\Admin\BulkLabel;
+use Vendidero\Shiptastic\Admin\BulkLabel;
 use WC_Download_Handler;
 
 defined( 'ABSPATH' ) || exit;
@@ -23,7 +23,7 @@ class DownloadHandler {
 	}
 
 	public static function download_bulk_export() {
-		if ( isset( $_GET['action'] ) && 'wc-gzd-download-export-shipment-label' === $_GET['action'] && isset( $_REQUEST['_wpnonce'] ) ) {
+		if ( isset( $_GET['action'] ) && 'wc-stc-download-export-shipment-label' === $_GET['action'] && isset( $_REQUEST['_wpnonce'] ) ) {
 			if ( wp_verify_nonce( wp_unslash( $_REQUEST['_wpnonce'] ), 'download-export-shipment-label' ) ) { // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
 				$args = array(
 					'force' => isset( $_GET['force'] ) ? wc_clean( wp_unslash( $_GET['force'] ) ) : 'no', // phpcs:ignore WordPress.Security.NonceVerification.Recommended
@@ -45,7 +45,7 @@ class DownloadHandler {
 	}
 
 	public static function download_label() {
-		if ( 'wc-gzd-download-shipment-label' === $_GET['action'] && wp_verify_nonce( wp_unslash( $_REQUEST['_wpnonce'] ), 'download-shipment-label' ) ) { // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotValidated,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+		if ( 'wc-stc-download-shipment-label' === $_GET['action'] && wp_verify_nonce( wp_unslash( $_REQUEST['_wpnonce'] ), 'download-shipment-label' ) ) { // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotValidated,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
 			$shipment_id    = absint( $_GET['shipment_id'] ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotValidated
 			$has_permission = current_user_can( 'edit_shop_orders' );
 
@@ -56,7 +56,7 @@ class DownloadHandler {
 				)
 			);
 
-			if ( $shipment = wc_gzd_get_shipment( $shipment_id ) ) {
+			if ( $shipment = wc_stc_get_shipment( $shipment_id ) ) {
 				if ( 'return' === $shipment->get_type() && current_user_can( 'view_order', $shipment->get_order_id() ) && $shipment->has_label() ) {
 					$has_permission = true;
 				}

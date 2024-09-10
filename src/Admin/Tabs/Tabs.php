@@ -1,18 +1,18 @@
 <?php
 
-namespace Vendidero\Germanized\Shipments\Admin\Tabs;
+namespace Vendidero\Shiptastic\Admin\Tabs;
 
-use Vendidero\Germanized\Shipments\Admin\Settings;
-use Vendidero\Germanized\Shipments\Package;
+use Vendidero\Shiptastic\Admin\Settings;
+use Vendidero\Shiptastic\Package;
 
 class Tabs extends \WC_Settings_Page {
 
-	protected $id = 'shipments';
+	protected $id = 'shiptastic';
 
 	protected $tabs = null;
 
 	public function __construct() {
-		$this->label = _x( 'Shipments', 'shipments-settings-page-title', 'woocommerce-germanized-shipments' );
+		$this->label = _x( 'Shiptastic', 'shipments-settings-page-title', 'shiptastic-for-woocommerce' );
 		$this->get_tabs();
 
 		add_filter( 'admin_body_class', array( $this, 'add_body_classes' ) );
@@ -34,14 +34,14 @@ class Tabs extends \WC_Settings_Page {
 	}
 
 	public function get_description() {
-		return _x( 'Adjust settings related to packaging, packing and available shipping provider.', 'shipments', 'woocommerce-germanized-shipments' );
+		return _x( 'Adjust settings related to packaging, packing and available shipping provider.', 'shipments', 'shiptastic-for-woocommerce' );
 	}
 
 	public function header() {
 		$breadcrumb = $this->get_breadcrumb();
 		$count      = 0;
 		?>
-		<ul class="wc-gzd-shipments-settings-breadcrumb">
+		<ul class="wc-shiptastic-settings-breadcrumb">
 			<?php
 			foreach ( $breadcrumb as $breadcrumb_item ) :
 				$count++;
@@ -95,7 +95,7 @@ class Tabs extends \WC_Settings_Page {
 
 		$core_pages = wc_admin_get_core_pages_to_connect();
 		$tab        = isset( $_GET['tab'] ) ? wc_clean( wp_unslash( $_GET['tab'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-		$tab_clean  = str_replace( 'shipments-', '', $tab );
+		$tab_clean  = str_replace( 'shiptastic-', '', $tab );
 
 		$new_breadcrumbs = array(
 			array(
@@ -112,7 +112,7 @@ class Tabs extends \WC_Settings_Page {
 					add_query_arg(
 						array(
 							'page' => 'wc-settings',
-							'tab'  => 'shipments',
+							'tab'  => 'shiptastic',
 						),
 						'admin.php'
 					)
@@ -159,19 +159,19 @@ class Tabs extends \WC_Settings_Page {
 
 	public function admin_scripts() {
 		if ( $this->is_active() ) {
-			wp_enqueue_script( 'wc-gzd-shipments-admin-settings' );
+			wp_enqueue_script( 'wc-shiptastic-admin-settings' );
 
 			/**
 			 * This action indicates that the admin settings scripts are enqueued.
 			 *
 			 * @since 3.0.0
 			 */
-			do_action( 'woocommerce_gzd_shipments_admin_settings_scripts' );
+			do_action( 'woocommerce_shiptastic_admin_settings_scripts' );
 		}
 	}
 
 	protected function is_active() {
-		if ( isset( $_GET['tab'] ) && strpos( wc_clean( wp_unslash( $_GET['tab'] ) ), 'shipments' ) !== false ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		if ( isset( $_GET['tab'] ) && strpos( wc_clean( wp_unslash( $_GET['tab'] ) ), 'shiptastic' ) !== false ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 			return true;
 		}
 
@@ -180,7 +180,7 @@ class Tabs extends \WC_Settings_Page {
 
 	public function add_body_classes( $classes ) {
 		if ( $this->is_active() ) {
-			$classes = $classes . ' wc-gzd-shipments-settings';
+			$classes = $classes . ' wc-shiptastic-settings';
 		}
 
 		return $classes;
@@ -188,7 +188,7 @@ class Tabs extends \WC_Settings_Page {
 
 	public function get_tabs() {
 		/**
-		 * Filter to register or remove certain setting tabs from the Germanized settings screen.
+		 * Filter to register or remove certain setting tabs from the settings screen.
 		 * Make sure that your class is loaded before adding it to the tabs array.
 		 *
 		 * @param array $tabs Array containing key => value pairs of tab name and class name.
@@ -197,7 +197,7 @@ class Tabs extends \WC_Settings_Page {
 		 *
 		 */
 		$tabs = apply_filters(
-			'woocommerce_gzd_shipments_admin_settings_tabs',
+			'woocommerce_shiptastic_admin_settings_tabs',
 			array(
 				'general'           => General::class,
 				'shipping_provider' => ShippingProvider::class,

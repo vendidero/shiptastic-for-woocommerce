@@ -1,13 +1,13 @@
 <?php
 
-namespace Vendidero\Germanized\Shipments\Admin;
+namespace Vendidero\Shiptastic\Admin;
 
 defined( 'ABSPATH' ) || exit;
 
 /**
  * Shipment Order
  *
- * @class       WC_GZD_Shipment_Order
+ * @class       WC_STC_Shipment_Order
  * @version     1.0.0
  * @author      Vendidero
  */
@@ -33,7 +33,7 @@ abstract class BulkActionHandler {
 	protected function get_notice_option_name() {
 		$action = sanitize_key( $this->get_action() );
 
-		return "woocommerce_gzd_shipments_{$action}_bulk_notices";
+		return "woocommerce_shiptastic_{$action}_bulk_notices";
 	}
 
 	abstract public function get_title();
@@ -41,7 +41,7 @@ abstract class BulkActionHandler {
 	public function get_nonce_name() {
 		$action = sanitize_key( $this->get_action() );
 
-		return "woocommerce_gzd_shipments_{$action}";
+		return "woocommerce_shiptastic_{$action}";
 	}
 
 	public function get_shipment_type() {
@@ -53,10 +53,10 @@ abstract class BulkActionHandler {
 	}
 
 	public function get_success_redirect_url() {
-		$page = 'wc-gzd-shipments';
+		$page = 'wc-shiptastic';
 
 		if ( 'simple' !== $this->get_shipment_type() ) {
-			$page = 'wc-gzd-' . $this->get_shipment_type() . '-shipments';
+			$page = 'wc-stc-' . $this->get_shipment_type() . '-shipments';
 		}
 
 		return admin_url( 'admin.php?page=' . $page . '&bulk_action_handling=finished&current_bulk_action=' . sanitize_key( $this->get_action() ) );
@@ -77,7 +77,7 @@ abstract class BulkActionHandler {
 	}
 
 	public function get_success_message() {
-		return _x( 'Successfully processed shipments.', 'shipments', 'woocommerce-germanized-shipments' );
+		return _x( 'Successfully processed shipments.', 'shipments', 'shiptastic-for-woocommerce' );
 	}
 
 	public function admin_handled() {

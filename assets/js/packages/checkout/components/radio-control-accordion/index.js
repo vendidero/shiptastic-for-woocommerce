@@ -26,7 +26,7 @@ const RadioControlAccordion = ( {
         <div
             className={ classnames(
                 'wc-block-components-radio-control',
-                'wc-gzd-shipments-block-components-radio-control',
+                'wc-shiptastic-block-components-radio-control',
                 className
             ) }
         >

@@ -1,10 +1,10 @@
 <?php
 
-namespace Vendidero\Germanized\Shipments\ShippingProvider;
+namespace Vendidero\Shiptastic\ShippingProvider;
 
-use Vendidero\Germanized\Shipments\Labels\ConfigurationSet;
-use Vendidero\Germanized\Shipments\Package;
-use Vendidero\Germanized\Shipments\Shipment;
+use Vendidero\Shiptastic\Labels\ConfigurationSet;
+use Vendidero\Shiptastic\Package;
+use Vendidero\Shiptastic\Shipment;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -25,7 +25,7 @@ class PrintFormat {
 	protected $shipment_types = array();
 
 	public function __construct( $shipping_provider, $args = array() ) {
-		if ( is_a( $shipping_provider, 'Vendidero\Germanized\Shipments\Interfaces\ShippingProvider' ) ) {
+		if ( is_a( $shipping_provider, 'Vendidero\Shiptastic\Interfaces\ShippingProvider' ) ) {
 			$this->shipping_provider      = $shipping_provider;
 			$this->shipping_provider_name = $shipping_provider->get_name();
 		} else {
@@ -40,7 +40,7 @@ class PrintFormat {
 				'label'          => '',
 				'description'    => '',
 				'products'       => null,
-				'shipment_types' => wc_gzd_get_shipment_types(),
+				'shipment_types' => wc_stc_get_shipment_types(),
 			)
 		);
 
@@ -49,7 +49,7 @@ class PrintFormat {
 		}
 
 		if ( empty( $args['id'] ) ) {
-			throw new \Exception( _x( 'A print format needs an id.', 'shipments', 'woocommerce-germanized-shipments' ), 500 );
+			throw new \Exception( _x( 'A print format needs an id.', 'shipments', 'shiptastic-for-woocommerce' ), 500 );
 		}
 
 		$this->id             = $args['id'];
@@ -118,13 +118,13 @@ class PrintFormat {
 			$filter_args['products'] = array_merge( $filter_args['products'], (array) $filter_args['product_id'] );
 		}
 
-		if ( ! empty( $filter_args['product'] ) && is_a( $filter_args['product'], '\Vendidero\Germanized\Shipments\ShippingProvider\Product' ) ) {
+		if ( ! empty( $filter_args['product'] ) && is_a( $filter_args['product'], '\Vendidero\Shiptastic\ShippingProvider\Product' ) ) {
 			$filter_args['products'] = array_merge( $filter_args['products'], (array) $filter_args['product']->get_id() );
 		}
 
 		$include = true;
 
-		if ( $include && ! empty( $filter_args['shipment'] ) && ( $shipment = wc_gzd_get_shipment( $filter_args['shipment'] ) ) ) {
+		if ( $include && ! empty( $filter_args['shipment'] ) && ( $shipment = wc_stc_get_shipment( $filter_args['shipment'] ) ) ) {
 			$include = $this->supports_shipment( $shipment );
 
 			$filter_args['shipment_type'] = '';
@@ -154,7 +154,7 @@ class PrintFormat {
 
 	public function get_shipping_provider() {
 		if ( is_null( $this->shipping_provider ) ) {
-			$this->shipping_provider = wc_gzd_get_shipping_provider( $this->shipping_provider_name );
+			$this->shipping_provider = wc_stc_get_shipping_provider( $this->shipping_provider_name );
 		}
 
 		return $this->shipping_provider;

@@ -52,13 +52,13 @@ copy_dest_files() {
 		--exclude=none \
 		--exclude=Gruntfile.js \
 		--exclude=auth.json \
-		--exclude=woocommerce-germanized-shipments.zip \
+		--exclude=shiptastic-for-woocommerce.zip \
 		--exclude="zip-file/"
 	status "Done copying files!"
 	cd "$CURRENT_DIR" || exit
 }
 
-status "💃 Time to release WooCommerce Germanized Shipments 🕺"
+status "💃 Time to release Shiptastic 🕺"
 
 if [ -z "$NO_CHECKS" ]; then
 	# Make sure there are no changes in the working tree. Release builds should be
@@ -88,8 +88,8 @@ mkdir zip-file
 mkdir zip-file/build
 copy_dest_files $SOURCE_PATH "$SOURCE_PATH/zip-file"
 cd zip-file
-zip -r ../woocommerce-germanized-shipments.zip ./
+zip -r ../shiptastic-for-woocommerce.zip ./
 cd ..
 rm -r zip-file
 
-success "Done. You've built WooCommerce Germanized Shipments! 🎉"
+success "Done. You've built Shiptastic! 🎉"

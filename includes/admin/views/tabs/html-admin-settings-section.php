@@ -10,8 +10,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 $section_key = sanitize_key( $current_section );
 ?>
 
-<div class="wc-gzd-shipments-admin-settings wc-gzd-shipments-admin-settings-<?php echo esc_attr( $current_tab_name ); ?> <?php echo( ! empty( $current_section ) ? 'wc-gzd-shipments-admin-settings-' . esc_attr( $current_tab ) . '-' . esc_attr( $current_section ) : '' ); ?>">
-	<div class="wc-gzd-shipments-admin-settings-fields">
+<div class="wc-shiptastic-admin-settings wc-shiptastic-admin-settings-<?php echo esc_attr( $current_tab_name ); ?> <?php echo( ! empty( $current_section ) ? 'wc-shiptastic-admin-settings-' . esc_attr( $current_tab ) . '-' . esc_attr( $current_section ) : '' ); ?>">
+	<div class="wc-shiptastic-admin-settings-fields">
 		<?php
 		/**
 		 * Before admin tab settings output.
@@ -20,7 +20,7 @@ $section_key = sanitize_key( $current_section );
 		 *
 		 * @since 3.0.0
 		 */
-		do_action( 'woocommerce_gzd_shipments_admin_settings_before_' . $current_tab_name, $settings );
+		do_action( 'woocommerce_shiptastic_admin_settings_before_' . $current_tab_name, $settings );
 
 		if ( ! empty( $current_section ) ) {
 			/**
@@ -34,7 +34,7 @@ $section_key = sanitize_key( $current_section );
 			 * @since 3.0.0
 			 *
 			 */
-			do_action( 'woocommerce_gzd_shipments_admin_settings_before_' . $current_tab_name . '_' . $current_section, $settings );
+			do_action( 'woocommerce_shiptastic_admin_settings_before_' . $current_tab_name . '_' . $current_section, $settings );
 		}
 		?>
 		<?php WC_Admin_Settings::output_fields( $settings ); ?>
@@ -49,7 +49,7 @@ $section_key = sanitize_key( $current_section );
 		 * @since 3.0.0
 		 *
 		 */
-		do_action( 'woocommerce_gzd_shipments_admin_settings_after_' . $current_tab_name, $settings );
+		do_action( 'woocommerce_shiptastic_admin_settings_after_' . $current_tab_name, $settings );
 
 		if ( ! empty( $current_section ) ) {
 			/**
@@ -63,7 +63,7 @@ $section_key = sanitize_key( $current_section );
 			 * @since 3.0.0
 			 *
 			 */
-			do_action( 'woocommerce_gzd_shipments_admin_settings_after_' . $current_tab_name . '_' . $current_section, $settings );
+			do_action( 'woocommerce_shiptastic_admin_settings_after_' . $current_tab_name . '_' . $current_section, $settings );
 		}
 		?>
 	</div>

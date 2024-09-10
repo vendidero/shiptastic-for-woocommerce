@@ -35,11 +35,11 @@
       }
     }
 
-    .wc-gzd-shipments-managed-by-pickup-location {
+    .wc-shiptastic-managed-by-pickup-location {
       position: relative;
     }
 
-    .wc-gzd-shipments-managed-by-pickup-location {
+    .wc-shiptastic-managed-by-pickup-location {
       .woocommerce-input-wrapper {
         input.input-text:read-only {
           background-color: #eee;
@@ -67,7 +67,7 @@
       }
     }
 
-    .wc-gzd-shipments-managed-by-pickup-location-notice {
+    .wc-shiptastic-managed-by-pickup-location-notice {
       font-size: 0.7em;
       color: var(--wc-subtext);
       line-height: 1em;
@@ -78,7 +78,7 @@
     }
 
     @media (max-width: 400px) {
-      .wc-gzd-shipments-managed-by-pickup-location-notice {
+      .wc-shiptastic-managed-by-pickup-location-notice {
         position: relative;
         margin-top: -1em;
         margin-bottom: .7rem;
@@ -88,11 +88,11 @@
   }
 }
 
-body.wc-gzd-body-modal-active {
+body.wc-stc-body-modal-active {
   overflow: hidden;
 }
 
-.wc-gzd-modal-background {
+.wc-stc-modal-background {
   display: none;
   position: fixed;
   top: 0;
@@ -106,12 +106,12 @@ body.wc-gzd-body-modal-active {
 }
 
 .select2-container--open {
-  .wc-gzd-pickup-location-select-dropdown {
+  .wc-stc-pickup-location-select-dropdown {
     z-index: 1051 !important;
   }
 }
 
-.wc-gzd-modal-content {
+.wc-stc-modal-content {
   display: none;
   z-index: 1001;
   position: fixed;
@@ -122,7 +122,7 @@ body.wc-gzd-body-modal-active {
   height: 100%;
   overflow: auto;
 
-  .wc-gzd-modal-close {
+  .wc-stc-modal-close {
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40px' height='40px' viewbox='0 0 40 40'%3E%3Cpath d='M 10,10 L 30,30 M 30,10 L 10,30' stroke='black' stroke-width='4' stroke-linecap='butt' /%3E%3C/svg%3E");
     text-indent: -9999px;
     background-repeat: no-repeat;
@@ -131,7 +131,7 @@ body.wc-gzd-body-modal-active {
     background-size: contain;
   }
 
-  .wc-gzd-modal-content-inner {
+  .wc-stc-modal-content-inner {
     background-color: white;
     border-radius: 5px;
     margin: 0 auto;
@@ -172,7 +172,7 @@ body.wc-gzd-body-modal-active {
         padding: 0;
       }
 
-      #wc-gzd-shipments-search-pickup-location-submit {
+      #wc-shiptastic-search-pickup-location-submit {
         align-self: flex-end;
         padding: .9rem 1.1rem;
       }
@@ -214,6 +214,6 @@ body.wc-gzd-body-modal-active {
   }
 }
 
-.wc-gzd-modal-background.active, .wc-gzd-modal-content.active {
+.wc-stc-modal-background.active, .wc-stc-modal-content.active {
   display: block !important;
 }

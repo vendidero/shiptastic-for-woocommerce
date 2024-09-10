@@ -1,5 +1,5 @@
-window.shipments = window.shipments || {};
-window.shipments.admin = window.shipments.admin || {};
+window.shiptastic = window.shiptastic || {};
+window.shiptastic.admin = window.shiptastic.admin || {};
 
 ( function( $, shipments ) {
     shipments.admin.shipment_settings = {
@@ -7,13 +7,13 @@ window.shipments.admin = window.shipments.admin || {};
 
         init: function() {
             var self = shipments.admin.shipment_settings;
-            self.params = wc_gzd_shipments_admin_settings_params;
+            self.params = wc_shiptastic_admin_settings_params;
 
             $( document )
-                .on( 'click', 'a.woocommerce-gzd-shipment-input-toggle-trigger', self.onInputToggleClick )
-                .on( 'change gzd_shipments_show_or_hide_fields', 'table.form-table :input[id]', self.onChangeInput );
+                .on( 'click', 'a.woocommerce-stc-shipment-input-toggle-trigger', self.onInputToggleClick )
+                .on( 'change shiptastic_show_or_hide_fields', 'table.form-table :input[id]', self.onChangeInput );
 
-            $( 'table.form-table :input[id]' ).trigger( 'gzd_shipments_show_or_hide_fields' );
+            $( 'table.form-table :input[id]' ).trigger( 'shiptastic_show_or_hide_fields' );
         },
 
         getCleanInputId: function( $mainInput ) {
@@ -26,9 +26,8 @@ window.shipments.admin = window.shipments.admin || {};
                     objectName = '',
                     methodName = '';
 
-                if ( callback.substring( 0, 17 ) === 'shipments.admin.' ) {
+                if ( callback.substring( 0, 17 ) === 'shiptastic.admin.' ) {
                     callback = callback.slice( 17 );
-
                     params = callback.split( "." );
                     objectName = shipments.admin[params[0]];
                     methodName = params[1];
@@ -143,7 +142,7 @@ window.shipments.admin = window.shipments.admin || {};
         },
 
         onInputToggleClick: function() {
-            var $toggle   = $( this ).find( 'span.woocommerce-gzd-input-toggle' ),
+            var $toggle   = $( this ).find( 'span.woocommerce-stc-input-toggle' ),
                 $row      = $toggle.parents( 'fieldset' ),
                 $checkbox = $row.find( 'input[type=checkbox]' ),
                 $enabled  = $toggle.hasClass( 'woocommerce-input-toggle--enabled' );
@@ -169,4 +168,4 @@ window.shipments.admin = window.shipments.admin || {};
         shipments.admin.shipment_settings.init();
     });
 
-})( jQuery, window.shipments );
+})( jQuery, window.shiptastic );

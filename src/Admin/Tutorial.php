@@ -1,6 +1,6 @@
 <?php
 
-namespace Vendidero\Germanized\Shipments\Admin;
+namespace Vendidero\Shiptastic\Admin;
 
 class Tutorial {
 
@@ -28,19 +28,19 @@ class Tutorial {
 	}
 
 	public static function get_last_tutorial_url() {
-		return apply_filters( 'woocommerce_gzd_shipments_last_tutorial_url', Settings::get_settings_url() );
+		return apply_filters( 'woocommerce_shiptastic_last_tutorial_url', Settings::get_settings_url() );
 	}
 
 	protected static function general_tutorial() {
 		$pointers = array(
 			'pointers' => array(
 				'tab' => array(
-					'target'       => '#wc-gzd-shipments-setting-tab-name-general .wc-gzd-shipments-setting-tab-link',
+					'target'       => '#wc-shiptastic-setting-tab-name-general .wc-shiptastic-setting-tab-link',
 					'next'         => 'enabled',
 					'next_url'     => self::get_tutorial_url( 'general' ),
 					'next_trigger' => array(),
 					'options'      => array(
-						'content'  => '<h3>' . esc_html_x( 'Setting tabs', 'shipments', 'woocommerce-germanized-shipments' ) . '</h3><p>' . esc_html_x( 'Click on a tab to adjust the settings related to a specific section.', 'shipments', 'woocommerce-germanized-shipments' ) . '</p>',
+						'content'  => '<h3>' . esc_html_x( 'Setting tabs', 'shipments', 'shiptastic-for-woocommerce' ) . '</h3><p>' . esc_html_x( 'Click on a tab to adjust the settings related to a specific section.', 'shipments', 'shiptastic-for-woocommerce' ) . '</p>',
 						'position' => array(
 							'edge'  => 'top',
 							'align' => 'left',
@@ -91,15 +91,15 @@ class Tutorial {
 							t.pointer.get(0).scrollIntoView( { behavior: 'smooth' } );
 						},
 						buttons: function( event, t ) {
-							var close   = '" . esc_js( _x( 'Dismiss', 'shipments', 'woocommerce-germanized-shipments' ) ) . "',
-								next    = '" . esc_js( _x( 'Next', 'shipments', 'woocommerce-germanized-shipments' ) ) . "',
+							var close   = '" . esc_js( _x( 'Dismiss', 'shipments', 'shiptastic-for-woocommerce' ) ) . "',
+								next    = '" . esc_js( _x( 'Next', 'shipments', 'shiptastic-for-woocommerce' ) ) . "',
 								button  = $( '<a class=\"close\" href=\"#\">' + close + '</a>' ),
 								button2 = $( '<a class=\"button button-primary\" href=\"#\">' + next + '</a>' ),
 								wrapper = $( '<div class=\"wc-pointer-buttons\" />' ),
 								nextUrl = '';
 								
 							if ( pointer.hasOwnProperty( 'last_step' ) && pointer.last_step ) {
-								next    = '" . esc_js( _x( 'Let\'s go', 'shipments', 'woocommerce-germanized-shipments' ) ) . "';
+								next    = '" . esc_js( _x( 'Let\'s go', 'shipments', 'shiptastic-for-woocommerce' ) ) . "';
 							}
 							
 							if ( pointer.hasOwnProperty( 'next_url' ) && pointer.next_url.length ) {

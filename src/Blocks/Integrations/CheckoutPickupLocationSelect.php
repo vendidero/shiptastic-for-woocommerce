@@ -1,10 +1,10 @@
 <?php
 
-namespace Vendidero\Germanized\Shipments\Blocks\Integrations;
+namespace Vendidero\Shiptastic\Blocks\Integrations;
 
 use Automattic\WooCommerce\Blocks\Integrations\IntegrationInterface;
-use Vendidero\Germanized\Shipments\Blocks\Assets;
-use Vendidero\Germanized\Shipments\Package;
+use Vendidero\Shiptastic\Blocks\Assets;
+use Vendidero\Shiptastic\Package;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -21,7 +21,7 @@ class CheckoutPickupLocationSelect implements IntegrationInterface {
 	 * @return string
 	 */
 	public function get_name() {
-		return 'woocommerce-germanized-shipments-pickup-location-select';
+		return 'wc-shiptastic-pickup-location-select';
 	}
 
 	/**
@@ -30,17 +30,17 @@ class CheckoutPickupLocationSelect implements IntegrationInterface {
 	public function initialize() {
 		$this->assets = Package::container()->get( Assets::class );
 
-		$this->assets->register_script( 'wc-gzd-shipments-checkout-pickup-location-select-block', $this->assets->get_block_asset_build_path( 'checkout-pickup-location-select' ), array( 'wc-gzd-shipments-blocks' ) );
-		$this->assets->register_style( 'wc-gzd-shipments-checkout-pickup-location-select-block', $this->assets->get_block_asset_build_path( 'style-checkout-pickup-location-select', 'css' ) );
-		$this->assets->register_style( 'wc-gzd-shipments-checkout', $this->assets->get_block_asset_build_path( 'style-blocksCheckout', 'css' ) );
+		$this->assets->register_script( 'wc-shiptastic-checkout-pickup-location-select-block', $this->assets->get_block_asset_build_path( 'checkout-pickup-location-select' ), array( 'wc-shiptastic-blocks' ) );
+		$this->assets->register_style( 'wc-shiptastic-checkout-pickup-location-select-block', $this->assets->get_block_asset_build_path( 'style-checkout-pickup-location-select', 'css' ) );
+		$this->assets->register_style( 'wc-shiptastic-checkout', $this->assets->get_block_asset_build_path( 'style-blocksCheckout', 'css' ) );
 
 		$asset_registry = \Automattic\WooCommerce\Blocks\Package::container()->get( \Automattic\WooCommerce\Blocks\Assets\AssetDataRegistry::class );
 
 		add_action(
 			'woocommerce_blocks_enqueue_checkout_block_scripts_after',
 			function() {
-				wp_enqueue_style( 'wc-gzd-shipments-checkout-pickup-location-select-block' );
-				wp_enqueue_style( 'wc-gzd-shipments-checkout' );
+				wp_enqueue_style( 'wc-shiptastic-checkout-pickup-location-select-block' );
+				wp_enqueue_style( 'wc-shiptastic-checkout' );
 			}
 		);
 	}
@@ -51,7 +51,7 @@ class CheckoutPickupLocationSelect implements IntegrationInterface {
 	 * @return string[]
 	 */
 	public function get_script_handles() {
-		return array( 'wc-gzd-shipments-checkout-pickup-location-select-block' );
+		return array( 'wc-shiptastic-checkout-pickup-location-select-block' );
 	}
 
 	/**
@@ -60,7 +60,7 @@ class CheckoutPickupLocationSelect implements IntegrationInterface {
 	 * @return string[]
 	 */
 	public function get_editor_script_handles() {
-		return array( 'wc-gzd-shipments-checkout-pickup-location-select-block' );
+		return array( 'wc-shiptastic-checkout-pickup-location-select-block' );
 	}
 
 	/**

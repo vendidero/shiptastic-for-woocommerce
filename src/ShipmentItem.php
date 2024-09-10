@@ -1,6 +1,6 @@
 <?php
 
-namespace Vendidero\Germanized\Shipments;
+namespace Vendidero\Shiptastic;
 
 use WC_Data;
 use WC_Data_Store;
@@ -337,7 +337,7 @@ class ShipmentItem extends WC_Data {
 	 */
 	public function get_shipment() {
 		if ( is_null( $this->shipment ) && 0 < $this->get_shipment_id() ) {
-			$this->shipment = wc_gzd_get_shipment( $this->get_shipment_id() );
+			$this->shipment = wc_stc_get_shipment( $this->get_shipment_id() );
 		}
 
 		$shipment = ( $this->shipment ) ? $this->shipment : false;
@@ -374,7 +374,7 @@ class ShipmentItem extends WC_Data {
 			}
 		}
 
-		if ( is_a( $item, '\Vendidero\Germanized\Shipments\ShipmentItem' ) ) {
+		if ( is_a( $item, '\Vendidero\Shiptastic\ShipmentItem' ) ) {
 			$default_data = $item->get_data();
 
 			unset( $default_data['id'] );
@@ -407,10 +407,10 @@ class ShipmentItem extends WC_Data {
 
 			if ( ! $product && is_callable( array( $item, 'get_product' ) ) ) {
 				if ( $product = $item->get_product() ) {
-					$product = wc_gzd_shipments_get_product( $product );
+					$product = wc_shiptastic_get_product( $product );
 				}
 
-				$product = apply_filters( 'woocommerce_gzd_shipments_order_item_product', $product, $item );
+				$product = apply_filters( 'woocommerce_shiptastic_order_item_product', $product, $item );
 			}
 
 			/**
@@ -465,9 +465,9 @@ class ShipmentItem extends WC_Data {
 		 * @param array                       $args Array containing props in key => value pairs which have been updated.
 		 *
 		 * @since 3.0.0
-		 * @package Vendidero/Germanized/Shipments
+		 * @package Vendidero/Shiptastic
 		 */
-		do_action( 'woocommerce_gzd_shipment_item_synced', $this, $item, $args );
+		do_action( 'woocommerce_shiptastic_shipment_item_synced', $this, $item, $args );
 	}
 
 	public function get_order_item() {
@@ -615,7 +615,7 @@ class ShipmentItem extends WC_Data {
 					$this->parent = $item;
 				}
 			} elseif ( $this->get_id() > 0 ) {
-				if ( $item = wc_gzd_get_shipment_item( $this->get_item_parent_id() ) ) {
+				if ( $item = wc_stc_get_shipment_item( $this->get_item_parent_id() ) ) {
 					$this->parent = $item;
 				}
 			}

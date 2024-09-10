@@ -1,6 +1,6 @@
 <?php
 
-namespace Vendidero\Germanized\Shipments;
+namespace Vendidero\Shiptastic;
 
 use \Exception;
 use WC_Order;
@@ -27,9 +27,9 @@ class FormHandler {
 
 	protected static function get_return_request_success_message( $needs_manual_confirmation = false ) {
 		if ( $needs_manual_confirmation ) {
-			$default_message = _x( 'Your return request was submitted successfully. We will now review your request and get in contact with you as soon as possible.', 'shipments', 'woocommerce-germanized-shipments' );
+			$default_message = _x( 'Your return request was submitted successfully. We will now review your request and get in contact with you as soon as possible.', 'shipments', 'shiptastic-for-woocommerce' );
 		} else {
-			$default_message = _x( 'Your return request was submitted successfully. You\'ll receive an email with further instructions in a few minutes.', 'shipments', 'woocommerce-germanized-shipments' );
+			$default_message = _x( 'Your return request was submitted successfully. You\'ll receive an email with further instructions in a few minutes.', 'shipments', 'shiptastic-for-woocommerce' );
 		}
 
 		/**
@@ -40,9 +40,9 @@ class FormHandler {
 		 * @param boolean $needs_manual_confirmation Whether the request needs manual confirmation or not.
 		 *
 		 * @since 3.1.0
-		 * @package Vendidero/Germanized/Shipments
+		 * @package Vendidero/Shiptastic
 		 */
-		$success_message = apply_filters( 'woocommerce_gzd_customer_new_return_shipment_request_success_message', $default_message, $needs_manual_confirmation );
+		$success_message = apply_filters( 'woocommerce_shiptastic_customer_new_return_shipment_request_success_message', $default_message, $needs_manual_confirmation );
 
 		return $success_message;
 	}
@@ -72,46 +72,46 @@ class FormHandler {
 		// Prefer longer, contiguous order numbers
 		$order_id = reset( $order_id_comp );
 
-		return apply_filters( 'woocommerce_gzd_return_request_order_id_from_string', $order_id, $order_id_str );
+		return apply_filters( 'woocommerce_shiptastic_return_request_order_id_from_string', $order_id, $order_id_str );
 	}
 
 	public static function process_return_request() {
-		$nonce_value = isset( $_REQUEST['woocommerce-gzd-return-request-nonce'] ) ? $_REQUEST['woocommerce-gzd-return-request-nonce'] : ''; // @codingStandardsIgnoreLine.
+		$nonce_value = isset( $_REQUEST['woocommerce-stc-return-request-nonce'] ) ? $_REQUEST['woocommerce-stc-return-request-nonce'] : ''; // @codingStandardsIgnoreLine.
 
-		if ( isset( $_POST['return_request'], $_POST['email'], $_POST['order_id'] ) && wp_verify_nonce( $nonce_value, 'woocommerce-gzd-return-request' ) ) {
+		if ( isset( $_POST['return_request'], $_POST['email'], $_POST['order_id'] ) && wp_verify_nonce( $nonce_value, 'woocommerce-stc-return-request' ) ) {
 			try {
 				$email    = sanitize_email( wp_unslash( $_POST['email'] ) );
 				$order_id = wc_clean( wp_unslash( $_POST['order_id'] ) );
 
 				if ( empty( $email ) || empty( $order_id ) ) {
-					throw new Exception( '<strong>' . _x( 'Error:', 'shipments', 'woocommerce-germanized-shipments' ) . '</strong> ' . _x( 'Please fill out all required fields.', 'shipments', 'woocommerce-germanized-shipments' ) );
+					throw new Exception( '<strong>' . _x( 'Error:', 'shipments', 'shiptastic-for-woocommerce' ) . '</strong> ' . _x( 'Please fill out all required fields.', 'shipments', 'shiptastic-for-woocommerce' ) );
 				}
 
 				$db_order_id = self::find_order( $order_id, $email );
 
 				if ( ! $db_order_id || ( ! $order = wc_get_order( $db_order_id ) ) ) {
-					throw new Exception( '<strong>' . _x( 'Error:', 'shipments', 'woocommerce-germanized-shipments' ) . '</strong> ' . _x( 'We were not able to find a matching order.', 'shipments', 'woocommerce-germanized-shipments' ) );
+					throw new Exception( '<strong>' . _x( 'Error:', 'shipments', 'shiptastic-for-woocommerce' ) . '</strong> ' . _x( 'We were not able to find a matching order.', 'shipments', 'shiptastic-for-woocommerce' ) );
 				}
 
-				if ( ! wc_gzd_order_is_customer_returnable( $order ) ) {
-					throw new Exception( '<strong>' . _x( 'Error:', 'shipments', 'woocommerce-germanized-shipments' ) . '</strong> ' . _x( 'This order is currently not eligible for returns. Please contact us for further details.', 'shipments', 'woocommerce-germanized-shipments' ) );
+				if ( ! wc_stc_order_is_customer_returnable( $order ) ) {
+					throw new Exception( '<strong>' . _x( 'Error:', 'shipments', 'shiptastic-for-woocommerce' ) . '</strong> ' . _x( 'This order is currently not eligible for returns. Please contact us for further details.', 'shipments', 'shiptastic-for-woocommerce' ) );
 				}
 
-				$key = 'wc_gzd_order_return_request_' . wp_generate_password( 13, false );
+				$key = 'wc_stc_order_return_request_' . wp_generate_password( 13, false );
 
 				$order->update_meta_data( '_return_request_key', $key );
 				$order->save();
 
 				// Send email to customer
-				wc_add_notice( _x( 'Thank you. You\'ll receive an email containing a link to create a new return to your order.', 'shipments', 'woocommerce-germanized-shipments' ), 'success' );
+				wc_add_notice( _x( 'Thank you. You\'ll receive an email containing a link to create a new return to your order.', 'shipments', 'shiptastic-for-woocommerce' ), 'success' );
 
-				WC()->mailer()->emails['WC_GZD_Email_Customer_Guest_Return_Shipment_Request']->trigger( $order );
+				WC()->mailer()->emails['WC_STC_Email_Customer_Guest_Return_Shipment_Request']->trigger( $order );
 
-				do_action( 'woocommerce_gzd_return_request_successful', $order );
+				do_action( 'woocommerce_shiptastic_return_request_successful', $order );
 
 			} catch ( Exception $e ) {
 				wc_add_notice( $e->getMessage(), 'error' );
-				do_action( 'woocommerce_gzd_return_request_failed' );
+				do_action( 'woocommerce_shiptastic_return_request_failed' );
 			}
 		}
 	}
@@ -127,7 +127,7 @@ class FormHandler {
 		$db_order_id     = false;
 		$orders          = wc_get_orders(
 			apply_filters(
-				'woocommerce_gzd_return_request_order_query_args',
+				'woocommerce_stc_return_request_order_query_args',
 				array(
 					'billing_email' => $email,
 					'post__in'      => array( $order_id_parsed ),
@@ -143,7 +143,7 @@ class FormHandler {
 
 			$orders = wc_get_orders(
 				apply_filters(
-					'woocommerce_gzd_return_request_alternate_order_query_args',
+					'woocommerce_stc_return_request_alternate_order_query_args',
 					array(
 						'billing_email' => $email,
 						'order_number'  => $order_id,
@@ -160,11 +160,11 @@ class FormHandler {
 			$db_order_id = $orders[0];
 		}
 
-		return apply_filters( 'woocommerce_gzd_shipments_valid_order_for_return_request', $db_order_id, $order_id, $email );
+		return apply_filters( 'woocommerce_shiptastic_valid_order_for_return_request', $db_order_id, $order_id, $email );
 	}
 
 	public static function filter_query_by_order_number( $query, $query_vars ) {
-		$meta_field_name = apply_filters( 'woocommerce_gzd_return_request_customer_order_number_meta_key', '_order_number' );
+		$meta_field_name = apply_filters( 'woocommerce_shiptastic_return_request_customer_order_number_meta_key', '_order_number' );
 
 		if ( ! empty( $query_vars['order_number'] ) ) {
 			$query['meta_query'][] = array(
@@ -187,7 +187,7 @@ class FormHandler {
 			return;
 		}
 
-		if ( empty( $_POST['action'] ) || 'gzd_add_return_shipment' !== $_POST['action'] ) {
+		if ( empty( $_POST['action'] ) || 'shiptastic_add_return_shipment' !== $_POST['action'] ) {
 			return;
 		}
 
@@ -197,23 +197,23 @@ class FormHandler {
 		$items     = ! empty( $_POST['items'] ) ? wc_clean( wp_unslash( $_POST['items'] ) ) : array();
 		$item_data = ! empty( $_POST['item'] ) ? wc_clean( wp_unslash( $_POST['item'] ) ) : array();
 
-		if ( ! ( $order = wc_get_order( $order_id ) ) || ( ! wc_gzd_customer_can_add_return_shipment( $order_id ) ) ) {
-			wc_add_notice( _x( 'You are not allowed to add returns to that order.', 'shipments', 'woocommerce-germanized-shipments' ), 'error' );
+		if ( ! ( $order = wc_get_order( $order_id ) ) || ( ! wc_stc_customer_can_add_return_shipment( $order_id ) ) ) {
+			wc_add_notice( _x( 'You are not allowed to add returns to that order.', 'shipments', 'shiptastic-for-woocommerce' ), 'error' );
 			return;
 		}
 
-		if ( ! wc_gzd_order_is_customer_returnable( $order ) ) {
-			wc_add_notice( _x( 'Sorry, but this order does not support returns any longer.', 'shipments', 'woocommerce-germanized-shipments' ), 'error' );
+		if ( ! wc_stc_order_is_customer_returnable( $order ) ) {
+			wc_add_notice( _x( 'Sorry, but this order does not support returns any longer.', 'shipments', 'shiptastic-for-woocommerce' ), 'error' );
 			return;
 		}
 
 		if ( empty( $items ) ) {
-			wc_add_notice( _x( 'Please choose one or more items from the list.', 'shipments', 'woocommerce-germanized-shipments' ), 'error' );
+			wc_add_notice( _x( 'Please choose one or more items from the list.', 'shipments', 'shiptastic-for-woocommerce' ), 'error' );
 			return;
 		}
 
 		$return_items   = array();
-		$shipment_order = wc_gzd_get_shipment_order( $order );
+		$shipment_order = wc_stc_get_shipment_order( $order );
 
 		foreach ( $items as $order_item_id ) {
 			if ( $item = $shipment_order->get_simple_shipment_item( $order_item_id ) ) {
@@ -221,16 +221,16 @@ class FormHandler {
 				$quantity_returnable = $shipment_order->get_item_quantity_left_for_returning( $order_item_id );
 				$reason              = isset( $item_data[ $order_item_id ]['reason'] ) ? wc_clean( $item_data[ $order_item_id ]['reason'] ) : '';
 
-				if ( ! empty( $reason ) && ! wc_gzd_return_shipment_reason_exists( $reason ) ) {
-					wc_add_notice( _x( 'The return reason you have chosen does not exist.', 'shipments', 'woocommerce-germanized-shipments' ), 'error' );
+				if ( ! empty( $reason ) && ! wc_stc_return_shipment_reason_exists( $reason ) ) {
+					wc_add_notice( _x( 'The return reason you have chosen does not exist.', 'shipments', 'shiptastic-for-woocommerce' ), 'error' );
 					return;
-				} elseif ( empty( $reason ) && ! wc_gzd_allow_customer_return_empty_return_reason( $order ) ) {
-					wc_add_notice( _x( 'Please choose a return reason from the list.', 'shipments', 'woocommerce-germanized-shipments' ), 'error' );
+				} elseif ( empty( $reason ) && ! wc_stc_allow_customer_return_empty_return_reason( $order ) ) {
+					wc_add_notice( _x( 'Please choose a return reason from the list.', 'shipments', 'shiptastic-for-woocommerce' ), 'error' );
 					return;
 				}
 
 				if ( $quantity > $quantity_returnable ) {
-					wc_add_notice( _x( 'Please check your item quantities. Quantities must not exceed maximum quantities.', 'shipments', 'woocommerce-germanized-shipments' ), 'error' );
+					wc_add_notice( _x( 'Please check your item quantities. Quantities must not exceed maximum quantities.', 'shipments', 'shiptastic-for-woocommerce' ), 'error' );
 					return;
 				} else {
 					$return_items[ $order_item_id ] = array(
@@ -242,14 +242,14 @@ class FormHandler {
 		}
 
 		if ( empty( $return_items ) ) {
-			wc_add_notice( _x( 'Please choose one or more items from the list.', 'shipments', 'woocommerce-germanized-shipments' ), 'error' );
+			wc_add_notice( _x( 'Please choose one or more items from the list.', 'shipments', 'shiptastic-for-woocommerce' ), 'error' );
 		}
 
 		if ( wc_notice_count( 'error' ) > 0 ) {
 			return;
 		}
 
-		$needs_manual_confirmation = wc_gzd_customer_return_needs_manual_confirmation( $order );
+		$needs_manual_confirmation = wc_stc_customer_return_needs_manual_confirmation( $order );
 
 		if ( $needs_manual_confirmation ) {
 			$default_status = 'requested';
@@ -258,7 +258,7 @@ class FormHandler {
 		}
 
 		// Add return shipment
-		$return_shipment = wc_gzd_create_return_shipment(
+		$return_shipment = wc_stc_create_return_shipment(
 			$shipment_order,
 			array(
 				'items' => $return_items,
@@ -271,16 +271,16 @@ class FormHandler {
 					 * @param WC_Order $order The order object.
 					 *
 					 * @since 3.1.0
-					 * @package Vendidero/Germanized/Shipments
+					 * @package Vendidero/Shiptastic
 					 */
-					'status'                => apply_filters( 'woocommerce_gzd_customer_new_return_shipment_request_status', $default_status, $order ),
+					'status'                => apply_filters( 'woocommerce_shiptastic_customer_new_return_shipment_request_status', $default_status, $order ),
 					'is_customer_requested' => true,
 				),
 			)
 		);
 
 		if ( is_wp_error( $return_shipment ) ) {
-			wc_add_notice( _x( 'There was an error while creating the return. Please contact us for further information.', 'shipments', 'woocommerce-germanized-shipments' ), 'error' );
+			wc_add_notice( _x( 'There was an error while creating the return. Please contact us for further information.', 'shipments', 'shiptastic-for-woocommerce' ), 'error' );
 			return;
 		} else {
 			// Delete return request key if available
@@ -301,9 +301,9 @@ class FormHandler {
 			 * @param WC_Order      $order The order object.
 			 *
 			 * @since 3.1.0
-			 * @package Vendidero/Germanized/Shipments
+			 * @package Vendidero/Shiptastic
 			 */
-			do_action( 'woocommerce_gzd_new_customer_return_shipment_request', $return_shipment, $order );
+			do_action( 'woocommerce_shiptastic_new_customer_return_shipment_request', $return_shipment, $order );
 
 			if ( $needs_manual_confirmation ) {
 				$return_url = $order->get_view_order_url();
@@ -331,9 +331,9 @@ class FormHandler {
 			 * @param boolean        $needs_manual_confirmation Whether the request needs manual confirmation or not.
 			 *
 			 * @since 3.1.0
-			 * @package Vendidero/Germanized/Shipments
+			 * @package Vendidero/Shiptastic
 			 */
-			$redirect = apply_filters( 'woocommerce_gzd_customer_new_return_shipment_request_redirect', $return_url, $return_shipment, $needs_manual_confirmation );
+			$redirect = apply_filters( 'woocommerce_shiptastic_customer_new_return_shipment_request_redirect', $return_url, $return_shipment, $needs_manual_confirmation );
 
 			wp_safe_redirect( esc_url_raw( $redirect ) );
 			exit;

@@ -1,6 +1,6 @@
 <?php
 
-namespace Vendidero\Germanized\Shipments\Packing;
+namespace Vendidero\Shiptastic\Packing;
 
 use DVDoug\BoxPacker\BoxSorter;
 

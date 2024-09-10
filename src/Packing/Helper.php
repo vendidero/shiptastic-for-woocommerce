@@ -1,14 +1,14 @@
 <?php
 
-namespace Vendidero\Germanized\Shipments\Packing;
+namespace Vendidero\Shiptastic\Packing;
 
 use DVDoug\BoxPacker\BoxList;
 use DVDoug\BoxPacker\ItemList;
 use DVDoug\BoxPacker\PackedBoxList;
-use Vendidero\Germanized\Shipments\Interfaces\PackingBox;
-use Vendidero\Germanized\Shipments\Interfaces\PackingItem;
-use Vendidero\Germanized\Shipments\Package;
-use Vendidero\Germanized\Shipments\Packaging;
+use Vendidero\Shiptastic\Interfaces\PackingBox;
+use Vendidero\Shiptastic\Interfaces\PackingItem;
+use Vendidero\Shiptastic\Package;
+use Vendidero\Shiptastic\Packaging;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -30,7 +30,7 @@ class Helper {
 		if ( is_null( self::$packaging ) ) {
 			self::$packaging = array();
 
-			foreach ( wc_gzd_get_packaging_list() as $packaging ) {
+			foreach ( wc_stc_get_packaging_list() as $packaging ) {
 				self::$packaging[ $packaging->get_id() ] = new PackagingBox( $packaging );
 			}
 		}
@@ -39,7 +39,7 @@ class Helper {
 			if ( is_array( $id ) ) {
 				$first_val = ! empty( $id ) ? array_values( $id )[0] : false;
 
-				if ( is_a( $first_val, '\Vendidero\Germanized\Shipments\Packaging' ) ) {
+				if ( is_a( $first_val, '\Vendidero\Shiptastic\Packaging' ) ) {
 					$packaging_boxes = array();
 
 					foreach ( $id as $packaging ) {
@@ -72,11 +72,11 @@ class Helper {
 	}
 
 	public static function enable_auto_packing() {
-		return 'yes' === get_option( 'woocommerce_gzd_shipments_enable_auto_packing' );
+		return 'yes' === get_option( 'woocommerce_shiptastic_enable_auto_packing' );
 	}
 
 	/**
-	 * @param \Vendidero\Germanized\Shipments\Packing\ItemList $items
+	 * @param \Vendidero\Shiptastic\Packing\ItemList $items
 	 * @param PackingBox[]|BoxList $boxes
 	 *
 	 * @return PackedBoxList
@@ -85,20 +85,20 @@ class Helper {
 		self::$items_too_large = array();
 
 		/**
-		 * @var \Vendidero\Germanized\Shipments\Packing\Packer $packer
+		 * @var \Vendidero\Shiptastic\Packing\Packer $packer
 		 */
-		$packer = apply_filters( 'woocommerce_gzd_shipments_packer_instance', new Packer(), $items, $boxes, $for );
+		$packer = apply_filters( 'woocommerce_shiptastic_packer_instance', new Packer(), $items, $boxes, $for );
 		$packer->set_boxes( $boxes );
 		$packer->set_items( $items );
 
-		if ( 'yes' !== get_option( 'woocommerce_gzd_shipments_packing_balance_weights' ) ) {
+		if ( 'yes' !== get_option( 'woocommerce_shiptastic_packing_balance_weights' ) ) {
 			/**
 			 * Pack the first available package as full as possible.
 			 */
 			$packer->set_max_boxes_to_balance_weight( 0 );
 		}
 
-		do_action( 'woocommerce_gzd_shipments_packer_before_pack', $packer, $for );
+		do_action( 'woocommerce_shiptastic_packer_before_pack', $packer, $for );
 
 		$packed_boxes = $packer->pack();
 
@@ -107,7 +107,7 @@ class Helper {
 
 		if ( self::$items_too_large->count() > 0 ) {
 			foreach ( self::$items_too_large as $item_too_large ) {
-				Package::log( sprintf( _x( 'Item %1$s did not fit the available packaging.', 'shipments', 'woocommerce-germanized-shipments' ), $item_too_large->getDescription() ), 'info', 'packing' );
+				Package::log( sprintf( _x( 'Item %1$s did not fit the available packaging.', 'shipments', 'shiptastic-for-woocommerce' ), $item_too_large->getDescription() ), 'info', 'packing' );
 			}
 		}
 

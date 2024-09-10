@@ -2,16 +2,15 @@
 /**
  * Email return shipment instructions
  *
- * This template can be overridden by copying it to yourtheme/woocommerce-germanized/emails/email-return-shipment-instructions.php.
+ * This template can be overridden by copying it to yourtheme/shiptastic/emails/email-return-shipment-instructions.php.
  *
- * HOWEVER, on occasion Germanized will need to update template files and you
+ * HOWEVER, on occasion Shiptastic will need to update template files and you
  * (the theme developer) will need to copy the new files to your theme to
  * maintain compatibility. We try to do this as little as possible, but it does
  * happen. When this occurs the version of the template file will be bumped and
  * the readme will list any important changes.
  *
- * @see https://github.com/vendidero/woocommerce-germanized/wiki/Overriding-Germanized-Templates
- * @package Germanized/Shipments/Templates/Emails
+ * @package Shiptastic/Templates/Emails
  * @version 1.0.0
  */
 if ( ! defined( 'ABSPATH' ) ) {

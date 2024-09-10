@@ -4,9 +4,9 @@
  *
  * @package WooCommerce/Blocks
  */
-namespace Vendidero\Germanized\Shipments;
+namespace Vendidero\Shiptastic;
 
-use Vendidero\Germanized\Shipments\Rest\ShipmentsController;
+use Vendidero\Shiptastic\Rest\ShipmentsController;
 use WP_REST_Request;
 use WP_REST_Response;
 
@@ -43,7 +43,7 @@ class Api {
 	private static function get_product_data( $product, $context = 'view' ) {
 		$data = array();
 
-		if ( $shipments_product = wc_gzd_shipments_get_product( $product ) ) {
+		if ( $shipments_product = wc_shiptastic_get_product( $product ) ) {
 			$data['hs_code']             = $shipments_product->get_hs_code( $context );
 			$data['customs_description'] = $shipments_product->get_customs_description( $context );
 			$data['manufacture_country'] = $shipments_product->get_manufacture_country( $context );
@@ -64,7 +64,7 @@ class Api {
 	 * @return \WC_Product $product
 	 */
 	public static function update_product( $product, $request ) {
-		if ( $shipments_product = wc_gzd_shipments_get_product( $product ) ) {
+		if ( $shipments_product = wc_shiptastic_get_product( $product ) ) {
 			if ( isset( $request['customs_description'] ) ) {
 				$shipments_product->set_customs_description( wc_clean( wp_unslash( $request['customs_description'] ) ) );
 			}
@@ -103,14 +103,6 @@ class Api {
 		return $product;
 	}
 
-	public static function remove_status_prefix( $status ) {
-		if ( 'gzd-' === substr( $status, 0, 4 ) ) {
-			$status = substr( $status, 4 );
-		}
-
-		return $status;
-	}
-
 	/**
 	 * Extend product variation schema.
 	 *
@@ -122,21 +114,21 @@ class Api {
 	 */
 	public static function product_variation_schema( $schema_properties ) {
 		$schema_properties['customs_description'] = array(
-			'description' => _x( 'Customs description', 'shipments', 'woocommerce-germanized-shipments' ),
+			'description' => _x( 'Customs description', 'shipments', 'shiptastic-for-woocommerce' ),
 			'type'        => 'string',
 			'context'     => array( 'view', 'edit' ),
 			'readonly'    => true,
 		);
 
 		$schema_properties['hs_code'] = array(
-			'description' => _x( 'HS-Code', 'shipments', 'woocommerce-germanized-shipments' ),
+			'description' => _x( 'HS-Code', 'shipments', 'shiptastic-for-woocommerce' ),
 			'type'        => 'string',
 			'context'     => array( 'view', 'edit' ),
 			'readonly'    => true,
 		);
 
 		$schema_properties['manufacture_country'] = array(
-			'description' => _x( 'Country of manufacture', 'shipments', 'woocommerce-germanized-shipments' ),
+			'description' => _x( 'Country of manufacture', 'shipments', 'shiptastic-for-woocommerce' ),
 			'type'        => 'string',
 			'context'     => array( 'view', 'edit' ),
 			'readonly'    => true,
@@ -145,25 +137,25 @@ class Api {
 		$dimension_unit_label = Package::get_dimensions_unit_label( get_option( 'woocommerce_dimension_unit', 'cm' ) );
 
 		$schema_properties['shipping_dimensions'] = array(
-			'description' => _x( 'Product shipping dimensions.', 'shipments', 'woocommerce-germanized-shipments' ),
+			'description' => _x( 'Product shipping dimensions.', 'shipments', 'shiptastic-for-woocommerce' ),
 			'type'        => 'object',
 			'context'     => array( 'view', 'edit' ),
 			'properties'  => array(
 				'length' => array(
 					/* translators: %s: dimension unit */
-					'description' => sprintf( _x( 'Shipping length (%s).', 'shipments', 'woocommerce-germanized-shipments' ), $dimension_unit_label ),
+					'description' => sprintf( _x( 'Shipping length (%s).', 'shipments', 'shiptastic-for-woocommerce' ), $dimension_unit_label ),
 					'type'        => 'string',
 					'context'     => array( 'view', 'edit' ),
 				),
 				'width'  => array(
 					/* translators: %s: dimension unit */
-					'description' => sprintf( _x( 'Shipping width (%s).', 'shipments', 'woocommerce-germanized-shipments' ), $dimension_unit_label ),
+					'description' => sprintf( _x( 'Shipping width (%s).', 'shipments', 'shiptastic-for-woocommerce' ), $dimension_unit_label ),
 					'type'        => 'string',
 					'context'     => array( 'view', 'edit' ),
 				),
 				'height' => array(
 					/* translators: %s: dimension unit */
-					'description' => sprintf( _x( 'Shipping height (%s).', 'shipments', 'woocommerce-germanized-shipments' ), $dimension_unit_label ),
+					'description' => sprintf( _x( 'Shipping height (%s).', 'shipments', 'shiptastic-for-woocommerce' ), $dimension_unit_label ),
 					'type'        => 'string',
 					'context'     => array( 'view', 'edit' ),
 				),
@@ -184,19 +176,19 @@ class Api {
 	 */
 	public static function product_schema( $schema_properties ) {
 		$schema_properties['customs_description'] = array(
-			'description' => _x( 'Customs description', 'shipments', 'woocommerce-germanized-shipments' ),
+			'description' => _x( 'Customs description', 'shipments', 'shiptastic-for-woocommerce' ),
 			'type'        => 'string',
 			'context'     => array( 'view', 'edit' ),
 		);
 
 		$schema_properties['hs_code'] = array(
-			'description' => _x( 'HS-Code (Customs)', 'shipments', 'woocommerce-germanized-shipments' ),
+			'description' => _x( 'HS-Code (Customs)', 'shipments', 'shiptastic-for-woocommerce' ),
 			'type'        => 'string',
 			'context'     => array( 'view', 'edit' ),
 		);
 
 		$schema_properties['manufacture_country'] = array(
-			'description' => _x( 'Country of manufacture (Customs)', 'shipments', 'woocommerce-germanized-shipments' ),
+			'description' => _x( 'Country of manufacture (Customs)', 'shipments', 'shiptastic-for-woocommerce' ),
 			'type'        => 'string',
 			'context'     => array( 'view', 'edit' ),
 		);
@@ -204,25 +196,25 @@ class Api {
 		$dimension_unit_label = Package::get_dimensions_unit_label( get_option( 'woocommerce_dimension_unit', 'cm' ) );
 
 		$schema_properties['shipping_dimensions'] = array(
-			'description' => _x( 'Product shipping dimensions.', 'shipments', 'woocommerce-germanized-shipments' ),
+			'description' => _x( 'Product shipping dimensions.', 'shipments', 'shiptastic-for-woocommerce' ),
 			'type'        => 'object',
 			'context'     => array( 'view', 'edit' ),
 			'properties'  => array(
 				'length' => array(
 					/* translators: %s: dimension unit */
-					'description' => sprintf( _x( 'Shipping length (%s).', 'shipments', 'woocommerce-germanized-shipments' ), $dimension_unit_label ),
+					'description' => sprintf( _x( 'Shipping length (%s).', 'shipments', 'shiptastic-for-woocommerce' ), $dimension_unit_label ),
 					'type'        => 'string',
 					'context'     => array( 'view', 'edit' ),
 				),
 				'width'  => array(
 					/* translators: %s: dimension unit */
-					'description' => sprintf( _x( 'Shipping width (%s).', 'shipments', 'woocommerce-germanized-shipments' ), $dimension_unit_label ),
+					'description' => sprintf( _x( 'Shipping width (%s).', 'shipments', 'shiptastic-for-woocommerce' ), $dimension_unit_label ),
 					'type'        => 'string',
 					'context'     => array( 'view', 'edit' ),
 				),
 				'height' => array(
 					/* translators: %s: dimension unit */
-					'description' => sprintf( _x( 'Shipping height (%s).', 'shipments', 'woocommerce-germanized-shipments' ), $dimension_unit_label ),
+					'description' => sprintf( _x( 'Shipping height (%s).', 'shipments', 'shiptastic-for-woocommerce' ), $dimension_unit_label ),
 					'type'        => 'string',
 					'context'     => array( 'view', 'edit' ),
 				),
@@ -273,7 +265,7 @@ class Api {
 		);
 
 		if ( $order ) {
-			$order_shipment = wc_gzd_get_shipment_order( $order );
+			$order_shipment = wc_stc_get_shipment_order( $order );
 			$shipments      = $order_shipment->get_shipments();
 			$provider       = $order_shipment->get_shipping_provider();
 
@@ -295,10 +287,10 @@ class Api {
 	}
 
 	public static function order_shipments_schema( $schema_properties ) {
-		$statuses = array_map( array( __CLASS__, 'remove_status_prefix' ), array_keys( wc_gzd_get_shipment_order_shipping_statuses() ) );
+		$statuses = array_keys( wc_stc_get_shipment_order_shipping_statuses() );
 
 		$schema_properties['shipments'] = array(
-			'description' => _x( 'List of shipments.', 'shipments', 'woocommerce-germanized-shipments' ),
+			'description' => _x( 'List of shipments.', 'shipments', 'shiptastic-for-woocommerce' ),
 			'type'        => 'array',
 			'context'     => array( 'view', 'edit' ),
 			'readonly'    => true,
@@ -306,7 +298,7 @@ class Api {
 		);
 
 		$schema_properties['shipping_status'] = array(
-			'description' => _x( 'Shipping status', 'shipments', 'woocommerce-germanized-shipments' ),
+			'description' => _x( 'Shipping status', 'shipments', 'shiptastic-for-woocommerce' ),
 			'type'        => 'string',
 			'enum'        => $statuses,
 			'context'     => array( 'view', 'edit' ),
@@ -314,20 +306,20 @@ class Api {
 		);
 
 		$schema_properties['shipping_provider'] = array(
-			'description' => _x( 'Shipping provider', 'shipments', 'woocommerce-germanized-shipments' ),
+			'description' => _x( 'Shipping provider', 'shipments', 'shiptastic-for-woocommerce' ),
 			'type'        => 'string',
 			'context'     => array( 'view', 'edit' ),
 			'readonly'    => true,
 		);
 
 		$schema_properties['pickup_location_code'] = array(
-			'description' => _x( 'Pickup location code', 'shipments', 'woocommerce-germanized-shipments' ),
+			'description' => _x( 'Pickup location code', 'shipments', 'shiptastic-for-woocommerce' ),
 			'type'        => 'string',
 			'context'     => array( 'view', 'edit' ),
 		);
 
 		$schema_properties['pickup_location_customer_number'] = array(
-			'description' => _x( 'Pickup location customer number', 'shipments', 'woocommerce-germanized-shipments' ),
+			'description' => _x( 'Pickup location customer number', 'shipments', 'shiptastic-for-woocommerce' ),
 			'type'        => 'string',
 			'context'     => array( 'view', 'edit' ),
 		);
@@ -336,11 +328,7 @@ class Api {
 	}
 
 	protected static function get_shipment_statuses() {
-		$statuses = array();
-
-		foreach ( array_keys( wc_gzd_get_shipment_statuses() ) as $status ) {
-			$statuses[] = str_replace( 'gzd-', '', $status );
-		}
+		$statuses = array_keys( wc_stc_get_shipment_statuses() );
 
 		return $statuses;
 	}

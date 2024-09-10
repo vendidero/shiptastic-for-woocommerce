@@ -1,6 +1,6 @@
 <?php
 
-namespace Vendidero\Germanized\Shipments;
+namespace Vendidero\Shiptastic;
 
 use WC_Object_Query;
 use WC_Data_Store;
@@ -48,7 +48,7 @@ class ShipmentQuery extends WC_Object_Query {
 	 */
 	protected function get_default_query_vars() {
 		return array(
-			'status'            => array_keys( wc_gzd_get_shipment_statuses() ),
+			'status'            => array_keys( wc_stc_get_shipment_statuses() ),
 			'limit'             => 10,
 			'order_id'          => '',
 			'parent_id'         => '',
@@ -81,9 +81,9 @@ class ShipmentQuery extends WC_Object_Query {
 		 * @param array $args The arguments passed.
 		 *
 		 * @since 3.0.0
-		 * @package Vendidero/Germanized/Shipments
+		 * @package Vendidero/Shiptastic
 		 */
-		$args = apply_filters( 'woocommerce_gzd_shipment_query_args', $this->get_query_vars() );
+		$args = apply_filters( 'woocommerce_shiptastic_shipment_query_args', $this->get_query_vars() );
 		$args = WC_Data_Store::load( 'shipment' )->get_query_args( $args );
 
 		$this->query( $args );
@@ -95,9 +95,9 @@ class ShipmentQuery extends WC_Object_Query {
 		 * @param array                                      $args The arguments passed.
 		 *
 		 * @since 3.0.0
-		 * @package Vendidero/Germanized/Shipments
+		 * @package Vendidero/Shiptastic
 		 */
-		return apply_filters( 'woocommerce_gzd_shipment_query', $this->results, $args );
+		return apply_filters( 'woocommerce_shiptastic_shipment_query', $this->results, $args );
 	}
 
 	public function get_total() {
@@ -139,7 +139,7 @@ class ShipmentQuery extends WC_Object_Query {
 			 * @param string[] $clauses Associative array of the clauses for the query.
 			 * @param ShipmentQuery $query The ShipmentQuery instance.
 			 */
-			$clauses = (array) apply_filters( 'woocommerce_gzd_shipment_query_clauses', $clauses, $this );
+			$clauses = (array) apply_filters( 'woocommerce_shiptastic_shipment_query_clauses', $clauses, $this );
 
 			$fields  = isset( $clauses['fields'] ) ? $clauses['fields'] : '';
 			$from    = isset( $clauses['from'] ) ? $clauses['from'] : '';
@@ -169,7 +169,7 @@ class ShipmentQuery extends WC_Object_Query {
 
 		if ( 'objects' === $qv['fields'] ) {
 			foreach ( $this->results as $key => $shipment ) {
-				$this->results[ $key ] = wc_gzd_get_shipment( $shipment );
+				$this->results[ $key ] = wc_stc_get_shipment( $shipment );
 			}
 		}
 	}
@@ -271,22 +271,22 @@ class ShipmentQuery extends WC_Object_Query {
 
 			foreach ( $this->args['fields'] as $field ) {
 				$field                = 'ID' === $field ? 'shipment_id' : sanitize_key( $field );
-				$this->query_fields[] = "$wpdb->gzd_shipments.$field";
+				$this->query_fields[] = "$wpdb->stc_shipments.$field";
 			}
 
 			$this->query_fields = implode( ',', $this->query_fields );
 
 		} elseif ( 'objects' === $this->args['fields'] ) {
-			$this->query_fields = "$wpdb->gzd_shipments.*";
+			$this->query_fields = "$wpdb->stc_shipments.*";
 		} else {
-			$this->query_fields = "$wpdb->gzd_shipments.shipment_id";
+			$this->query_fields = "$wpdb->stc_shipments.shipment_id";
 		}
 
 		if ( isset( $this->args['count_total'] ) && $this->args['count_total'] ) {
 			$this->query_fields = 'SQL_CALC_FOUND_ROWS ' . $this->query_fields;
 		}
 
-		$this->query_from  = "FROM $wpdb->gzd_shipments";
+		$this->query_from  = "FROM $wpdb->stc_shipments";
 		$this->query_where = 'WHERE 1=1';
 
 		// order id
@@ -318,7 +318,7 @@ class ShipmentQuery extends WC_Object_Query {
 		if ( isset( $this->args['product_ids'] ) ) {
 			$product_ids_placeholders = implode( ', ', array_fill( 0, count( $this->args['product_ids'] ), '%d' ) );
 
-			$this->query_from  .= " JOIN {$wpdb->prefix}woocommerce_gzd_shipment_items as shipment_items ON ( shipment_items.shipment_id = {$wpdb->prefix}woocommerce_gzd_shipments.shipment_id ) ";
+			$this->query_from  .= " JOIN {$wpdb->prefix}woocommerce_stc_shipment_items as shipment_items ON ( shipment_items.shipment_id = {$wpdb->prefix}woocommerce_stc_shipments.shipment_id ) ";
 			$this->query_where .= $wpdb->prepare( " AND shipment_items.shipment_item_product_id IN ({$product_ids_placeholders})", $this->args['product_ids'] ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
 		}
 
@@ -326,7 +326,7 @@ class ShipmentQuery extends WC_Object_Query {
 		if ( isset( $this->args['product_category'] ) ) {
 			$product_category_placeholders = implode( ', ', array_fill( 0, count( $this->args['product_category'] ), '%d' ) );
 
-			$this->query_from  .= " JOIN {$wpdb->prefix}woocommerce_gzd_shipment_items AS shipment_items ON {$wpdb->prefix}woocommerce_gzd_shipments.shipment_id = shipment_items.shipment_id ";
+			$this->query_from  .= " JOIN {$wpdb->prefix}woocommerce_stc_shipment_items AS shipment_items ON {$wpdb->prefix}woocommerce_stc_shipments.shipment_id = shipment_items.shipment_id ";
 			$this->query_from  .= " JOIN {$wpdb->prefix}term_relationships AS term_relationships ON term_relationships.object_id = shipment_items.shipment_item_product_id ";
 			$this->query_where .= $wpdb->prepare( " AND term_relationships.term_taxonomy_id IN ({$product_category_placeholders})", $this->args['product_category'] ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
 		}
@@ -421,9 +421,9 @@ class ShipmentQuery extends WC_Object_Query {
 			 * @param string        $search         Text being searched.
 			 * @param ShipmentQuery $this The current ShipmentQuery instance.
 			 *
-			 * @package Vendidero/Germanized/Shipments
+			 * @package Vendidero/Shiptastic
 			 */
-			$search_columns = apply_filters( 'woocommerce_gzd_shipment_search_columns', $search_columns, $search, $this );
+			$search_columns = apply_filters( 'woocommerce_shiptastic_shipment_search_columns', $search_columns, $search, $this );
 
 			$this->query_where .= $this->get_search_sql( $search, $search_columns, $wild );
 		}
@@ -440,7 +440,7 @@ class ShipmentQuery extends WC_Object_Query {
 		$this->meta_query->parse_query_vars( $this->args );
 
 		if ( ! empty( $this->meta_query->queries ) ) {
-			$clauses            = $this->meta_query->get_sql( 'gzd_shipment', $wpdb->gzd_shipments, 'shipment_id', $this );
+			$clauses            = $this->meta_query->get_sql( 'stc_shipment', $wpdb->stc_shipments, 'shipment_id', $this );
 			$this->query_from  .= $clauses['join'];
 			$this->query_where .= $clauses['where'];
 
@@ -508,10 +508,10 @@ class ShipmentQuery extends WC_Object_Query {
 		if ( ! empty( $include ) ) {
 			// Sanitized earlier.
 			$ids                = implode( ',', $include );
-			$this->query_where .= " AND $wpdb->gzd_shipments.shipment_id IN ($ids)";
+			$this->query_where .= " AND $wpdb->stc_shipments.shipment_id IN ($ids)";
 		} elseif ( ! empty( $this->args['exclude'] ) ) {
 			$ids                = implode( ',', wp_parse_id_list( $this->args['exclude'] ) );
-			$this->query_where .= " AND $wpdb->gzd_shipments.shipment_id NOT IN ($ids)";
+			$this->query_where .= " AND $wpdb->stc_shipments.shipment_id NOT IN ($ids)";
 		}
 
 		// Date queries are allowed for the user_registered field.
@@ -544,9 +544,9 @@ class ShipmentQuery extends WC_Object_Query {
 
 		foreach ( $cols as $col ) {
 			if ( 'ID' === $col ) {
-				$searches[] = $wpdb->prepare( "$wpdb->gzd_shipments.$col = %s", $string ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+				$searches[] = $wpdb->prepare( "$wpdb->stc_shipments.$col = %s", $string ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 			} else {
-				$searches[] = $wpdb->prepare( "$wpdb->gzd_shipments.$col LIKE %s", $like ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+				$searches[] = $wpdb->prepare( "$wpdb->stc_shipments.$col LIKE %s", $like ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 			}
 		}
 
@@ -572,13 +572,13 @@ class ShipmentQuery extends WC_Object_Query {
 		} elseif ( 'ID' === $orderby || 'id' === $orderby ) {
 			$_orderby = 'shipment_id';
 		} elseif ( 'meta_value' === $orderby || $this->get( 'meta_key' ) === $orderby ) {
-			$_orderby = "$wpdb->gzd_shipmentmeta.meta_value";
+			$_orderby = "$wpdb->stc_shipmentmeta.meta_value";
 		} elseif ( 'meta_value_num' === $orderby ) {
-			$_orderby = "$wpdb->gzd_shipmentmeta.meta_value+0";
+			$_orderby = "$wpdb->stc_shipmentmeta.meta_value+0";
 		} elseif ( 'include' === $orderby && ! empty( $this->args['include'] ) ) {
 			$include     = wp_parse_id_list( $this->args['include'] );
 			$include_sql = implode( ',', $include );
-			$_orderby    = "FIELD( $wpdb->gzd_shipments.shipment_id, $include_sql )";
+			$_orderby    = "FIELD( $wpdb->stc_shipments.shipment_id, $include_sql )";
 		} elseif ( isset( $meta_query_clauses[ $orderby ] ) ) {
 			$meta_clause = $meta_query_clauses[ $orderby ];
 			$_orderby    = sprintf( 'CAST(%s.meta_value AS %s)', esc_sql( $meta_clause['alias'] ), esc_sql( $meta_clause['cast'] ) );

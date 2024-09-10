@@ -1,8 +1,8 @@
 <?php
 
-namespace Vendidero\Germanized\Shipments\Packing;
+namespace Vendidero\Shiptastic\Packing;
 
-use Vendidero\Germanized\Shipments\Utilities\NumberUtil;
+use Vendidero\Shiptastic\Utilities\NumberUtil;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -52,7 +52,7 @@ class CartItem extends Item {
 	}
 
 	protected function load_product() {
-		$this->product = wc_gzd_shipments_get_product( $this->item['data'] );
+		$this->product = wc_shiptastic_get_product( $this->item['data'] );
 	}
 
 	/**

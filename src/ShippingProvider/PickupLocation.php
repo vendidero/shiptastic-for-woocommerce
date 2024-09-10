@@ -1,6 +1,6 @@
 <?php
 
-namespace Vendidero\Germanized\Shipments\ShippingProvider;
+namespace Vendidero\Shiptastic\ShippingProvider;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -150,7 +150,7 @@ class PickupLocation {
 	}
 
 	public function get_customer_number_field_label() {
-		return _x( 'Customer Number', 'shipments', 'woocommerce-germanized-shipments' );
+		return _x( 'Customer Number', 'shipments', 'shiptastic-for-woocommerce' );
 	}
 
 	public function get_latitude() {

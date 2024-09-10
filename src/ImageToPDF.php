@@ -1,6 +1,6 @@
 <?php
 
-namespace Vendidero\Germanized\Shipments;
+namespace Vendidero\Shiptastic;
 
 class ImageToPDF extends \FPDF {
 
@@ -11,7 +11,7 @@ class ImageToPDF extends \FPDF {
 
 		$this->SetMargins( 0, 0 );
 
-		stream_wrapper_register( 'var', '\Vendidero\Germanized\Shipments\Utilities\VariableStreamHandler' );
+		stream_wrapper_register( 'var', '\Vendidero\Shiptastic\Utilities\VariableStreamHandler' );
 	}
 
 	public function set_rotation( $rotation ) {

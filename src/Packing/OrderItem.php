@@ -1,8 +1,8 @@
 <?php
 
-namespace Vendidero\Germanized\Shipments\Packing;
+namespace Vendidero\Shiptastic\Packing;
 
-use Vendidero\Germanized\Shipments\Utilities\NumberUtil;
+use Vendidero\Shiptastic\Utilities\NumberUtil;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -56,7 +56,7 @@ class OrderItem extends Item {
 
 	protected function load_product() {
 		if ( $product = $this->item->get_product() ) {
-			$this->product = apply_filters( 'woocommerce_gzd_shipments_order_item_product', wc_gzd_shipments_get_product( $product ), $this->item );
+			$this->product = apply_filters( 'woocommerce_shiptastic_order_item_product', wc_shiptastic_get_product( $product ), $this->item );
 		}
 	}
 

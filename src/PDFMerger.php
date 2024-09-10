@@ -1,6 +1,6 @@
 <?php
 
-namespace Vendidero\Germanized\Shipments;
+namespace Vendidero\Shiptastic;
 
 use setasign\Fpdi\Fpdi;
 use setasign\Fpdi\PdfReader\PdfReaderException;

@@ -1,10 +1,10 @@
 <?php
 
-namespace Vendidero\Germanized\Shipments\Compatibility;
+namespace Vendidero\Shiptastic\Compatibility;
 
-use Vendidero\Germanized\Shipments\Interfaces\Compatibility;
-use Vendidero\Germanized\Shipments\Product;
-use Vendidero\Germanized\Shipments\Shipment;
+use Vendidero\Shiptastic\Interfaces\Compatibility;
+use Vendidero\Shiptastic\Product;
+use Vendidero\Shiptastic\Shipment;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -18,15 +18,15 @@ class Bundles implements Compatibility {
 
 	public static function init() {
 		add_action(
-			'woocommerce_gzd_shipments_before_prepare_cart_contents',
+			'woocommerce_shiptastic_before_prepare_cart_contents',
 			function() {
 				self::$cart_bundled_by_map = array();
 			}
 		);
 
-		add_filter( 'woocommerce_gzd_shipments_order_item_product', array( __CLASS__, 'get_product_from_item' ), 10, 2 );
-		add_filter( 'woocommerce_gzd_shipments_cart_item', array( __CLASS__, 'adjust_cart_item' ), 10, 2 );
-		add_action( 'woocommerce_gzd_shipment_items_synced', array( __CLASS__, 'apply_bundle_hierarchy' ), 10, 3 );
+		add_filter( 'woocommerce_shiptastic_order_item_product', array( __CLASS__, 'get_product_from_item' ), 10, 2 );
+		add_filter( 'woocommerce_shiptastic_cart_item', array( __CLASS__, 'adjust_cart_item' ), 10, 2 );
+		add_action( 'woocommerce_shiptastic_shipment_items_synced', array( __CLASS__, 'apply_bundle_hierarchy' ), 10, 3 );
 	}
 
 	/**

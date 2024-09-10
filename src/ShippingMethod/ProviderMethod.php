@@ -1,10 +1,10 @@
 <?php
 
-namespace Vendidero\Germanized\Shipments\ShippingMethod;
+namespace Vendidero\Shiptastic\ShippingMethod;
 
-use Vendidero\Germanized\Shipments\Interfaces\LabelConfigurationSet;
-use Vendidero\Germanized\Shipments\Interfaces\ShippingProvider;
-use Vendidero\Germanized\Shipments\Labels\ConfigurationSetTrait;
+use Vendidero\Shiptastic\Interfaces\LabelConfigurationSet;
+use Vendidero\Shiptastic\Interfaces\ShippingProvider;
+use Vendidero\Shiptastic\Labels\ConfigurationSetTrait;
 use WC_Shipping_Method;
 
 defined( 'ABSPATH' ) || exit;
@@ -83,7 +83,7 @@ class ProviderMethod implements LabelConfigurationSet {
 	 * @return false|ShippingProvider
 	 */
 	public function get_shipping_provider_instance() {
-		if ( is_a( $this->method, '\Vendidero\Germanized\Shipments\ShippingMethod\ShippingMethod' ) ) {
+		if ( is_a( $this->method, '\Vendidero\Shiptastic\ShippingMethod\ShippingMethod' ) ) {
 			return $this->method->get_shipping_provider();
 		}
 
@@ -91,7 +91,7 @@ class ProviderMethod implements LabelConfigurationSet {
 			$provider = $this->get_shipping_provider();
 
 			if ( ! empty( $provider ) ) {
-				$this->provider = wc_gzd_get_shipping_provider( $provider );
+				$this->provider = wc_stc_get_shipping_provider( $provider );
 			}
 		}
 
@@ -99,7 +99,7 @@ class ProviderMethod implements LabelConfigurationSet {
 	}
 
 	public function get_shipping_provider() {
-		if ( is_a( $this->method, '\Vendidero\Germanized\Shipments\ShippingMethod\ShippingMethod' ) ) {
+		if ( is_a( $this->method, '\Vendidero\Shiptastic\ShippingMethod\ShippingMethod' ) ) {
 			$provider_slug = $this->method->get_shipping_provider()->get_name();
 		} else {
 			$provider_slug = $this->get_prop( 'shipping_provider' );
@@ -113,9 +113,9 @@ class ProviderMethod implements LabelConfigurationSet {
 		 * @param ProviderMethod $method The method instance.
 		 *
 		 * @since 3.0.6
-		 * @package Vendidero/Germanized/Shipments
+		 * @package Vendidero/Shiptastic
 		 */
-		return apply_filters( 'woocommerce_gzd_shipping_provider_method_provider', $provider_slug, $this->get_id(), $this );
+		return apply_filters( 'woocommerce_shiptastic_shipping_provider_method_provider', $provider_slug, $this->get_id(), $this );
 	}
 
 	public function set_shipping_provider( $shipping_provider_name ) {
@@ -137,7 +137,7 @@ class ProviderMethod implements LabelConfigurationSet {
 		if ( 'configuration_sets' === $key ) {
 			$default = array();
 		} elseif ( 'shipping_provider' === $key ) {
-			$default = wc_gzd_get_default_shipping_provider();
+			$default = wc_stc_get_default_shipping_provider();
 		}
 
 		if ( ! $this->is_placeholder() && ! MethodHelper::method_is_excluded( $this->get_id() ) ) {
@@ -185,7 +185,7 @@ class ProviderMethod implements LabelConfigurationSet {
 		} else {
 			$supports_settings = ( $this->method->supports( 'instance-settings' ) ) ? true : false;
 
-			return apply_filters( 'woocommerce_gzd_shipping_provider_method_supports_instance_settings', $supports_settings, $this );
+			return apply_filters( 'woocommerce_shiptastic_shipping_provider_method_supports_instance_settings', $supports_settings, $this );
 		}
 	}
 
@@ -194,61 +194,61 @@ class ProviderMethod implements LabelConfigurationSet {
 	}
 
 	protected function get_hook_prefix() {
-		$prefix = 'woocommerce_gzd_shipping_provider_method_';
+		$prefix = 'woocommerce_shiptastic_shipping_provider_method_';
 
 		return $prefix;
 	}
 
 	public function get_option( $key ) {
-		wc_deprecated_function( 'Vendidero\Germanized\Shipments\ShippingProvider\Method::get_option()', '3.0.0' );
+		wc_deprecated_function( 'Vendidero\Shiptastic\ShippingProvider\Method::get_option()', '3.0.0' );
 
 		return $this->get_prop( $key );
 	}
 
 	public function set_provider( $shipping_provider_name ) {
-		wc_deprecated_function( 'Vendidero\Germanized\Shipments\ShippingProvider\Method::set_provider()', '3.0.0' );
+		wc_deprecated_function( 'Vendidero\Shiptastic\ShippingProvider\Method::set_provider()', '3.0.0' );
 
 		$this->set_shipping_provider( $shipping_provider_name );
 	}
 
 	public function get_provider() {
-		wc_deprecated_function( 'Vendidero\Germanized\Shipments\ShippingProvider\Method::get_provider()', '3.0.0' );
+		wc_deprecated_function( 'Vendidero\Shiptastic\ShippingProvider\Method::get_provider()', '3.0.0' );
 
 		return $this->get_shipping_provider();
 	}
 
 	public function has_option( $key ) {
-		wc_deprecated_function( 'Vendidero\Germanized\Shipments\ShippingProvider\Method::has_option()', '3.0.0' );
+		wc_deprecated_function( 'Vendidero\Shiptastic\ShippingProvider\Method::has_option()', '3.0.0' );
 
 		return false;
 	}
 
 	public function is_provider_enabled( $provider ) {
-		wc_deprecated_function( 'Vendidero\Germanized\Shipments\ShippingProvider\Method::is_provider_enabled()', '3.0.0' );
+		wc_deprecated_function( 'Vendidero\Shiptastic\ShippingProvider\Method::is_provider_enabled()', '3.0.0' );
 
 		return ( $this->get_provider() === $provider ) ? true : false;
 	}
 
 	public function setting_belongs_to_provider( $setting_key, $provider = '' ) {
-		wc_deprecated_function( 'Vendidero\Germanized\Shipments\ShippingProvider\Method::setting_belongs_to_provider()', '3.0.0' );
+		wc_deprecated_function( 'Vendidero\Shiptastic\ShippingProvider\Method::setting_belongs_to_provider()', '3.0.0' );
 
 		return false;
 	}
 
 	public static function get_admin_settings() {
-		wc_deprecated_function( 'Vendidero\Germanized\Shipments\ShippingProvider\Method::get_admin_settings()', '3.0.0' );
+		wc_deprecated_function( 'Vendidero\Shiptastic\ShippingProvider\Method::get_admin_settings()', '3.0.0' );
 
 		return array();
 	}
 
 	public function get_provider_instance() {
-		wc_deprecated_function( 'Vendidero\Germanized\Shipments\ShippingProvider\Method::get_provider_instance()', '3.0.0' );
+		wc_deprecated_function( 'Vendidero\Shiptastic\ShippingProvider\Method::get_provider_instance()', '3.0.0' );
 
 		return $this->get_shipping_provider_instance();
 	}
 
 	public function get_fallback_setting_value( $setting_key ) {
-		wc_deprecated_function( 'Vendidero\Germanized\Shipments\ShippingProvider\Method::get_fallback_setting_value()', '3.0.0' );
+		wc_deprecated_function( 'Vendidero\Shiptastic\ShippingProvider\Method::get_fallback_setting_value()', '3.0.0' );
 
 		return '';
 	}

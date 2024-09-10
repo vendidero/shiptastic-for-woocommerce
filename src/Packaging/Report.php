@@ -1,8 +1,8 @@
 <?php
 
-namespace Vendidero\Germanized\Shipments\Packaging;
+namespace Vendidero\Shiptastic\Packaging;
 
-use Vendidero\Germanized\Shipments\Package;
+use Vendidero\Shiptastic\Package;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -86,30 +86,30 @@ class Report {
 	public function get_delete_link() {
 		return add_query_arg(
 			array(
-				'action'    => 'wc_gzd_shipments_packaging_delete_report',
+				'action'    => 'wc_shiptastic_packaging_delete_report',
 				'report_id' => $this->get_id(),
 			),
-			wp_nonce_url( admin_url( 'admin-post.php' ), 'wc_gzd_shipments_packaging_delete_report' )
+			wp_nonce_url( admin_url( 'admin-post.php' ), 'wc_shiptastic_packaging_delete_report' )
 		);
 	}
 
 	public function get_refresh_link() {
 		return add_query_arg(
 			array(
-				'action'    => 'wc_gzd_shipments_packaging_refresh_report',
+				'action'    => 'wc_shiptastic_packaging_refresh_report',
 				'report_id' => $this->get_id(),
 			),
-			wp_nonce_url( admin_url( 'admin-post.php' ), 'wc_gzd_shipments_packaging_refresh_report' )
+			wp_nonce_url( admin_url( 'admin-post.php' ), 'wc_shiptastic_packaging_refresh_report' )
 		);
 	}
 
 	public function get_cancel_link() {
 		return add_query_arg(
 			array(
-				'action'    => 'wc_gzd_shipments_packaging_cancel_report',
+				'action'    => 'wc_shiptastic_packaging_cancel_report',
 				'report_id' => $this->get_id(),
 			),
-			wp_nonce_url( admin_url( 'admin-post.php' ), 'wc_gzd_shipments_packaging_cancel_report' )
+			wp_nonce_url( admin_url( 'admin-post.php' ), 'wc_shiptastic_packaging_cancel_report' )
 		);
 	}
 
@@ -197,7 +197,7 @@ class Report {
 
 	public function get_total_weight( $round = true, $unit = '' ) {
 		if ( '' === $unit ) {
-			$unit = wc_gzd_get_packaging_weight_unit();
+			$unit = wc_stc_get_packaging_weight_unit();
 		}
 
 		$weight = wc_get_weight( $this->args['totals']['weight_in_kg'], $unit, 'kg' );
@@ -398,7 +398,7 @@ class Report {
 		if ( ! in_array( $this->get_id(), $reports_available[ $this->get_type() ], true ) ) {
 			// Add new report to start of the list
 			array_unshift( $reports_available[ $this->get_type() ], $this->get_id() );
-			update_option( 'woocommerce_gzd_shipments_packaging_reports', $reports_available, false );
+			update_option( 'woocommerce_shiptastic_packaging_reports', $reports_available, false );
 		}
 
 		delete_option( $this->id . '_tmp_result' );

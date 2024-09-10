@@ -1,20 +1,20 @@
 <?php
 
-use Vendidero\Germanized\Shipments\Tests\Helpers\ShipmentHelper;
-use Vendidero\Germanized\Shipments\Tests\Helpers\PackagingHelper;
+use Vendidero\Shiptastic\Tests\Helpers\ShipmentHelper;
+use Vendidero\Shiptastic\Tests\Helpers\PackagingHelper;
 
 /**
  * Class WC_Tests_Install.
  * @package WooCommerce\Tests\Util
  */
-class Caches extends \Vendidero\Germanized\Shipments\Tests\Framework\UnitTestCase {
+class Caches extends \Vendidero\Shiptastic\Tests\Framework\UnitTestCase {
 
 	function test_temp_disable() {
-		$this->assertEquals( true, \Vendidero\Germanized\Shipments\Caches\Helper::is_enabled( 'shipments' ) );
-		\Vendidero\Germanized\Shipments\Caches\Helper::disable( 'shipments' );
-		$this->assertEquals( false, \Vendidero\Germanized\Shipments\Caches\Helper::is_enabled( 'shipments' ) );
-		\Vendidero\Germanized\Shipments\Caches\Helper::enable( 'shipments' );
-		$this->assertEquals( true, \Vendidero\Germanized\Shipments\Caches\Helper::is_enabled( 'shipments' ) );
+		$this->assertEquals( true, \Vendidero\Shiptastic\Caches\Helper::is_enabled( 'shipments' ) );
+		\Vendidero\Shiptastic\Caches\Helper::disable( 'shipments' );
+		$this->assertEquals( false, \Vendidero\Shiptastic\Caches\Helper::is_enabled( 'shipments' ) );
+		\Vendidero\Shiptastic\Caches\Helper::enable( 'shipments' );
+		$this->assertEquals( true, \Vendidero\Shiptastic\Caches\Helper::is_enabled( 'shipments' ) );
 	}
 
 	function setUp(): void {
@@ -42,12 +42,12 @@ class Caches extends \Vendidero\Germanized\Shipments\Tests\Framework\UnitTestCas
 		$shipment = ShipmentHelper::create_simple_shipment();
 		$order = wc_get_order( $shipment->get_order_id() );
 
-		$shipment_order = wc_gzd_get_shipment_order( $order );
+		$shipment_order = wc_stc_get_shipment_order( $order );
 		$shipment_order->get_shipments();
 
 		$this->assertEquals( true, true );
 
-		if ( $cache = \Vendidero\Germanized\Shipments\Caches\Helper::get_cache_object( 'shipment-orders' ) ) {
+		if ( $cache = \Vendidero\Shiptastic\Caches\Helper::get_cache_object( 'shipment-orders' ) ) {
 			$this->assertEquals( null !== $cache->get( $order->get_id() ), true );
 
 			// Saving the order should remove cache
@@ -55,7 +55,7 @@ class Caches extends \Vendidero\Germanized\Shipments\Tests\Framework\UnitTestCas
 
 			$this->assertEquals( null === $cache->get( $order->get_id() ), true );
 
-			$shipment_order = wc_gzd_get_shipment_order( $order );
+			$shipment_order = wc_stc_get_shipment_order( $order );
 			$this->assertEquals( null !== $cache->get( $order->get_id() ), true );
 
 			// Deleting the order should remove cache too

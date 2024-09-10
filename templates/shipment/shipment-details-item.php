@@ -2,20 +2,19 @@
 /**
  * Shipment Item Details
  *
- * This template can be overridden by copying it to yourtheme/woocommerce-germanized/shipment/shipment-details-item.php.
+ * This template can be overridden by copying it to yourtheme/shiptastic/shipment/shipment-details-item.php.
  *
- * HOWEVER, on occasion Germanized will need to update template files and you
+ * HOWEVER, on occasion Shiptastic will need to update template files and you
  * (the theme developer) will need to copy the new files to your theme to
  * maintain compatibility. We try to do this as little as possible, but it does
  * happen. When this occurs the version of the template file will be bumped and
  * the readme will list any important changes.
  *
- * @see https://github.com/vendidero/woocommerce-germanized/wiki/Overriding-Germanized-Templates
- * @package Vendidero/Germanized/Shipments/Templates
+ * @package Vendidero/Shiptastic/Templates
  * @version 3.0.1
  */
-use Vendidero\Germanized\Shipments\Shipment;
-use Vendidero\Germanized\Shipments\ShipmentItem;
+use Vendidero\Shiptastic\Shipment;
+use Vendidero\Shiptastic\ShipmentItem;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -29,9 +28,9 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @param ShipmentItem $item The shipment item instance.
  *
  * @since 3.1.0
- * @package Vendidero/Germanized/Shipments
+ * @package Vendidero/Shiptastic
  */
-if ( ! apply_filters( 'woocommerce_gzd_shipment_item_visible', true, $item ) ) {
+if ( ! apply_filters( 'woocommerce_shiptastic_shipment_item_visible', true, $item ) ) {
 	return;
 }
 
@@ -43,9 +42,9 @@ if ( ! apply_filters( 'woocommerce_gzd_shipment_item_visible', true, $item ) ) {
  * @param Shipment     $shipment The shipment instance.
  *
  * @since 3.0.1
- * @package Vendidero/Germanized/Shipments
+ * @package Vendidero/Shiptastic
  */
-$item_class = apply_filters( 'woocommerce_gzd_shipment_item_class', 'woocommerce-table__line-item shipment_item ' . ( $item->get_item_parent_id() > 0 ? 'shipment_item-is-child' : '' ) . ( $item->has_children() ? 'shipment_item-is-parent' : '' ), $item, $shipment );
+$item_class = apply_filters( 'woocommerce_shiptastic_shipment_item_class', 'woocommerce-table__line-item shipment_item ' . ( $item->get_item_parent_id() > 0 ? 'shipment_item-is-child' : '' ) . ( $item->has_children() ? 'shipment_item-is-parent' : '' ), $item, $shipment );
 ?>
 <tr class="<?php echo esc_attr( $item_class ); ?>">
 	<td class="woocommerce-table__product-name product-name">
@@ -61,12 +60,12 @@ $item_class = apply_filters( 'woocommerce_gzd_shipment_item_class', 'woocommerce
 		 * @param Shipment     $shipment The shipment instance.
 		 *
 		 * @since 3.0.0
-		 * @package Vendidero/Germanized/Shipments
+		 * @package Vendidero/Shiptastic
 		 */
-		$product_permalink = apply_filters( 'woocommerce_gzd_shipment_item_permalink', $is_visible ? $product->get_permalink() : '', $item, $shipment );
+		$product_permalink = apply_filters( 'woocommerce_shiptastic_shipment_item_permalink', $is_visible ? $product->get_permalink() : '', $item, $shipment );
 
 		/** This filter is documented in templates/emails/email-shipment-items.php */
-		echo apply_filters( 'woocommerce_gzd_shipment_item_name', ( $product_permalink ? sprintf( '<a href="%s">%s</a>', esc_url( $product_permalink ), $item->get_name() ) : $item->get_name() ) . ( ! empty( $item_sku ) ? ' <small>(' . esc_html( $item_sku ) . ')</small>' : '' ), $item, $is_visible ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+		echo apply_filters( 'woocommerce_shiptastic_shipment_item_name', ( $product_permalink ? sprintf( '<a href="%s">%s</a>', esc_url( $product_permalink ), $item->get_name() ) : $item->get_name() ) . ( ! empty( $item_sku ) ? ' <small>(' . esc_html( $item_sku ) . ')</small>' : '' ), $item, $is_visible ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 		?>
 	</td>
 
@@ -83,9 +82,9 @@ $item_class = apply_filters( 'woocommerce_gzd_shipment_item_class', 'woocommerce
 		 * @param ShipmentItem $item The shipment item instance.
 		 *
 		 * @since 3.0.0
-		 * @package Vendidero/Germanized/Shipments
+		 * @package Vendidero/Shiptastic
 		 */
-		echo apply_filters( 'woocommerce_gzd_shipment_item_quantity_html', ' <strong class="product-quantity">' . sprintf( '&times; %s', $qty_display ) . '</strong>', $item ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped 
+		echo apply_filters( 'woocommerce_shiptastic_shipment_item_quantity_html', ' <strong class="product-quantity">' . sprintf( '&times; %s', $qty_display ) . '</strong>', $item ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped 
 		?>
 	</td>
 

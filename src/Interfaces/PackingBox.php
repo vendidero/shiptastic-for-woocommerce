@@ -1,8 +1,8 @@
 <?php
-namespace Vendidero\Germanized\Shipments\Interfaces;
+namespace Vendidero\Shiptastic\Interfaces;
 
 use DVDoug\BoxPacker\Box;
-use Vendidero\Germanized\Shipments\Packaging;
+use Vendidero\Shiptastic\Packaging;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;

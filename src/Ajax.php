@@ -1,11 +1,11 @@
 <?php
 
-namespace Vendidero\Germanized\Shipments;
+namespace Vendidero\Shiptastic;
 
-use Vendidero\Germanized\Shipments\Admin\Admin;
-use Vendidero\Germanized\Shipments\Admin\MetaBox;
-use Vendidero\Germanized\Shipments\Interfaces\ShipmentLabel;
-use Vendidero\Germanized\Shipments\ShippingProvider\Helper;
+use Vendidero\Shiptastic\Admin\Admin;
+use Vendidero\Shiptastic\Admin\MetaBox;
+use Vendidero\Shiptastic\Interfaces\ShipmentLabel;
+use Vendidero\Shiptastic\ShippingProvider\Helper;
 
 /**
  * WC_Ajax class.
@@ -53,8 +53,8 @@ class Ajax {
 		);
 
 		foreach ( $ajax_events as $ajax_event ) {
-			add_action( 'wp_ajax_woocommerce_gzd_' . $ajax_event, array( __CLASS__, 'suppress_errors' ), 5 );
-			add_action( 'wp_ajax_woocommerce_gzd_' . $ajax_event, array( __CLASS__, $ajax_event ) );
+			add_action( 'wp_ajax_woocommerce_stc_' . $ajax_event, array( __CLASS__, 'suppress_errors' ), 5 );
+			add_action( 'wp_ajax_woocommerce_stc_' . $ajax_event, array( __CLASS__, $ajax_event ) );
 		}
 	}
 
@@ -80,17 +80,17 @@ class Ajax {
 			if ( $referrer ) {
 				$shipment_id = absint( wp_unslash( $_REQUEST['shipment_id'] ) );
 
-				if ( $shipment = wc_gzd_get_shipment( $shipment_id ) ) {
+				if ( $shipment = wc_stc_get_shipment( $shipment_id ) ) {
 
 					if ( 'return' === $shipment->get_type() ) {
-						WC()->mailer()->emails['WC_GZD_Email_Customer_Return_Shipment']->trigger( $shipment_id );
+						WC()->mailer()->emails['WC_STC_Email_Customer_Return_Shipment']->trigger( $shipment_id );
 						$success = true;
 					}
 				}
 			}
 
 			if ( isset( $_GET['shipment_id'] ) ) {
-				wp_safe_redirect( wp_get_referer() ? wp_get_referer() : admin_url( 'admin.php?page=wc-gzd-return-shipments' ) );
+				wp_safe_redirect( wp_get_referer() ? wp_get_referer() : admin_url( 'admin.php?page=wc-stc-return-shipments' ) );
 				exit;
 			} else {
 				if ( $success ) {
@@ -98,7 +98,7 @@ class Ajax {
 						array(
 							'success'  => true,
 							'messages' => array(
-								_x( 'Notification successfully sent to customer.', 'shipments', 'woocommerce-germanized-shipments' ),
+								_x( 'Notification successfully sent to customer.', 'shipments', 'shiptastic-for-woocommerce' ),
 							),
 						)
 					);
@@ -107,7 +107,7 @@ class Ajax {
 						array(
 							'success'  => false,
 							'messages' => array(
-								_x( 'There was an error while sending the notification.', 'shipments', 'woocommerce-germanized-shipments' ),
+								_x( 'There was an error while sending the notification.', 'shipments', 'shiptastic-for-woocommerce' ),
 							),
 						)
 					);
@@ -130,7 +130,7 @@ class Ajax {
 			if ( $referrer ) {
 				$shipment_id = absint( wp_unslash( $_REQUEST['shipment_id'] ) );
 
-				if ( $shipment = wc_gzd_get_shipment( $shipment_id ) ) {
+				if ( $shipment = wc_stc_get_shipment( $shipment_id ) ) {
 					if ( 'return' === $shipment->get_type() ) {
 
 						if ( $shipment->confirm_customer_request() ) {
@@ -141,7 +141,7 @@ class Ajax {
 			}
 
 			if ( isset( $_GET['shipment_id'] ) ) {
-				wp_safe_redirect( wp_get_referer() ? wp_get_referer() : admin_url( 'admin.php?page=wc-gzd-return-shipments' ) );
+				wp_safe_redirect( wp_get_referer() ? wp_get_referer() : admin_url( 'admin.php?page=wc-stc-return-shipments' ) );
 				exit;
 			} else {
 				if ( $success ) {
@@ -149,7 +149,7 @@ class Ajax {
 						array(
 							'success'       => true,
 							'messages'      => array(
-								_x( 'Return request confirmed successfully.', 'shipments', 'woocommerce-germanized-shipments' ),
+								_x( 'Return request confirmed successfully.', 'shipments', 'shiptastic-for-woocommerce' ),
 							),
 							'shipment_id'   => $shipment->get_id(),
 							'needs_refresh' => true,
@@ -163,7 +163,7 @@ class Ajax {
 						array(
 							'success'  => false,
 							'messages' => array(
-								_x( 'There was an error while confirming the request.', 'shipments', 'woocommerce-germanized-shipments' ),
+								_x( 'There was an error while confirming the request.', 'shipments', 'shiptastic-for-woocommerce' ),
 							),
 						)
 					);
@@ -187,7 +187,7 @@ class Ajax {
 			'message' => '',
 		);
 
-		if ( ! $shipment = wc_gzd_get_shipment( $shipment_id ) ) {
+		if ( ! $shipment = wc_stc_get_shipment( $shipment_id ) ) {
 			wp_send_json( $response_error );
 		}
 
@@ -197,7 +197,7 @@ class Ajax {
 
 		$response = array(
 			'fragments'   => array(
-				'.wc-gzd-preview-shipment' => $html,
+				'.wc-stc-preview-shipment' => $html,
 			),
 			'shipment_id' => $shipment_id,
 			'success'     => true,
@@ -218,10 +218,10 @@ class Ajax {
 		$response       = array();
 		$response_error = array(
 			'success' => false,
-			'message' => _x( 'There was an error creating the label.', 'shipments', 'woocommerce-germanized-shipments' ),
+			'message' => _x( 'There was an error creating the label.', 'shipments', 'shiptastic-for-woocommerce' ),
 		);
 
-		if ( ! $shipment = wc_gzd_get_shipment( $shipment_id ) ) {
+		if ( ! $shipment = wc_stc_get_shipment( $shipment_id ) ) {
 			wp_send_json( $response_error );
 		}
 
@@ -231,7 +231,7 @@ class Ajax {
 
 		$response = array(
 			'fragments'   => array(
-				'.wc-gzd-shipment-create-label' => '<div class="wc-gzd-shipment-create-label">' . $html . '</div>',
+				'.wc-stc-shipment-create-label' => '<div class="wc-stc-shipment-create-label">' . $html . '</div>',
 			),
 			'shipment_id' => $shipment_id,
 			'success'     => true,
@@ -251,13 +251,13 @@ class Ajax {
 		$response_error = array(
 			'success'  => false,
 			'messages' => array(
-				_x( 'There was an error deleting the label.', 'shipments', 'woocommerce-germanized-shipments' ),
+				_x( 'There was an error deleting the label.', 'shipments', 'shiptastic-for-woocommerce' ),
 			),
 		);
 
 		$shipment_id = absint( $_POST['shipment_id'] );
 
-		if ( ! $shipment = wc_gzd_get_shipment( $shipment_id ) ) {
+		if ( ! $shipment = wc_stc_get_shipment( $shipment_id ) ) {
 			wp_send_json( $response_error );
 		}
 
@@ -292,14 +292,14 @@ class Ajax {
 		$response_error = array(
 			'success'  => false,
 			'messages' => array(
-				_x( 'There was an error processing the label.', 'shipments', 'woocommerce-germanized-shipments' ),
+				_x( 'There was an error processing the label.', 'shipments', 'shiptastic-for-woocommerce' ),
 			),
 		);
 
 		$shipment_id = absint( $_POST['reference_id'] );
 		$result      = false;
 
-		if ( ! $shipment = wc_gzd_get_shipment( $shipment_id ) ) {
+		if ( ! $shipment = wc_stc_get_shipment( $shipment_id ) ) {
 			wp_send_json( $response_error );
 		}
 
@@ -318,7 +318,7 @@ class Ajax {
 		}
 
 		if ( is_wp_error( $result ) ) {
-			$result = wc_gzd_get_shipment_error( $result );
+			$result = wc_stc_get_shipment_error( $result );
 		}
 
 		if ( is_wp_error( $result ) && ! $result->is_soft_error() ) {
@@ -327,7 +327,7 @@ class Ajax {
 				'messages' => $result->get_error_messages_by_type(),
 			);
 		} elseif ( $label = $shipment->get_label() ) {
-			$order_shipment    = wc_gzd_get_shipment_order( $shipment->get_order() );
+			$order_shipment    = wc_stc_get_shipment_order( $shipment->get_order() );
 			$order_status_html = $order_shipment ? self::get_global_order_status_html( $order_shipment->get_order() ) : array();
 
 			$response = array(
@@ -342,7 +342,7 @@ class Ajax {
 					'.order-return-status'                 => $order_shipment ? self::get_order_return_status_html( $order_shipment ) : '',
 					'.order_data_column p.wc-order-status' => ! empty( $order_status_html ) ? $order_status_html['status'] : '',
 					'input[name=post_status]'              => ! empty( $order_status_html ) ? $order_status_html['input'] : '',
-					'tr#shipment-' . $shipment_id . ' td.actions .wc-gzd-shipment-action-button-generate-label' => self::label_download_button_html( $label ),
+					'tr#shipment-' . $shipment_id . ' td.actions .wc-stc-shipment-action-button-generate-label' => self::label_download_button_html( $label ),
 				),
 			);
 
@@ -387,7 +387,7 @@ class Ajax {
 	 * @return string
 	 */
 	protected static function label_download_button_html( $label ) {
-		return '<a class="button wc-gzd-shipment-action-button wc-gzd-shipment-action-button-download-label download" href="' . esc_url( $label->get_download_url() ) . '" target="_blank" title="' . _x( 'Download label', 'shipments', 'woocommerce-germanized-shipments' ) . '">' . _x( 'Download label', 'shipments', 'woocommerce-germanized-shipments' ) . '</a>';
+		return '<a class="button wc-stc-shipment-action-button wc-stc-shipment-action-button-download-label download" href="' . esc_url( $label->get_download_url() ) . '" target="_blank" title="' . _x( 'Download label', 'shipments', 'shiptastic-for-woocommerce' ) . '">' . _x( 'Download label', 'shipments', 'shiptastic-for-woocommerce' ) . '</a>';
 	}
 
 	public static function edit_shipping_provider_status() {
@@ -399,7 +399,7 @@ class Ajax {
 
 		$response_error = array(
 			'success' => false,
-			'message' => _x( 'There was an error while trying to save the shipping provider status.', 'shipments', 'woocommerce-germanized-shipments' ),
+			'message' => _x( 'There was an error while trying to save the shipping provider status.', 'shipments', 'shiptastic-for-woocommerce' ),
 		);
 
 		$provider = sanitize_key( wc_clean( wp_unslash( $_POST['provider'] ) ) );
@@ -437,7 +437,7 @@ class Ajax {
 
 		$response_error = array(
 			'success' => false,
-			'message' => _x( 'There was an error while trying to delete the shipping provider.', 'shipments', 'woocommerce-germanized-shipments' ),
+			'message' => _x( 'There was an error while trying to delete the shipping provider.', 'shipments', 'shiptastic-for-woocommerce' ),
 		);
 
 		$provider = sanitize_key( wc_clean( wp_unslash( $_POST['provider'] ) ) );
@@ -469,12 +469,12 @@ class Ajax {
 		$provider_name = '_' === substr( $provider_name, 0, 1 ) ? substr( $provider_name, 1 ) : $provider_name;
 		$placeholder   = ShippingProvider\Helper::instance()->get_shipping_provider_integration( $provider_name );
 
-		if ( $placeholder && $placeholder->get_extension_name() && \Vendidero\Germanized\Shipments\Extensions::is_plugin_whitelisted( $placeholder->get_extension_name() ) ) {
-			$result = \Vendidero\Germanized\Shipments\Extensions::install_or_activate_extension( $placeholder->get_extension_name() );
+		if ( $placeholder && $placeholder->get_extension_name() && \Vendidero\Shiptastic\Extensions::is_plugin_whitelisted( $placeholder->get_extension_name() ) ) {
+			$result = \Vendidero\Shiptastic\Extensions::install_or_activate_extension( $placeholder->get_extension_name() );
 
 			ShippingProvider\Helper::instance()->load_shipping_providers();
 
-			if ( $provider = wc_gzd_get_shipping_provider( $provider_name ) ) {
+			if ( $provider = wc_stc_get_shipping_provider( $provider_name ) ) {
 				wp_send_json(
 					array(
 						'success'   => true,
@@ -483,7 +483,7 @@ class Ajax {
 					)
 				);
 			} else {
-				$message = sprintf( _x( 'There was an error while automatically installing %1$s. %2$s', 'shipments', 'woocommerce-germanized-shipments' ), esc_html( $placeholder->get_title() ), \Vendidero\Germanized\Shipments\Extensions::get_plugin_manual_install_message( $placeholder->get_extension_name() ) );
+				$message = sprintf( _x( 'There was an error while automatically installing %1$s. %2$s', 'shipments', 'shiptastic-for-woocommerce' ), esc_html( $placeholder->get_title() ), \Vendidero\Shiptastic\Extensions::get_plugin_manual_install_message( $placeholder->get_extension_name() ) );
 
 				wp_send_json(
 					array(
@@ -525,7 +525,7 @@ class Ajax {
 		$action = isset( $_POST['bulk_action'] ) ? wc_clean( wp_unslash( $_POST['bulk_action'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing
 		$type   = isset( $_POST['type'] ) ? wc_clean( wp_unslash( $_POST['type'] ) ) : 'simple'; // phpcs:ignore WordPress.Security.NonceVerification.Missing
 
-		check_ajax_referer( "woocommerce_gzd_shipments_{$action}", 'security' );
+		check_ajax_referer( "woocommerce_shiptastic_{$action}", 'security' );
 
 		if ( ! current_user_can( 'edit_shop_orders' ) || ! isset( $_POST['step'] ) || ! isset( $_POST['ids'] ) ) {
 			wp_die( -1 );
@@ -533,7 +533,7 @@ class Ajax {
 
 		$response_error = array(
 			'success' => false,
-			'message' => _x( 'There was an error while bulk processing shipments.', 'shipments', 'woocommerce-germanized-shipments' ),
+			'message' => _x( 'There was an error while bulk processing shipments.', 'shipments', 'shiptastic-for-woocommerce' ),
 		);
 
 		$response = array(
@@ -615,9 +615,9 @@ class Ajax {
 	public static function update_shipment_status() {
 		if ( current_user_can( 'edit_shop_orders' ) && check_admin_referer( 'update-shipment-status' ) && isset( $_GET['status'], $_GET['shipment_id'] ) ) {
 			$status   = sanitize_text_field( wp_unslash( $_GET['status'] ) );
-			$shipment = wc_gzd_get_shipment( absint( wp_unslash( $_GET['shipment_id'] ) ) );
+			$shipment = wc_stc_get_shipment( absint( wp_unslash( $_GET['shipment_id'] ) ) );
 
-			if ( wc_gzd_is_shipment_status( 'gzd-' . $status ) && $shipment ) {
+			if ( wc_stc_is_shipment_status( $status ) && $shipment ) {
 				$shipment->update_status( $status, true );
 				/**
 				 * Action to indicate Shipment status change via WP Admin.
@@ -626,13 +626,13 @@ class Ajax {
 				 * @param string  $status The status to be switched to.
 				 *
 				 * @since 3.0.0
-				 * @package Vendidero/Germanized/Shipments
+				 * @package Vendidero/Shiptastic
 				 */
-				do_action( 'woocommerce_gzd_updated_shipment_status', $shipment->get_id(), $status );
+				do_action( 'woocommerce_shiptastic_updated_shipment_status', $shipment->get_id(), $status );
 			}
 		}
 
-		wp_safe_redirect( wp_get_referer() ? wp_get_referer() : admin_url( 'admin.php?page=wc-gzd-shipments' ) );
+		wp_safe_redirect( wp_get_referer() ? wp_get_referer() : admin_url( 'admin.php?page=wc-shiptastic' ) );
 		exit;
 	}
 
@@ -656,7 +656,7 @@ class Ajax {
 
 		$response_error = array(
 			'success' => false,
-			'message' => _x( 'There was an error processing the shipment', 'shipments', 'woocommerce-germanized-shipments' ),
+			'message' => _x( 'There was an error processing the shipment', 'shipments', 'shiptastic-for-woocommerce' ),
 		);
 
 		$response = array(
@@ -666,11 +666,11 @@ class Ajax {
 
 		$shipment_id = absint( $_POST['shipment_id'] );
 
-		if ( ! $shipment = wc_gzd_get_shipment( $shipment_id ) ) {
+		if ( ! $shipment = wc_stc_get_shipment( $shipment_id ) ) {
 			wp_send_json( $response_error );
 		}
 
-		if ( ! $order_shipment = wc_gzd_get_shipment_order( $shipment->get_order() ) ) {
+		if ( ! $order_shipment = wc_stc_get_shipment_order( $shipment->get_order() ) ) {
 			wp_send_json( $response_error );
 		}
 
@@ -709,7 +709,7 @@ class Ajax {
 
 		$response_error = array(
 			'success' => false,
-			'message' => _x( 'There was an error while adding the shipment', 'shipments', 'woocommerce-germanized-shipments' ),
+			'message' => _x( 'There was an error while adding the shipment', 'shipments', 'shiptastic-for-woocommerce' ),
 		);
 
 		$response = array(
@@ -723,14 +723,14 @@ class Ajax {
 			wp_send_json( $response_error );
 		}
 
-		if ( ! $order_shipment = wc_gzd_get_shipment_order( $order ) ) {
+		if ( ! $order_shipment = wc_stc_get_shipment_order( $order ) ) {
 			wp_send_json( $response_error );
 		}
 
 		self::refresh_shipment_items( $order_shipment );
 
 		if ( ! $order_shipment->needs_shipping() ) {
-			$response_error['message'] = _x( 'This order contains enough shipments already.', 'shipments', 'woocommerce-germanized-shipments' );
+			$response_error['message'] = _x( 'This order contains enough shipments already.', 'shipments', 'shiptastic-for-woocommerce' );
 			wp_send_json( $response_error );
 		}
 
@@ -785,7 +785,7 @@ class Ajax {
 
 		$response_error = array(
 			'success' => false,
-			'message' => _x( 'There was an error processing the shipment', 'shipments', 'woocommerce-germanized-shipments' ),
+			'message' => _x( 'There was an error processing the shipment', 'shipments', 'shiptastic-for-woocommerce' ),
 		);
 
 		$response = array(
@@ -797,18 +797,18 @@ class Ajax {
 		$order_id = absint( $_POST['reference_id'] );
 		$items    = isset( $_POST['return_item'] ) ? (array) wc_clean( wp_unslash( $_POST['return_item'] ) ) : array();
 
-		if ( ! $order_shipment = wc_gzd_get_shipment_order( $order_id ) ) {
+		if ( ! $order_shipment = wc_stc_get_shipment_order( $order_id ) ) {
 			wp_send_json( $response_error );
 		}
 
 		self::refresh_shipment_items( $order_shipment );
 
 		if ( ! $order_shipment->needs_return() ) {
-			$response_error['message'] = _x( 'This order contains enough returns already.', 'shipments', 'woocommerce-germanized-shipments' );
+			$response_error['message'] = _x( 'This order contains enough returns already.', 'shipments', 'shiptastic-for-woocommerce' );
 			wp_send_json( $response_error );
 		}
 
-		$shipment = wc_gzd_create_return_shipment( $order_shipment, array( 'items' => $items ) );
+		$shipment = wc_stc_create_return_shipment( $order_shipment, array( 'items' => $items ) );
 
 		if ( is_wp_error( $shipment ) ) {
 			wp_send_json( $response_error );
@@ -842,7 +842,7 @@ class Ajax {
 
 		$response_error = array(
 			'success' => false,
-			'message' => _x( 'There was an error processing the shipment', 'shipments', 'woocommerce-germanized-shipments' ),
+			'message' => _x( 'There was an error processing the shipment', 'shipments', 'shiptastic-for-woocommerce' ),
 		);
 
 		$response = array(
@@ -857,7 +857,7 @@ class Ajax {
 			wp_send_json( $response_error );
 		}
 
-		if ( ! $order_shipment = wc_gzd_get_shipment_order( $order ) ) {
+		if ( ! $order_shipment = wc_stc_get_shipment_order( $order ) ) {
 			wp_send_json( $response_error );
 		}
 
@@ -879,7 +879,7 @@ class Ajax {
 
 		$response_error = array(
 			'success' => false,
-			'message' => _x( 'There was an error processing the shipment', 'shipments', 'woocommerce-germanized-shipments' ),
+			'message' => _x( 'There was an error processing the shipment', 'shipments', 'shiptastic-for-woocommerce' ),
 		);
 
 		$response = array(
@@ -889,7 +889,7 @@ class Ajax {
 
 		$shipment_id = absint( $_POST['shipment_id'] );
 
-		if ( ! $shipment = wc_gzd_get_shipment( $shipment_id ) ) {
+		if ( ! $shipment = wc_stc_get_shipment( $shipment_id ) ) {
 			wp_send_json( $response_error );
 		}
 
@@ -897,7 +897,7 @@ class Ajax {
 			wp_send_json( $response_error );
 		}
 
-		if ( ! $order_shipment = wc_gzd_get_shipment_order( $order ) ) {
+		if ( ! $order_shipment = wc_stc_get_shipment_order( $order ) ) {
 			wp_send_json( $response_error );
 		}
 
@@ -948,13 +948,13 @@ class Ajax {
 
 		$names = $wpdb->get_col(
 			$wpdb->prepare(
-			    "SELECT DISTINCT p1.shipping_provider_name FROM {$wpdb->gzd_shipping_provider} p1 WHERE p1.shipping_provider_title LIKE %s AND p1.shipping_provider_activated = 1", // @codingStandardsIgnoreLine
+			    "SELECT DISTINCT p1.shipping_provider_name FROM {$wpdb->stc_shipping_provider} p1 WHERE p1.shipping_provider_title LIKE %s AND p1.shipping_provider_activated = 1", // @codingStandardsIgnoreLine
 				$wpdb->esc_like( wc_clean( $term ) ) . '%'
 			)
 		);
 
 		foreach ( $names as $name ) {
-			if ( $shipping_provider = wc_gzd_get_shipping_provider( $name ) ) {
+			if ( $shipping_provider = wc_stc_get_shipping_provider( $name ) ) {
 				$found_providers[ $name ] = esc_html( $shipping_provider->get_title() );
 			}
 		}
@@ -965,9 +965,9 @@ class Ajax {
 		 * @param array $result The shipping provider search result.
 		 *
 		 * @since 3.0.0
-		 * @package Vendidero/Germanized/Shipments
+		 * @package Vendidero/Shiptastic
 		 */
-		wp_send_json( apply_filters( 'woocommerce_gzd_json_search_found_shipment_shipping_providers', $found_providers ) );
+		wp_send_json( apply_filters( 'woocommerce_shiptastic_json_search_found_shipment_shipping_providers', $found_providers ) );
 	}
 
 	public static function json_search_orders() {
@@ -1016,7 +1016,7 @@ class Ajax {
 				}
 
 				$found_orders[ $order->get_id() ] = sprintf(
-					esc_html_x( 'Order #%s', 'shipments', 'woocommerce-germanized-shipments' ),
+					esc_html_x( 'Order #%s', 'shipments', 'shiptastic-for-woocommerce' ),
 					$order->get_order_number()
 				);
 			}
@@ -1028,13 +1028,13 @@ class Ajax {
 		 * @param array $result The order search result.
 		 *
 		 * @since 3.0.0
-		 * @package Vendidero/Germanized/Shipments
+		 * @package Vendidero/Shiptastic
 		 */
-		wp_send_json( apply_filters( 'woocommerce_gzd_json_search_found_shipment_orders', $found_orders ) );
+		wp_send_json( apply_filters( 'woocommerce_shiptastic_json_search_found_shipment_orders', $found_orders ) );
 	}
 
 	private static function get_order_status_html( $order_shipment ) {
-		$status_html = '<span class="order-shipping-status status-' . esc_attr( $order_shipment->get_shipping_status() ) . '">' . wc_gzd_get_shipment_order_shipping_status_name( $order_shipment->get_shipping_status() ) . '</span>';
+		$status_html = '<span class="order-shipping-status status-' . esc_attr( $order_shipment->get_shipping_status() ) . '">' . wc_stc_get_shipment_order_shipping_status_name( $order_shipment->get_shipping_status() ) . '</span>';
 
 		return $status_html;
 	}
@@ -1067,12 +1067,12 @@ class Ajax {
 		<p class="form-field form-field-wide wc-order-status">
 			<label for="order_status">
 				<?php
-				echo esc_html_x( 'Status:', 'shipments', 'woocommerce-germanized-shipments' );
+				echo esc_html_x( 'Status:', 'shipments', 'shiptastic-for-woocommerce' );
 				if ( $order->needs_payment() ) {
 					printf(
 						'<a href="%s">%s</a>',
 						esc_url( $order->get_checkout_payment_url() ),
-						wp_kses_post( _x( 'Customer payment page &rarr;', 'shipments', 'woocommerce-germanized-shipments' ) )
+						wp_kses_post( _x( 'Customer payment page &rarr;', 'shipments', 'shiptastic-for-woocommerce' ) )
 					);
 				}
 				?>
@@ -1096,7 +1096,7 @@ class Ajax {
 	}
 
 	private static function get_order_return_status_html( $order_shipment ) {
-		$status_html = '<span class="order-return-status status-' . esc_attr( $order_shipment->get_return_status() ) . '">' . wc_gzd_get_shipment_order_return_status_name( $order_shipment->get_return_status() ) . '</span>';
+		$status_html = '<span class="order-return-status status-' . esc_attr( $order_shipment->get_return_status() ) . '">' . wc_stc_get_shipment_order_return_status_name( $order_shipment->get_return_status() ) . '</span>';
 
 		return $status_html;
 	}
@@ -1110,12 +1110,12 @@ class Ajax {
 
 		$response_error = array(
 			'success' => false,
-			'message' => _x( 'There was an error processing the shipment', 'shipments', 'woocommerce-germanized-shipments' ),
+			'message' => _x( 'There was an error processing the shipment', 'shipments', 'shiptastic-for-woocommerce' ),
 		);
 
 		$shipment_id = absint( $_POST['shipment_id'] );
 
-		if ( ! $shipment = wc_gzd_get_shipment( $shipment_id ) ) {
+		if ( ! $shipment = wc_stc_get_shipment( $shipment_id ) ) {
 			wp_send_json( $response_error );
 		}
 
@@ -1156,7 +1156,7 @@ class Ajax {
 
 		$response_error = array(
 			'success' => false,
-			'message' => _x( 'There was an error processing the shipment', 'shipments', 'woocommerce-germanized-shipments' ),
+			'message' => _x( 'There was an error processing the shipment', 'shipments', 'shiptastic-for-woocommerce' ),
 		);
 
 		$response = array(
@@ -1171,7 +1171,7 @@ class Ajax {
 			wp_send_json( $response_error );
 		}
 
-		if ( ! $order_shipment = wc_gzd_get_shipment_order( $order ) ) {
+		if ( ! $order_shipment = wc_stc_get_shipment_order( $order ) ) {
 			wp_send_json( $response_error );
 		}
 
@@ -1232,7 +1232,7 @@ class Ajax {
 
 		$response_error = array(
 			'success' => false,
-			'message' => _x( 'There was an error processing the shipment', 'shipments', 'woocommerce-germanized-shipments' ),
+			'message' => _x( 'There was an error processing the shipment', 'shipments', 'shiptastic-for-woocommerce' ),
 		);
 
 		$response = array(
@@ -1243,7 +1243,7 @@ class Ajax {
 
 		$order_id = absint( $_POST['reference_id'] );
 
-		if ( ! $order_shipment = wc_gzd_get_shipment_order( $order_id ) ) {
+		if ( ! $order_shipment = wc_stc_get_shipment_order( $order_id ) ) {
 			wp_send_json( $response_error );
 		}
 
@@ -1251,7 +1251,7 @@ class Ajax {
 
 		ob_start();
 		include Package::get_path() . '/includes/admin/views/html-order-add-return-shipment-items.php';
-		$response['fragments']['#wc-gzd-return-shipment-items'] = ob_get_clean();
+		$response['fragments']['#wc-stc-return-shipment-items'] = ob_get_clean();
 
 		self::send_json_success( $response, $order_shipment );
 	}
@@ -1265,7 +1265,7 @@ class Ajax {
 
 		$response_error = array(
 			'success' => false,
-			'message' => _x( 'There was an error processing the shipment', 'shipments', 'woocommerce-germanized-shipments' ),
+			'message' => _x( 'There was an error processing the shipment', 'shipments', 'shiptastic-for-woocommerce' ),
 		);
 
 		$response = array(
@@ -1276,7 +1276,7 @@ class Ajax {
 
 		$shipment_id = absint( $_POST['reference_id'] );
 
-		if ( ! $shipment = wc_gzd_get_shipment( $shipment_id ) ) {
+		if ( ! $shipment = wc_stc_get_shipment( $shipment_id ) ) {
 			wp_send_json( $response_error );
 		}
 
@@ -1284,7 +1284,7 @@ class Ajax {
 			wp_send_json( $response_error );
 		}
 
-		if ( ! $order_shipment = wc_gzd_get_shipment_order( $order ) ) {
+		if ( ! $order_shipment = wc_stc_get_shipment_order( $order ) ) {
 			wp_send_json( $response_error );
 		}
 
@@ -1310,7 +1310,7 @@ class Ajax {
 
 		ob_start();
 		include Package::get_path() . '/includes/admin/views/html-order-add-shipment-item.php';
-		$response['fragments']['.wc-gzd-shipment-add-items-table'] = ob_get_clean();
+		$response['fragments']['.wc-stc-shipment-add-items-table'] = ob_get_clean();
 
 		self::send_json_success( $response, $order_shipment );
 	}
@@ -1324,7 +1324,7 @@ class Ajax {
 
 		$response_error = array(
 			'success' => false,
-			'message' => _x( 'There was an error processing the shipment', 'shipments', 'woocommerce-germanized-shipments' ),
+			'message' => _x( 'There was an error processing the shipment', 'shipments', 'shiptastic-for-woocommerce' ),
 		);
 
 		$response = array(
@@ -1345,7 +1345,7 @@ class Ajax {
 			wp_send_json( $response_error );
 		}
 
-		if ( ! $shipment = wc_gzd_get_shipment( $shipment_id ) ) {
+		if ( ! $shipment = wc_stc_get_shipment( $shipment_id ) ) {
 			wp_send_json( $response_error );
 		}
 
@@ -1353,7 +1353,7 @@ class Ajax {
 			wp_send_json( $response_error );
 		}
 
-		if ( ! $order_shipment = wc_gzd_get_shipment_order( $order ) ) {
+		if ( ! $order_shipment = wc_stc_get_shipment_order( $order ) ) {
 			wp_send_json( $response_error );
 		}
 
@@ -1392,7 +1392,7 @@ class Ajax {
 	private static function add_shipment_return_item( $order_shipment, $shipment, $order_item_id, $quantity ) {
 		$response_error = array(
 			'success' => false,
-			'message' => _x( 'There was an error processing the shipment', 'shipments', 'woocommerce-germanized-shipments' ),
+			'message' => _x( 'There was an error processing the shipment', 'shipments', 'shiptastic-for-woocommerce' ),
 		);
 
 		if ( ! $shipment_item = $order_shipment->get_simple_shipment_item( $order_item_id ) ) {
@@ -1415,7 +1415,7 @@ class Ajax {
 			$quantity = $quantity_left;
 		}
 
-		if ( $item = wc_gzd_create_return_shipment_item( $shipment, $shipment_item, array( 'quantity' => $quantity ) ) ) {
+		if ( $item = wc_stc_create_return_shipment_item( $shipment, $shipment_item, array( 'quantity' => $quantity ) ) ) {
 			$shipment->add_item( $item );
 			$shipment->save();
 		}
@@ -1432,7 +1432,7 @@ class Ajax {
 	private static function add_shipment_order_item( $order_shipment, $shipment, $order_item_id, $quantity ) {
 		$response_error = array(
 			'success' => false,
-			'message' => _x( 'There was an error processing the shipment', 'shipments', 'woocommerce-germanized-shipments' ),
+			'message' => _x( 'There was an error processing the shipment', 'shipments', 'shiptastic-for-woocommerce' ),
 		);
 
 		$order = $order_shipment->get_order();
@@ -1457,7 +1457,7 @@ class Ajax {
 			$quantity = $quantity_left;
 		}
 
-		if ( $item = wc_gzd_create_shipment_item( $shipment, $order_item, array( 'quantity' => $quantity ) ) ) {
+		if ( $item = wc_stc_create_shipment_item( $shipment, $order_item, array( 'quantity' => $quantity ) ) ) {
 			$shipment->add_item( $item );
 			$shipment->save();
 		}
@@ -1487,7 +1487,7 @@ class Ajax {
 
 		$response_error = array(
 			'success' => false,
-			'message' => _x( 'There was an error processing the shipment', 'shipments', 'woocommerce-germanized-shipments' ),
+			'message' => _x( 'There was an error processing the shipment', 'shipments', 'shiptastic-for-woocommerce' ),
 		);
 
 		$response = array(
@@ -1499,7 +1499,7 @@ class Ajax {
 		$shipment_id = absint( $_POST['shipment_id'] );
 		$item_id     = absint( $_POST['item_id'] );
 
-		if ( ! $shipment = wc_gzd_get_shipment( $shipment_id ) ) {
+		if ( ! $shipment = wc_stc_get_shipment( $shipment_id ) ) {
 			wp_send_json( $response_error );
 		}
 
@@ -1507,7 +1507,7 @@ class Ajax {
 			wp_send_json( $response_error );
 		}
 
-		if ( ! $order_shipment = wc_gzd_get_shipment_order( $shipment->get_order_id() ) ) {
+		if ( ! $order_shipment = wc_stc_get_shipment_order( $shipment->get_order_id() ) ) {
 			wp_send_json( $response_error );
 		}
 
@@ -1531,7 +1531,7 @@ class Ajax {
 
 		$response_error = array(
 			'success' => false,
-			'message' => _x( 'There was an error processing the shipment', 'shipments', 'woocommerce-germanized-shipments' ),
+			'message' => _x( 'There was an error processing the shipment', 'shipments', 'shiptastic-for-woocommerce' ),
 		);
 
 		$response = array(
@@ -1546,7 +1546,7 @@ class Ajax {
 		$quantity    = isset( $_POST['quantity'] ) ? (int) $_POST['quantity'] : 1;
 		$quantity    = $quantity <= 0 ? 1 : $quantity;
 
-		if ( ! $shipment = wc_gzd_get_shipment( $shipment_id ) ) {
+		if ( ! $shipment = wc_stc_get_shipment( $shipment_id ) ) {
 			wp_send_json( $response_error );
 		}
 
@@ -1554,7 +1554,7 @@ class Ajax {
 			wp_send_json( $response_error );
 		}
 
-		if ( ! $order_shipment = wc_gzd_get_shipment_order( $order ) ) {
+		if ( ! $order_shipment = wc_stc_get_shipment_order( $order ) ) {
 			wp_send_json( $response_error );
 		}
 

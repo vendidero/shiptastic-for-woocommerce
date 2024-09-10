@@ -4,15 +4,15 @@
  *
  * @package WooCommerce/Blocks
  */
-namespace Vendidero\Germanized\Shipments\ShippingProvider;
+namespace Vendidero\Shiptastic\ShippingProvider;
 
 use Exception;
-use Vendidero\Germanized\Shipments\Admin\Settings;
-use Vendidero\Germanized\Shipments\Interfaces\ShipmentLabel;
-use Vendidero\Germanized\Shipments\Interfaces\ShippingProvider;
-use Vendidero\Germanized\Shipments\SecretBox;
-use Vendidero\Germanized\Shipments\Shipment;
-use Vendidero\Germanized\Shipments\ShipmentError;
+use Vendidero\Shiptastic\Admin\Settings;
+use Vendidero\Shiptastic\Interfaces\ShipmentLabel;
+use Vendidero\Shiptastic\Interfaces\ShippingProvider;
+use Vendidero\Shiptastic\SecretBox;
+use Vendidero\Shiptastic\Shipment;
+use Vendidero\Shiptastic\ShipmentError;
 use WC_Data;
 use WC_Data_Store;
 
@@ -86,7 +86,7 @@ class Simple extends WC_Data implements ShippingProvider {
 
 	/**
 	 * Get the provider if ID is passed. In case it is an integration, data will be provided through the impl.
-	 * This class should NOT be instantiated, but the `wc_gzd_get_shipping_provider` function should be used.
+	 * This class should NOT be instantiated, but the `wc_stc_get_shipping_provider` function should be used.
 	 *
 	 * @param int|object|ShippingProvider $provider Provider to read.
 	 */
@@ -351,7 +351,7 @@ class Simple extends WC_Data implements ShippingProvider {
 	}
 
 	public function get_default_tracking_desc_placeholder() {
-		return _x( 'Your shipment is being processed by {shipping_provider}. If you want to track the shipment, please use the following tracking number: {tracking_id}. Depending on the chosen shipping method it is possible that the tracking data does not reflect the current status when receiving this email.', 'shipments', 'woocommerce-germanized-shipments' );
+		return _x( 'Your shipment is being processed by {shipping_provider}. If you want to track the shipment, please use the following tracking number: {tracking_id}. Depending on the chosen shipping method it is possible that the tracking data does not reflect the current status when receiving this email.', 'shipments', 'shiptastic-for-woocommerce' );
 	}
 
 	/**
@@ -373,7 +373,7 @@ class Simple extends WC_Data implements ShippingProvider {
 
 	protected function get_address_props( $address_type = 'shipper' ) {
 		if ( is_null( $this->address_data[ $address_type ] ) ) {
-			$this->address_data[ $address_type ] = wc_gzd_get_shipment_setting_address_fields( $address_type );
+			$this->address_data[ $address_type ] = wc_stc_get_shipment_setting_address_fields( $address_type );
 		}
 
 		return $this->address_data[ $address_type ];
@@ -398,7 +398,7 @@ class Simple extends WC_Data implements ShippingProvider {
 	}
 
 	public function get_contact_phone() {
-		return get_option( 'woocommerce_gzd_shipments_contact_phone' );
+		return get_option( 'woocommerce_shiptastic_contact_phone' );
 	}
 
 	public function get_shipper_first_name() {
@@ -624,7 +624,7 @@ class Simple extends WC_Data implements ShippingProvider {
 		 *
 		 * @param ShippingProvider $shipping_provider The shipping provider instance.
 		 */
-		do_action( 'woocommerce_gzd_shipping_provider_activated', $this );
+		do_action( 'woocommerce_shiptastic_shipping_provider_activated', $this );
 	}
 
 	/**
@@ -639,7 +639,7 @@ class Simple extends WC_Data implements ShippingProvider {
 		 *
 		 * @param ShippingProvider $shipping_provider The shipping provider instance.
 		 */
-		do_action( 'woocommerce_gzd_shipping_provider_deactivated', $this );
+		do_action( 'woocommerce_shiptastic_shipping_provider_deactivated', $this );
 	}
 
 	/**
@@ -727,14 +727,14 @@ class Simple extends WC_Data implements ShippingProvider {
 		 * The dynamic portion of the hook `$this->get_hook_prefix()` refers to the
 		 * current provider name.
 		 *
-		 * Example hook name: woocommerce_gzd_shipping_provider_dhl_get_tracking_url
+		 * Example hook name: woocommerce_shiptastic_shipping_provider_dhl_get_tracking_url
 		 *
 		 * @param string           $tracking_url The tracking url.
 		 * @param Shipment         $shipment The shipment used to build the url.
 		 * @param ShippingProvider $provider The shipping provider.
 		 *
 		 * @since 3.0.6
-		 * @package Vendidero/Germanized/Shipments
+		 * @package Vendidero/Shiptastic
 		 */
 		return apply_filters( $this->get_hook_prefix() . 'tracking_url', $tracking_url, $shipment, $this );
 	}
@@ -766,14 +766,14 @@ class Simple extends WC_Data implements ShippingProvider {
 		 * The dynamic portion of the hook `$this->get_hook_prefix()` refers to the
 		 * current provider name.
 		 *
-		 * Example hook name: woocommerce_gzd_shipping_provider_dhl_get_tracking_description
+		 * Example hook name: woocommerce_shiptastic_shipping_provider_dhl_get_tracking_description
 		 *
 		 * @param string           $tracking_url The tracking description.
 		 * @param Shipment         $shipment The shipment used to build the url.
 		 * @param ShippingProvider $provider The shipping provider.
 		 *
 		 * @since 3.0.6
-		 * @package Vendidero/Germanized/Shipments
+		 * @package Vendidero/Shiptastic
 		 */
 		return apply_filters( $this->get_hook_prefix() . 'tracking_desc', $tracking_desc, $shipment, $this );
 	}
@@ -797,14 +797,14 @@ class Simple extends WC_Data implements ShippingProvider {
 		 * The dynamic portion of the hook `$this->get_hook_prefix()` refers to the
 		 * current provider name.
 		 *
-		 * Example hook name: woocommerce_gzd_shipping_provider_dhl_get_tracking_placeholders
+		 * Example hook name: woocommerce_shiptastic_shipping_provider_dhl_get_tracking_placeholders
 		 *
 		 * @param array            $placeholders Placeholders in key => value pairs.
 		 * @param ShippingProvider $provider The shipping provider.
 		 * @param Shipment|bool    $shipment The shipment instance if available.
 		 *
 		 * @since 3.0.6
-		 * @package Vendidero/Germanized/Shipments
+		 * @package Vendidero/Shiptastic
 		 */
 		return apply_filters(
 			"{$this->get_hook_prefix()}tracking_placeholders",
@@ -849,9 +849,9 @@ class Simple extends WC_Data implements ShippingProvider {
 		$name = sanitize_key( $this->get_name( 'edit' ) );
 
 		if ( empty( $name ) ) {
-			return 'woocommerce_gzd_shipping_provider_';
+			return 'woocommerce_shiptastic_shipping_provider_';
 		} else {
-			return "woocommerce_gzd_shipping_provider_{$name}_";
+			return "woocommerce_shiptastic_shipping_provider_{$name}_";
 		}
 	}
 
@@ -869,8 +869,8 @@ class Simple extends WC_Data implements ShippingProvider {
 				$settings,
 				array(
 					array(
-						'title'    => _x( 'Title', 'shipments', 'woocommerce-germanized-shipments' ),
-						'desc_tip' => _x( 'Choose a title for the shipping provider.', 'shipments', 'woocommerce-germanized-shipments' ),
+						'title'    => _x( 'Title', 'shipments', 'shiptastic-for-woocommerce' ),
+						'desc_tip' => _x( 'Choose a title for the shipping provider.', 'shipments', 'shiptastic-for-woocommerce' ),
 						'id'       => 'shipping_provider_title',
 						'value'    => $this->get_title( 'edit' ),
 						'default'  => '',
@@ -878,8 +878,8 @@ class Simple extends WC_Data implements ShippingProvider {
 					),
 
 					array(
-						'title'    => _x( 'Description', 'shipments', 'woocommerce-germanized-shipments' ),
-						'desc_tip' => _x( 'Choose a description for the shipping provider.', 'shipments', 'woocommerce-germanized-shipments' ),
+						'title'    => _x( 'Description', 'shipments', 'shiptastic-for-woocommerce' ),
+						'desc_tip' => _x( 'Choose a description for the shipping provider.', 'shipments', 'shiptastic-for-woocommerce' ),
 						'id'       => 'shipping_provider_description',
 						'value'    => $this->get_description( 'edit' ),
 						'default'  => '',
@@ -894,8 +894,8 @@ class Simple extends WC_Data implements ShippingProvider {
 			$settings,
 			array(
 				array(
-					'title'       => _x( 'Tracking URL', 'shipments', 'woocommerce-germanized-shipments' ),
-					'desc'        => '<div class="wc-gzd-shipments-additional-desc">' . sprintf( _x( 'Adjust the placeholder used to construct the tracking URL for this shipping provider. You may use on of the following placeholders to insert the tracking id or other dynamic data: %s', 'shipments', 'woocommerce-germanized-shipments' ), '<code>' . implode( ', ', array_keys( $this->get_tracking_placeholders() ) ) . '</code>' ) . '</div>',
+					'title'       => _x( 'Tracking URL', 'shipments', 'shiptastic-for-woocommerce' ),
+					'desc'        => '<div class="wc-shiptastic-additional-desc">' . sprintf( _x( 'Adjust the placeholder used to construct the tracking URL for this shipping provider. You may use on of the following placeholders to insert the tracking id or other dynamic data: %s', 'shipments', 'shiptastic-for-woocommerce' ), '<code>' . implode( ', ', array_keys( $this->get_tracking_placeholders() ) ) . '</code>' ) . '</div>',
 					'id'          => 'shipping_provider_tracking_url_placeholder',
 					'placeholder' => $this->get_default_tracking_url_placeholder(),
 					'value'       => $this->get_tracking_url_placeholder( 'edit' ),
@@ -905,8 +905,8 @@ class Simple extends WC_Data implements ShippingProvider {
 				),
 
 				array(
-					'title'       => _x( 'Tracking description', 'shipments', 'woocommerce-germanized-shipments' ),
-					'desc'        => '<div class="wc-gzd-shipments-additional-desc">' . sprintf( _x( 'Adjust the placeholder used to construct the tracking description for this shipping provider (e.g. used within notification emails). You may use on of the following placeholders to insert the tracking id or other dynamic data: %s', 'shipments', 'woocommerce-germanized-shipments' ), '<code>' . implode( ', ', array_keys( $this->get_tracking_placeholders() ) ) . '</code>' ) . '</div>',
+					'title'       => _x( 'Tracking description', 'shipments', 'shiptastic-for-woocommerce' ),
+					'desc'        => '<div class="wc-shiptastic-additional-desc">' . sprintf( _x( 'Adjust the placeholder used to construct the tracking description for this shipping provider (e.g. used within notification emails). You may use on of the following placeholders to insert the tracking id or other dynamic data: %s', 'shipments', 'shiptastic-for-woocommerce' ), '<code>' . implode( ', ', array_keys( $this->get_tracking_placeholders() ) ) . '</code>' ) . '</div>',
 					'id'          => 'shipping_provider_tracking_desc_placeholder',
 					'placeholder' => $this->get_default_tracking_desc_placeholder(),
 					'value'       => $this->get_tracking_desc_placeholder( 'edit' ),
@@ -1036,13 +1036,13 @@ class Simple extends WC_Data implements ShippingProvider {
 		 * The dynamic portion of the hook `$this->get_hook_prefix()` refers to the
 		 * current provider name.
 		 *
-		 * Example hook name: woocommerce_gzd_shipping_provider_dhl_get_settings
+		 * Example hook name: woocommerce_shiptastic_shipping_provider_dhl_get_settings
 		 *
 		 * @param array            $settings Available settings.
 		 * @param ShippingProvider $provider The shipping provider.
 		 *
 		 * @since 3.0.6
-		 * @package Vendidero/Germanized/Shipments
+		 * @package Vendidero/Shiptastic
 		 */
 		return apply_filters( $this->get_hook_prefix() . 'settings', $settings, $section, $this );
 	}
@@ -1060,43 +1060,43 @@ class Simple extends WC_Data implements ShippingProvider {
 			$settings,
 			array(
 				array(
-					'title'       => _x( 'Customer returns', 'shipments', 'woocommerce-germanized-shipments' ),
-					'desc'        => _x( 'Allow customers to submit return requests to shipments.', 'shipments', 'woocommerce-germanized-shipments' ) . '<div class="wc-gzd-shipments-additional-desc">' . sprintf( _x( 'This option will allow your customers to submit return requests to orders. Return requests will be visible within your %1$s. To learn more about return requests by customers and/or guests, please check the %2$s.', 'shipments', 'woocommerce-germanized-shipments' ), '<a href="' . esc_url( admin_url( 'admin.php?page=wc-gzd-return-shipments' ) ) . '">' . _x( 'Return Dashboard', 'shipments', 'woocommerce-germanized-shipments' ) . '</a>', '<a href="https://vendidero.de/dokument/retouren-konfigurieren-und-verwalten" target="_blank">' . _x( 'docs', 'shipments', 'woocommerce-germanized-shipments' ) . '</a>' ) . '</div>',
+					'title'       => _x( 'Customer returns', 'shipments', 'shiptastic-for-woocommerce' ),
+					'desc'        => _x( 'Allow customers to submit return requests to shipments.', 'shipments', 'shiptastic-for-woocommerce' ) . '<div class="wc-shiptastic-additional-desc">' . sprintf( _x( 'This option will allow your customers to submit return requests to orders. Return requests will be visible within your %1$s. To learn more about return requests by customers and/or guests, please check the %2$s.', 'shipments', 'shiptastic-for-woocommerce' ), '<a href="' . esc_url( admin_url( 'admin.php?page=wc-stc-return-shipments' ) ) . '">' . _x( 'Return Dashboard', 'shipments', 'shiptastic-for-woocommerce' ) . '</a>', '<a href="https://vendidero.de/dokument/retouren-konfigurieren-und-verwalten" target="_blank">' . _x( 'docs', 'shipments', 'shiptastic-for-woocommerce' ) . '</a>' ) . '</div>',
 					'id'          => 'supports_customer_returns',
 					'placeholder' => '',
 					'value'       => wc_bool_to_string( $this->get_supports_customer_returns( 'edit' ) ),
 					'default'     => 'no',
-					'type'        => 'gzd_shipments_toggle',
+					'type'        => 'shiptastic_toggle',
 				),
 
 				array(
-					'title'             => _x( 'Guest returns', 'shipments', 'woocommerce-germanized-shipments' ),
-					'desc'              => _x( 'Allow guests to submit return requests to shipments.', 'shipments', 'woocommerce-germanized-shipments' ) . '<div class="wc-gzd-shipments-additional-desc">' . sprintf( _x( 'Guests will need to provide their email address and the order id to receive a one-time link to submit a return request. The placeholder %s might be used to place the request form on your site.', 'shipments', 'woocommerce-germanized-shipments' ), '<code>[gzd_return_request_form]</code>' ) . '</div>',
+					'title'             => _x( 'Guest returns', 'shipments', 'shiptastic-for-woocommerce' ),
+					'desc'              => _x( 'Allow guests to submit return requests to shipments.', 'shipments', 'shiptastic-for-woocommerce' ) . '<div class="wc-shiptastic-additional-desc">' . sprintf( _x( 'Guests will need to provide their email address and the order id to receive a one-time link to submit a return request. The placeholder %s might be used to place the request form on your site.', 'shipments', 'shiptastic-for-woocommerce' ), '<code>[shiptastic_return_request_form]</code>' ) . '</div>',
 					'id'                => 'supports_guest_returns',
 					'default'           => 'no',
 					'value'             => wc_bool_to_string( $this->get_supports_guest_returns( 'edit' ) ),
-					'type'              => 'gzd_shipments_toggle',
+					'type'              => 'shiptastic_toggle',
 					'custom_attributes' => array(
 						'data-show_if_shipping_provider_supports_customer_returns' => '',
 					),
 				),
 
 				array(
-					'title'             => _x( 'Manual confirmation', 'shipments', 'woocommerce-germanized-shipments' ),
-					'desc'              => _x( 'Return requests need manual confirmation.', 'shipments', 'woocommerce-germanized-shipments' ) . '<div class="wc-gzd-shipments-additional-desc">' . _x( 'By default return request need manual confirmation e.g. a shop manager needs to review return requests which by default are added with the status "requested" after a customer submitted a return request. If you choose to disable this option, customer return requests will be added as "processing" and an email confirmation including instructions will be sent immediately to the customer.', 'shipments', 'woocommerce-germanized-shipments' ) . '</div>',
+					'title'             => _x( 'Manual confirmation', 'shipments', 'shiptastic-for-woocommerce' ),
+					'desc'              => _x( 'Return requests need manual confirmation.', 'shipments', 'shiptastic-for-woocommerce' ) . '<div class="wc-shiptastic-additional-desc">' . _x( 'By default return request need manual confirmation e.g. a shop manager needs to review return requests which by default are added with the status "requested" after a customer submitted a return request. If you choose to disable this option, customer return requests will be added as "processing" and an email confirmation including instructions will be sent immediately to the customer.', 'shipments', 'shiptastic-for-woocommerce' ) . '</div>',
 					'id'                => 'return_manual_confirmation',
 					'placeholder'       => '',
 					'value'             => wc_bool_to_string( $this->get_return_manual_confirmation( 'edit' ) ),
 					'default'           => 'yes',
-					'type'              => 'gzd_shipments_toggle',
+					'type'              => 'shiptastic_toggle',
 					'custom_attributes' => array(
 						'data-show_if_shipping_provider_supports_customer_returns' => '',
 					),
 				),
 
 				array(
-					'title'             => _x( 'Return instructions', 'shipments', 'woocommerce-germanized-shipments' ),
-					'desc'              => '<div class="wc-gzd-shipments-additional-desc">' . _x( 'Provide your customer with instructions on how to return the shipment after a return request has been confirmed e.g. explain how to prepare the return for shipment. In case a label cannot be generated automatically, make sure to provide your customer with information on how to obain a return label.', 'shipments', 'woocommerce-germanized-shipments' ) . '</div>',
+					'title'             => _x( 'Return instructions', 'shipments', 'shiptastic-for-woocommerce' ),
+					'desc'              => '<div class="wc-shiptastic-additional-desc">' . _x( 'Provide your customer with instructions on how to return the shipment after a return request has been confirmed e.g. explain how to prepare the return for shipment. In case a label cannot be generated automatically, make sure to provide your customer with information on how to obain a return label.', 'shipments', 'shiptastic-for-woocommerce' ) . '</div>',
 					'id'                => 'return_instructions',
 					'placeholder'       => '',
 					'value'             => $this->get_return_instructions( 'edit' ),
@@ -1140,18 +1140,18 @@ class Simple extends WC_Data implements ShippingProvider {
 
 	public function get_setting_sections() {
 		$sections = array(
-			'' => _x( 'General', 'shipments', 'woocommerce-germanized-shipments' ),
+			'' => _x( 'General', 'shipments', 'shiptastic-for-woocommerce' ),
 		);
 
 		if ( $this->supports_customer_return_requests() ) {
-			$sections['returns'] = _x( 'Return Requests', 'shipments', 'woocommerce-germanized-shipments' );
+			$sections['returns'] = _x( 'Return Requests', 'shipments', 'shiptastic-for-woocommerce' );
 		}
 
 		return $sections;
 	}
 
 	/**
-	 * @param \Vendidero\Germanized\Shipments\Shipment $shipment
+	 * @param \Vendidero\Shiptastic\Shipment $shipment
 	 *
 	 * @return ShipmentLabel|false
 	 */
@@ -1160,18 +1160,18 @@ class Simple extends WC_Data implements ShippingProvider {
 	}
 
 	/**
-	 * @param \Vendidero\Germanized\Shipments\Shipment $shipment
+	 * @param \Vendidero\Shiptastic\Shipment $shipment
 	 */
 	public function get_label_fields_html( $shipment ) {
 		return apply_filters( "{$this->get_hook_prefix()}label_fields_html", '', $shipment, $this );
 	}
 
 	/**
-	 * @param \Vendidero\Germanized\Shipments\Shipment $shipment
+	 * @param \Vendidero\Shiptastic\Shipment $shipment
 	 * @param mixed $props
 	 */
 	public function create_label( $shipment, $props = false ) {
-		$result = new ShipmentError( 'shipping-provider', _x( 'This shipping provider does not support creating labels.', 'shipments', 'woocommerce-germanized-shipments' ) );
+		$result = new ShipmentError( 'shipping-provider', _x( 'This shipping provider does not support creating labels.', 'shipments', 'shiptastic-for-woocommerce' ) );
 
 		return $result;
 	}
@@ -1216,7 +1216,7 @@ class Simple extends WC_Data implements ShippingProvider {
 			$this->products = new ProductList();
 		}
 
-		if ( is_a( $id, 'Vendidero\Germanized\Shipments\ShippingProvider\Product' ) ) {
+		if ( is_a( $id, 'Vendidero\Shiptastic\ShippingProvider\Product' ) ) {
 			$this->products->add( $id );
 
 			return true;
@@ -1273,7 +1273,7 @@ class Simple extends WC_Data implements ShippingProvider {
 			$this->print_formats = new PrintFormatList();
 		}
 
-		if ( is_a( $id, 'Vendidero\Germanized\Shipments\ShippingProvider\PrintFormat' ) ) {
+		if ( is_a( $id, 'Vendidero\Shiptastic\ShippingProvider\PrintFormat' ) ) {
 			$this->print_formats->add( $id );
 
 			return true;
@@ -1333,7 +1333,7 @@ class Simple extends WC_Data implements ShippingProvider {
 			$this->services = new ServiceList();
 		}
 
-		if ( is_a( $id, 'Vendidero\Germanized\Shipments\ShippingProvider\Service' ) ) {
+		if ( is_a( $id, 'Vendidero\Shiptastic\ShippingProvider\Service' ) ) {
 			$this->services->add( $id );
 
 			return true;
@@ -1353,7 +1353,7 @@ class Simple extends WC_Data implements ShippingProvider {
 	public function get_supported_shipment_types() {
 		$shipment_types = array();
 
-		foreach ( wc_gzd_get_shipment_types() as $shipment_type ) {
+		foreach ( wc_stc_get_shipment_types() as $shipment_type ) {
 			if ( $this->supports_labels( $shipment_type ) ) {
 				$shipment_types[] = $shipment_type;
 			}
@@ -1365,7 +1365,7 @@ class Simple extends WC_Data implements ShippingProvider {
 	public function save() {
 		$id = parent::save();
 
-		if ( $cache = \Vendidero\Germanized\Shipments\Caches\Helper::get_cache_object( 'shipping-providers' ) ) {
+		if ( $cache = \Vendidero\Shiptastic\Caches\Helper::get_cache_object( 'shipping-providers' ) ) {
 			$cache->remove( $this->get_name() );
 		}
 

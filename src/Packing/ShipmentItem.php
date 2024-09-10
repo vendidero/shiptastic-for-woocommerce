@@ -1,8 +1,8 @@
 <?php
 
-namespace Vendidero\Germanized\Shipments\Packing;
+namespace Vendidero\Shiptastic\Packing;
 
-use Vendidero\Germanized\Shipments\Utilities\NumberUtil;
+use Vendidero\Shiptastic\Utilities\NumberUtil;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -14,7 +14,7 @@ class ShipmentItem extends Item {
 	/**
 	 * Box constructor.
 	 *
-	 * @param \Vendidero\Germanized\Shipments\ShipmentItem $item
+	 * @param \Vendidero\Shiptastic\ShipmentItem $item
 	 */
 	public function __construct( $item ) {
 		$this->item = $item;
@@ -49,7 +49,7 @@ class ShipmentItem extends Item {
 	}
 
 	/**
-	 * @return \Vendidero\Germanized\Shipments\ShipmentItem
+	 * @return \Vendidero\Shiptastic\ShipmentItem
 	 */
 	public function get_shipment_item() {
 		return $this->get_reference();
@@ -60,6 +60,6 @@ class ShipmentItem extends Item {
 	}
 
 	protected function load_product() {
-		$this->product = wc_gzd_shipments_get_product( $this->item->get_product() );
+		$this->product = wc_shiptastic_get_product( $this->item->get_product() );
 	}
 }

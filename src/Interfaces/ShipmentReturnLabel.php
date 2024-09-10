@@ -1,10 +1,9 @@
 <?php
-namespace Vendidero\Germanized\Shipments\Interfaces;
+namespace Vendidero\Shiptastic\Interfaces;
 
 /**
  * Shipment Label Interface
  *
- * @package  Germanized/Shipments/Interfaces
  * @version  3.1.0
  */
 if ( ! defined( 'ABSPATH' ) ) {

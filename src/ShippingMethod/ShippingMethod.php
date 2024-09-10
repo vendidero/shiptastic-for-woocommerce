@@ -1,13 +1,13 @@
 <?php
-namespace Vendidero\Germanized\Shipments\ShippingMethod;
+namespace Vendidero\Shiptastic\ShippingMethod;
 
-use Vendidero\Germanized\Shipments\Admin\Admin;
-use Vendidero\Germanized\Shipments\Admin\PackagingSettings;
-use Vendidero\Germanized\Shipments\Admin\Settings;
-use Vendidero\Germanized\Shipments\Interfaces\ShippingProvider;
-use Vendidero\Germanized\Shipments\Package;
-use Vendidero\Germanized\Shipments\Packing\Helper;
-use Vendidero\Germanized\Shipments\Packing\PackagingList;
+use Vendidero\Shiptastic\Admin\Admin;
+use Vendidero\Shiptastic\Admin\PackagingSettings;
+use Vendidero\Shiptastic\Admin\Settings;
+use Vendidero\Shiptastic\Interfaces\ShippingProvider;
+use Vendidero\Shiptastic\Package;
+use Vendidero\Shiptastic\Packing\Helper;
+use Vendidero\Shiptastic\Packing\PackagingList;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -30,21 +30,21 @@ class ShippingMethod extends \WC_Shipping_Method {
 
 				if ( ! empty( $raw_method ) ) {
 					$method_id               = str_replace( 'shipping_provider_', '', $raw_method->method_id );
-					$this->shipping_provider = wc_gzd_get_shipping_provider( $method_id );
+					$this->shipping_provider = wc_stc_get_shipping_provider( $method_id );
 				}
 			}
 		} else {
-			$this->shipping_provider = is_a( $shipping_provider, 'Vendidero\Germanized\Shipments\Interfaces\ShippingProvider' ) ? $shipping_provider : wc_gzd_get_shipping_provider( $shipping_provider );
+			$this->shipping_provider = is_a( $shipping_provider, 'Vendidero\Shiptastic\Interfaces\ShippingProvider' ) ? $shipping_provider : wc_stc_get_shipping_provider( $shipping_provider );
 		}
 
-		if ( ! is_a( $this->shipping_provider, 'Vendidero\Germanized\Shipments\Interfaces\ShippingProvider' ) ) {
+		if ( ! is_a( $this->shipping_provider, 'Vendidero\Shiptastic\Interfaces\ShippingProvider' ) ) {
 			return;
 		}
 
 		$this->id                 = 'shipping_provider_' . $this->shipping_provider->get_name();
 		$this->instance_id        = absint( $instance_id );
 		$this->method_title       = $this->shipping_provider->get_title();
-		$this->method_description = sprintf( _x( 'Apply rule-based shipping costs for shipments handled by %1$s based on your available packaging options. Learn <a href="%2$s">how to configure →</a>', 'shipments', 'woocommerce-germanized-shipments' ), $this->shipping_provider->get_title(), 'https://vendidero.de/dokument/versandregeln-erstellen' );
+		$this->method_description = sprintf( _x( 'Apply rule-based shipping costs for shipments handled by %1$s based on your available packaging options. Learn <a href="%2$s">how to configure →</a>', 'shipments', 'shiptastic-for-woocommerce' ), $this->shipping_provider->get_title(), 'https://vendidero.de/dokument/versandregeln-erstellen' );
 		$this->title              = $this->method_title;
 		$this->supports           = array(
 			'shipping-zones',
@@ -123,8 +123,8 @@ class ShippingMethod extends \WC_Shipping_Method {
 		$decimal       = ( ! empty( wc_get_price_decimal_separator() ) ) ? wc_get_price_decimal_separator() : $decimal_point;
 
 		wp_localize_script(
-			'wc-gzd-shipments-admin-shipping-rules',
-			'wc_gzd_shipments_admin_shipping_rules_params',
+			'wc-shiptastic-admin-shipping-rules',
+			'wc_shiptastic_admin_shipping_rules_params',
 			array(
 				'rules'                   => $this->get_option( 'shipping_rules', array() ),
 				'decimal_separator'       => $decimal,
@@ -143,11 +143,11 @@ class ShippingMethod extends \WC_Shipping_Method {
 					),
 				),
 				'strings'                 => array(
-					'unload_confirmation_msg' => _x( 'Your changed data will be lost if you leave this page without saving.', 'shipments', 'woocommerce-germanized-shipments' ),
+					'unload_confirmation_msg' => _x( 'Your changed data will be lost if you leave this page without saving.', 'shipments', 'shiptastic-for-woocommerce' ),
 				),
 			)
 		);
-		wp_enqueue_script( 'wc-gzd-shipments-admin-shipping-rules' );
+		wp_enqueue_script( 'wc-shiptastic-admin-shipping-rules' );
 
 		parent::admin_options();
 	}
@@ -185,50 +185,50 @@ class ShippingMethod extends \WC_Shipping_Method {
 	public function init_form_fields() {
 		$this->instance_form_fields = array(
 			'title'                                    => array(
-				'title'       => _x( 'Title', 'shipments', 'woocommerce-germanized-shipments' ),
+				'title'       => _x( 'Title', 'shipments', 'shiptastic-for-woocommerce' ),
 				'type'        => 'text',
-				'description' => _x( 'This controls the title which the user sees during checkout.', 'shipments', 'woocommerce-germanized-shipments' ),
+				'description' => _x( 'This controls the title which the user sees during checkout.', 'shipments', 'shiptastic-for-woocommerce' ),
 				'default'     => $this->method_title,
 				'desc_tip'    => true,
 			),
 			'free_title'                               => array(
-				'title'       => _x( 'Title (free shipping)', 'shipments', 'woocommerce-germanized-shipments' ),
+				'title'       => _x( 'Title (free shipping)', 'shipments', 'shiptastic-for-woocommerce' ),
 				'type'        => 'text',
-				'description' => _x( 'This controls the title which the user sees during checkout in case a free shipping option is available.', 'shipments', 'woocommerce-germanized-shipments' ),
-				'default'     => sprintf( _x( 'Free shipping (via %1$s)', 'shipments', 'woocommerce-germanized-shipments' ), $this->method_title ),
+				'description' => _x( 'This controls the title which the user sees during checkout in case a free shipping option is available.', 'shipments', 'shiptastic-for-woocommerce' ),
+				'default'     => sprintf( _x( 'Free shipping (via %1$s)', 'shipments', 'shiptastic-for-woocommerce' ), $this->method_title ),
 				'desc_tip'    => true,
 			),
 			'shipping_rules_title'                     => array(
-				'title'       => _x( 'Shipping Rules', 'shipments', 'woocommerce-germanized-shipments' ),
+				'title'       => _x( 'Shipping Rules', 'shipments', 'shiptastic-for-woocommerce' ),
 				'type'        => 'title',
 				'id'          => 'shipping_rules_title',
 				'default'     => '',
-				'description' => sprintf( _x( 'Configure shipping costs per packaging option. Within cart, a rucksack algorithm will automatically fit the items in the packaging option(s) available and calculate it\'s cost.<br/> Some important hints on the calculation logic: <ol><li>The <i>from</i> value (e.g. 3) is expected to be inclusive (greater or equal 3). The <i>to</i> value (e.g. 5) is expected to be exclusive (smaller than 5).</li><li>Leave the <i>to</i> value empty for your last packaging rule to match all subsequent values.</li><li>All conditions must be met for the shipping rule to apply.</li><li>In case a free shipping rule is available, the conditional logic automatically stops.</li><li>The <i>all remaining packaging</i> rules will be used for available packaging options without custom rules and serve as fallback in case no applicable rule was found.</li><li>In case no <i>all remaining packaging</i> rule exists, only packaging options with custom rules will be used for packing.</li></ol>', 'shipments', 'woocommerce-germanized-shipments' ) ),
+				'description' => sprintf( _x( 'Configure shipping costs per packaging option. Within cart, a rucksack algorithm will automatically fit the items in the packaging option(s) available and calculate it\'s cost.<br/> Some important hints on the calculation logic: <ol><li>The <i>from</i> value (e.g. 3) is expected to be inclusive (greater or equal 3). The <i>to</i> value (e.g. 5) is expected to be exclusive (smaller than 5).</li><li>Leave the <i>to</i> value empty for your last packaging rule to match all subsequent values.</li><li>All conditions must be met for the shipping rule to apply.</li><li>In case a free shipping rule is available, the conditional logic automatically stops.</li><li>The <i>all remaining packaging</i> rules will be used for available packaging options without custom rules and serve as fallback in case no applicable rule was found.</li><li>In case no <i>all remaining packaging</i> rule exists, only packaging options with custom rules will be used for packing.</li></ol>', 'shipments', 'shiptastic-for-woocommerce' ) ),
 			),
 			'multiple_shipments_cost_calculation_mode' => array(
-				'title'    => _x( 'Multiple packages', 'shipments', 'woocommerce-germanized-shipments' ),
+				'title'    => _x( 'Multiple packages', 'shipments', 'shiptastic-for-woocommerce' ),
 				'type'     => 'select',
 				'default'  => 'sum',
 				'options'  => array(
-					'sum' => _x( 'Sum all costs', 'shipments', 'woocommerce-germanized-shipments' ),
-					'max' => _x( 'Apply the maximum cost only', 'shipments', 'woocommerce-germanized-shipments' ),
-					'min' => _x( 'Apply the minimum cost only', 'shipments', 'woocommerce-germanized-shipments' ),
+					'sum' => _x( 'Sum all costs', 'shipments', 'shiptastic-for-woocommerce' ),
+					'max' => _x( 'Apply the maximum cost only', 'shipments', 'shiptastic-for-woocommerce' ),
+					'min' => _x( 'Apply the minimum cost only', 'shipments', 'shiptastic-for-woocommerce' ),
 				),
-				'desc_tip' => _x( 'The algorithm may detect that multiple packages, with possibly different packaging, for the current cart may be needed. Choose how to calculate costs.', 'shipments', 'woocommerce-germanized-shipments' ),
+				'desc_tip' => _x( 'The algorithm may detect that multiple packages, with possibly different packaging, for the current cart may be needed. Choose how to calculate costs.', 'shipments', 'shiptastic-for-woocommerce' ),
 			),
 			'multiple_rules_cost_calculation_mode'     => array(
-				'title'    => _x( 'Multiple matching rules', 'shipments', 'woocommerce-germanized-shipments' ),
+				'title'    => _x( 'Multiple matching rules', 'shipments', 'shiptastic-for-woocommerce' ),
 				'type'     => 'select',
 				'default'  => 'max',
 				'options'  => array(
-					'sum' => _x( 'Sum all costs', 'shipments', 'woocommerce-germanized-shipments' ),
-					'max' => _x( 'Apply the maximum cost only', 'shipments', 'woocommerce-germanized-shipments' ),
-					'min' => _x( 'Apply the minimum cost only', 'shipments', 'woocommerce-germanized-shipments' ),
+					'sum' => _x( 'Sum all costs', 'shipments', 'shiptastic-for-woocommerce' ),
+					'max' => _x( 'Apply the maximum cost only', 'shipments', 'shiptastic-for-woocommerce' ),
+					'min' => _x( 'Apply the minimum cost only', 'shipments', 'shiptastic-for-woocommerce' ),
 				),
-				'desc_tip' => _x( 'Decide how costs should add up in case multiple rules per packaging option match the current cart.', 'shipments', 'woocommerce-germanized-shipments' ),
+				'desc_tip' => _x( 'Decide how costs should add up in case multiple rules per packaging option match the current cart.', 'shipments', 'shiptastic-for-woocommerce' ),
 			),
 			'shipping_rules'                           => array(
-				'title'   => _x( 'Rules', 'shipments', 'woocommerce-germanized-shipments' ),
+				'title'   => _x( 'Rules', 'shipments', 'shiptastic-for-woocommerce' ),
 				'type'    => 'shipping_rules',
 				'default' => array(),
 			),
@@ -241,26 +241,26 @@ class ShippingMethod extends \WC_Shipping_Method {
 
 	public function get_rule_conditional_operators() {
 		return apply_filters(
-			'woocommerce_gzd_shipping_method_rule_condition_operators',
+			'woocommerce_shiptastic_shipping_method_rule_condition_operators',
 			array(
 				'is'      => array(
-					'label'       => _x( 'is', 'shipments', 'woocommerce-germanized-shipments' ),
+					'label'       => _x( 'is', 'shipments', 'shiptastic-for-woocommerce' ),
 					'is_negation' => false,
 				),
 				'is_not'  => array(
-					'label'       => _x( 'is not', 'shipments', 'woocommerce-germanized-shipments' ),
+					'label'       => _x( 'is not', 'shipments', 'shiptastic-for-woocommerce' ),
 					'is_negation' => true,
 				),
 				'any_of'  => array(
-					'label'       => _x( 'any of', 'shipments', 'woocommerce-germanized-shipments' ),
+					'label'       => _x( 'any of', 'shipments', 'shiptastic-for-woocommerce' ),
 					'is_negation' => false,
 				),
 				'none_of' => array(
-					'label'       => _x( 'none of', 'shipments', 'woocommerce-germanized-shipments' ),
+					'label'       => _x( 'none of', 'shipments', 'shiptastic-for-woocommerce' ),
 					'is_negation' => true,
 				),
 				'exactly' => array(
-					'label'       => _x( 'Exactly', 'shipments', 'woocommerce-germanized-shipments' ),
+					'label'       => _x( 'Exactly', 'shipments', 'shiptastic-for-woocommerce' ),
 					'is_negation' => false,
 				),
 			)
@@ -269,47 +269,47 @@ class ShippingMethod extends \WC_Shipping_Method {
 
 	public function get_condition_types() {
 		return apply_filters(
-			'woocommerce_gzd_shipping_method_rule_condition_types',
+			'woocommerce_shiptastic_shipping_method_rule_condition_types',
 			array(
 				'always'                   => array(
-					'label'     => _x( 'Always', 'shipments', 'woocommerce-germanized-shipments' ),
+					'label'     => _x( 'Always', 'shipments', 'shiptastic-for-woocommerce' ),
 					'fields'    => array(),
 					'operators' => array(),
 					'is_global' => true,
 				),
 				'package_weight'           => array(
-					'label'     => _x( 'Package weight', 'shipments', 'woocommerce-germanized-shipments' ),
+					'label'     => _x( 'Package weight', 'shipments', 'shiptastic-for-woocommerce' ),
 					'fields'    => array(
 						'weight_from' => array(
 							'type'            => 'text',
 							'data_type'       => 'decimal',
 							'data_validation' => 'weight',
-							'label'           => _x( 'from', 'shipments', 'woocommerce-germanized-shipments' ),
+							'label'           => _x( 'from', 'shipments', 'shiptastic-for-woocommerce' ),
 						),
 						'weight_to'   => array(
 							'type'            => 'text',
 							'data_type'       => 'decimal',
 							'data_validation' => 'weight',
-							'label'           => _x( 'to', 'shipments', 'woocommerce-germanized-shipments' ),
+							'label'           => _x( 'to', 'shipments', 'shiptastic-for-woocommerce' ),
 							'description'     => class_exists( '\Automattic\WooCommerce\Utilities\I18nUtil' ) ? \Automattic\WooCommerce\Utilities\I18nUtil::get_weight_unit_label( get_option( 'woocommerce_weight_unit', 'kg' ) ) : get_option( 'woocommerce_weight_unit', 'kg' ),
 						),
 					),
 					'operators' => array( 'is', 'is_not' ),
 				),
 				'weight'                   => array(
-					'label'     => _x( 'Cart weight', 'shipments', 'woocommerce-germanized-shipments' ),
+					'label'     => _x( 'Cart weight', 'shipments', 'shiptastic-for-woocommerce' ),
 					'fields'    => array(
 						'weight_from' => array(
 							'type'            => 'text',
 							'data_type'       => 'decimal',
 							'data_validation' => 'weight',
-							'label'           => _x( 'from', 'shipments', 'woocommerce-germanized-shipments' ),
+							'label'           => _x( 'from', 'shipments', 'shiptastic-for-woocommerce' ),
 						),
 						'weight_to'   => array(
 							'type'            => 'text',
 							'data_type'       => 'decimal',
 							'data_validation' => 'weight',
-							'label'           => _x( 'to', 'shipments', 'woocommerce-germanized-shipments' ),
+							'label'           => _x( 'to', 'shipments', 'shiptastic-for-woocommerce' ),
 							'description'     => class_exists( '\Automattic\WooCommerce\Utilities\I18nUtil' ) ? \Automattic\WooCommerce\Utilities\I18nUtil::get_weight_unit_label( get_option( 'woocommerce_weight_unit', 'kg' ) ) : get_option( 'woocommerce_weight_unit', 'kg' ),
 						),
 					),
@@ -317,34 +317,34 @@ class ShippingMethod extends \WC_Shipping_Method {
 					'is_global' => true,
 				),
 				'package_total'            => array(
-					'label'     => _x( 'Package total', 'shipments', 'woocommerce-germanized-shipments' ),
+					'label'     => _x( 'Package total', 'shipments', 'shiptastic-for-woocommerce' ),
 					'fields'    => array(
 						'total_from' => array(
 							'type'      => 'text',
 							'data_type' => 'price',
-							'label'     => _x( 'from', 'shipments', 'woocommerce-germanized-shipments' ),
+							'label'     => _x( 'from', 'shipments', 'shiptastic-for-woocommerce' ),
 						),
 						'total_to'   => array(
 							'type'        => 'text',
 							'data_type'   => 'price',
-							'label'       => _x( 'to', 'shipments', 'woocommerce-germanized-shipments' ),
+							'label'       => _x( 'to', 'shipments', 'shiptastic-for-woocommerce' ),
 							'description' => get_woocommerce_currency_symbol(),
 						),
 					),
 					'operators' => array( 'is', 'is_not' ),
 				),
 				'total'                    => array(
-					'label'     => _x( 'Cart total', 'shipments', 'woocommerce-germanized-shipments' ),
+					'label'     => _x( 'Cart total', 'shipments', 'shiptastic-for-woocommerce' ),
 					'fields'    => array(
 						'total_from' => array(
 							'type'      => 'text',
 							'data_type' => 'price',
-							'label'     => _x( 'from', 'shipments', 'woocommerce-germanized-shipments' ),
+							'label'     => _x( 'from', 'shipments', 'shiptastic-for-woocommerce' ),
 						),
 						'total_to'   => array(
 							'type'        => 'text',
 							'data_type'   => 'price',
-							'label'       => _x( 'to', 'shipments', 'woocommerce-germanized-shipments' ),
+							'label'       => _x( 'to', 'shipments', 'shiptastic-for-woocommerce' ),
 							'description' => get_woocommerce_currency_symbol(),
 						),
 					),
@@ -352,13 +352,13 @@ class ShippingMethod extends \WC_Shipping_Method {
 					'is_global' => true,
 				),
 				'shipping_classes'         => array(
-					'label'     => _x( 'Cart shipping class', 'shipments', 'woocommerce-germanized-shipments' ),
+					'label'     => _x( 'Cart shipping class', 'shipments', 'shiptastic-for-woocommerce' ),
 					'fields'    => array(
 						'classes' => array(
 							'type'      => 'multiselect',
 							'data_type' => 'array',
 							'class'     => 'wc-enhanced-select',
-							'label'     => _x( 'Class', 'shipments', 'woocommerce-germanized-shipments' ),
+							'label'     => _x( 'Class', 'shipments', 'shiptastic-for-woocommerce' ),
 							'options'   => function() {
 								return Package::get_shipping_classes();
 							},
@@ -368,13 +368,13 @@ class ShippingMethod extends \WC_Shipping_Method {
 					'is_global' => true,
 				),
 				'package_shipping_classes' => array(
-					'label'     => _x( 'Package shipping class', 'shipments', 'woocommerce-germanized-shipments' ),
+					'label'     => _x( 'Package shipping class', 'shipments', 'shiptastic-for-woocommerce' ),
 					'fields'    => array(
 						'classes' => array(
 							'type'      => 'multiselect',
 							'data_type' => 'array',
 							'class'     => 'wc-enhanced-select',
-							'label'     => _x( 'Class', 'shipments', 'woocommerce-germanized-shipments' ),
+							'label'     => _x( 'Class', 'shipments', 'shiptastic-for-woocommerce' ),
 							'options'   => function() {
 								return Package::get_shipping_classes();
 							},
@@ -418,7 +418,7 @@ class ShippingMethod extends \WC_Shipping_Method {
 		$label = $this->get_title();
 
 		if ( 0.0 === $costs ) {
-			$label = $this->get_instance_option( 'free_title', sprintf( _x( 'Free shipping (via %1$s)', 'shipments', 'woocommerce-germanized-shipments' ), $this->get_method_title() ) );
+			$label = $this->get_instance_option( 'free_title', sprintf( _x( 'Free shipping (via %1$s)', 'shipments', 'shiptastic-for-woocommerce' ), $this->get_method_title() ) );
 		}
 
 		return $label;
@@ -539,7 +539,7 @@ class ShippingMethod extends \WC_Shipping_Method {
 		}
 
 		$packaging_ids = array_unique( array_values( $packaging_ids ) );
-		$boxes         = Helper::get_packaging_boxes( apply_filters( 'woocommerce_gzd_shipping_method_available_packaging_ids', $packaging_ids, $this ) );
+		$boxes         = Helper::get_packaging_boxes( apply_filters( 'woocommerce_shiptastic_shipping_method_available_packaging_ids', $packaging_ids, $this ) );
 
 		foreach ( $costs as $packaging_id => $cost ) {
 			if ( array_key_exists( $packaging_id, $boxes ) ) {
@@ -745,13 +745,13 @@ class ShippingMethod extends \WC_Shipping_Method {
 						$package_count = 0;
 
 						foreach ( $applied_rules as $applied_rule ) {
-							if ( $packaging = wc_gzd_get_packaging( $applied_rule['packaging_id'] ) ) {
+							if ( $packaging = wc_stc_get_packaging( $applied_rule['packaging_id'] ) ) {
 								$package_count++;
-								$debug_notices[] = sprintf( _x( '## Package %1$d/%2$d: %3$s: ', 'shipments', 'woocommerce-germanized-shipments' ), $package_count, count( $applied_rules ), $packaging->get_title() );
+								$debug_notices[] = sprintf( _x( '## Package %1$d/%2$d: %3$s: ', 'shipments', 'shiptastic-for-woocommerce' ), $package_count, count( $applied_rules ), $packaging->get_title() );
 
 								foreach ( $applied_rule['rules'] as $rule ) {
 									if ( $the_rule = $this->get_shipping_rule_by_id( $rule, $applied_rule['packaging_id'] ) ) {
-										$debug_notices[] = sprintf( _x( 'Rule %1$d: %2$s', 'shipments', 'woocommerce-germanized-shipments' ), $rule, wc_price( $the_rule['costs'] ) );
+										$debug_notices[] = sprintf( _x( 'Rule %1$d: %2$s', 'shipments', 'shiptastic-for-woocommerce' ), $rule, wc_price( $the_rule['costs'] ) );
 									}
 								}
 
@@ -763,13 +763,13 @@ class ShippingMethod extends \WC_Shipping_Method {
 										$product_title = $product->get_title();
 									}
 
-									$product_desc    = ! empty( $product_ids[0] ) ? sprintf( _x( '%1$s (Parent: %2$s)', 'shipments', 'woocommerce-germanized-shipments' ), $product_title, $product_ids[0] ) : $product_title;
-									$debug_notices[] = sprintf( _x( '%1$s x %2$s', 'shipments', 'woocommerce-germanized-shipments' ), $quantity, $product_desc );
+									$product_desc    = ! empty( $product_ids[0] ) ? sprintf( _x( '%1$s (Parent: %2$s)', 'shipments', 'shiptastic-for-woocommerce' ), $product_title, $product_ids[0] ) : $product_title;
+									$debug_notices[] = sprintf( _x( '%1$s x %2$s', 'shipments', 'shiptastic-for-woocommerce' ), $quantity, $product_desc );
 								}
 							}
 						}
 
-						$debug_notices[] = sprintf( _x( '## Total: %1$s (%2$s, %3$s)', 'shipments', 'woocommerce-germanized-shipments' ), wc_price( $total_cost ), $cost_calculation_mode, $multiple_rules_calculation_mode );
+						$debug_notices[] = sprintf( _x( '## Total: %1$s (%2$s, %3$s)', 'shipments', 'shiptastic-for-woocommerce' ), wc_price( $total_cost ), $cost_calculation_mode, $multiple_rules_calculation_mode );
 					}
 
 					$this->add_rate(
@@ -787,7 +787,7 @@ class ShippingMethod extends \WC_Shipping_Method {
 						)
 					);
 				} elseif ( $is_debug_mode ) {
-					$debug_notices[] = _x( 'None of the available rules applied.', 'shipments', 'woocommerce-germanized-shipments' );
+					$debug_notices[] = _x( 'None of the available rules applied.', 'shipments', 'shiptastic-for-woocommerce' );
 				}
 			} elseif ( $is_debug_mode ) {
 				foreach ( $unpacked_items as $item ) {
@@ -797,7 +797,7 @@ class ShippingMethod extends \WC_Shipping_Method {
 						$product_desc = $product->get_title();
 					}
 
-					$debug_notices[] = sprintf( _x( '%1$s does not fit the available packaging options', 'shipments', 'woocommerce-germanized-shipments' ), $product_desc );
+					$debug_notices[] = sprintf( _x( '%1$s does not fit the available packaging options', 'shipments', 'shiptastic-for-woocommerce' ), $product_desc );
 				}
 			}
 
@@ -807,10 +807,10 @@ class ShippingMethod extends \WC_Shipping_Method {
 				$available_box_list = array();
 				$cart_wide_notices  = array();
 
-				$cart_wide_notices[] = _x( '### Items available to pack:', 'shipments', 'woocommerce-germanized-shipments' );
+				$cart_wide_notices[] = _x( '### Items available to pack:', 'shipments', 'shiptastic-for-woocommerce' );
 
 				foreach ( $package['items_to_pack'] as $item_to_pack ) {
-					$cart_wide_notices[] = $item_to_pack->getDescription() . ' (' . wc_gzd_format_shipment_dimensions( $item_to_pack->get_dimensions(), 'mm' ) . ', ' . wc_gzd_format_shipment_weight( $item_to_pack->getWeight(), 'g' ) . ')';
+					$cart_wide_notices[] = $item_to_pack->getDescription() . ' (' . wc_stc_format_shipment_dimensions( $item_to_pack->get_dimensions(), 'mm' ) . ', ' . wc_stc_format_shipment_weight( $item_to_pack->getWeight(), 'g' ) . ')';
 				}
 
 				foreach ( $cart_wide_notices as $notice ) {
@@ -826,14 +826,14 @@ class ShippingMethod extends \WC_Shipping_Method {
 				}
 
 				$general_debug_notices = array(
-					sprintf( _x( '### Debug information for %1$s:', 'shipments', 'woocommerce-germanized-shipments' ), $this->get_title() ),
-					sprintf( _x( 'Available packaging options: %1$s', 'shipments', 'woocommerce-germanized-shipments' ), implode( ', ', $available_box_list ) ),
+					sprintf( _x( '### Debug information for %1$s:', 'shipments', 'shiptastic-for-woocommerce' ), $this->get_title() ),
+					sprintf( _x( 'Available packaging options: %1$s', 'shipments', 'shiptastic-for-woocommerce' ), implode( ', ', $available_box_list ) ),
 				);
 
 				if ( empty( $applied_rules ) ) {
 					foreach ( $packed_boxes as $packed_box_index => $box ) {
 						$packaging               = $box->getBox();
-						$general_debug_notices[] = sprintf( _x( '## Packed box %1$d/%2$d: %3$s', 'shipments', 'woocommerce-germanized-shipments' ), ++$packed_box_index, count( $packed_boxes ), $packaging->getReference() );
+						$general_debug_notices[] = sprintf( _x( '## Packed box %1$d/%2$d: %3$s', 'shipments', 'shiptastic-for-woocommerce' ), ++$packed_box_index, count( $packed_boxes ), $packaging->getReference() );
 					}
 				}
 
@@ -927,8 +927,8 @@ class ShippingMethod extends \WC_Shipping_Method {
 					}
 				}
 
-				if ( has_filter( "woocommerce_gzd_shipping_method_rule_condition_{$condition_type_name}_applies" ) ) {
-					$condition_applies = apply_filters( "woocommerce_gzd_shipping_method_rule_condition_{$condition_type_name}_applies", $package_data, $rule, $condition, $this );
+				if ( has_filter( "woocommerce_shiptastic_shipping_method_rule_condition_{$condition_type_name}_applies" ) ) {
+					$condition_applies = apply_filters( "woocommerce_shiptastic_shipping_method_rule_condition_{$condition_type_name}_applies", $package_data, $rule, $condition, $this );
 				} elseif ( 'always' === $condition_type_name ) {
 					$condition_applies = true;
 				} elseif ( 'weight' === $condition_type_name || 'package_weight' === $condition_type_name ) {
@@ -983,12 +983,12 @@ class ShippingMethod extends \WC_Shipping_Method {
 	protected function get_packaging_list( $add_all_option = true ) {
 		$packaging_select = array();
 
-		foreach ( wc_gzd_get_packaging_list( array( 'shipping_provider' => $this->get_shipping_provider()->get_name() ) ) as $packaging ) {
+		foreach ( wc_stc_get_packaging_list( array( 'shipping_provider' => $this->get_shipping_provider()->get_name() ) ) as $packaging ) {
 			$packaging_select[ $packaging->get_id() ] = $packaging->get_title();
 		}
 
 		if ( $add_all_option ) {
-			$packaging_select['all'] = _x( 'All remaining packaging', 'shipments', 'woocommerce-germanized-shipments' );
+			$packaging_select['all'] = _x( 'All remaining packaging', 'shipments', 'shiptastic-for-woocommerce' );
 		}
 
 		return $packaging_select;
@@ -1008,7 +1008,7 @@ class ShippingMethod extends \WC_Shipping_Method {
 		$help_tip = '';
 
 		if ( 'all' === $packaging ) {
-			$help_tip = _x( 'These rules will be parsed for all remaining, available packaging without rules and/or in case no rules matched.', 'shipments', 'woocommerce-germanized-shipments' );
+			$help_tip = _x( 'These rules will be parsed for all remaining, available packaging without rules and/or in case no rules matched.', 'shipments', 'shiptastic-for-woocommerce' );
 		}
 
 		return $help_tip;
@@ -1152,8 +1152,8 @@ class ShippingMethod extends \WC_Shipping_Method {
 					if ( isset( $condition[ $field_unique_id ] ) ) {
 						$value = wc_clean( $condition[ $field_unique_id ] );
 
-						if ( has_filter( "woocommerce_gzd_shipping_method_rule_validate_{$validation_type}" ) ) {
-							$value = apply_filters( "woocommerce_gzd_shipping_method_rule_validate_{$validation_type}", $value, $field, $condition_type, $this );
+						if ( has_filter( "woocommerce_shiptastic_shipping_method_rule_validate_{$validation_type}" ) ) {
+							$value = apply_filters( "woocommerce_shiptastic_shipping_method_rule_validate_{$validation_type}", $value, $field, $condition_type, $this );
 						} elseif ( 'weight' === $validation_type ) {
 							$unit = get_option( 'woocommerce_weight_unit', 'kg' );
 
@@ -1198,29 +1198,29 @@ class ShippingMethod extends \WC_Shipping_Method {
 		$field_key       = $this->get_field_key( 'shipping_rules' );
 		$condition_types = $this->get_condition_types();
 		?>
-		<table class="widefat wc-gzd-shipments-shipping-rules">
+		<table class="widefat wc-shiptastic-shipping-rules">
 			<thead>
 				<tr>
 					<th class="sort"></th>
 					<th class="cb">
-						<input class="wc-gzd-shipments-shipping-rules-cb-all" name="shipping_rules_cb_all" type="checkbox" value="" />
+						<input class="wc-shiptastic-shipping-rules-cb-all" name="shipping_rules_cb_all" type="checkbox" value="" />
 					</th>
 					<th class="packaging">
-						<?php echo esc_html_x( 'Packaging', 'shipments', 'woocommerce-germanized-shipments' ); ?>
+						<?php echo esc_html_x( 'Packaging', 'shipments', 'shiptastic-for-woocommerce' ); ?>
 					</th>
 					<th class="conditions">
-						<?php echo esc_html_x( 'Conditions', 'shipments', 'woocommerce-germanized-shipments' ); ?>
+						<?php echo esc_html_x( 'Conditions', 'shipments', 'shiptastic-for-woocommerce' ); ?>
 					</th>
 					<th class="costs">
-						<?php echo esc_html_x( 'Costs', 'shipments', 'woocommerce-germanized-shipments' ); ?>
+						<?php echo esc_html_x( 'Costs', 'shipments', 'shiptastic-for-woocommerce' ); ?>
 					</th>
 					<th class="actions">
-						<?php echo esc_html_x( 'Actions', 'shipments', 'woocommerce-germanized-shipments' ); ?>
+						<?php echo esc_html_x( 'Actions', 'shipments', 'shiptastic-for-woocommerce' ); ?>
 					</th>
 				</tr>
 			</thead>
 			<?php foreach ( $this->get_packaging_list() as $name => $title ) : ?>
-				<tbody class="wc-gzd-shipments-shipping-rules-rows" data-edit-url="<?php echo esc_url( $this->get_packaging_edit_url( $name ) ); ?>" data-title="<?php echo esc_html( $title ); ?>" data-help-tip="<?php echo esc_html( $this->get_packaging_help_tip( $name ) ); ?>" data-packaging="<?php echo esc_attr( $name ); ?>" id="wc-gzd-shipments-shipping-rules-packaging-<?php echo esc_attr( $name ); ?>">
+				<tbody class="wc-shiptastic-shipping-rules-rows" data-edit-url="<?php echo esc_url( $this->get_packaging_edit_url( $name ) ); ?>" data-title="<?php echo esc_html( $title ); ?>" data-help-tip="<?php echo esc_html( $this->get_packaging_help_tip( $name ) ); ?>" data-packaging="<?php echo esc_attr( $name ); ?>" id="wc-shiptastic-shipping-rules-packaging-<?php echo esc_attr( $name ); ?>">
 				</tbody>
 			<?php endforeach; ?>
 			<tfoot>
@@ -1231,25 +1231,25 @@ class ShippingMethod extends \WC_Shipping_Method {
 								<option value="<?php echo esc_attr( $name ); ?>"><?php echo esc_html( $title ); ?></option>
 							<?php endforeach; ?>
 						</select>
-						<a class="button button-primary wc-gzd-shipments-shipping-rule-add" href="#"><?php echo esc_html_x( 'Add new', 'shipments', 'woocommerce-germanized-shipments' ); ?></a>
-						<a class="button button-secondary wc-gzd-shipments-shipping-rule-remove disabled" href="#"><?php echo esc_html_x( 'Remove selected', 'shipments', 'woocommerce-germanized-shipments' ); ?></a>
+						<a class="button button-primary wc-shiptastic-shipping-rule-add" href="#"><?php echo esc_html_x( 'Add new', 'shipments', 'shiptastic-for-woocommerce' ); ?></a>
+						<a class="button button-secondary wc-shiptastic-shipping-rule-remove disabled" href="#"><?php echo esc_html_x( 'Remove selected', 'shipments', 'shiptastic-for-woocommerce' ); ?></a>
 					</th>
 				</tr>
 			</tfoot>
 		</table>
-		<script type="text/html" id="tmpl-wc-gzd-shipments-shipping-rules-packaging-info">
-			<tr class="wc-gzd-shipments-shipping-rules-packaging-info">
+		<script type="text/html" id="tmpl-wc-shiptastic-shipping-rules-packaging-info">
+			<tr class="wc-shiptastic-shipping-rules-packaging-info">
 				<td colspan="7"><p class="packaging-info"><a class="packaging-title" href="#" target="_blank"></a><span class="woocommerce-help-tip" tabindex="0" aria-label="" data-tip=""></span></p></td>
 			</tr>
 		</script>
-		<script type="text/html" id="tmpl-wc-gzd-shipments-shipping-rules-row">
+		<script type="text/html" id="tmpl-wc-shiptastic-shipping-rules-row">
 			<tr data-id="{{ data.rule_id }}" class="shipping-rule">
 				<td class="sort ui-sortable-handle">
-					<div class="wc-item-reorder-nav wc-gzd-shipping-rules-reorder-nav">
+					<div class="wc-item-reorder-nav wc-stc-shipping-rules-reorder-nav">
 					</div>
 				</td>
 				<td class="cb">
-					<input class="cb" name="<?php echo esc_attr( $field_key ); ?>[cb][{{ data.rule_id }}]" type="checkbox" value="{{ data.rule_id }}" data-attribute="cb" title="<?php echo esc_attr_x( 'Rule:', 'shipments', 'woocommerce-germanized-shipments' ); ?> {{ data.rule_id }}" />
+					<input class="cb" name="<?php echo esc_attr( $field_key ); ?>[cb][{{ data.rule_id }}]" type="checkbox" value="{{ data.rule_id }}" data-attribute="cb" title="<?php echo esc_attr_x( 'Rule:', 'shipments', 'shiptastic-for-woocommerce' ); ?> {{ data.rule_id }}" />
 				</td>
 				<td class="packaging">
 					<select class="wc-enhanced-select shipping-packaging" name="<?php echo esc_attr( $field_key ); ?>[packaging][{{ data.rule_id }}]" data-attribute="packaging">
@@ -1260,24 +1260,24 @@ class ShippingMethod extends \WC_Shipping_Method {
 				</td>
 				<td class="conditions">
 					<table class="inner-conditions">
-						<tbody class="wc-gzd-shipments-shipping-rules-condition-rows" id="wc-gzd-shipments-shipping-rules-{{ data.rule_id }}-condition-rows" data-rule="{{ data.rule_id }}">
+						<tbody class="wc-shiptastic-shipping-rules-condition-rows" id="wc-shiptastic-shipping-rules-{{ data.rule_id }}-condition-rows" data-rule="{{ data.rule_id }}">
 						</tbody>
 					</table>
 				</td>
 				<td class="costs">
 					<p class="form-field">
-						<label><?php echo esc_html_x( 'Rule cost is', 'shipments', 'woocommerce-germanized-shipments' ); ?></label>
+						<label><?php echo esc_html_x( 'Rule cost is', 'shipments', 'shiptastic-for-woocommerce' ); ?></label>
 						<input type="text" class="short wc_input_price" name="<?php echo esc_attr( $field_key ); ?>[costs][{{ data.rule_id }}]" value="{{ data.costs }}" data-attribute="costs">
 						<span class="description"><?php echo wp_kses_post( get_woocommerce_currency_symbol() ); ?></span>
 					</p>
 				</td>
 				<td class="actions">
-					<a class="button wc-gzd-shipment-action-button shipping-rule-add add" href="#"></a>
-					<a class="button wc-gzd-shipment-action-button shipping-rule-remove delete" href="#"></a>
+					<a class="button wc-stc-shipment-action-button shipping-rule-add add" href="#"></a>
+					<a class="button wc-stc-shipment-action-button shipping-rule-remove delete" href="#"></a>
 				</td>
 			</tr>
 		</script>
-		<script type="text/html" id="tmpl-wc-gzd-shipments-shipping-rules-condition-row">
+		<script type="text/html" id="tmpl-wc-shiptastic-shipping-rules-condition-row">
 			<?php
 			$condition_type_columns = array();
 			?>
@@ -1286,7 +1286,7 @@ class ShippingMethod extends \WC_Shipping_Method {
 					<div class="conditions-columns">
 					<div class="conditions-column conditions-when">
 						<p class="form-field">
-							<label><?php echo esc_html_x( 'When', 'shipments', 'woocommerce-germanized-shipments' ); ?></label>
+							<label><?php echo esc_html_x( 'When', 'shipments', 'shiptastic-for-woocommerce' ); ?></label>
 							<select name="<?php echo esc_attr( $field_key ); ?>[conditions][{{ data.rule_id }}][{{ data.condition_id }}][type]" class="shipping-rules-condition-type" data-attribute="type">
 								<?php foreach ( $condition_types as $condition_type => $condition_type_data ) : ?>
 									<option value="<?php echo esc_attr( $condition_type ); ?>"><?php echo esc_html( $condition_type_data['label'] ); ?></option>
@@ -1385,8 +1385,8 @@ class ShippingMethod extends \WC_Shipping_Method {
 						<div class="conditions-column conditions-actions">
 							<p class="form-field">
 								<label>&nbsp;</label>
-								<a class="button wc-gzd-shipment-action-button condition-add add" href="#"></a>
-								<a class="button wc-gzd-shipment-action-button condition-remove delete" href="#"></a>
+								<a class="button wc-stc-shipment-action-button condition-add add" href="#"></a>
+								<a class="button wc-stc-shipment-action-button condition-remove delete" href="#"></a>
 							</p>
 						</div>
 					</div>

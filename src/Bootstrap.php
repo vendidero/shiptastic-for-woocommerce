@@ -1,9 +1,9 @@
 <?php
-namespace Vendidero\Germanized\Shipments;
+namespace Vendidero\Shiptastic;
 
-use Vendidero\Germanized\Shipments\Admin\Admin;
-use Vendidero\Germanized\Shipments\Registry\Container;
-use Vendidero\Germanized\Shipments\ShippingMethod\MethodHelper;
+use Vendidero\Shiptastic\Admin\Admin;
+use Vendidero\Shiptastic\Registry\Container;
+use Vendidero\Shiptastic\ShippingMethod\MethodHelper;
 
 /**
  * Takes care of bootstrapping the plugin.

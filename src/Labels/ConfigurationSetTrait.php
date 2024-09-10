@@ -1,8 +1,8 @@
 <?php
 
-namespace Vendidero\Germanized\Shipments\Labels;
+namespace Vendidero\Shiptastic\Labels;
 
-use Vendidero\Germanized\Shipments\Package;
+use Vendidero\Shiptastic\Package;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -25,13 +25,13 @@ trait ConfigurationSetTrait {
 			$args = wp_parse_args(
 				$args,
 				array(
-					'shipping_provider_name' => is_a( $this, '\Vendidero\Germanized\Shipments\Interfaces\ShippingProvider' ) ? $this->get_name() : '',
+					'shipping_provider_name' => is_a( $this, '\Vendidero\Shiptastic\Interfaces\ShippingProvider' ) ? $this->get_name() : '',
 					'shipment_type'          => 'simple',
 					'zone'                   => 'dom',
 					'setting_type'           => $this->get_configuration_set_setting_type(),
 				)
 			);
-		} elseif ( is_a( $args, 'Vendidero\Germanized\Shipments\Shipment' ) ) {
+		} elseif ( is_a( $args, 'Vendidero\Shiptastic\Shipment' ) ) {
 			$args = wp_parse_args(
 				$args,
 				array(
