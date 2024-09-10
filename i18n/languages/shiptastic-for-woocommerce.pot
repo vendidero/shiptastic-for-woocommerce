@@ -9,7 +9,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2024-09-10T11:42:28+00:00\n"
+"POT-Creation-Date: 2024-09-10T12:36:10+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.10.0\n"
 
@@ -19,9 +19,8 @@ msgid "Shiptastic for WooCommerce"
 msgstr ""
 
 #. Plugin URI of the plugin
-#. Author URI of the plugin
 #: shiptastic-for-woocommerce.php
-msgid "https://vendidero.de"
+msgid "https://vendidero.de/shiptastic"
 msgstr ""
 
 #. Description of the plugin
@@ -32,6 +31,11 @@ msgstr ""
 #. Author of the plugin
 #: shiptastic-for-woocommerce.php
 msgid "vendidero"
+msgstr ""
+
+#. Author URI of the plugin
+#: shiptastic-for-woocommerce.php
+msgid "https://vendidero.de"
 msgstr ""
 
 #: includes/admin/views/html-order-shipment-content.php:32
@@ -2581,7 +2585,7 @@ msgctxt "shipments"
 msgid "Seems like none of your <a href=\"%1$s\">packaging options</a> is available for this order."
 msgstr ""
 
-#: src/Package.php:189
+#: src/Package.php:190
 msgctxt "shipments"
 msgid "Sorry, this order is invalid and cannot be returned."
 msgstr ""

@@ -80,7 +80,7 @@ class Product {
 		}
 
 		if ( empty( $args['id'] ) ) {
-			throw new \Exception( _x( 'A product needs an id.', 'shipments', 'shiptastic-for-woocommerce' ), 500 );
+			throw new \Exception( esc_html_x( 'A product needs an id.', 'shipments', 'shiptastic-for-woocommerce' ), 500 );
 		}
 
 		$this->id             = $args['id'];

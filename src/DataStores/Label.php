@@ -283,7 +283,7 @@ class Label extends WC_Data_Store_WP implements WC_Object_Data_Store_Interface {
 			 */
 			do_action( "woocommerce_shiptastic_shipment_{$hook_postfix}label_loaded", $label );
 		} else {
-			throw new Exception( _x( 'Invalid label.', 'shipments', 'shiptastic-for-woocommerce' ) );
+			throw new Exception( esc_html_x( 'Invalid label.', 'shipments', 'shiptastic-for-woocommerce' ) );
 		}
 	}
 

@@ -1,7 +1,7 @@
 <?php
 /**
  * Plugin Name: Shiptastic for WooCommerce
- * Plugin URI: https://vendidero.de
+ * Plugin URI: https://vendidero.de/shiptastic
  * Description: Create and manage shipments for orders and use shipping rules to build extensive shipping scenarios.
  * Author: vendidero
  * Author URI: https://vendidero.de

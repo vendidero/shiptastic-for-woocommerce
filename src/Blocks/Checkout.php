@@ -102,13 +102,13 @@ final class Checkout {
 			}
 
 			if ( ! $is_valid || ! $pickup_location ) {
-				throw new \Automattic\WooCommerce\StoreApi\Exceptions\RouteException( 'pickup_location_unknown', _x( 'Sorry, your current pickup location is not supported.', 'shipments', 'shiptastic-for-woocommerce' ), 400 );
+				throw new \Automattic\WooCommerce\StoreApi\Exceptions\RouteException( 'pickup_location_unknown', esc_html_x( 'Sorry, your current pickup location is not supported.', 'shipments', 'shiptastic-for-woocommerce' ), 400 );
 			} elseif ( $supports_customer_number && ( ! empty( $pickup_location_customer_number ) || $customer_number_is_mandatory ) ) {
 				if ( ! $validation = $pickup_location->customer_number_is_valid( $pickup_location_customer_number ) ) {
 					if ( is_a( $validation, 'WP_Error' ) ) {
-						throw new \Automattic\WooCommerce\StoreApi\Exceptions\RouteException( 'pickup_location_customer_number_invalid', $validation->get_error_message(), 400 );
+						throw new \Automattic\WooCommerce\StoreApi\Exceptions\RouteException( 'pickup_location_customer_number_invalid', wp_kses_post( $validation->get_error_message() ), 400 );
 					} else {
-						throw new \Automattic\WooCommerce\StoreApi\Exceptions\RouteException( 'pickup_location_customer_number_invalid', _x( 'Sorry, your pickup location customer number is invalid.', 'shipments', 'shiptastic-for-woocommerce' ), 400 );
+						throw new \Automattic\WooCommerce\StoreApi\Exceptions\RouteException( 'pickup_location_customer_number_invalid', esc_html_x( 'Sorry, your pickup location customer number is invalid.', 'shipments', 'shiptastic-for-woocommerce' ), 400 );
 					}
 				}
 			}

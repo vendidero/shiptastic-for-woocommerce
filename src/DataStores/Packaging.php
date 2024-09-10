@@ -254,7 +254,7 @@ class Packaging extends WC_Data_Store_WP implements WC_Object_Data_Store_Interfa
 			 */
 			do_action( 'woocommerce_shiptastic_packaging_loaded', $packaging );
 		} else {
-			throw new Exception( _x( 'Invalid packaging.', 'shipments', 'shiptastic-for-woocommerce' ) );
+			throw new Exception( esc_html_x( 'Invalid packaging.', 'shipments', 'shiptastic-for-woocommerce' ) );
 		}
 	}
 

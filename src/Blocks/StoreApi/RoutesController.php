@@ -62,7 +62,7 @@ class RoutesController {
 		$route = isset( $this->routes[ $version ][ $name ] ) ? $this->routes[ $version ][ $name ] : false;
 
 		if ( ! $route ) {
-			throw new \Exception( "{$name} {$version} route does not exist" );
+			throw new \Exception( esc_html( "{$name} {$version} route does not exist" ) );
 		}
 
 		return new $route(

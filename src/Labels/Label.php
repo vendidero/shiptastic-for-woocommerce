@@ -638,14 +638,14 @@ class Label extends WC_Data implements ShipmentLabel {
 			}
 
 			if ( ! function_exists( 'download_url' ) ) {
-				throw new \Exception( _x( 'Error while downloading the PDF file.', 'shipments', 'shiptastic-for-woocommerce' ) );
+				throw new \Exception( esc_html_x( 'Error while downloading the PDF file.', 'shipments', 'shiptastic-for-woocommerce' ) );
 			}
 
 			// Download file to temp dir.
 			$temp_file = download_url( $url, $timeout_seconds );
 
 			if ( is_wp_error( $temp_file ) ) {
-				throw new \Exception( _x( 'Error while downloading the PDF file.', 'shipments', 'shiptastic-for-woocommerce' ) );
+				throw new \Exception( esc_html_x( 'Error while downloading the PDF file.', 'shipments', 'shiptastic-for-woocommerce' ) );
 			}
 
 			$file = array(

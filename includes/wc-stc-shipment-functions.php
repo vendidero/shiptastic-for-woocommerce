@@ -370,11 +370,11 @@ function wc_stc_create_return_shipment( $order_shipment, $args = array() ) {
 	try {
 
 		if ( ! $order_shipment || ! is_a( $order_shipment, 'Vendidero\Shiptastic\Order' ) ) {
-			throw new Exception( _x( 'Invalid order.', 'shipments', 'shiptastic-for-woocommerce' ) );
+			throw new Exception( esc_html_x( 'Invalid order.', 'shipments', 'shiptastic-for-woocommerce' ) );
 		}
 
 		if ( ! $order_shipment->needs_return() ) {
-			throw new Exception( _x( 'This order is already fully returned.', 'shipments', 'shiptastic-for-woocommerce' ) );
+			throw new Exception( esc_html_x( 'This order is already fully returned.', 'shipments', 'shiptastic-for-woocommerce' ) );
 		}
 
 		$args = wp_parse_args(
@@ -388,7 +388,7 @@ function wc_stc_create_return_shipment( $order_shipment, $args = array() ) {
 		$shipment = ShipmentFactory::get_shipment( false, 'return' );
 
 		if ( ! $shipment ) {
-			throw new Exception( _x( 'Error while creating the shipment instance', 'shipments', 'shiptastic-for-woocommerce' ) );
+			throw new Exception( esc_html_x( 'Error while creating the shipment instance', 'shipments', 'shiptastic-for-woocommerce' ) );
 		}
 
 		// Make sure shipment knows its parent
@@ -413,11 +413,11 @@ function wc_stc_create_return_shipment( $order_shipment, $args = array() ) {
 function wc_stc_create_shipment( $order_shipment, $args = array() ) {
 	try {
 		if ( ! $order_shipment || ! is_a( $order_shipment, 'Vendidero\Shiptastic\Order' ) ) {
-			throw new Exception( _x( 'Invalid shipment order', 'shipments', 'shiptastic-for-woocommerce' ) );
+			throw new Exception( esc_html_x( 'Invalid shipment order', 'shipments', 'shiptastic-for-woocommerce' ) );
 		}
 
 		if ( ! $order = $order_shipment->get_order() ) {
-			throw new Exception( _x( 'Invalid shipment order', 'shipments', 'shiptastic-for-woocommerce' ) );
+			throw new Exception( esc_html_x( 'Invalid shipment order', 'shipments', 'shiptastic-for-woocommerce' ) );
 		}
 
 		$args = wp_parse_args(
@@ -431,7 +431,7 @@ function wc_stc_create_shipment( $order_shipment, $args = array() ) {
 		$shipment = ShipmentFactory::get_shipment( false, 'simple' );
 
 		if ( ! $shipment ) {
-			throw new Exception( _x( 'Error while creating the shipment instance', 'shipments', 'shiptastic-for-woocommerce' ) );
+			throw new Exception( esc_html_x( 'Error while creating the shipment instance', 'shipments', 'shiptastic-for-woocommerce' ) );
 		}
 
 		$shipment->set_order_shipment( $order_shipment );
@@ -448,7 +448,7 @@ function wc_stc_create_shipment( $order_shipment, $args = array() ) {
 function wc_stc_create_shipment_item( $shipment, $order_item, $args = array() ) {
 	try {
 		if ( ! $order_item || ! is_a( $order_item, 'WC_Order_Item' ) ) {
-			throw new Exception( _x( 'Invalid order item', 'shipments', 'shiptastic-for-woocommerce' ) );
+			throw new Exception( esc_html_x( 'Invalid order item', 'shipments', 'shiptastic-for-woocommerce' ) );
 		}
 
 		$item = new Vendidero\Shiptastic\ShipmentItem();
@@ -568,7 +568,7 @@ function wc_stc_shipment_wp_error_has_errors( $error ) {
 function wc_stc_create_return_shipment_item( $shipment, $shipment_item, $args = array() ) {
 	try {
 		if ( ! $shipment_item || ! is_a( $shipment_item, '\Vendidero\Shiptastic\ShipmentItem' ) ) {
-			throw new Exception( _x( 'Invalid shipment item', 'shipments', 'shiptastic-for-woocommerce' ) );
+			throw new Exception( esc_html_x( 'Invalid shipment item', 'shipments', 'shiptastic-for-woocommerce' ) );
 		}
 
 		$item = new Vendidero\Shiptastic\ShipmentReturnItem();
@@ -757,7 +757,7 @@ function wc_shiptastic_upload_data( $filename, $bits, $relative = true ) {
 
 			return $path;
 		} else {
-			throw new Exception( _x( 'Error while uploading file.', 'shipments', 'shiptastic-for-woocommerce' ) );
+			throw new Exception( esc_html_x( 'Error while uploading file.', 'shipments', 'shiptastic-for-woocommerce' ) );
 		}
 	} catch ( Exception $e ) {
 		return false;

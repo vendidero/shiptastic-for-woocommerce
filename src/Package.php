@@ -44,6 +44,7 @@ class Package {
 	protected static function init_hooks() {
 		add_filter( 'woocommerce_data_stores', array( __CLASS__, 'register_data_stores' ), 10, 1 );
 		add_action( 'after_setup_theme', array( __CLASS__, 'include_template_functions' ), 11 );
+		add_action( 'before_woocommerce_init', array( __CLASS__, 'declare_feature_compatibility' ) );
 
 		add_filter( 'woocommerce_locate_template', array( __CLASS__, 'filter_templates' ), 10, 3 );
 		add_filter( 'woocommerce_get_query_vars', array( __CLASS__, 'register_endpoints' ), 10, 1 );
@@ -186,7 +187,7 @@ class Package {
 
 					// Order return key is invalid.
 					if ( ! wc_stc_customer_can_add_return_shipment( $order_id ) ) {
-						throw new Exception( _x( 'Sorry, this order is invalid and cannot be returned.', 'shipments', 'shiptastic-for-woocommerce' ) );
+						throw new Exception( esc_html_x( 'Sorry, this order is invalid and cannot be returned.', 'shipments', 'shiptastic-for-woocommerce' ) );
 					} else {
 						call_user_func_array( $callback, array( 'order_id' => $order_id ) );
 						$template = self::get_path() . '/templates/global/empty.php';
@@ -782,6 +783,13 @@ class Package {
 		foreach ( $tables as $name => $table ) {
 			$wpdb->$name    = $wpdb->prefix . $table;
 			$wpdb->tables[] = $table;
+		}
+	}
+
+	public static function declare_feature_compatibility() {
+		if ( class_exists( '\Automattic\WooCommerce\Utilities\FeaturesUtil' ) ) {
+			\Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility( 'custom_order_tables', self::get_path(), true );
+			\Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility( 'cart_checkout_blocks', self::get_path(), true );
 		}
 	}
 

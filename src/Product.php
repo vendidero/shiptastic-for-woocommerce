@@ -33,7 +33,7 @@ class Product {
 		}
 
 		if ( ! is_a( $product, 'WC_Product' ) ) {
-			throw new \Exception( _x( 'Invalid product.', 'shipments', 'shiptastic-for-woocommerce' ) );
+			throw new \Exception( esc_html_x( 'Invalid product.', 'shipments', 'shiptastic-for-woocommerce' ) );
 		}
 
 		$this->product = $product;

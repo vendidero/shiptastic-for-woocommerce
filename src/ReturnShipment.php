@@ -254,7 +254,7 @@ class ReturnShipment extends Shipment {
 	public function sync( $args = array() ) {
 		try {
 			if ( ! $order_shipment = $this->get_order_shipment() ) {
-				throw new Exception( _x( 'Invalid shipment order', 'shipments', 'shiptastic-for-woocommerce' ) );
+				throw new Exception( esc_html_x( 'Invalid shipment order', 'shipments', 'shiptastic-for-woocommerce' ) );
 			}
 
 			$return_address = wc_stc_get_shipment_return_address( $order_shipment );
@@ -337,7 +337,7 @@ class ReturnShipment extends Shipment {
 	public function sync_items( $args = array() ) {
 		try {
 			if ( ! $order_shipment = $this->get_order_shipment() ) {
-				throw new Exception( _x( 'Invalid shipment order', 'shipments', 'shiptastic-for-woocommerce' ) );
+				throw new Exception( esc_html_x( 'Invalid shipment order', 'shipments', 'shiptastic-for-woocommerce' ) );
 			}
 
 			$order = $order_shipment->get_order();

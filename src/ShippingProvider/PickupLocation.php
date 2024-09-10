@@ -45,7 +45,7 @@ class PickupLocation {
 		}
 
 		if ( empty( $args['code'] ) ) {
-			throw new \Exception( 'A pickup location needs a code.', 500 );
+			throw new \Exception( esc_html( 'A pickup location needs a code.' ), 500 );
 		}
 
 		$this->code                         = $args['code'];

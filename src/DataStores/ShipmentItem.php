@@ -190,7 +190,7 @@ class ShipmentItem extends WC_Data_Store_WP implements WC_Object_Data_Store_Inte
 		}
 
 		if ( ! $data ) {
-			throw new Exception( _x( 'Invalid shipment item.', 'shipments', 'shiptastic-for-woocommerce' ) );
+			throw new Exception( esc_html_x( 'Invalid shipment item.', 'shipments', 'shiptastic-for-woocommerce' ) );
 		}
 
 		$item->set_props(
