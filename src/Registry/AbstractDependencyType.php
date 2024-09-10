@@ -8,7 +8,6 @@ namespace Vendidero\Shiptastic\Registry;
  * Dependency Injection Container for storing dependencies to invoke as they
  * are needed.
  *
- * @since 2.5.0
  */
 abstract class AbstractDependencyType {
 

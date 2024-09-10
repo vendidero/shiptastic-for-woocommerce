@@ -112,7 +112,6 @@ class ProviderMethod implements LabelConfigurationSet {
 		 * @param string $method_id The shipping method id.
 		 * @param ProviderMethod $method The method instance.
 		 *
-		 * @since 3.0.6
 		 * @package Vendidero/Shiptastic
 		 */
 		return apply_filters( 'woocommerce_shiptastic_shipping_provider_method_provider', $provider_slug, $this->get_id(), $this );

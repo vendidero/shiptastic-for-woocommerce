@@ -18,7 +18,6 @@ $section_key = sanitize_key( $current_section );
 		 *
 		 * Executes right before setting output for a specific admin setting tab `$tab_name` e.g. shopmarks.
 		 *
-		 * @since 3.0.0
 		 */
 		do_action( 'woocommerce_shiptastic_admin_settings_before_' . $current_tab_name, $settings );
 
@@ -31,7 +30,6 @@ $section_key = sanitize_key( $current_section );
 			 *
 			 * @param array[] $settings The settings array.
 			 *
-			 * @since 3.0.0
 			 *
 			 */
 			do_action( 'woocommerce_shiptastic_admin_settings_before_' . $current_tab_name . '_' . $current_section, $settings );
@@ -46,7 +44,6 @@ $section_key = sanitize_key( $current_section );
 		 *
 		 * @param array[] $settings The settings array.
 		 *
-		 * @since 3.0.0
 		 *
 		 */
 		do_action( 'woocommerce_shiptastic_admin_settings_after_' . $current_tab_name, $settings );
@@ -60,7 +57,6 @@ $section_key = sanitize_key( $current_section );
 			 *
 			 * @param array[] $settings The settings array.
 			 *
-			 * @since 3.0.0
 			 *
 			 */
 			do_action( 'woocommerce_shiptastic_admin_settings_after_' . $current_tab_name . '_' . $current_section, $settings );

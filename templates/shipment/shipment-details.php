@@ -41,7 +41,6 @@ if ( is_a( $shipment, 'Vendidero\Shiptastic\ReturnShipment' ) ) {
 	 *
 	 * @param Shipment $shipment The shipment instance.
 	 *
-	 * @since 3.0.0
 	 * @package Vendidero/Shiptastic
 	 */
 	do_action( 'woocommerce_shiptastic_shipment_details_before_shipment_table', $shipment );
@@ -63,7 +62,6 @@ if ( is_a( $shipment, 'Vendidero\Shiptastic\ReturnShipment' ) ) {
 		 *
 		 * @param Shipment $shipment The shipment instance.
 		 *
-		 * @since 3.0.0
 		 * @package Vendidero/Shiptastic
 		 */
 		do_action( 'woocommerce_shiptastic_shipment_details_before_shipment_table_items', $shipment );
@@ -87,7 +85,6 @@ if ( is_a( $shipment, 'Vendidero\Shiptastic\ReturnShipment' ) ) {
 		 *
 		 * @param Shipment $shipment The shipment instance.
 		 *
-		 * @since 3.0.0
 		 * @package Vendidero/Shiptastic
 		 */
 		do_action( 'woocommerce_shiptastic_shipment_details_after_shipment_table_items', $shipment );
@@ -101,7 +98,6 @@ if ( is_a( $shipment, 'Vendidero\Shiptastic\ReturnShipment' ) ) {
 	 *
 	 * @param Shipment $shipment The shipment instance.
 	 *
-	 * @since 3.0.0
 	 * @package Vendidero/Shiptastic
 	 */
 	do_action( 'woocommerce_shiptastic_shipment_details_after_shipment_table', $shipment );

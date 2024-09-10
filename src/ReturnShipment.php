@@ -83,7 +83,6 @@ class ReturnShipment extends Shipment {
 				 * @param integer        $shipment_id The return shipment id.
 				 * @param ReturnShipment $shipment The return shipment object.
 				 *
-				 * @since 3.1.0
 				 * @package Vendidero/Shiptastic
 				 */
 				do_action( 'woocommerce_shiptastic_return_shipment_customer_confirmed', $this->get_id(), $this );
@@ -227,7 +226,6 @@ class ReturnShipment extends Shipment {
 				 * @param string                                   $value The address property value.
 				 * @param Shipment $this The shipment object.
 				 *
-				 * @since 3.0.0
 				 * @package Vendidero/Shiptastic
 				 */
 				$value = apply_filters( "{$this->get_hook_prefix()}sender_address_{$prop}", $value, $this );
@@ -303,7 +301,6 @@ class ReturnShipment extends Shipment {
 			 * @param ReturnShipment $shipment The shipment object.
 			 * @param Order          $order_shipment The shipment order object.
 			 *
-			 * @since 3.0.0
 			 * @package Vendidero/Shiptastic
 			 */
 			$args = apply_filters( 'woocommerce_shiptastic_return_shipment_sync_props', $args, $this, $order_shipment );
@@ -318,7 +315,6 @@ class ReturnShipment extends Shipment {
 			 * @param Order          $order_shipment The shipment order object.
 			 * @param array          $args Array containing properties in key => value pairs to be updated.
 			 *
-			 * @since 3.0.0
 			 * @package Vendidero/Shiptastic
 			 */
 			do_action( 'woocommerce_shiptastic_return_shipment_synced', $this, $order_shipment, $args );
@@ -453,7 +449,6 @@ class ReturnShipment extends Shipment {
 			 * @param Order          $order_shipment The shipment order object.
 			 * @param array          $args Array containing additional data e.g. items.
 			 *
-			 * @since 3.0.0
 			 * @package Vendidero/Shiptastic
 			 */
 			do_action( 'woocommerce_shiptastic_return_shipment_items_synced', $this, $order_shipment, $args );
@@ -498,7 +493,6 @@ class ReturnShipment extends Shipment {
 		 * @param string   $url  The URL.
 		 * @param Shipment $this The shipment object.
 		 *
-		 * @since 3.0.0
 		 * @package Vendidero/Shiptastic
 		 */
 		return apply_filters( "{$this->get_hook_prefix()}edit_url", get_admin_url( null, 'post.php?post=' . $this->get_order_id() . '&action=edit&shipment_id=' . $this->get_id() ), $this );

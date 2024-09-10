@@ -31,7 +31,6 @@ class Table extends WP_List_Table {
 	/**
 	 * Constructor.
 	 *
-	 * @since 3.0.6
 	 *
 	 * @see WP_List_Table::__construct() for more information on default arguments.
 	 *
@@ -118,7 +117,6 @@ class Table extends WP_List_Table {
 						 * @param integer $shipment_id The shipment id.
 						 * @param string  $new_status The new shipment status.
 						 *
-						 * @since 3.0.0
 						 * @package Vendidero/Shiptastic
 						 */
 						do_action( 'woocommerce_shiptastic_shipment_edit_status', $id, $new_status );
@@ -155,7 +153,6 @@ class Table extends WP_List_Table {
 		 * @param string                                      $redirect_to The redirect URL.
 		 * @param Table $table The table instance.
 		 *
-		 * @since 3.0.0
 		 * @package Vendidero/Shiptastic
 		 */
 		$changed = apply_filters( 'woocommerce_shiptastic_bulk_action', $changed, $action, $ids, $redirect_to, $this );
@@ -219,7 +216,6 @@ class Table extends WP_List_Table {
 		 * @param string $bulk_action The bulk action.
 		 * @param Table  $shipment_table The table object.
 		 *
-		 * @since 3.0.0
 		 * @package Vendidero/Shiptastic
 		 */
 		do_action( "{$this->get_hook_prefix()}bulk_notice", $bulk_action, $this );
@@ -269,7 +265,6 @@ class Table extends WP_List_Table {
 		 * @param integer $per_page Number of Shipments per page.
 		 * @param string  $type The type in this case shipment.
 		 *
-		 * @since 3.0.0
 		 * @package Vendidero/Shiptastic
 		 */
 		$per_page     = apply_filters( "{$this->get_hook_prefix()}edit_per_page", $per_page, 'shipment' ); // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
@@ -380,7 +375,6 @@ class Table extends WP_List_Table {
 	/**
 	 * Determine if the current view is the "All" view.
 	 *
-	 * @since 4.2.0
 	 *
 	 * @return bool Whether the current view is the "All" view.
 	 */
@@ -454,7 +448,6 @@ class Table extends WP_List_Table {
 	/**
 	 * Helper to create links to edit.php with params.
 	 *
-	 * @since 4.4.0
 	 *
 	 * @param string[] $args  Associative array of URL parameters for the link.
 	 * @param string   $label Link text.
@@ -499,7 +492,6 @@ class Table extends WP_List_Table {
 	/**
 	 * Display a monthly dropdown for filtering items
 	 *
-	 * @since 3.0.6
 	 *
 	 * @global wpdb      $wpdb
 	 * @global WP_Locale $wp_locale
@@ -552,7 +544,6 @@ class Table extends WP_List_Table {
 	/**
 	 * Generate the table navigation above or below the table
 	 *
-	 * @since 3.0.6
 	 * @param string $which
 	 */
 	protected function display_tablenav( $which ) {
@@ -608,7 +599,6 @@ class Table extends WP_List_Table {
 				 * @param BulkActionHandler $bulk_action_handler The bulk action handler.
 				 * @param string            $bulk_action The bulk action.
 				 *
-				 * @since 3.0.0
 				 * @package Vendidero/Shiptastic
 				 */
 				do_action( "{$this->get_hook_prefix()}bulk_action_{$bulk_action}_handled", $handler, $bulk_action );
@@ -647,7 +637,6 @@ class Table extends WP_List_Table {
 				 *
 				 * @param string $which top or bottom.
 				 *
-				 * @since 3.0.0
 				 * @package Vendidero/Shiptastic
 				 */
 				do_action( "{$this->get_hook_prefix()}filters", $which );
@@ -743,7 +732,6 @@ class Table extends WP_List_Table {
 		 *
 		 * @param string[] $columns An associative array of column headings.
 		 *
-		 * @since 3.0.0
 		 * @package Vendidero/Shiptastic
 		 */
 		$columns = apply_filters( "{$this->get_hook_prefix()}columns", $columns );
@@ -769,7 +757,6 @@ class Table extends WP_List_Table {
 	/**
 	 * Gets the name of the default primary column.
 	 *
-	 * @since 4.3.0
 	 *
 	 * @return string Name of the default primary column, in this case, 'title'.
 	 */
@@ -780,7 +767,6 @@ class Table extends WP_List_Table {
 	/**
 	 * Handles the default column output.
 	 *
-	 * @since 4.3.0
 	 *
 	 * @param Shipment $shipment The current shipment object.
 	 * @param string          $column_name The current column name.
@@ -798,7 +784,6 @@ class Table extends WP_List_Table {
 		 * @param string  $column_name The name of the column to display.
 		 * @param integer $shipment_id The current shipment id.
 		 *
-		 * @since 3.0.0
 		 * @package Vendidero/Shiptastic
 		 */
 		do_action( "{$this->get_hook_prefix()}custom_column", $column_name, $shipment->get_id() );
@@ -811,7 +796,6 @@ class Table extends WP_List_Table {
 	/**
 	 * Handles the post author column output.
 	 *
-	 * @since 4.3.0
 	 *
 	 * @param Shipment $shipment The current shipment object.
 	 */
@@ -885,7 +869,6 @@ class Table extends WP_List_Table {
 	/**
 	 * Handles shipment actions.
 	 *
-	 * @since 0.0.1
 	 *
 	 * @param Shipment $shipment The current shipment object.
 	 */
@@ -902,7 +885,6 @@ class Table extends WP_List_Table {
 		 *
 		 * @param Shipment $shipment The shipment object.
 		 *
-		 * @since 3.0.0
 		 * @package Vendidero/Shiptastic
 		 */
 		do_action( "{$this->get_hook_prefix()}actions_start", $shipment );
@@ -964,7 +946,6 @@ class Table extends WP_List_Table {
 		 * @param array    $actions The registered Shipment actions.
 		 * @param Shipment $shipment The shipment object.
 		 *
-		 * @since 3.0.0
 		 * @package Vendidero/Shiptastic
 		 */
 		$actions = apply_filters( "{$this->get_hook_prefix()}actions", $actions, $shipment );
@@ -981,7 +962,6 @@ class Table extends WP_List_Table {
 		 *
 		 * @param Shipment $shipment The shipment object.
 		 *
-		 * @since 3.0.0
 		 * @package Vendidero/Shiptastic
 		 */
 		do_action( "{$this->get_hook_prefix()}actions_end", $shipment );
@@ -1003,7 +983,6 @@ class Table extends WP_List_Table {
 	/**
 	 * Handles the post author column output.
 	 *
-	 * @since 4.3.0
 	 *
 	 * @param Shipment $shipment The current shipment object.
 	 */
@@ -1030,7 +1009,6 @@ class Table extends WP_List_Table {
 						 * @param ShipmentItem $shipment_item The shipment item instance.
 						 * @param Shipment $shipment The shipment instance.
 						 *
-						 * @since 3.0.6
 						 * @package Vendidero/Shiptastic
 						 */
 						do_action( "{$this->get_hook_prefix()}item_after_name", $item->get_id(), $item, $shipment );
@@ -1049,7 +1027,6 @@ class Table extends WP_List_Table {
 	/**
 	 * Handles the post author column output.
 	 *
-	 * @since 4.3.0
 	 *
 	 * @param Shipment $shipment The current shipment object.
 	 */
@@ -1066,7 +1043,6 @@ class Table extends WP_List_Table {
 	/**
 	 * Handles the post author column output.
 	 *
-	 * @since 4.3.0
 	 *
 	 * @param Shipment $shipment The current shipment object.
 	 */
@@ -1077,7 +1053,6 @@ class Table extends WP_List_Table {
 	/**
 	 * Handles the post author column output.
 	 *
-	 * @since 4.3.0
 	 *
 	 * @param Shipment $shipment The current shipment object.
 	 */
@@ -1088,7 +1063,6 @@ class Table extends WP_List_Table {
 	/**
 	 * Handles the post author column output.
 	 *
-	 * @since 4.3.0
 	 *
 	 * @param Shipment $shipment The current shipment object.
 	 */
@@ -1103,7 +1077,6 @@ class Table extends WP_List_Table {
 	/**
 	 * Handles the post author column output.
 	 *
-	 * @since 4.3.0
 	 *
 	 * @param Shipment $shipment The current shipment object.
 	 */
@@ -1114,7 +1087,6 @@ class Table extends WP_List_Table {
 	/**
 	 * Handles the post author column output.
 	 *
-	 * @since 4.3.0
 	 *
 	 * @param Shipment $shipment The current shipment object.
 	 */
@@ -1139,7 +1111,6 @@ class Table extends WP_List_Table {
 			 *
 			 * @param string $format The date format.
 			 *
-			 * @since 3.0.0
 			 * @package Vendidero/Shiptastic
 			 */
 			$show_date = $shipment->get_date_created()->date_i18n( apply_filters( 'woocommerce_shiptastic_admin_shipment_date_format', _x( 'M j, Y', 'shipments', 'shiptastic-for-woocommerce' ) ) );
@@ -1156,7 +1127,6 @@ class Table extends WP_List_Table {
 	/**
 	 * Handles the post author column output.
 	 *
-	 * @since 4.3.0
 	 *
 	 * @param Shipment $shipment The current shipment object.
 	 */
@@ -1219,7 +1189,6 @@ class Table extends WP_List_Table {
 		 *
 		 * @param array $actions Array containing key => value pairs.
 		 *
-		 * @since 3.0.0
 		 * @package Vendidero/Shiptastic
 		 */
 		return apply_filters( "{$this->get_hook_prefix()}bulk_actions", $actions );

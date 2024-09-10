@@ -1402,7 +1402,6 @@ class ShippingMethod extends \WC_Shipping_Method {
 	/**
 	 * Update a single option.
 	 *
-	 * @since 3.4.0
 	 * @param string $key Option key.
 	 * @param mixed  $value Value to set.
 	 * @return bool was anything saved?

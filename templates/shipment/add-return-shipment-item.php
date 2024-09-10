@@ -51,7 +51,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 				 * @param boolean      $allow_empty Whether to allow empty return reasons or not..
 				 * @param WC_Order     $order The order instance.
 				 *
-				 * @since 3.1.0
 				 * @package Vendidero/Shiptastic
 				 */
 				if ( wc_stc_allow_customer_return_empty_return_reason( $order ) ) :

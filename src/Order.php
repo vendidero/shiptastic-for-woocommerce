@@ -167,7 +167,6 @@ class Order {
 		 * @param boolean $supports_email_transmission Whether the order supports email transmission or not.
 		 * @param Order   $order The order instance.
 		 *
-		 * @since 3.0.0
 		 * @package Vendidero/Shiptastic
 		 */
 		return apply_filters( 'woocommerce_shiptastic_shipment_order_supports_email_transmission', $supports_email_transmission, $this );
@@ -485,7 +484,6 @@ class Order {
 						 * @param ShipmentItem $item The shipment item object.
 						 * @param Shipment $shipment The shipment object.
 						 *
-						 * @since 3.0.0
 						 * @package Vendidero/Shiptastic
 						 */
 						if ( ! apply_filters( 'woocommerce_shiptastic_shipment_order_keep_non_order_item', false, $item, $shipment ) ) {
@@ -716,7 +714,6 @@ class Order {
 		 * @param WC_Order_Item                                $order_item The order item object.
 		 * @param Order $this The shipment order object.
 		 *
-		 * @since 3.0.0
 		 * @package Vendidero/Shiptastic
 		 */
 		return apply_filters( 'woocommerce_shiptastic_shipment_order_item_quantity_left_for_shipping', $quantity_left, $order_item, $this );
@@ -799,7 +796,6 @@ class Order {
 		 * @param integer       $order_item_id The order item id.
 		 * @param Order         $this The shipment order object.
 		 *
-		 * @since 3.0.0
 		 * @package Vendidero/Shiptastic
 		 */
 		return apply_filters( 'woocommerce_shiptastic_shipment_order_item_quantity_left_for_returning', $quantity_left, $order_item_id, $this );
@@ -985,7 +981,6 @@ class Order {
 		 * @param array                                 $args Additional arguments to be considered.
 		 * @param Order $order The shipment order object.
 		 *
-		 * @since 3.0.0
 		 * @package Vendidero/Shiptastic
 		 */
 		return apply_filters( 'woocommerce_shiptastic_shipment_order_item_needs_shipping', $needs_shipping, $order_item, $args, $this );
@@ -1021,7 +1016,6 @@ class Order {
 		 * @param array        $args Additional arguments to be considered.
 		 * @param Order $order The shipment order object.
 		 *
-		 * @since 3.0.0
 		 * @package Vendidero/Shiptastic
 		 */
 		return apply_filters( 'woocommerce_shiptastic_shipment_item_needs_return', $needs_return, $item, $args, $this );
@@ -1071,7 +1065,6 @@ class Order {
 		 * @param WC_Order                              $order The order object.
 		 * @param Order $order The shipment order object.
 		 *
-		 * @since 3.0.0
 		 * @package Vendidero/Shiptastic
 		 */
 
@@ -1115,7 +1108,6 @@ class Order {
 		 * @param WC_Order       $order The order object.
 		 * @param Order          $order The shipment order object.
 		 *
-		 * @since 3.0.0
 		 * @package Vendidero/Shiptastic
 		 */
 		return apply_filters( 'woocommerce_shiptastic_shipment_order_returnable_items', $items, $this->get_order(), $this );
@@ -1138,7 +1130,6 @@ class Order {
 		 * @param WC_Order_Item                        $item The order item object.
 		 * @param Order $order The shipment order object.
 		 *
-		 * @since 3.0.0
 		 * @package Vendidero/Shiptastic
 		 */
 		return apply_filters( 'woocommerce_shiptastic_shipment_order_item_shippable_quantity', $quantity_left, $order_item, $this );
@@ -1162,7 +1153,6 @@ class Order {
 		 * @param integer                               $count The total number of items.
 		 * @param Order $order The shipment order object.
 		 *
-		 * @since 3.0.0
 		 * @package Vendidero/Shiptastic
 		 */
 		return apply_filters( 'woocommerce_shiptastic_shipment_order_shippable_item_count', $count, $this );
@@ -1186,7 +1176,6 @@ class Order {
 		 * @param integer $count The total number of items.
 		 * @param Order   $order The shipment order object.
 		 *
-		 * @since 3.0.0
 		 * @package Vendidero/Shiptastic
 		 */
 		return apply_filters( 'woocommerce_shiptastic_shipment_order_returnable_item_count', $count, $this );
@@ -1247,7 +1236,6 @@ class Order {
 		 *
 		 * @param string[] $pickup_methods Array of local pickup shipping method ids.
 		 *
-		 * @since 3.1.6
 		 * @package Vendidero/Shiptastic
 		 */
 		$pickup_methods = apply_filters( 'woocommerce_shiptastic_shipment_local_pickup_shipping_methods', array( 'local_pickup' ) );
@@ -1335,7 +1323,6 @@ class Order {
 		 * @param WC_Order $order The order object.
 		 * @param Order    $order The shipment order object.
 		 *
-		 * @since 3.0.0
 		 * @package Vendidero/Shiptastic
 		 */
 		return apply_filters( 'woocommerce_shiptastic_shipment_order_needs_shipping', $needs_shipping, $this->get_order(), $this );
@@ -1372,7 +1359,6 @@ class Order {
 		 * @param WC_Order $order The order object.
 		 * @param Order    $order The shipment order object.
 		 *
-		 * @since 3.0.0
 		 * @package Vendidero/Shiptastic
 		 */
 		return apply_filters( 'woocommerce_shiptastic_shipment_order_needs_return', $needs_return, $this->get_order(), $this );

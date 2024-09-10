@@ -20,7 +20,6 @@ class ShipmentItem extends WC_Data_Store_WP implements WC_Object_Data_Store_Inte
 	/**
 	 * Data stored in meta keys, but not considered "meta" for an order.
 	 *
-	 * @since 3.0.0
 	 * @var array
 	 */
 	protected $internal_meta_keys = array(
@@ -55,7 +54,6 @@ class ShipmentItem extends WC_Data_Store_WP implements WC_Object_Data_Store_Inte
 	/**
 	 * Create a new shipment item in the database.
 	 *
-	 * @since 3.0.0
 	 * @param \Vendidero\Shiptastic\ShipmentItem $item Shipment item object.
 	 */
 	public function create( &$item ) {
@@ -87,7 +85,6 @@ class ShipmentItem extends WC_Data_Store_WP implements WC_Object_Data_Store_Inte
 		 * @param \Vendidero\Shiptastic\ShipmentItem $item The shipment item object.
 		 * @param integer                                      $shipment_id The shipment id.
 		 *
-		 * @since 3.0.0
 		 * @package Vendidero/Shiptastic
 		 */
 		do_action( 'woocommerce_shiptastic_new_shipment_item', $item->get_id(), $item, $item->get_shipment_id() );
@@ -96,7 +93,6 @@ class ShipmentItem extends WC_Data_Store_WP implements WC_Object_Data_Store_Inte
 	/**
 	 * Update a shipment item in the database.
 	 *
-	 * @since 3.0.0
 	 * @param \Vendidero\Shiptastic\ShipmentItem $item Shipment item object.
 	 */
 	public function update( &$item ) {
@@ -132,7 +128,6 @@ class ShipmentItem extends WC_Data_Store_WP implements WC_Object_Data_Store_Inte
 		 * @param \Vendidero\Shiptastic\ShipmentItem $item The shipment item object.
 		 * @param integer                                      $shipment_id The shipment id.
 		 *
-		 * @since 3.0.0
 		 * @package Vendidero/Shiptastic
 		 */
 		do_action( 'woocommerce_shiptastic_shipment_item_updated', $item->get_id(), $item, $item->get_shipment_id() );
@@ -141,7 +136,6 @@ class ShipmentItem extends WC_Data_Store_WP implements WC_Object_Data_Store_Inte
 	/**
 	 * Remove a shipment item from the database.
 	 *
-	 * @since 3.0.0
 	 * @param \Vendidero\Shiptastic\ShipmentItem $item Shipment item object.
 	 * @param array         $args Array of args to pass to the delete method.
 	 */
@@ -154,7 +148,6 @@ class ShipmentItem extends WC_Data_Store_WP implements WC_Object_Data_Store_Inte
 			 *
 			 * @param integer $shipment_item_id The shipment item id.
 			 *
-			 * @since 3.0.0
 			 * @package Vendidero/Shiptastic
 			 */
 			do_action( 'woocommerce_shiptastic_before_delete_shipment_item', $item->get_id() );
@@ -168,7 +161,6 @@ class ShipmentItem extends WC_Data_Store_WP implements WC_Object_Data_Store_Inte
 			 * @param integer                                      $shipment_item_id The shipment item id.
 			 * @param \Vendidero\Shiptastic\ShipmentItem $item The shipment item object.
 			 *
-			 * @since 3.0.0
 			 * @package Vendidero/Shiptastic
 			 */
 			do_action( 'woocommerce_shiptastic_delete_shipment_item', $item->get_id(), $item );
@@ -179,7 +171,6 @@ class ShipmentItem extends WC_Data_Store_WP implements WC_Object_Data_Store_Inte
 	/**
 	 * Read a shipment item from the database.
 	 *
-	 * @since 3.0.0
 	 *
 	 * @param \Vendidero\Shiptastic\ShipmentItem $item Shipment item object.
 	 *
@@ -223,7 +214,6 @@ class ShipmentItem extends WC_Data_Store_WP implements WC_Object_Data_Store_Inte
 	 * Read extra data associated with the shipment item.
 	 *
 	 * @param \Vendidero\Shiptastic\ShipmentItem $item Shipment item object.
-	 * @since 3.0.0
 	 */
 	protected function read_item_data( &$item ) {
 		$props = array();
@@ -248,7 +238,6 @@ class ShipmentItem extends WC_Data_Store_WP implements WC_Object_Data_Store_Inte
 	 * @param string   $meta_key Meta key to update.
 	 * @param mixed    $meta_value Value to save.
 	 *
-	 * @since 3.6.0 Added to prevent empty meta being stored unless required.
 	 *
 	 * @return bool True if updated/deleted.
 	 */
@@ -266,7 +255,6 @@ class ShipmentItem extends WC_Data_Store_WP implements WC_Object_Data_Store_Inte
 	 * Saves an item's data to the database / item meta.
 	 * Ran after both create and update, so $item->get_id() will be set.
 	 *
-	 * @since 3.0.0
 	 * @param \Vendidero\Shiptastic\ShipmentItem $item Shipment item object.
 	 */
 	public function save_item_data( &$item ) {
@@ -310,7 +298,6 @@ class ShipmentItem extends WC_Data_Store_WP implements WC_Object_Data_Store_Inte
 		 * @param \Vendidero\Shiptastic\ShipmentItem $item The shipment item object.
 		 * @param array                                        $changed_props The updated properties.
 		 *
-		 * @since 3.0.0
 		 * @package Vendidero/Shiptastic
 		 */
 		do_action( 'woocommerce_shiptastic_shipment_item_object_updated_props', $item, $updated_props );
@@ -369,7 +356,6 @@ class ShipmentItem extends WC_Data_Store_WP implements WC_Object_Data_Store_Inte
 	/**
 	 * Table structure is slightly different between meta types, this function will return what we need to know.
 	 *
-	 * @since  3.0.0
 	 * @return array Array elements: table, object_id_field, meta_id_field
 	 */
 	protected function get_db_info() {

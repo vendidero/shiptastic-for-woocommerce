@@ -131,7 +131,6 @@ class Automation {
 		 * @param boolean  $disable True if you want to disable automation.
 		 * @param Shipment $shipment The shipment object.
 		 *
-		 * @since 3.0.0
 		 */
 		$disable = apply_filters( 'woocommerce_shiptastic_disable_label_auto_generate', $disable, $shipment );
 

@@ -143,7 +143,6 @@ class Settings {
 			/**
 			 * Sanitize the value of an option.
 			 *
-			 * @since 2.4.0
 			 */
 			$value = apply_filters( 'woocommerce_admin_settings_sanitize_option', $value, $option, $raw_value );
 

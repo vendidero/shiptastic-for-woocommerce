@@ -179,7 +179,6 @@ abstract class Tab extends \WC_Settings_Page {
 			 *
 			 * @param array $settings Array containing settings data.
 			 *
-			 * @since 3.0.0
 			 */
 			$settings = apply_filters( "woocommerce_shiptastic_admin_settings_tab_{$this->get_name()}", $settings );
 		} else {
@@ -191,7 +190,6 @@ abstract class Tab extends \WC_Settings_Page {
 			 *
 			 * @param array $settings Array containing settings data.
 			 *
-			 * @since 3.0.0
 			 */
 			$settings = apply_filters( "woocommerce_shiptastic_admin_settings_tab_{$this->get_name()}_{$section_id}", $settings );
 		}
@@ -203,7 +201,6 @@ abstract class Tab extends \WC_Settings_Page {
 		 * @param string $tab_name The name of the tab e.g. checkboxes
 		 * @param string $section_id The section name e.g. product_widgets. Might be empty too.
 		 *
-		 * @since 3.0.0
 		 *
 		 */
 		return apply_filters( 'woocommerce_shiptastic_admin_settings', $settings, $this->get_name(), $section_id );
@@ -255,7 +252,6 @@ abstract class Tab extends \WC_Settings_Page {
 		 *
 		 * @param string $current_section The current sub section of the tab.
 		 *
-		 * @since 3.0.0
 		 */
 		do_action( "woocommerce_shiptastic_admin_settings_before_wrapper_{$this->get_name()}", $current_section );
 
@@ -308,7 +304,6 @@ abstract class Tab extends \WC_Settings_Page {
 		 * @param array  $settings Array containing the settings to be saved.
 		 * @param string $current_section The current section.
 		 *
-		 * @since 3.0.0
 		 */
 		do_action( "woocommerce_shiptastic_admin_settings_before_save_{$this->get_name()}", $settings, $current_section );
 
@@ -322,7 +317,6 @@ abstract class Tab extends \WC_Settings_Page {
 			 *
 			 * @param array $settings Array containing the settings to be saved.
 			 *
-			 * @since 3.0.0
 			 */
 			do_action( "woocommerce_shiptastic_admin_settings_before_save_{$this->get_name()}_{$current_section}", $settings );
 		}
@@ -338,7 +332,6 @@ abstract class Tab extends \WC_Settings_Page {
 		 * @param array  $settings Array containing the settings to be saved.
 		 * @param string $current_section The current section.
 		 *
-		 * @since 3.0.0
 		 */
 		do_action( "woocommerce_shiptastic_admin_settings_after_save_{$this->get_name()}", $settings, $current_section );
 
@@ -352,7 +345,6 @@ abstract class Tab extends \WC_Settings_Page {
 			 *
 			 * @param array $settings Array containing the settings to be saved.
 			 *
-			 * @since 3.0.0
 			 *
 			 */
 			do_action( "woocommerce_shiptastic_admin_settings_after_save_{$this->get_name()}_{$current_section}", $settings );

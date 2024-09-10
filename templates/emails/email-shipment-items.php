@@ -32,7 +32,6 @@ foreach ( $items as $item_id => $item ) :
 	 * @param boolean                                      $is_visible Whether the ShipmentItem is visible or not.
 	 * @param ShipmentItem $item The ShipmentItem object.
 	 *
-	 * @since 3.0.0
 	 * @package Vendidero/Shiptastic
 	 */
 	if ( ! apply_filters( 'woocommerce_shiptastic_shipment_item_visible', true, $item ) ) {
@@ -56,7 +55,6 @@ foreach ( $items as $item_id => $item ) :
 				 * @param string                                       $image The image.
 				 * @param ShipmentItem $item The ShipmentItem object.
 				 *
-				 * @since 3.0.0
 				 * @package Vendidero/Shiptastic
 				 */
 				echo wp_kses_post( apply_filters( 'woocommerce_shiptastic_shipment_item_thumbnail', $image, $item ) );
@@ -69,7 +67,6 @@ foreach ( $items as $item_id => $item ) :
 			 * @param ShipmentItem $item The ShipmentItem object.
 			 * @param boolean                                      $is_plain Whether the email is sent in plain format or not.
 			 *
-			 * @since 3.0.0
 			 * @package Vendidero/Shiptastic
 			 */
 			echo wp_kses_post( apply_filters( 'woocommerce_shiptastic_shipment_item_name', $item->get_name(), $item, false ) );
@@ -87,7 +84,6 @@ foreach ( $items as $item_id => $item ) :
 			 * @param \Vendidero\Shiptastic\Shipment     $shipment The shipment instance.
 			 * @param boolean                                      $plain_text Whether this email is in plaintext format or not.
 			 *
-			 * @since 3.0.0
 			 * @package Vendidero/Shiptastic
 			 */
 			do_action( 'woocommerce_shiptastic_shipment_item_meta', $item_id, $item, $shipment, $plain_text );
@@ -102,7 +98,6 @@ foreach ( $items as $item_id => $item ) :
 			 * @param string                                       $quantity The ShipmentItem quantity.
 			 * @param ShipmentItem $item The ShipmentItem object.
 			 *
-			 * @since 3.0.0
 			 * @package Vendidero/Shiptastic
 			 */
 			echo wp_kses_post( apply_filters( 'woocommerce_shiptastic_email_shipment_item_quantity', $item->get_quantity(), $item ) );

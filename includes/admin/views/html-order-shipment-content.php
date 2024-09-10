@@ -20,7 +20,6 @@ defined( 'ABSPATH' ) || exit;
 		 *
 		 * @param Shipment $shipment The shipment object.
 		 *
-		 * @since 3.0.0
 		 * @package Vendidero/Shiptastic
 		 */
 		do_action( 'woocommerce_shiptastic_shipment_admin_before_columns', $shipment );
@@ -98,7 +97,6 @@ defined( 'ABSPATH' ) || exit;
 			 *
 			 * @param Shipment $shipment The shipment object.
 			 *
-			 * @since 3.0.0
 			 * @package Vendidero/Shiptastic
 			 */
 			do_action( 'woocommerce_shiptastic_meta_box_shipment_after_left_column', $shipment );
@@ -115,7 +113,6 @@ defined( 'ABSPATH' ) || exit;
 						 *
 						 * @param Shipment $shipment The shipment object.
 						 *
-						 * @since 3.0.0
 						 * @package Vendidero/Shiptastic
 						 */
 						do_action( 'woocommerce_shiptastic_meta_box_shipment_before_label', $shipment );
@@ -134,7 +131,6 @@ defined( 'ABSPATH' ) || exit;
 						 *
 						 * @param Shipment $shipment The shipment object.
 						 *
-						 * @since 3.0.0
 						 * @package Vendidero/Shiptastic
 						 */
 						do_action( 'woocommerce_shiptastic_meta_box_shipment_after_right_column', $shipment );
@@ -235,7 +231,6 @@ defined( 'ABSPATH' ) || exit;
 					 *
 					 * @param Shipment $shipment The shipment object.
 					 *
-					 * @since 3.0.0
 					 * @package Vendidero/Shiptastic
 					 */
 					do_action( 'woocommerce_shiptastic_meta_box_shipment_item_actions', $shipment );
@@ -250,7 +245,6 @@ defined( 'ABSPATH' ) || exit;
 		 *
 		 * @param Shipment $shipment The shipment object.
 		 *
-		 * @since 3.0.0
 		 * @package Vendidero/Shiptastic
 		 */
 		do_action( 'woocommerce_shiptastic_meta_box_shipment_after_fields', $shipment );
@@ -277,7 +271,6 @@ defined( 'ABSPATH' ) || exit;
 				 *
 				 * @param Shipment $shipment The shipment object.
 				 *
-				 * @since 3.0.0
 				 * @package Vendidero/Shiptastic
 				 */
 				do_action( 'woocommerce_shiptastic_meta_box_shipment_actions', $shipment );

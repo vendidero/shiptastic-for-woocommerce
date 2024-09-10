@@ -27,7 +27,6 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @param boolean      $show Whether to show or hide the item.
  * @param ShipmentItem $item The shipment item instance.
  *
- * @since 3.1.0
  * @package Vendidero/Shiptastic
  */
 if ( ! apply_filters( 'woocommerce_shiptastic_shipment_item_visible', true, $item ) ) {
@@ -41,7 +40,6 @@ if ( ! apply_filters( 'woocommerce_shiptastic_shipment_item_visible', true, $ite
  * @param ShipmentItem $item The shipment item instance.
  * @param Shipment     $shipment The shipment instance.
  *
- * @since 3.0.1
  * @package Vendidero/Shiptastic
  */
 $item_class = apply_filters( 'woocommerce_shiptastic_shipment_item_class', 'woocommerce-table__line-item shipment_item ' . ( $item->get_item_parent_id() > 0 ? 'shipment_item-is-child' : '' ) . ( $item->has_children() ? 'shipment_item-is-parent' : '' ), $item, $shipment );
@@ -59,7 +57,6 @@ $item_class = apply_filters( 'woocommerce_shiptastic_shipment_item_class', 'wooc
 		 * @param ShipmentItem $item The shipment item instance.
 		 * @param Shipment     $shipment The shipment instance.
 		 *
-		 * @since 3.0.0
 		 * @package Vendidero/Shiptastic
 		 */
 		$product_permalink = apply_filters( 'woocommerce_shiptastic_shipment_item_permalink', $is_visible ? $product->get_permalink() : '', $item, $shipment );
@@ -81,7 +78,6 @@ $item_class = apply_filters( 'woocommerce_shiptastic_shipment_item_class', 'wooc
 		 * @param string                                       $html The HTML output.
 		 * @param ShipmentItem $item The shipment item instance.
 		 *
-		 * @since 3.0.0
 		 * @package Vendidero/Shiptastic
 		 */
 		echo apply_filters( 'woocommerce_shiptastic_shipment_item_quantity_html', ' <strong class="product-quantity">' . sprintf( '&times; %s', $qty_display ) . '</strong>', $item ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped 

@@ -12,7 +12,6 @@ defined( 'ABSPATH' ) || exit;
 /**
  * Standard way of retrieving labels based on certain parameters.
  *
- * @since  2.6.0
  * @param  array $args Array of args (above).
  * @return \Vendidero\Shiptastic\Interfaces\ShipmentLabel[] Number of pages and an array of order objects if
  * paginate is true, or just an array of values.

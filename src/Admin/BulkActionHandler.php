@@ -133,7 +133,6 @@ abstract class BulkActionHandler {
 	/**
 	 * Get count of records exported.
 	 *
-	 * @since 3.0.6
 	 * @return int
 	 */
 	public function get_total_processed() {
@@ -143,7 +142,6 @@ abstract class BulkActionHandler {
 	/**
 	 * Get total % complete.
 	 *
-	 * @since 3.0.6
 	 * @return int
 	 */
 	public function get_percent_complete() {

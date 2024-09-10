@@ -43,7 +43,6 @@ class Packaging extends WC_Data_Store_WP implements WC_Object_Data_Store_Interfa
 	/**
 	 * Data stored in meta keys, but not considered "meta" for a packaging.
 	 *
-	 * @since 3.0.0
 	 * @var array
 	 */
 	protected $internal_meta_keys = array(
@@ -113,7 +112,6 @@ class Packaging extends WC_Data_Store_WP implements WC_Object_Data_Store_Interfa
 			 * @param integer  $packaging_id The packaging id.
 			 * @param \Vendidero\Shiptastic\Packaging $packaging The packaging instance.
 			 *
-			 * @since 3.3.0
 			 * @package Vendidero/Shiptastic
 			 */
 			do_action( 'woocommerce_shiptastic_new_packaging', $packaging_id, $packaging );
@@ -174,7 +172,6 @@ class Packaging extends WC_Data_Store_WP implements WC_Object_Data_Store_Interfa
 		 * @param integer  $packaging_id The packaging id.
 		 * @param \Vendidero\Shiptastic\Packaging $packaging The packaging instance.
 		 *
-		 * @since 3.3.0
 		 * @package Vendidero/Shiptastic
 		 */
 		do_action( 'woocommerce_shiptastic_packaging_updated', $packaging->get_id(), $packaging );
@@ -183,7 +180,6 @@ class Packaging extends WC_Data_Store_WP implements WC_Object_Data_Store_Interfa
 	/**
 	 * Remove a Packaging from the database.
 	 *
-	 * @since 3.0.0
 	 * @param \Vendidero\Shiptastic\Packaging $packaging Packaging object.
 	 * @param bool                $force_delete Unused param.
 	 */
@@ -201,7 +197,6 @@ class Packaging extends WC_Data_Store_WP implements WC_Object_Data_Store_Interfa
 		 * @param integer  $packaging_id The packaging id.
 		 * @param \Vendidero\Shiptastic\Packaging $packaging The packaging instance.
 		 *
-		 * @since 3.3.0
 		 * @package Vendidero/Shiptastic
 		 */
 		do_action( 'woocommerce_shiptastic_packaging_deleted', $packaging->get_id(), $packaging );
@@ -210,7 +205,6 @@ class Packaging extends WC_Data_Store_WP implements WC_Object_Data_Store_Interfa
 	/**
 	 * Read a Packaging from the database.
 	 *
-	 * @since 3.3.0
 	 *
 	 * @param \Vendidero\Shiptastic\Packaging $packaging Packaging object.
 	 *
@@ -256,7 +250,6 @@ class Packaging extends WC_Data_Store_WP implements WC_Object_Data_Store_Interfa
 			 *
 			 * @param \Vendidero\Shiptastic\Packaging $packaging The Packaging object.
 			 *
-			 * @since 3.3.0
 			 * @package Vendidero/Shiptastic
 			 */
 			do_action( 'woocommerce_shiptastic_packaging_loaded', $packaging );
@@ -269,7 +262,6 @@ class Packaging extends WC_Data_Store_WP implements WC_Object_Data_Store_Interfa
 	 * Clear any caches.
 	 *
 	 * @param \Vendidero\Shiptastic\Packaging $packaging Packaging object.
-	 * @since 3.0.0
 	 */
 	protected function clear_caches( &$packaging ) {
 		wp_cache_delete( $packaging->get_id(), $this->meta_type . '_meta' );
@@ -311,7 +303,6 @@ class Packaging extends WC_Data_Store_WP implements WC_Object_Data_Store_Interfa
 	 * Read extra data associated with the Packaging.
 	 *
 	 * @param \Vendidero\Shiptastic\Packaging $packaging Packaging object.
-	 * @since 3.0.0
 	 */
 	protected function read_packaging_data( &$packaging ) {
 		$props = array();
@@ -363,7 +354,6 @@ class Packaging extends WC_Data_Store_WP implements WC_Object_Data_Store_Interfa
 		 * @param \Vendidero\Shiptastic\Packaging $packaging The Packaging object.
 		 * @param array                                    $changed_props The updated properties.
 		 *
-		 * @since 3.3.0
 		 * @package Vendidero/Shiptastic
 		 */
 		do_action( 'woocommerce_shiptastic_packaging_object_updated_props', $packaging, $updated_props );
@@ -382,7 +372,6 @@ class Packaging extends WC_Data_Store_WP implements WC_Object_Data_Store_Interfa
 	 * @param string  $meta_key Meta key to update.
 	 * @param mixed   $meta_value Value to save.
 	 *
-	 * @since 3.6.0 Added to prevent empty meta being stored unless required.
 	 *
 	 * @return bool True if updated/deleted.
 	 */
@@ -399,7 +388,6 @@ class Packaging extends WC_Data_Store_WP implements WC_Object_Data_Store_Interfa
 	/**
 	 * Get valid WP_Query args from a WC_Order_Query's query variables.
 	 *
-	 * @since 3.0.6
 	 * @param array $query_vars query vars from a WC_Order_Query.
 	 * @return array
 	 */
@@ -466,7 +454,6 @@ class Packaging extends WC_Data_Store_WP implements WC_Object_Data_Store_Interfa
 		 * @param array     $query_vars The original query arguments.
 		 * @param Packaging $data_store The packaging data store object.
 		 *
-		 * @since 3.3.0
 		 * @package Vendidero/Shiptastic
 		 */
 		return apply_filters( 'woocommerce_shiptastic_packaging_data_store_get_shipments_query', $wp_query_args, $query_vars, $this );
@@ -716,7 +703,6 @@ class Packaging extends WC_Data_Store_WP implements WC_Object_Data_Store_Interfa
 	/**
 	 * Table structure is slightly different between meta types, this function will return what we need to know.
 	 *
-	 * @since  3.0.0
 	 * @return array Array elements: table, object_id_field, meta_id_field
 	 */
 	protected function get_db_info() {

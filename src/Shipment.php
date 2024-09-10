@@ -39,7 +39,6 @@ abstract class Shipment extends WC_Data {
 	/**
 	 * This is the name of this object type.
 	 *
-	 * @since 1.0.0
 	 * @var string
 	 */
 	protected $object_type = 'shipment';
@@ -47,7 +46,6 @@ abstract class Shipment extends WC_Data {
 	/**
 	 * Contains a reference to the data store for this class.
 	 *
-	 * @since 1.0.0
 	 * @var object
 	 */
 	protected $data_store_name = 'shipment';
@@ -56,7 +54,6 @@ abstract class Shipment extends WC_Data {
 	 * Stores meta in cache for future reads.
 	 * A group must be set to to enable caching.
 	 *
-	 * @since 1.0.0
 	 * @var string
 	 */
 	protected $cache_group = 'shipment';
@@ -209,7 +206,6 @@ abstract class Shipment extends WC_Data {
 	 * Merge changes with data and clear.
 	 * Overrides WC_Data::apply_changes.
 	 *
-	 * @since 3.2.0
 	 */
 	public function apply_changes() {
 		if ( function_exists( 'array_replace' ) ) {
@@ -348,7 +344,6 @@ abstract class Shipment extends WC_Data {
 			 *
 			 * @param string $status Default fallback status.
 			 *
-			 * @since 3.0.0
 			 * @package Vendidero/Shiptastic
 			 */
 			$status = apply_filters( "{$this->get_hook_prefix()}}default_shipment_status", 'draft' ); // phpcs:ignore WordPress.NamingConventions.ValidHookName.UseUnderscores
@@ -371,7 +366,6 @@ abstract class Shipment extends WC_Data {
 		 * @param Shipment $this The shipment object.
 		 * @param string                                   $status The status to be checked against.
 		 *
-		 * @since 3.0.0
 		 * @package Vendidero/Shiptastic
 		 */
 		return apply_filters( 'woocommerce_shiptastic_shipment_has_status', ( is_array( $status ) && in_array( $this->get_status(), $status, true ) ) || $this->get_status() === $status, $this, $status );
@@ -960,7 +954,6 @@ abstract class Shipment extends WC_Data {
 		 * @param string   $tracking_url The tracking URL.
 		 * @param Shipment $shipment The shipment object.
 		 *
-		 * @since 3.0.0
 		 * @package Vendidero/Shiptastic
 		 */
 		return apply_filters( "{$this->get_hook_prefix()}tracking_url", $tracking_url, $this );
@@ -989,7 +982,6 @@ abstract class Shipment extends WC_Data {
 		 * @param string                                   $instruction The tracking instruction.
 		 * @param Shipment $this The shipment object.
 		 *
-		 * @since 3.0.0
 		 * @package Vendidero/Shiptastic
 		 */
 		return apply_filters( "{$this->get_hook_prefix()}tracking_instruction", $instruction, $this );
@@ -1066,7 +1058,6 @@ abstract class Shipment extends WC_Data {
 		 * @param string[] $address The address parts used.
 		 * @param Shipment $this The shipment object.
 		 *
-		 * @since 3.0.6
 		 * @package Vendidero/Shiptastic
 		 */
 		$address = apply_filters( "{$this->get_hook_prefix()}address_map_url_parts", $address, $this );
@@ -1083,7 +1074,6 @@ abstract class Shipment extends WC_Data {
 		 * @param string   $url The address url.
 		 * @param Shipment $this The shipment object.
 		 *
-		 * @since 3.0.6
 		 * @package Vendidero/Shiptastic
 		 */
 		return apply_filters( "{$this->get_hook_prefix()}address_map_url", 'https://maps.google.com/maps?&q=' . rawurlencode( implode( ', ', $address ) ) . '&z=16', $this );
@@ -1145,7 +1135,6 @@ abstract class Shipment extends WC_Data {
 		 * @param string   $number The shipment address street number.
 		 * @param Shipment $shipment The shipment object.
 		 *
-		 * @since 3.0.6
 		 * @package Vendidero/Shiptastic
 		 */
 		return apply_filters( 'woocommerce_shiptastic_get_shipment_address_street_number', $split['number'], $this );
@@ -1167,7 +1156,6 @@ abstract class Shipment extends WC_Data {
 		 * @param string   $street The shipment address street without street number.
 		 * @param Shipment $shipment The shipment object.
 		 *
-		 * @since 3.0.6
 		 * @package Vendidero/Shiptastic
 		 */
 		return apply_filters( 'woocommerce_shiptastic_get_shipment_address_street', $split['street'], $this );
@@ -1182,7 +1170,6 @@ abstract class Shipment extends WC_Data {
 		 * @param string   $addition The shipment address street addition e.g. EG14.
 		 * @param Shipment $shipment The shipment object.
 		 *
-		 * @since 3.0.6
 		 * @package Vendidero/Shiptastic
 		 */
 		return apply_filters( 'woocommerce_shiptastic_get_shipment_address_street_addition', $split['addition'], $this );
@@ -1197,7 +1184,6 @@ abstract class Shipment extends WC_Data {
 		 * @param string   $addition The shipment address street addition e.g. EG14.
 		 * @param Shipment $shipment The shipment object.
 		 *
-		 * @since 3.0.6
 		 * @package Vendidero/Shiptastic
 		 */
 		return apply_filters( 'woocommerce_shiptastic_get_shipment_address_street_addition_2', $split['addition_2'], $this );
@@ -1338,7 +1324,6 @@ abstract class Shipment extends WC_Data {
 			 * @param string   $value The address property value.
 			 * @param Shipment $this The shipment object.
 			 *
-			 * @since 3.0.0
 			 * @package Vendidero/Shiptastic
 			 */
 			$value = apply_filters( "{$this->get_hook_prefix()}sender_address_{$prop}", $value, $this );
@@ -1612,7 +1597,6 @@ abstract class Shipment extends WC_Data {
 		 * @param array                                    $types Array containing the types to be checked against, or empty.
 		 * @param Shipment $this The shipment object.
 		 *
-		 * @since 3.0.0
 		 * @package Vendidero/Shiptastic
 		 */
 		return apply_filters( 'woocommerce_shiptastic_shipment_send_to_external_pickup', $has_pickup, $types, $this );
@@ -1644,7 +1628,6 @@ abstract class Shipment extends WC_Data {
 				 * @param string                                   $value The address property value.
 				 * @param Shipment $this The shipment object.
 				 *
-				 * @since 3.0.0
 				 * @package Vendidero/Shiptastic
 				 */
 				$value = apply_filters( "{$this->get_hook_prefix()}address_{$prop}", $value, $this );
@@ -1700,7 +1683,6 @@ abstract class Shipment extends WC_Data {
 		 * @param boolean                                  $is_editable Whether the Shipment is editable or not.
 		 * @param Shipment $this The shipment object.
 		 *
-		 * @since 3.0.0
 		 * @package Vendidero/Shiptastic
 		 */
 		return apply_filters( 'woocommerce_shiptastic_shipment_is_editable', $this->has_status( wc_stc_get_shipment_editable_statuses() ), $this );
@@ -1723,7 +1705,6 @@ abstract class Shipment extends WC_Data {
 		 * @param string                                   $number The shipment number.
 		 * @param Shipment $this The shipment object.
 		 *
-		 * @since 3.0.0
 		 * @package Vendidero/Shiptastic
 		 */
 		return (string) apply_filters( "{$this->get_hook_prefix()}shipment_number", $this->get_id(), $this );
@@ -1766,7 +1747,6 @@ abstract class Shipment extends WC_Data {
 				 * @param integer $shipment_id The shipment id.
 				 * @param string  $status The new shipment status.
 				 *
-				 * @since 3.0.0
 				 * @package Vendidero/Shiptastic
 				 */
 				do_action( 'woocommerce_shiptastic_shipment_edit_status', $this->get_id(), $result['to'] );
@@ -2160,7 +2140,6 @@ abstract class Shipment extends WC_Data {
 		 * @param string                                   $number The shipment number.
 		 * @param Shipment $this The shipment object.
 		 *
-		 * @since 3.0.0
 		 * @package Vendidero/Shiptastic
 		 */
 		return apply_filters( "{$this->get_hook_prefix()}items", $items, $this, $context );
@@ -2185,7 +2164,6 @@ abstract class Shipment extends WC_Data {
 		 * @param string   $url The URL pointing to the view page.
 		 * @param Shipment $this The shipment object.
 		 *
-		 * @since 3.0.0
 		 * @package Vendidero/Shiptastic
 		 */
 		return apply_filters( "{$this->get_hook_prefix()}_view_shipment_url", wc_get_endpoint_url( 'view-shipment', $this->get_id(), wc_get_page_permalink( 'myaccount' ) ), $this );
@@ -2258,7 +2236,6 @@ abstract class Shipment extends WC_Data {
 	/**
 	 * Adds a shipment item to this shipment. The shipment item will not persist until save.
 	 *
-	 * @since 3.0.0
 	 * @param ShipmentItem $item Shipment item object.
 	 *
 	 * @return false|void
@@ -2316,7 +2293,6 @@ abstract class Shipment extends WC_Data {
 				 * @param Shipment $shipment The shipment object.
 				 * @param array    $status_transition The status transition data.
 				 *
-				 * @since 3.0.0
 				 * @package Vendidero/Shiptastic
 				 */
 				do_action( 'woocommerce_shiptastic_shipment_before_status_change', $this->get_id(), $this, $this->status_transition );
@@ -2337,7 +2313,6 @@ abstract class Shipment extends WC_Data {
 				 *
 				 * @see wc_stc_get_shipment_statuses()
 				 *
-				 * @since 3.0.0
 				 * @package Vendidero/Shiptastic
 				 */
 				do_action( "{$status_hook_prefix}_$status_to", $this->get_id(), $this );
@@ -2359,7 +2334,6 @@ abstract class Shipment extends WC_Data {
 					 *
 					 * @see wc_stc_get_shipment_statuses()
 					 *
-					 * @since 3.0.0
 					 * @package Vendidero/Shiptastic
 					 */
 					do_action( "{$status_hook_prefix}_{$status_from}_to_{$status_to}", $this->get_id(), $this );
@@ -2374,7 +2348,6 @@ abstract class Shipment extends WC_Data {
 					 *
 					 * @see wc_stc_get_shipment_statuses()
 					 *
-					 * @since 3.0.0
 					 * @package Vendidero/Shiptastic
 					 */
 					do_action( 'woocommerce_shiptastic_shipment_status_changed', $this->get_id(), $status_from, $status_to, $this );
@@ -2586,7 +2559,6 @@ abstract class Shipment extends WC_Data {
 		 * @param integer[]                                $order_item_id The order item id(s).
 		 * @param Shipment $this The shipment object.
 		 *
-		 * @since 3.0.0
 		 * @package Vendidero/Shiptastic
 		 */
 		return apply_filters( 'woocommerce_shiptastic_shipment_contains_order_item', $contains, $item_id, $this );
@@ -2656,7 +2628,6 @@ abstract class Shipment extends WC_Data {
 		 * @param boolean|ShipmentLabel $label The label instance.
 		 * @param Shipment              $shipment The current shipment instance.
 		 *
-		 * @since 3.0.6
 		 * @package Vendidero/Shiptastic
 		 */
 		return apply_filters( "{$this->get_hook_prefix()}{$prefix}label", $this->label, $this );
@@ -2685,7 +2656,6 @@ abstract class Shipment extends WC_Data {
 		 *
 		 * @param Shipment $shipment The current shipment instance.
 		 *
-		 * @since 3.0.6
 		 * @package Vendidero/Shiptastic
 		 */
 		return apply_filters( "{$hook_prefix}label_settings_html", $html, $this );
@@ -2740,7 +2710,6 @@ abstract class Shipment extends WC_Data {
 			 * @param WP_Error    $error An WP_Error instance useful for returning errors while creating the label.
 			 * @param Shipment    $shipment The current shipment instance.
 			 *
-			 * @since 3.0.6
 			 * @package Vendidero/Shiptastic
 			 */
 			do_action( "{$hook_prefix}create_{$provider_name}label", $props, $error, $this );
@@ -2767,7 +2736,6 @@ abstract class Shipment extends WC_Data {
 			 * @param array     $props Array containing props extracted from post data (if created manually) and sanitized via `wc_clean`.
 			 * @param array     $raw_data Raw post data unsanitized.
 			 *
-			 * @since 3.1.2
 			 * @package Vendidero/Shiptastic
 			 */
 			do_action( "{$hook_prefix}created_{$provider_name}label", $this, $props );
@@ -2857,7 +2825,6 @@ abstract class Shipment extends WC_Data {
 		 * @param boolean   $check_status Whether or not checking the shipment status is needed.
 		 * @param Shipment  $shipment The current shipment instance.
 		 *
-		 * @since 3.0.6
 		 * @package Vendidero/Shiptastic
 		 */
 		return apply_filters( "{$hook_prefix}needs_{$provider}label", $needs_label, $check_status, $this );
@@ -2904,7 +2871,6 @@ abstract class Shipment extends WC_Data {
 		 * @param string   $url The download URL.
 		 * @param Shipment $shipment The current shipment instance.
 		 *
-		 * @since 3.0.6
 		 * @package Vendidero/Shiptastic
 		 */
 		return apply_filters( "{$this->get_hook_prefix()}{$provider}label_download_url", $download_url, $this );
@@ -3006,7 +2972,6 @@ abstract class Shipment extends WC_Data {
 			 * @param Shipment $shipment The shipment object being saved.
 			 * @param boolean  $is_new Indicator to determine whether this is a new shipment or not.
 			 *
-			 * @since 3.0.0
 			 * @package Vendidero/Shiptastic
 			 */
 			do_action( "woocommerce_shiptastic_{$hook_postfix}shipment_after_save", $this, $is_new );

@@ -27,7 +27,6 @@ $text_align = is_rtl() ? 'right' : 'left';
  * @param boolean                                  $plain_text Whether this email is in plaintext format or not.
  * @param WC_Email                                 $email The email instance.
  *
- * @since 3.0.0
  * @package Vendidero/Shiptastic
  */
 do_action( 'woocommerce_shiptastic_email_before_shipment_table', $shipment, $sent_to_admin, $plain_text, $email ); ?>
@@ -80,7 +79,6 @@ do_action( 'woocommerce_shiptastic_email_before_shipment_table', $shipment, $sen
  * @param boolean                                  $plain_text Whether this email is in plaintext format or not.
  * @param WC_Email                                 $email The email instance.
  *
- * @since 3.0.0
  * @package Vendidero/Shiptastic
  */
 do_action( 'woocommerce_shiptastic_email_after_shipment_table', $shipment, $sent_to_admin, $plain_text, $email ); ?>

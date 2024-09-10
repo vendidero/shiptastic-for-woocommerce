@@ -85,7 +85,6 @@ class ReturnTable extends Table {
 	/**
 	 * Handles the post author column output.
 	 *
-	 * @since 4.3.0
 	 *
 	 * @param ReturnShipment $shipment The current shipment object.
 	 */

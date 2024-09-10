@@ -19,7 +19,6 @@ if ( ! function_exists( 'wc_stc_get_email_shipment_items' ) ) {
 	 * @param Shipment $shipment Shipment object.
 	 * @param array           $args Arguments.
 	 *
-	 * @since 3.0.0
 	 * @return string
 	 */
 	function wc_stc_get_email_shipment_items( $shipment, $args = array() ) {
@@ -43,7 +42,6 @@ if ( ! function_exists( 'wc_stc_get_email_shipment_items' ) ) {
 			 *
 			 * @param array $args Array containing the arguments passed.
 			 *
-			 * @since 3.0.0
 			 * @package Vendidero/Shiptastic
 			 */
 			apply_filters(
@@ -66,7 +64,6 @@ if ( ! function_exists( 'wc_stc_get_email_shipment_items' ) ) {
 		 * @param string   $html The HTML output.
 		 * @param Shipment $shipment The shipment instance.
 		 *
-		 * @since 3.0.0
 		 * @package Vendidero/Shiptastic
 		 */
 		return apply_filters( 'woocommerce_shiptastic_email_shipment_items_table', ob_get_clean(), $shipment );

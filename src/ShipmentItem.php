@@ -27,7 +27,6 @@ class ShipmentItem extends WC_Data {
 	/**
 	 * Order Data array. This is the core order data exposed in APIs since 3.0.0.
 	 *
-	 * @since 3.0.0
 	 * @var array
 	 */
 	protected $data = array(
@@ -112,7 +111,6 @@ class ShipmentItem extends WC_Data {
 	 * array_replace_recursive does not work well for order items because it merges taxes instead
 	 * of replacing them.
 	 *
-	 * @since 3.2.0
 	 */
 	public function apply_changes() {
 		if ( function_exists( 'array_replace' ) ) {
@@ -464,7 +462,6 @@ class ShipmentItem extends WC_Data {
 		 * @param WC_Order_Item|ShipmentItem $item The order item object or parent shipment item.
 		 * @param array                       $args Array containing props in key => value pairs which have been updated.
 		 *
-		 * @since 3.0.0
 		 * @package Vendidero/Shiptastic
 		 */
 		do_action( 'woocommerce_shiptastic_shipment_item_synced', $this, $item, $args );

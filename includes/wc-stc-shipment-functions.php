@@ -171,7 +171,6 @@ function wc_stc_get_shipment_order_shipping_statuses() {
 	 *
 	 * @param array $shipment_statuses Available order shipping statuses.
 	 *
-	 * @since 3.0.0
 	 * @package Vendidero/Shiptastic
 	 */
 	return apply_filters( 'woocommerce_shiptastic_order_shipping_statuses', $shipment_statuses );
@@ -190,7 +189,6 @@ function wc_stc_get_shipment_order_return_statuses() {
 	 *
 	 * @param array $shipment_statuses Available order return statuses.
 	 *
-	 * @since 3.0.0
 	 * @package Vendidero/Shiptastic
 	 */
 	return apply_filters( 'woocommerce_shiptastic_order_return_statuses', $shipment_statuses );
@@ -248,7 +246,6 @@ function wc_stc_get_shipment_order_shipping_status_name( $status ) {
 	 * @param string $status_name The status name.
 	 * @param string $status The shipping status.
 	 *
-	 * @since 3.0.0
 	 * @package Vendidero/Shiptastic
 	 */
 	return apply_filters( 'woocommerce_shiptastic_order_shipping_status_name', $status_name, $status );
@@ -270,7 +267,6 @@ function wc_stc_get_shipment_order_return_status_name( $status ) {
 	 * @param string $status_name The status name.
 	 * @param string $status The return status.
 	 *
-	 * @since 3.0.0
 	 * @package Vendidero/Shiptastic
 	 */
 	return apply_filters( 'woocommerce_shiptastic_order_return_status_name', $status_name, $status );
@@ -282,7 +278,6 @@ function wc_stc_get_shipment_order_return_status_name( $status ) {
  * @param  array $args Array of args (above).
  *
  * @return Shipment[] The shipments found.
- *@since  3.0.0
  */
 function wc_stc_get_shipments( $args ) {
 	$query = new Vendidero\Shiptastic\ShipmentQuery( $args );
@@ -301,7 +296,6 @@ function wc_stc_get_shipment_customer_visible_statuses( $shipment_type = 'simple
 	 * @param array  $shipment_statuses The available shipment statuses.
 	 * @param string $shipment_type The shipment type.
 	 *
-	 * @since 3.1.0
 	 * @package Vendidero/Shiptastic
 	 */
 	return apply_filters( 'woocommerce_shiptastic_shipment_customer_visible_statuses', $statuses, $shipment_type );
@@ -337,7 +331,6 @@ function wc_stc_get_shipment_statuses() {
 	 *
 	 * @param array $shipment_statuses The available shipment statuses.
 	 *
-	 * @since 3.0.0
 	 * @package Vendidero/Shiptastic
 	 */
 	return apply_filters( 'woocommerce_shiptastic_shipment_statuses', $shipment_statuses );
@@ -362,7 +355,6 @@ function wc_stc_get_shipment_selectable_statuses( $shipment ) {
 	 * @param string   $type The shipment type e.g. return.
 	 * @param Shipment $shipment The shipment instance.
 	 *
-	 * @since 3.0.0
 	 * @package Vendidero/Shiptastic
 	 */
 	return apply_filters( 'woocommerce_shiptastic_shipment_selectable_statuses', $shipment_statuses, $shipment->get_type(), $shipment );
@@ -500,7 +492,6 @@ function wc_stc_get_return_shipment_reasons( $order_item = false ) {
 	 * @param array               $reasons Available return reasons.
 	 * @param WC_Order_Item|false $order_item The order item object if available to further filter reasons.
 	 *
-	 * @since 3.1.0
 	 * @package Vendidero/Shiptastic
 	 */
 	$reasons   = apply_filters( 'woocommerce_shiptastic_return_shipment_reasons_raw', $reasons, $order_item );
@@ -518,7 +509,6 @@ function wc_stc_get_return_shipment_reasons( $order_item = false ) {
 	 * @param ReturnReason[]         $reasons Available return reasons.
 	 * @param WC_Order_Item|false    $order_item The order item object if available to further filter reasons.
 	 *
-	 * @since 3.1.0
 	 * @package Vendidero/Shiptastic
 	 */
 	return apply_filters( 'woocommerce_shiptastic_return_shipment_reasons', $instances, $order_item );
@@ -600,7 +590,6 @@ function wc_stc_get_shipment_editable_statuses() {
 	 *
 	 * @param array $statuses Statuses which should be considered as editable.
 	 *
-	 * @since 3.0.0
 	 * @package Vendidero/Shiptastic
 	 */
 	return apply_filters( 'woocommerce_shiptastic_shipment_editable_statuses', array( 'draft', 'requested', 'processing' ) );
@@ -671,7 +660,6 @@ function wc_stc_get_default_shipping_provider() {
 	 *
 	 * @param string  $title The shipping provider slug.
 	 *
-	 * @since 3.0.6
 	 * @package Vendidero/Shiptastic
 	 */
 	return apply_filters( 'woocommerce_shiptastic_default_shipping_provider', $default );
@@ -708,7 +696,6 @@ function wc_stc_get_shipping_provider_title( $slug ) {
 	 * @param string  $title The shipping provider title.
 	 * @param string  $slug The shipping provider slug.
 	 *
-	 * @since 3.0.0
 	 * @package Vendidero/Shiptastic
 	 */
 	return apply_filters( 'woocommerce_shiptastic_shipping_provider_title', $title, $slug );
@@ -900,7 +887,6 @@ function wc_stc_get_shipment_order_shipping_method( $order ) {
 	 * @param WC_Order_Item_Shipping|false $method The order item.
 	 * @param WC_Order $order The order object.
 	 *
-	 * @since 3.0.0
 	 * @package Vendidero/Shiptastic
 	 */
 	return apply_filters( 'woocommerce_shiptastic_shipment_order_shipping_method', $method, $order );
@@ -922,7 +908,6 @@ function wc_stc_get_shipment_order_shipping_method_id( $order ) {
 	 * @param string   $id The shipping method id.
 	 * @param WC_Order $order The order object.
 	 *
-	 * @since 3.0.0
 	 * @package Vendidero/Shiptastic
 	 */
 	return apply_filters( 'woocommerce_shiptastic_shipment_order_shipping_method_id', $id, $order );
@@ -982,7 +967,6 @@ function wc_stc_get_shipment_status_name( $status ) {
 	 * @param string  $status_name The status name or title.
 	 * @param integer $status The status slug.
 	 *
-	 * @since 3.0.0
 	 * @package Vendidero/Shiptastic
 	 */
 	return apply_filters( 'woocommerce_shiptastic_shipment_status_name', $status_name, $status );
@@ -994,7 +978,6 @@ function wc_stc_get_shipment_sent_statuses() {
 	 *
 	 * @param array $statuses An array of statuses considered as shipped,
 	 *
-	 * @since 3.0.0
 	 * @package Vendidero/Shiptastic
 	 */
 	return apply_filters(
@@ -1057,7 +1040,6 @@ function wc_stc_is_shipment_status( $maybe_status ) {
 /**
  * Main function for returning shipment items.
  *
- * @since  2.2
  *
  * @param mixed $the_item Object or shipment item id.
  * @param string $item_type The shipment item type.
@@ -1084,7 +1066,6 @@ function wc_stc_get_shipment_item( $the_item = false, $item_type = 'simple' ) {
 	 * @param integer $item_id The shipment item id.
 	 * @param string  $item_type The shipment item type.
 	 *
-	 * @since 3.0.0
 	 * @package Vendidero/Shiptastic
 	 */
 	$classname = apply_filters( 'woocommerce_shiptastic_shipment_item_class', $item_class, $item_id, $item_type );
@@ -1104,7 +1085,6 @@ function wc_stc_get_shipment_item( $the_item = false, $item_type = 'simple' ) {
 /**
  * Get the shipment item ID depending on what was passed.
  *
- * @since 3.0.0
  * @param  mixed $item Item data to convert to an ID.
  * @return int|bool false on failure
  */
@@ -1123,7 +1103,6 @@ function wc_stc_get_shipment_item_id( $item ) {
 /**
  * Format dimensions for display.
  *
- * @since  3.0.0
  * @param  array $dimensions Array of dimensions.
  * @return string
  */
@@ -1144,7 +1123,6 @@ function wc_stc_format_shipment_dimensions( $dimensions, $unit = '' ) {
 	 * @param array   $dimensions Array containing the dimensions.
 	 * @param string  $unit The dimension unit.
 	 *
-	 * @since 3.0.0
 	 * @package Vendidero/Shiptastic
 	 */
 	return apply_filters( 'woocommerce_shiptastic_format_shipment_dimensions', $dimension_string, $dimensions, $unit );
@@ -1153,7 +1131,6 @@ function wc_stc_format_shipment_dimensions( $dimensions, $unit = '' ) {
 /**
  * Format a weight for display.
  *
- * @since  3.0.0
  * @param  float $weight Weight.
  * @return string
  */
@@ -1174,7 +1151,6 @@ function wc_stc_format_shipment_weight( $weight, $unit = '' ) {
 	 * @param string  $weight The Shipment weight.
 	 * @param string  $unit The dimension unit.
 	 *
-	 * @since 3.0.0
 	 * @package Vendidero/Shiptastic
 	 */
 	return apply_filters( 'woocommerce_shiptastic_format_shipment_weight', $weight_string, $weight, $unit );
@@ -1183,7 +1159,6 @@ function wc_stc_format_shipment_weight( $weight, $unit = '' ) {
 /**
  * Get My Account > Shipments columns.
  *
- * @since 3.0.0
  * @return array
  */
 function wc_stc_get_account_shipments_columns( $type = 'simple' ) {
@@ -1194,7 +1169,6 @@ function wc_stc_get_account_shipments_columns( $type = 'simple' ) {
 	 * @param string[] $columns The columns in key => value pairs.
 	 * @param string   $type    The shipment type e.g. simple or return.
 	 *
-	 * @since 3.0.0
 	 * @package Vendidero/Shiptastic
 	 */
 	$columns = apply_filters(
@@ -1239,7 +1213,6 @@ function wc_stc_get_order_customer_add_return_url( $order ) {
 	 * @param string   $url The URL pointing to the add return page.
 	 * @param Order    $order The order object.
 	 *
-	 * @since 3.0.0
 	 * @package Vendidero/Shiptastic
 	 */
 	return apply_filters( 'woocommerce_shiptastic_add_return_shipment_url', $url, $shipment_order->get_order() );
@@ -1297,7 +1270,6 @@ function wc_stc_order_is_customer_returnable( $order, $check_date = true ) {
 			 * @param WC_DateTime $completed_date The order completed date.
 			 * @param WC_Order    $order The order instance.
 			 *
-			 * @since 3.1.0
 			 * @package Vendidero/Shiptastic
 			 */
 			$completed_date = apply_filters( 'woocommerce_shiptastic_order_return_completed_date', $completed_date, $shipment_order->get_order() );
@@ -1320,7 +1292,6 @@ function wc_stc_order_is_customer_returnable( $order, $check_date = true ) {
 	 * @param WC_Order $order The order instance for which the return shall be created.
 	 * @param bool     $check_date Whether to check for a maximum date or not.
 	 *
-	 * @since 3.1.0
 	 * @package Vendidero/Shiptastic
 	 */
 	return apply_filters( 'woocommerce_shiptastic_order_is_returnable_by_customer', $is_returnable, $shipment_order->get_order(), $check_date );
@@ -1365,7 +1336,6 @@ function wc_stc_get_order_shipping_provider( $order ) {
 	 * @param bool|\Vendidero\Shiptastic\Interfaces\ShippingProvider $provider The shipping provider instance.
 	 * @param WC_Order              $order The order instance.
 	 *
-	 * @since 3.1.0
 	 * @package Vendidero/Shiptastic
 	 */
 	return apply_filters( 'woocommerce_shiptastic_get_order_shipping_provider', $provider, $order );
@@ -1403,7 +1373,6 @@ function wc_stc_customer_can_add_return_shipment( $order_id ) {
 	 * @param bool    $can_view_shipments Whether the user (or guest) might see shipments or not.
 	 * @param integer $order_id The order id.
 	 *
-	 * @since 3.1.0
 	 * @package Vendidero/Shiptastic
 	 */
 	return apply_filters( 'woocommerce_shiptastic_customer_can_view_shipments', $can_view_shipments, $order_id );
@@ -1434,7 +1403,6 @@ function wc_stc_customer_return_needs_manual_confirmation( $order ) {
 	 * @param bool     $needs_manual_confirmation Whether needs manual confirmation or not.
 	 * @param WC_Order $order The order instance for which the return shall be created.
 	 *
-	 * @since 3.1.0
 	 * @package Vendidero/Shiptastic
 	 */
 	return apply_filters( 'woocommerce_shiptastic_customer_return_needs_manual_confirmation', $needs_manual_confirmation, $order );
@@ -1443,7 +1411,6 @@ function wc_stc_customer_return_needs_manual_confirmation( $order ) {
 /**
  * Get account shipments actions.
  *
- * @since  3.2.0
  * @param  int|Shipment $shipment Shipment instance or ID.
  * @return array
  */
@@ -1478,7 +1445,6 @@ function wc_stc_get_account_shipments_actions( $shipment ) {
 	 * @param string[] $actions Available actions containing an id as key and a URL and name.
 	 * @param Shipment $shipment The shipment instance.
 	 *
-	 * @since 3.0.0
 	 * @package Vendidero/Shiptastic
 	 */
 	return apply_filters( 'woocommerce_shiptastic_account_shipments_actions', $actions, $shipment );

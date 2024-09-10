@@ -134,7 +134,6 @@ class Validation {
 				 *
 				 * @param string  $order_id The order id.
 				 *
-				 * @since 3.1.0
 				 * @package Vendidero/Shiptastic
 				 */
 				do_action( 'woocommerce_shiptastic_order_shipped', $order_id );

@@ -27,7 +27,6 @@ class Packaging extends WC_Data implements LabelConfigurationSet {
 	/**
 	 * This is the name of this object type.
 	 *
-	 * @since 1.0.0
 	 * @var string
 	 */
 	protected $object_type = 'packaging';
@@ -35,7 +34,6 @@ class Packaging extends WC_Data implements LabelConfigurationSet {
 	/**
 	 * Contains a reference to the data store for this class.
 	 *
-	 * @since 1.0.0
 	 * @var object
 	 */
 	protected $data_store_name = 'packaging';
@@ -44,7 +42,6 @@ class Packaging extends WC_Data implements LabelConfigurationSet {
 	 * Stores meta in cache for future reads.
 	 * A group must be set to to enable caching.
 	 *
-	 * @since 1.0.0
 	 * @var string
 	 */
 	protected $cache_group = 'packaging';
@@ -118,7 +115,6 @@ class Packaging extends WC_Data implements LabelConfigurationSet {
 	 * Merge changes with data and clear.
 	 * Overrides WC_Data::apply_changes.
 	 *
-	 * @since 3.2.0
 	 */
 	public function apply_changes() {
 		if ( function_exists( 'array_replace' ) ) {

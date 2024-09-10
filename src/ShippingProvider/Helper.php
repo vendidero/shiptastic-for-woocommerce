@@ -15,7 +15,6 @@ class Helper {
 	 * The single instance of the class
 	 *
 	 * @var Helper
-	 * @since 1.0.5
 	 */
 	protected static $_instance = null;
 
@@ -44,7 +43,6 @@ class Helper {
 	 * Ensures only one instance of the Shipping Provider Helper is loaded or can be loaded.
 	 *
 	 * @return Helper Main instance
-	 * @since 1.0.5
 	 */
 	public static function instance() {
 		if ( is_null( self::$_instance ) ) {
@@ -56,7 +54,6 @@ class Helper {
 	/**
 	 * Cloning is forbidden.
 	 *
-	 * @since 2.1
 	 */
 	public function __clone() {
 		wc_doing_it_wrong( __FUNCTION__, 'Cloning is forbidden.', '1.0.5' );
@@ -65,7 +62,6 @@ class Helper {
 	/**
 	 * Unserializing instances of this class is forbidden.
 	 *
-	 * @since 2.1
 	 */
 	public function __wakeup() {
 		wc_doing_it_wrong( __FUNCTION__, 'Unserializing instances of this class is forbidden.', '1.0.5' );
@@ -78,7 +74,6 @@ class Helper {
 		/**
 		 * This action fires as soon as the shipping provider wrapper instance is loaded.
 		 *
-		 * @since 1.0.5
 		 * @package Vendidero/Shiptastic
 		 */
 		do_action( 'woocommerce_shiptastic_shipping_providers_init' );
@@ -101,38 +96,7 @@ class Helper {
 	public function get_available_shipping_provider_integrations( $inactive_only = false ) {
 		if ( is_null( $this->integrations ) ) {
 			$this->integrations = array();
-			$available          = array(
-				'dhl'           => array(
-					'title'               => _x( 'DHL', 'shipments', 'shiptastic-for-woocommerce' ),
-					'countries_supported' => array( 'DE' ),
-					'is_pro'              => false,
-					'extension_name'      => 'woocommerce-germanized-dhl',
-				),
-				'deutsche_post' => array(
-					'title'               => _x( 'Deutsche Post', 'shipments', 'shiptastic-for-woocommerce' ),
-					'countries_supported' => array( 'DE' ),
-					'is_pro'              => false,
-					'extension_name'      => 'woocommerce-germanized-dhl',
-				),
-				'dpd'           => array(
-					'title'               => _x( 'DPD', 'shipments', 'shiptastic-for-woocommerce' ),
-					'countries_supported' => array( 'DE', 'AT' ),
-					'is_pro'              => true,
-					'extension_name'      => 'woocommerce-germanized-dpd',
-				),
-				'gls'           => array(
-					'title'               => _x( 'GLS', 'shipments', 'shiptastic-for-woocommerce' ),
-					'countries_supported' => array( 'DE', 'AT', 'CH', 'BE', 'LU', 'FR', 'IE', 'ES' ),
-					'is_pro'              => true,
-					'extension_name'      => 'woocommerce-germanized-gls',
-				),
-				'hermes'        => array(
-					'title'               => _x( 'Hermes', 'shipments', 'shiptastic-for-woocommerce' ),
-					'countries_supported' => array( 'DE' ),
-					'is_pro'              => true,
-					'extension_name'      => 'woocommerce-germanized-hermes',
-				),
-			);
+			$available          = array();
 
 			foreach ( $available as $key => $placeholder_args ) {
 				$this->integrations[ $key ] = new Placeholder( 0, $placeholder_args );
@@ -215,7 +179,6 @@ class Helper {
 		 *
 		 * @param array $shipping_providers The shipping provider array
 		 *
-		 * @since 1.0.5
 		 * @package Vendidero/Shiptastic
 		 */
 		return apply_filters( 'woocommerce_shiptastic_shipping_provider_class_names', $class_names );
@@ -272,7 +235,6 @@ class Helper {
 		 *
 		 * @param Helper $providers The shipping providers instance
 		 *
-		 * @since 3.0.6
 		 * @package Vendidero/Shiptastic
 		 */
 		do_action( 'woocommerce_shiptastic_load_shipping_providers', $this );

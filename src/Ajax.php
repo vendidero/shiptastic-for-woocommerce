@@ -625,7 +625,6 @@ class Ajax {
 				 * @param integer $shipment_id The shipment id.
 				 * @param string  $status The status to be switched to.
 				 *
-				 * @since 3.0.0
 				 * @package Vendidero/Shiptastic
 				 */
 				do_action( 'woocommerce_shiptastic_updated_shipment_status', $shipment->get_id(), $status );
@@ -964,7 +963,6 @@ class Ajax {
 		 *
 		 * @param array $result The shipping provider search result.
 		 *
-		 * @since 3.0.0
 		 * @package Vendidero/Shiptastic
 		 */
 		wp_send_json( apply_filters( 'woocommerce_shiptastic_json_search_found_shipment_shipping_providers', $found_providers ) );
@@ -1027,7 +1025,6 @@ class Ajax {
 		 *
 		 * @param array $result The order search result.
 		 *
-		 * @since 3.0.0
 		 * @package Vendidero/Shiptastic
 		 */
 		wp_send_json( apply_filters( 'woocommerce_shiptastic_json_search_found_shipment_orders', $found_orders ) );

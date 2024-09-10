@@ -38,7 +38,6 @@ class ReturnLabel extends Label implements ShipmentReturnLabel {
 	/**
 	 * Gets a prop for a getter method.
 	 *
-	 * @since  3.0.0
 	 * @param  string $prop Name of prop to get.
 	 * @param  string $address billing or shipping.
 	 * @param  string $context What the value is for. Valid values are view and edit.

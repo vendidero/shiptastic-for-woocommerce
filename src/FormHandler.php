@@ -39,7 +39,6 @@ class FormHandler {
 		 * @param string  $message  The success message.
 		 * @param boolean $needs_manual_confirmation Whether the request needs manual confirmation or not.
 		 *
-		 * @since 3.1.0
 		 * @package Vendidero/Shiptastic
 		 */
 		$success_message = apply_filters( 'woocommerce_shiptastic_customer_new_return_shipment_request_success_message', $default_message, $needs_manual_confirmation );
@@ -270,7 +269,6 @@ class FormHandler {
 					 * @param string    $status The default status.
 					 * @param WC_Order $order The order object.
 					 *
-					 * @since 3.1.0
 					 * @package Vendidero/Shiptastic
 					 */
 					'status'                => apply_filters( 'woocommerce_shiptastic_customer_new_return_shipment_request_status', $default_status, $order ),
@@ -300,7 +298,6 @@ class FormHandler {
 			 * @param ReturnShipment $shipment The return shipment object.
 			 * @param WC_Order      $order The order object.
 			 *
-			 * @since 3.1.0
 			 * @package Vendidero/Shiptastic
 			 */
 			do_action( 'woocommerce_shiptastic_new_customer_return_shipment_request', $return_shipment, $order );
@@ -330,7 +327,6 @@ class FormHandler {
 			 * @param ReturnShipment $shipment The return shipment object.
 			 * @param boolean        $needs_manual_confirmation Whether the request needs manual confirmation or not.
 			 *
-			 * @since 3.1.0
 			 * @package Vendidero/Shiptastic
 			 */
 			$redirect = apply_filters( 'woocommerce_shiptastic_customer_new_return_shipment_request_redirect', $return_url, $return_shipment, $needs_manual_confirmation );

@@ -59,7 +59,6 @@ if ( ! class_exists( 'WC_STC_Email_Customer_Guest_Return_Shipment_Request', fals
 		/**
 		 * Get email subject.
 		 *
-		 * @since  3.1.0
 		 * @return string
 		 */
 		public function get_default_subject() {
@@ -69,7 +68,6 @@ if ( ! class_exists( 'WC_STC_Email_Customer_Guest_Return_Shipment_Request', fals
 		/**
 		 * Get email heading.
 		 *
-		 * @since  3.1.0
 		 * @return string
 		 */
 		public function get_default_heading() {
@@ -139,7 +137,6 @@ if ( ! class_exists( 'WC_STC_Email_Customer_Guest_Return_Shipment_Request', fals
 		 *
 		 * Displayed above the footer.
 		 *
-		 * @since 2.0.4
 		 * @return string
 		 */
 		public function get_additional_content() {
@@ -193,7 +190,6 @@ if ( ! class_exists( 'WC_STC_Email_Customer_Guest_Return_Shipment_Request', fals
 		/**
 		 * Default content to show below main email content.
 		 *
-		 * @since 1.0.1
 		 * @return string
 		 */
 		public function get_default_additional_content() {

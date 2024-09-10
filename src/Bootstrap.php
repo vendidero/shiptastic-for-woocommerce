@@ -8,7 +8,6 @@ use Vendidero\Shiptastic\ShippingMethod\MethodHelper;
 /**
  * Takes care of bootstrapping the plugin.
  *
- * @since 2.5.0
  */
 class Bootstrap {
 

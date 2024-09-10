@@ -23,7 +23,6 @@ defined( 'ABSPATH' ) || exit;
  * @param \Vendidero\Shiptastic\Shipment[] $shipments The shipment instances.
  * @param WC_Order                                   $order The order instance.
  *
- * @since 3.0.0
  * @package Vendidero/Shiptastic
  */
 do_action( 'woocommerce_shiptastic_before_account_shipments', $shipments, $order ); ?>
@@ -57,7 +56,6 @@ do_action( 'woocommerce_shiptastic_before_account_shipments', $shipments, $order
 						 * @param \Vendidero\Shiptastic\Shipment $shipment The shipment instance.
 						 * @param WC_Order                                 $order The order instance.
 						 *
-						 * @since 3.0.0
 						 * @package Vendidero/Shiptastic
 						 */
 						do_action( 'woocommerce_shiptastic_my_account_shipments_column_' . $column_id, $shipment, $order );
@@ -109,7 +107,6 @@ do_action( 'woocommerce_shiptastic_before_account_shipments', $shipments, $order
  *
  * @param Shipment[] $shipments Array of shipments.
  *
- * @since 3.0.0
  * @package Vendidero/Shiptastic
  */
 do_action( 'woocommerce_shiptastic_after_account_shipments', $shipments ); ?>

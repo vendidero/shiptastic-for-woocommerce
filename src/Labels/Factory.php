@@ -68,7 +68,6 @@ class Factory {
 		 * @param integer $label_id The label id.
 		 * @param string  $label_type The label type.
 		 *
-		 * @since 3.0.0
 		 */
 		$classname = apply_filters( 'woocommerce_shiptastic_shipment_label_class', $classname, $label_id, $label_type, $shipping_provider );
 

@@ -36,7 +36,6 @@ defined( 'ABSPATH' ) || exit;
  *
  * @param int $shipment_id The shipment id.
  *
- * @since 3.0.0
  * @package Vendidero/Shiptastic
  */
 do_action( 'woocommerce_shiptastic_view_shipment', $shipment_id ); ?>

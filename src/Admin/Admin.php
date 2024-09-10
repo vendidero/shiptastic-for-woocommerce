@@ -973,7 +973,6 @@ class Admin {
 			 *
 			 * @param boolean $show_count Whether to show count or not.
 			 *
-			 * @since 3.1.3
 			 * @package Vendidero/Shiptastic
 			 */
 			if ( apply_filters( 'woocommerce_shiptastic_include_requested_return_count_in_menu', true ) && current_user_can( 'edit_others_shop_orders' ) ) {
@@ -1030,7 +1029,6 @@ class Admin {
 		 * @param array    $item_columns The columns available.
 		 * @param Shipment $shipment The shipment.
 		 *
-		 * @since 3.1.0
 		 * @package Vendidero/Shiptastic
 		 */
 		return apply_filters( 'woocommerce_shiptastic_meta_box_shipment_item_columns', $item_columns, $shipment );
@@ -1916,7 +1914,6 @@ class Admin {
 			 *
 			 * @param array $handlers Array containing key => classname.
 			 *
-			 * @since 3.0.0
 			 * @package Vendidero/Shiptastic
 			 */
 			$handlers = apply_filters(

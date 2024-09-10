@@ -23,7 +23,6 @@ class Shipment extends WC_Data_Store_WP implements WC_Object_Data_Store_Interfac
 	/**
 	 * Data stored in meta keys, but not considered "meta" for an order.
 	 *
-	 * @since 3.0.0
 	 * @var array
 	 */
 	protected $internal_meta_keys = array(
@@ -137,7 +136,6 @@ class Shipment extends WC_Data_Store_WP implements WC_Object_Data_Store_Interfac
 			 * @param integer  $shipment_id The shipment id.
 			 * @param Shipment $shipment The shipment instance.
 			 *
-			 * @since 3.0.0
 			 * @package Vendidero/Shiptastic
 			 */
 			do_action( "woocommerce_shiptastic_new_{$hook_postfix}shipment", $shipment_id, $shipment );
@@ -147,7 +145,6 @@ class Shipment extends WC_Data_Store_WP implements WC_Object_Data_Store_Interfac
 	/**
 	 * Get the status to save to the object.
 	 *
-	 * @since 3.6.0
 	 * @param \Vendidero\Shiptastic\Shipment $shipment Shipment object.
 	 * @return string
 	 */
@@ -251,7 +248,6 @@ class Shipment extends WC_Data_Store_WP implements WC_Object_Data_Store_Interfac
 		 * @param integer  $shipment_id The shipment id.
 		 * @param Shipment $shipment The shipment instance.
 		 *
-		 * @since 3.0.0
 		 * @package Vendidero/Shiptastic
 		 */
 		do_action( "woocommerce_shiptastic_{$hook_postfix}shipment_updated", $shipment->get_id(), $shipment );
@@ -260,7 +256,6 @@ class Shipment extends WC_Data_Store_WP implements WC_Object_Data_Store_Interfac
 	/**
 	 * Remove a shipment from the database.
 	 *
-	 * @since 3.0.0
 	 * @param \Vendidero\Shiptastic\Shipment $shipment Shipment object.
 	 * @param bool                $force_delete Unused param.
 	 */
@@ -284,7 +279,6 @@ class Shipment extends WC_Data_Store_WP implements WC_Object_Data_Store_Interfac
 		 * @param integer                                  $shipment_id The shipment id.
 		 * @param \Vendidero\Shiptastic\Shipment $shipment The shipment object.
 		 *
-		 * @since 3.0.0
 		 * @package Vendidero/Shiptastic
 		 */
 		do_action( "woocommerce_shiptastic_{$hook_postfix}shipment_deleted", $shipment->get_id(), $shipment );
@@ -293,7 +287,6 @@ class Shipment extends WC_Data_Store_WP implements WC_Object_Data_Store_Interfac
 	/**
 	 * Read a shipment from the database.
 	 *
-	 * @since 3.0.0
 	 *
 	 * @param \Vendidero\Shiptastic\Shipment $shipment Shipment object.
 	 *
@@ -342,7 +335,6 @@ class Shipment extends WC_Data_Store_WP implements WC_Object_Data_Store_Interfac
 			 *
 			 * @param \Vendidero\Shiptastic\Shipment $shipment The shipment object.
 			 *
-			 * @since 3.0.0
 			 * @package Vendidero/Shiptastic
 			 */
 			do_action( "woocommerce_shiptastic_{$hook_postfix}shipment_loaded", $shipment );
@@ -355,7 +347,6 @@ class Shipment extends WC_Data_Store_WP implements WC_Object_Data_Store_Interfac
 	 * Clear any caches.
 	 *
 	 * @param \Vendidero\Shiptastic\Shipment $shipment Shipment object.
-	 * @since 3.0.0
 	 */
 	protected function clear_caches( &$shipment ) {
 		wp_cache_delete( 'shipment-items-' . $shipment->get_id(), 'shiptastic-shipments' );
@@ -438,7 +429,6 @@ class Shipment extends WC_Data_Store_WP implements WC_Object_Data_Store_Interfac
 	 * Read extra data associated with the shipment.
 	 *
 	 * @param \Vendidero\Shiptastic\Shipment $shipment Shipment object.
-	 * @since 3.0.0
 	 */
 	protected function read_shipment_data( &$shipment ) {
 		$props = array();
@@ -503,7 +493,6 @@ class Shipment extends WC_Data_Store_WP implements WC_Object_Data_Store_Interfac
 		 * @param \Vendidero\Shiptastic\Shipment $shipment The shipment object.
 		 * @param array                                    $changed_props The updated properties.
 		 *
-		 * @since 3.0.0
 		 * @package Vendidero/Shiptastic
 		 */
 		do_action( 'woocommerce_shiptastic_shipment_object_updated_props', $shipment, $updated_props );
@@ -522,7 +511,6 @@ class Shipment extends WC_Data_Store_WP implements WC_Object_Data_Store_Interfac
 	 * @param string  $meta_key Meta key to update.
 	 * @param mixed   $meta_value Value to save.
 	 *
-	 * @since 3.6.0 Added to prevent empty meta being stored unless required.
 	 *
 	 * @return bool True if updated/deleted.
 	 */
@@ -606,7 +594,6 @@ class Shipment extends WC_Data_Store_WP implements WC_Object_Data_Store_Interfac
 	/**
 	 * Get valid WP_Query args from a WC_Order_Query's query variables.
 	 *
-	 * @since 3.0.6
 	 * @param array $query_vars query vars from a WC_Order_Query.
 	 * @return array
 	 */
@@ -674,7 +661,6 @@ class Shipment extends WC_Data_Store_WP implements WC_Object_Data_Store_Interfac
 		 * @param array                                               $query_vars The original query arguments.
 		 * @param Shipment $data_store The shipment data store object.
 		 *
-		 * @since 3.0.0
 		 * @package Vendidero/Shiptastic
 		 */
 		return apply_filters( 'woocommerce_shiptastic_shipping_data_store_get_shipments_query', $wp_query_args, $query_vars, $this );
@@ -683,7 +669,6 @@ class Shipment extends WC_Data_Store_WP implements WC_Object_Data_Store_Interfac
 	/**
 	 * Table structure is slightly different between meta types, this function will return what we need to know.
 	 *
-	 * @since  3.0.0
 	 * @return array Array elements: table, object_id_field, meta_id_field
 	 */
 	protected function get_db_info() {

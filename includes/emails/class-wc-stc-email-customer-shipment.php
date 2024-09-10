@@ -84,7 +84,6 @@ if ( ! class_exists( 'WC_STC_Email_Customer_Shipment', false ) ) :
 		 * Get email subject.
 		 *
 		 * @param bool $partial Whether it is a partial refund or a full refund.
-		 * @since  3.1.0
 		 * @return string
 		 */
 		public function get_default_subject( $partial = false ) {
@@ -99,7 +98,6 @@ if ( ! class_exists( 'WC_STC_Email_Customer_Shipment', false ) ) :
 		 * Get email heading.
 		 *
 		 * @param bool $partial Whether it is a partial refund or a full refund.
-		 * @since  3.1.0
 		 * @return string
 		 */
 		public function get_default_heading( $partial = false ) {
@@ -128,7 +126,6 @@ if ( ! class_exists( 'WC_STC_Email_Customer_Shipment', false ) ) :
 			 * @param string                         $subject The subject.
 			 * @param WC_STC_Email_Customer_Shipment $email The email instance.
 			 *
-			 * @since 3.0.0
 			 * @package Vendidero/Shiptastic
 			 */
 			return apply_filters( 'woocommerce_email_subject_customer_shipment', $this->format_string( $subject ), $this->object, $this );
@@ -152,7 +149,6 @@ if ( ! class_exists( 'WC_STC_Email_Customer_Shipment', false ) ) :
 			 * @param string                         $heading The heading.
 			 * @param WC_STC_Email_Customer_Shipment $email The email instance.
 			 *
-			 * @since 3.0.0
 			 * @package Vendidero/Shiptastic
 			 */
 			return apply_filters( 'woocommerce_email_heading_customer_shipment', $this->format_string( $heading ), $this->object, $this );
@@ -270,7 +266,6 @@ if ( ! class_exists( 'WC_STC_Email_Customer_Shipment', false ) ) :
 		 *
 		 * Displayed above the footer.
 		 *
-		 * @since 2.0.4
 		 * @return string
 		 */
 		public function get_additional_content() {
@@ -330,7 +325,6 @@ if ( ! class_exists( 'WC_STC_Email_Customer_Shipment', false ) ) :
 		/**
 		 * Default content to show below main email content.
 		 *
-		 * @since 1.0.1
 		 * @return string
 		 */
 		public function get_default_additional_content() {

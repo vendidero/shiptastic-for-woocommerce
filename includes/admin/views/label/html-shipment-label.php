@@ -71,7 +71,6 @@ if ( $label ) {
 					 * @param ShipmentLabel $label The label object.
 					 * @param Shipment                 $shipment The shipment object.
 					 *
-					 * @since 3.0.6
 					 * @package Vendidero/Shiptastic
 					 */
 					do_action( 'woocommerce_shiptastic_shipment_label_admin_after_download', $label, $shipment );

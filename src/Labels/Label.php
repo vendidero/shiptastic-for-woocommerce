@@ -21,7 +21,6 @@ class Label extends WC_Data implements ShipmentLabel {
 	/**
 	 * This is the name of this object type.
 	 *
-	 * @since 3.0.0
 	 * @var string
 	 */
 	protected $object_type = 'shipment_label';
@@ -37,7 +36,6 @@ class Label extends WC_Data implements ShipmentLabel {
 	 * Stores meta in cache for future reads.
 	 * A group must be set to to enable caching.
 	 *
-	 * @since 3.0.0
 	 * @var string
 	 */
 	protected $cache_group = 'shipment-labels';
@@ -113,7 +111,6 @@ class Label extends WC_Data implements ShipmentLabel {
 	 * array_replace_recursive does not work well for license because it merges domains registered instead
 	 * of replacing them.
 	 *
-	 * @since 3.2.0
 	 */
 	public function apply_changes() {
 		if ( function_exists( 'array_replace' ) ) {
@@ -129,7 +126,6 @@ class Label extends WC_Data implements ShipmentLabel {
 	/**
 	 * Prefix for action and filter hooks on data.
 	 *
-	 * @since  3.0.0
 	 * @return string
 	 */
 	protected function get_general_hook_prefix() {
@@ -141,7 +137,6 @@ class Label extends WC_Data implements ShipmentLabel {
 	/**
 	 * Prefix for action and filter hooks on data.
 	 *
-	 * @since  3.0.0
 	 * @return string
 	 */
 	protected function get_hook_prefix() {
@@ -151,7 +146,6 @@ class Label extends WC_Data implements ShipmentLabel {
 	/**
 	 * Return the date this license was created.
 	 *
-	 * @since  3.0.0
 	 * @param  string $context What the value is for. Valid values are 'view' and 'edit'.
 	 * @return WC_DateTime|null object if the date is set or null if there is no date.
 	 */
@@ -332,7 +326,6 @@ class Label extends WC_Data implements ShipmentLabel {
 	/**
 	 * Set the date this license was last updated.
 	 *
-	 * @since  1.0.0
 	 * @param  string|integer|null $date UTC timestamp, or ISO 8601 DateTime. If the DateTime string has no timezone or offset, WordPress site timezone will be assumed. Null if their is no date.
 	 */
 	public function set_date_created( $date = null ) {
@@ -580,7 +573,6 @@ class Label extends WC_Data implements ShipmentLabel {
 		 * @param string $url The download URL.
 		 * @param Label  $label The current shipment instance.
 		 *
-		 * @since 3.0.6
 		 * @package Vendidero/Shiptastic
 		 */
 		return esc_url_raw( apply_filters( "{$this->get_hook_prefix()}download_url", $download_url, $this ) );
@@ -708,7 +700,6 @@ class Label extends WC_Data implements ShipmentLabel {
 	/**
 	 * Gets a prop for a getter method.
 	 *
-	 * @since  3.0.0
 	 * @param  string $prop Name of prop to get.
 	 * @param  string $address billing or shipping.
 	 * @param  string $context What the value is for. Valid values are view and edit.
@@ -734,7 +725,6 @@ class Label extends WC_Data implements ShipmentLabel {
 				 * @param string $value The address property value.
 				 * @param Label  $label The label object.
 				 *
-				 * @since 3.0.0
 				 */
 				$value = apply_filters( "{$this->get_hook_prefix()}{$address}_{$prop}", $value, $this );
 			}

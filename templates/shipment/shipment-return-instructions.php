@@ -34,7 +34,6 @@ $provider = $shipment->get_shipping_provider_instance();
  *
  * @param ReturnShipment $shipment The shipment instance.
  *
- * @since 3.1.0
  * @package Vendidero/Shiptastic
  */
 do_action( 'woocommerce_shiptastic_return_shipment_after_instructions', $shipment ); ?>

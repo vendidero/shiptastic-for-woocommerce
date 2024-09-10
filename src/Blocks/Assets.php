@@ -136,8 +136,6 @@ final class Assets {
 	/**
 	 * Registers a style according to `wp_register_style`.
 	 *
-	 * @since 2.5.0
-	 * @since 2.6.0 Change src to be relative source.
 	 *
 	 * @param string  $handle       Name of the stylesheet. Should be unique.
 	 * @param string  $relative_src Relative source of the stylesheet to the plugin path.

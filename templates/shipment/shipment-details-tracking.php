@@ -37,7 +37,6 @@ defined( 'ABSPATH' ) || exit;
  *
  * @param Shipment $shipment The shipment instance.
  *
- * @since 3.0.0
  * @package Vendidero/Shiptastic
  */
 do_action( 'woocommerce_shiptastic_shipment_details_after_tracking_details', $shipment ); ?>

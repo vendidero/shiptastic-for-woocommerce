@@ -5,14 +5,13 @@
  * Description: Create and manage shipments for orders and use shipping rules to build extensive shipping scenarios.
  * Author: vendidero
  * Author URI: https://vendidero.de
- * Version: 3.5.2
+ * Version: 1.0.0
  * Requires PHP: 5.6
  * License: GPLv3
  * Requires Plugins: woocommerce
  * WC requires at least: 3.9.0
  * WC tested up to: 9.2.3
  */
-
 defined( 'ABSPATH' ) || exit;
 
 if ( ! defined( 'WC_STC_IS_STANDALONE_PLUGIN' ) ) {

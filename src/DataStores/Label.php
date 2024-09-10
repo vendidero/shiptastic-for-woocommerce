@@ -35,7 +35,6 @@ class Label extends WC_Data_Store_WP implements WC_Object_Data_Store_Interface {
 	/**
 	 * Data stored in meta keys, but not considered "meta" for an order.
 	 *
-	 * @since 3.0.0
 	 * @var array
 	 */
 	protected $internal_meta_keys = array(
@@ -107,7 +106,6 @@ class Label extends WC_Data_Store_WP implements WC_Object_Data_Store_Interface {
 			 * @param integer $label_id The label id.
 			 * @param Label   $label The label instance.
 			 *
-			 * @since 3.0.0
 			 */
 			do_action( "woocommerce_shiptastic_shipment_{$hook_postfix}label_created", $label_id, $label );
 		}
@@ -185,7 +183,6 @@ class Label extends WC_Data_Store_WP implements WC_Object_Data_Store_Interface {
 		 * @param Label   $label The label instance.
 		 * @param array   $changed_props Properties that have been changed.
 		 *
-		 * @since 3.0.0
 		 */
 		do_action( "woocommerce_shiptastic_shipment_{$hook_postfix}label_updated", $label->get_id(), $label, $changed_props );
 	}
@@ -193,7 +190,6 @@ class Label extends WC_Data_Store_WP implements WC_Object_Data_Store_Interface {
 	/**
 	 * Remove a shipment from the database.
 	 *
-	 * @since 3.0.0
 	 * @param \Vendidero\Shiptastic\Labels\Label $label Label object.
 	 * @param bool                $force_delete Unused param.
 	 */
@@ -235,7 +231,6 @@ class Label extends WC_Data_Store_WP implements WC_Object_Data_Store_Interface {
 		 * @param integer                            $label_id The label id.
 		 * @param \Vendidero\Shiptastic\Labels\Label $label The label object.
 		 *
-		 * @since 3.0.0
 		 */
 		do_action( "woocommerce_shiptastic_shipment_{$hook_postfix}label_deleted", $label->get_id(), $label );
 	}
@@ -243,7 +238,6 @@ class Label extends WC_Data_Store_WP implements WC_Object_Data_Store_Interface {
 	/**
 	 * Read a shipment from the database.
 	 *
-	 * @since 3.0.0
 	 *
 	 * @param \Vendidero\Shiptastic\Labels\Label $label Label object.
 	 *
@@ -286,7 +280,6 @@ class Label extends WC_Data_Store_WP implements WC_Object_Data_Store_Interface {
 			 *
 			 * @param \Vendidero\Shiptastic\Labels\Label $label The label object.
 			 *
-			 * @since 3.0.0
 			 */
 			do_action( "woocommerce_shiptastic_shipment_{$hook_postfix}label_loaded", $label );
 		} else {
@@ -298,7 +291,6 @@ class Label extends WC_Data_Store_WP implements WC_Object_Data_Store_Interface {
 	 * Clear any caches.
 	 *
 	 * @param \Vendidero\Shiptastic\Labels\Label $label Label object.
-	 * @since 3.0.0
 	 */
 	protected function clear_caches( &$label ) {
 		wp_cache_delete( $label->get_id(), $this->meta_type . '_meta' );
@@ -344,7 +336,6 @@ class Label extends WC_Data_Store_WP implements WC_Object_Data_Store_Interface {
 	 * Read extra data associated with the shipment.
 	 *
 	 * @param \Vendidero\Shiptastic\Labels\Label $label Label object.
-	 * @since 3.0.0
 	 */
 	protected function read_label_data( &$label ) {
 		$props     = array();
@@ -413,7 +404,6 @@ class Label extends WC_Data_Store_WP implements WC_Object_Data_Store_Interface {
 		 * @param \Vendidero\Shiptastic\Labels\Label $label The label object.
 		 * @param array                           $updated_props The updated properties.
 		 *
-		 * @since 3.0.0
 		 */
 		do_action( 'woocommerce_shiptastic_shipment_label_object_updated_props', $label, $updated_props );
 	}
@@ -431,7 +421,6 @@ class Label extends WC_Data_Store_WP implements WC_Object_Data_Store_Interface {
 	 * @param string  $meta_key Meta key to update.
 	 * @param mixed   $meta_value Value to save.
 	 *
-	 * @since 3.6.0 Added to prevent empty meta being stored unless required.
 	 *
 	 * @return bool True if updated/deleted.
 	 */
@@ -448,7 +437,6 @@ class Label extends WC_Data_Store_WP implements WC_Object_Data_Store_Interface {
 	/**
 	 * Get valid WP_Query args from a WC_Order_Query's query variables.
 	 *
-	 * @since 3.0.6
 	 * @param array $query_vars query vars from a WC_Order_Query.
 	 * @return array
 	 */
@@ -513,7 +501,6 @@ class Label extends WC_Data_Store_WP implements WC_Object_Data_Store_Interface {
 		 * @param array                                      $query_vars    Original query arguments.
 		 * @param Label $data_store The label data store.
 		 *
-		 * @since 3.0.0
 		 */
 		return apply_filters( 'woocommerce_shiptastic_shipment_label_data_store_get_labels_query', $wp_query_args, $query_vars, $this );
 	}
@@ -525,7 +512,6 @@ class Label extends WC_Data_Store_WP implements WC_Object_Data_Store_Interface {
 	/**
 	 * Table structure is slightly different between meta types, this function will return what we need to know.
 	 *
-	 * @since  3.0.0
 	 * @return array Array elements: table, object_id_field, meta_id_field
 	 */
 	protected function get_db_info() {

@@ -20,7 +20,6 @@ class ShippingProvider extends WC_Data_Store_WP implements WC_Object_Data_Store_
 	/**
 	 * Data stored in meta keys, but not considered "meta" for an order.
 	 *
-	 * @since 3.0.0
 	 * @var array
 	 */
 	protected $internal_meta_keys = array(
@@ -100,7 +99,6 @@ class ShippingProvider extends WC_Data_Store_WP implements WC_Object_Data_Store_
 			 * @param integer                                                     $provider_id The provider id.
 			 * @param \Vendidero\Shiptastic\ShippingProvider\Simple $shipping_provider The shipping provider instance.
 			 *
-			 * @since 3.0.0
 			 * @package Vendidero/Shiptastic
 			 */
 			do_action( 'woocommerce_shiptastic_new_shipping_provider', $provider_id, $provider );
@@ -110,7 +108,6 @@ class ShippingProvider extends WC_Data_Store_WP implements WC_Object_Data_Store_
 	/**
 	 * Generate a unique name to save to the object.
 	 *
-	 * @since 3.6.0
 	 * @param \Vendidero\Shiptastic\ShippingProvider\Simple $provider Shipping provider object.
 	 * @return string
 	 */
@@ -206,7 +203,6 @@ class ShippingProvider extends WC_Data_Store_WP implements WC_Object_Data_Store_
 		 * @param integer                                                     $shipping_provider_id The shipping provider id.
 		 * @param \Vendidero\Shiptastic\ShippingProvider\Simple $shipping_provider The shipping provider instance.
 		 *
-		 * @since 3.0.0
 		 * @package Vendidero/Shiptastic
 		 */
 		do_action( 'woocommerce_shiptastic_shipping_provider_updated', $provider->get_id(), $provider );
@@ -215,7 +211,6 @@ class ShippingProvider extends WC_Data_Store_WP implements WC_Object_Data_Store_
 	/**
 	 * Remove a shipping provider from the database.
 	 *
-	 * @since 3.0.0
 	 * @param \Vendidero\Shiptastic\ShippingProvider\Simple $provider Shipping provider object.
 	 * @param bool                $force_delete Unused param.
 	 */
@@ -233,7 +228,6 @@ class ShippingProvider extends WC_Data_Store_WP implements WC_Object_Data_Store_
 		 * @param integer                                                     $shipping_provider_id The shipping provider id.
 		 * @param \Vendidero\Shiptastic\ShippingProvider\Simple $provider The shipping provider object.
 		 *
-		 * @since 3.0.0
 		 * @package Vendidero/Shiptastic
 		 */
 		do_action( 'woocommerce_shiptastic_shipping_provider_deleted', $provider->get_id(), $provider );
@@ -242,7 +236,6 @@ class ShippingProvider extends WC_Data_Store_WP implements WC_Object_Data_Store_
 	/**
 	 * Read a shipping provider from the database.
 	 *
-	 * @since 3.0.0
 	 *
 	 * @param \Vendidero\Shiptastic\ShippingProvider\Simple $provider Shipping provider object.
 	 *
@@ -278,7 +271,6 @@ class ShippingProvider extends WC_Data_Store_WP implements WC_Object_Data_Store_
 			 *
 			 * @param \Vendidero\Shiptastic\ShippingProvider\Simple $provider The shipping provider object.
 			 *
-			 * @since 3.0.0
 			 * @package Vendidero/Shiptastic
 			 */
 			do_action( 'woocommerce_shiptastic_shipping_provider_loaded', $provider );
@@ -297,7 +289,6 @@ class ShippingProvider extends WC_Data_Store_WP implements WC_Object_Data_Store_
 	 * Clear any caches.
 	 *
 	 * @param \Vendidero\Shiptastic\ShippingProvider\Simple $provider Shipping provider object.
-	 * @since 3.0.0
 	 */
 	protected function clear_caches( &$provider ) {
 		wp_cache_delete( $provider->get_id(), $this->meta_type . '_meta' );
@@ -318,7 +309,6 @@ class ShippingProvider extends WC_Data_Store_WP implements WC_Object_Data_Store_
 	 * Read extra data associated with the shipping provider.
 	 *
 	 * @param \Vendidero\Shiptastic\ShippingProvider\Simple $provider Shipping provider object.
-	 * @since 3.0.0
 	 */
 	protected function read_provider_data( &$provider ) {
 		$props     = array();
@@ -401,7 +391,6 @@ class ShippingProvider extends WC_Data_Store_WP implements WC_Object_Data_Store_
 		 * @param \Vendidero\Shiptastic\ShippingProvider\Simple $provider The shipping provider object.
 		 * @param array                                                       $changed_props The updated properties.
 		 *
-		 * @since 3.0.0
 		 * @package Vendidero/Shiptastic
 		 */
 		do_action( 'woocommerce_shiptastic_shipping_provider_object_updated_props', $provider, $updated_props );
@@ -420,7 +409,6 @@ class ShippingProvider extends WC_Data_Store_WP implements WC_Object_Data_Store_
 	 * @param string  $meta_key Meta key to update.
 	 * @param mixed   $meta_value Value to save.
 	 *
-	 * @since 3.6.0 Added to prevent empty meta being stored unless required.
 	 *
 	 * @return bool True if updated/deleted.
 	 */
@@ -437,7 +425,6 @@ class ShippingProvider extends WC_Data_Store_WP implements WC_Object_Data_Store_
 	/**
 	 * Table structure is slightly different between meta types, this function will return what we need to know.
 	 *
-	 * @since  3.0.0
 	 * @return array Array elements: table, object_id_field, meta_id_field
 	 */
 	protected function get_db_info() {

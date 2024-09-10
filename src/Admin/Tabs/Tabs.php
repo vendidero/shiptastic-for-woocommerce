@@ -164,7 +164,6 @@ class Tabs extends \WC_Settings_Page {
 			/**
 			 * This action indicates that the admin settings scripts are enqueued.
 			 *
-			 * @since 3.0.0
 			 */
 			do_action( 'woocommerce_shiptastic_admin_settings_scripts' );
 		}
@@ -193,7 +192,6 @@ class Tabs extends \WC_Settings_Page {
 		 *
 		 * @param array $tabs Array containing key => value pairs of tab name and class name.
 		 *
-		 * @since 3.0.0
 		 *
 		 */
 		$tabs = apply_filters(

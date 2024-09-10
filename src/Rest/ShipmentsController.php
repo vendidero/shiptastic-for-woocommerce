@@ -150,7 +150,6 @@ class ShipmentsController extends \WC_REST_Controller {
 	 * @param WP_REST_Request $request Full details about the request.
 	 *
 	 * @return true|WP_Error True if the request has read access for the item, WP_Error object otherwise.
-	 * @since 4.7.0
 	 */
 	public function get_item_permissions_check( $request ) {
 		if ( ! $this->check_permissions( 'shipment', 'read', $request['id'] ) ) {
@@ -179,7 +178,6 @@ class ShipmentsController extends \WC_REST_Controller {
 	 * @param WP_REST_Request $request Full details about the request.
 	 *
 	 * @return true|WP_Error True if the request has read access for the item, WP_Error object otherwise.
-	 * @since 4.7.0
 	 */
 	public function get_items_permissions_check( $request ) {
 		if ( ! $this->check_permissions() ) {
@@ -207,7 +205,6 @@ class ShipmentsController extends \WC_REST_Controller {
 	 * @param WP_REST_Request $request Full details about the request.
 	 *
 	 * @return WP_REST_Response|WP_Error Response object on success, or WP_Error object on failure.
-	 * @since 4.7.0
 	 */
 	public function get_items( $request ) {
 		$prepared_args = array(
@@ -292,7 +289,6 @@ class ShipmentsController extends \WC_REST_Controller {
 	 * @param WP_REST_Request $request Full details about the request.
 	 *
 	 * @return true|WP_Error True if the request has access to update the item, WP_Error object otherwise.
-	 * @since 4.7.0
 	 */
 	public function update_item_permissions_check( $request ) {
 		if ( ! $this->check_permissions( 'shipment', 'edit', $request['id'] ) ) {
@@ -308,7 +304,6 @@ class ShipmentsController extends \WC_REST_Controller {
 	 * @param WP_REST_Request $request Full details about the request.
 	 *
 	 * @return true|WP_Error True if the request has access to create the item, WP_Error object otherwise.
-	 * @since 4.7.0
 	 */
 	public function create_item_permissions_check( $request ) {
 		if ( ! $this->check_permissions( 'shipment', 'create' ) ) {
@@ -753,7 +748,6 @@ class ShipmentsController extends \WC_REST_Controller {
 	/**
 	 * Save an object data.
 	 *
-	 * @since  3.0.0
 	 * @param  WP_REST_Request $request  Full details about the request.
 	 * @param  bool            $creating If is creating a new object.
 	 * @return Shipment|WP_Error
@@ -867,7 +861,6 @@ class ShipmentsController extends \WC_REST_Controller {
 	/**
 	 * Prepares the object for the REST response.
 	 *
-	 * @since  3.0.0
 	 * @param  Shipment        $shipment  Object data.
 	 * @param  WP_REST_Request $request Request object.
 	 * @return WP_Error|WP_REST_Response Response object on success, or WP_Error object on failure.
@@ -937,7 +930,6 @@ class ShipmentsController extends \WC_REST_Controller {
 	 * @param WP_REST_Request $request Full details about the request.
 	 *
 	 * @return true|WP_Error True if the request has access to delete the item, WP_Error object otherwise.
-	 * @since 4.7.0
 	 */
 	public function delete_item_permissions_check( $request ) {
 		if ( ! $this->check_permissions( 'shipment', 'delete', $request['id'] ) ) {
@@ -953,7 +945,6 @@ class ShipmentsController extends \WC_REST_Controller {
 	 * @param WP_REST_Request $request Full details about the request.
 	 *
 	 * @return WP_REST_Response|WP_Error Response object on success, or WP_Error object on failure.
-	 * @since 4.7.0
 	 */
 	public function delete_item( $request ) {
 		$force    = (bool) $request['force'];
@@ -976,7 +967,6 @@ class ShipmentsController extends \WC_REST_Controller {
 	 * @param WP_REST_Request $request Full details about the request.
 	 *
 	 * @return true|WP_Error True if the request has read access for the item, WP_Error object otherwise.
-	 * @since 4.7.0
 	 */
 	public function get_label_permissions_check( $request ) {
 		if ( ! $this->check_permissions( 'shipment_label', 'read', $request['id'] ) ) {
@@ -992,7 +982,6 @@ class ShipmentsController extends \WC_REST_Controller {
 	 * @param WP_REST_Request $request Full details about the request.
 	 *
 	 * @return WP_REST_Response|WP_Error Response object on success, or WP_Error object on failure.
-	 * @since 4.7.0
 	 */
 	public function get_label( $request ) {
 		$shipment = $this->get_shipment( (int) $request['id'] );
@@ -1115,7 +1104,6 @@ class ShipmentsController extends \WC_REST_Controller {
 	 * @param WP_REST_Request $request Full details about the request.
 	 *
 	 * @return true|WP_Error True if the request has access to delete the item, WP_Error object otherwise.
-	 * @since 4.7.0
 	 */
 	public function create_label_permissions_check( $request ) {
 		if ( ! $this->check_permissions( 'shipment_label', 'create' ) ) {
@@ -1131,7 +1119,6 @@ class ShipmentsController extends \WC_REST_Controller {
 	 * @param WP_REST_Request $request Full details about the request.
 	 *
 	 * @return true|WP_Error True if the request has access to delete the item, WP_Error object otherwise.
-	 * @since 4.7.0
 	 */
 	public function delete_label_permissions_check( $request ) {
 		if ( ! $this->check_permissions( 'shipment_label', 'delete', $request['id'] ) ) {
@@ -1145,7 +1132,6 @@ class ShipmentsController extends \WC_REST_Controller {
 	 * Retrieves the item's schema, conforming to JSON Schema.
 	 *
 	 * @return array Item schema data.
-	 * @since 4.7.0
 	 */
 	public function get_item_schema() {
 		return $this->add_additional_fields_schema( self::get_single_item_schema() );

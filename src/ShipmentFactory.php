@@ -66,7 +66,6 @@ class ShipmentFactory {
 		 * @param integer $shipment_id The shipment id.
 		 * @param string  $shipment_type The shipment type.
 		 *
-		 * @since 3.0.0
 		 * @package Vendidero/Shiptastic
 		 */
 		$classname = apply_filters( 'woocommerce_shiptastic_shipment_class', $classname, $shipment_id, $shipment_type );

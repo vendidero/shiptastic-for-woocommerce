@@ -77,7 +77,6 @@ class Query extends WC_Object_Query {
 		 *
 		 * @param array $query_vars The query arguments.
 		 *
-		 * @since 3.0.0
 		 */
 		$args = apply_filters( 'woocommerce_shiptastic_shipment_label_query_args', $this->get_query_vars() );
 		$args = WC_Data_Store::load( 'shipment-label' )->get_query_args( $args );
@@ -90,7 +89,6 @@ class Query extends WC_Object_Query {
 		 * @param Label[] $results The results.
 		 * @param array   $args The query arguments.
 		 *
-		 * @since 3.0.0
 		 */
 		return apply_filters( 'woocommerce_shiptastic_shipment_label_query', $this->results, $args );
 	}
@@ -297,7 +295,6 @@ class Query extends WC_Object_Query {
 			 * The default columns depend on the search term, and include 'label_id',
 			 * 'label_shipment_id', 'label_path' and 'label_number'.
 			 *
-			 * @since 3.0.0
 			 *
 			 * @param string[]   $search_columns Array of column names to be searched.
 			 * @param string     $search         Text being searched.
@@ -404,7 +401,6 @@ class Query extends WC_Object_Query {
 	/**
 	 * Used internally to generate an SQL string for searching across multiple columns
 	 *
-	 * @since 3.0.6
 	 *
 	 * @global \wpdb $wpdb WordPress database abstraction object.
 	 *

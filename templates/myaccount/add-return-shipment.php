@@ -43,7 +43,6 @@ defined( 'ABSPATH' ) || exit;
 		 *
 		 * @param WC_Order $order The order instance.
 		 *
-		 * @since 3.1.0
 		 * @package Vendidero/Shiptastic
 		 */
 		do_action( 'woocommerce_shiptastic_add_return_shipment_details_before_shipment_table_items', $order );
@@ -65,7 +64,6 @@ defined( 'ABSPATH' ) || exit;
 		 *
 		 * @param WC_Order $order The order instance.
 		 *
-		 * @since 3.1.0
 		 * @package Vendidero/Shiptastic
 		 */
 		do_action( 'woocommerce_shiptastic_add_return_shipment_details_after_shipment_table_items', $order );
@@ -79,7 +77,6 @@ defined( 'ABSPATH' ) || exit;
 	 *
 	 * @param WC_Order $order The order instance.
 	 *
-	 * @since 3.13.0
 	 * @package Vendidero/Shiptastic
 	 */
 	do_action( 'woocommerce_shiptastic_add_return_shipment_details_after_shipment_table', $order );
@@ -101,7 +98,6 @@ defined( 'ABSPATH' ) || exit;
  *
  * @param int $order_id The order id.
  *
- * @since 3.1.0
  * @package Vendidero/Shiptastic
  */
 do_action( 'woocommerce_shiptastic_add_return_shipment', $order_id ); ?>

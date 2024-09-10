@@ -42,7 +42,6 @@ do_action( 'woocommerce_email_header', $email_heading, $email ); ?>
  * @param boolean                                  $plain_text Whether this email is in plaintext format or not.
  * @param WC_Email                                 $email The email instance.
  *
- * @since 3.0.0
  * @package Vendidero/Shiptastic
  */
 do_action( 'woocommerce_shiptastic_email_shipment_details', $shipment, $sent_to_admin, $plain_text, $email );

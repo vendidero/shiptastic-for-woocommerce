@@ -196,7 +196,6 @@ class BulkLabel extends BulkActionHandler {
 					 * @param string    $filename The filename.
 					 * @param BulkLabel $this The `BulkLabel instance.
 					 *
-					 * @since 3.0.0
 					 * @package Vendidero/Shiptastic
 					 */
 					$filename = apply_filters( 'woocommerce_shiptastic_shipment_labels_bulk_filename', 'export.pdf', $this );

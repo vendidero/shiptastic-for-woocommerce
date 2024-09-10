@@ -79,7 +79,6 @@ $active_shipment = isset( $active_shipment ) ? $active_shipment : false;
 				 *
 				 * @param Order $order_shipment The shipment order object.
 				 *
-				 * @since 3.0.0
 				 * @package Vendidero/Shiptastic
 				 */
 				do_action( 'woocommerce_shiptastic_meta_box_actions', $order_shipment );

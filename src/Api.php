@@ -106,7 +106,6 @@ class Api {
 	/**
 	 * Extend product variation schema.
 	 *
-	 * @since 1.0.0
 	 *
 	 * @param array $schema_properties Data used to create the product.
 	 *
@@ -168,7 +167,6 @@ class Api {
 	/**
 	 * Extend product schema.
 	 *
-	 * @since 1.0.0
 	 *
 	 * @param array $schema_properties Data used to create the product.
 	 *

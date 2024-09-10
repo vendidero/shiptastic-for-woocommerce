@@ -94,7 +94,6 @@ class Automation {
 		 * @param string $status The current order status.
 		 * @param integer $order_id The order id.
 		 *
-		 * @since 3.0.5
 		 * @package Vendidero/Shiptastic
 		 */
 		if ( apply_filters( 'woocommerce_shiptastic_order_completed_status', 'completed', $order_id ) === $new_status ) {
@@ -153,7 +152,6 @@ class Automation {
 			 * @param boolean $mark_as_completed Whether to mark the order as completed or not.
 			 * @param integer $order_id The order id.
 			 *
-			 * @since 3.2.3
 			 * @package Vendidero/Shiptastic
 			 */
 			if ( ! apply_filters( 'woocommerce_shiptastic_shipment_order_mark_as_completed', $mark_as_completed, $order_id ) ) {
@@ -168,7 +166,6 @@ class Automation {
 			 * @param string  $status The order status to be used.
 			 * @param integer $order_id The order id.
 			 *
-			 * @since 3.0.5
 			 * @package Vendidero/Shiptastic
 			 */
 			$order->update_status( apply_filters( 'woocommerce_shiptastic_shipment_order_completed_status', 'completed', $order_id ), _x( 'Order is fully shipped.', 'shipments', 'shiptastic-for-woocommerce' ) );
@@ -211,7 +208,6 @@ class Automation {
 		 * @param integer  $order_id The order id.
 		 * @param WC_Order $order The order instance.
 		 *
-		 * @since 3.1.0
 		 * @package Vendidero/Shiptastic
 		 */
 		if ( ! apply_filters( 'woocommerce_shiptastic_auto_create_shipments_for_order', true, $order->get_id(), $order ) ) {

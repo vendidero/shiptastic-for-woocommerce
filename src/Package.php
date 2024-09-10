@@ -18,7 +18,7 @@ class Package {
 	 *
 	 * @var string
 	 */
-	const VERSION = '3.5.2';
+	const VERSION = '1.0.0';
 
 	public static $upload_dir_suffix = '';
 
@@ -250,7 +250,7 @@ class Package {
 	}
 
 	public static function is_integration() {
-		return class_exists( 'WooCommerce_Germanized' );
+		return false;
 	}
 
 	public static function is_pro() {
@@ -617,7 +617,6 @@ class Package {
 		 *
 		 * @param array $upload_dir Array containing `wp_upload_dir` data.
 		 *
-		 * @since 3.0.1
 		 * @package Vendidero/Shiptastic
 		 */
 		return apply_filters( 'woocommerce_shiptastic_upload_dir', $upload_dir );
@@ -633,7 +632,6 @@ class Package {
 		 *
 		 * @param array $path Relative path.
 		 *
-		 * @since 3.0.1
 		 * @package Vendidero/Shiptastic
 		 */
 		return apply_filters( 'woocommerce_shiptastic_relative_upload_dir', $path );
@@ -672,7 +670,6 @@ class Package {
 		 *
 		 * @param string $path Path to the upload directory.
 		 *
-		 * @since 3.0.6
 		 * @package Vendidero/Shiptastic
 		 */
 		$args['basedir'] = apply_filters( 'woocommerce_shiptastic_upload_path', $upload_base . self::get_upload_dir_name() );
@@ -682,7 +679,6 @@ class Package {
 		 *
 		 * @param string $url URL to the upload directory.
 		 *
-		 * @since 3.0.6
 		 * @package Vendidero/Shiptastic
 		 */
 		$args['baseurl'] = apply_filters( 'woocommerce_shiptastic_upload_url', $upload_url . self::get_upload_dir_name() );

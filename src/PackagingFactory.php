@@ -45,7 +45,6 @@ class PackagingFactory {
 		 * @param string  $classname The classname to be used.
 		 * @param integer $packaging_id The packaging id.
 		 *
-		 * @since 3.3.0
 		 * @package Vendidero/Shiptastic
 		 */
 		$classname = apply_filters( 'woocommerce_shiptastic_packaging_class', $classname, $packaging_id );

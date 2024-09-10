@@ -56,7 +56,6 @@ defined( 'ABSPATH' ) || exit;
 				 * @param Shipment     $shipment The shipment instance.
 				 * @param string       $column_name The column name.
 				 *
-				 * @since 3.0.6
 				 * @package Vendidero/Shiptastic
 				 */
 				do_action( "woocommerce_shiptastic_meta_box_shipment_item_after_{$column_name}", $item->get_id(), $item, $shipment, $column_name );

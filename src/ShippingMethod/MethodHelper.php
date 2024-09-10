@@ -447,7 +447,6 @@ class MethodHelper {
 				 *
 				 * @param string $provider_name The shipping provider name e.g. dhl.
 				 *
-				 * @since 3.0.6
 				 * @package Vendidero/Shiptastic
 				 */
 				'default'     => apply_filters( 'woocommerce_shiptastic_shipping_provider_method_default_provider', '' ),
