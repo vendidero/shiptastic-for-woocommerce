@@ -1,11 +1,11 @@
 <?php
 
-namespace Vendidero\Germanized\Shipments\DataStores;
+namespace Vendidero\Shiptastic\DataStores;
 
 use DVDoug\BoxPacker\VolumePacker;
-use Vendidero\Germanized\Shipments\Package;
-use Vendidero\Germanized\Shipments\Packaging\Helper;
-use Vendidero\Germanized\Shipments\Packing\PackagingBox;
+use Vendidero\Shiptastic\Package;
+use Vendidero\Shiptastic\Packaging\Helper;
+use Vendidero\Shiptastic\Packing\PackagingBox;
 use WC_Data_Store_WP;
 use WC_Object_Data_Store_Interface;
 use Exception;
@@ -19,13 +19,6 @@ defined( 'ABSPATH' ) || exit;
  * @version  3.0.0
  */
 class Packaging extends WC_Data_Store_WP implements WC_Object_Data_Store_Interface {
-
-	/**
-	 * Internal meta type used to store order data.
-	 *
-	 * @var string
-	 */
-	protected $meta_type = 'gzd_packaging';
 
 	protected $must_exist_meta_keys = array();
 
@@ -50,7 +43,6 @@ class Packaging extends WC_Data_Store_WP implements WC_Object_Data_Store_Interfa
 	/**
 	 * Data stored in meta keys, but not considered "meta" for a packaging.
 	 *
-	 * @since 3.0.0
 	 * @var array
 	 */
 	protected $internal_meta_keys = array(
@@ -58,6 +50,8 @@ class Packaging extends WC_Data_Store_WP implements WC_Object_Data_Store_Interfa
 		'_available_shipping_classes',
 		'_configuration_sets',
 	);
+
+	protected $meta_type = 'stc_packaging';
 
 	/*
 	|--------------------------------------------------------------------------
@@ -68,14 +62,14 @@ class Packaging extends WC_Data_Store_WP implements WC_Object_Data_Store_Interfa
 	/**
 	 * Method to create a new packaging in the database.
 	 *
-	 * @param \Vendidero\Germanized\Shipments\Packaging $packaging Packaging object.
+	 * @param \Vendidero\Shiptastic\Packaging $packaging Packaging object.
 	 */
 	public function create( &$packaging ) {
 		global $wpdb;
 
 		$packaging->set_date_created( time() );
-		$packaging->set_weight_unit( wc_gzd_get_packaging_weight_unit() );
-		$packaging->set_dimension_unit( wc_gzd_get_packaging_dimension_unit() );
+		$packaging->set_weight_unit( wc_stc_get_packaging_weight_unit() );
+		$packaging->set_dimension_unit( wc_stc_get_packaging_dimension_unit() );
 
 		$data = array(
 			'packaging_type'               => $packaging->get_type(),
@@ -96,7 +90,7 @@ class Packaging extends WC_Data_Store_WP implements WC_Object_Data_Store_Interfa
 		);
 
 		$wpdb->insert(
-			$wpdb->gzd_packaging,
+			$wpdb->stc_packaging,
 			$data
 		);
 
@@ -116,19 +110,18 @@ class Packaging extends WC_Data_Store_WP implements WC_Object_Data_Store_Interfa
 			 * Action that indicates that a new Packaging has been created in the DB.
 			 *
 			 * @param integer  $packaging_id The packaging id.
-			 * @param \Vendidero\Germanized\Shipments\Packaging $packaging The packaging instance.
+			 * @param \Vendidero\Shiptastic\Packaging $packaging The packaging instance.
 			 *
-			 * @since 3.3.0
-			 * @package Vendidero/Germanized/Shipments
+			 * @package Vendidero/Shiptastic
 			 */
-			do_action( 'woocommerce_gzd_new_packaging', $packaging_id, $packaging );
+			do_action( 'woocommerce_shiptastic_new_packaging', $packaging_id, $packaging );
 		}
 	}
 
 	/**
 	 * Method to update a packaging in the database.
 	 *
-	 * @param \Vendidero\Germanized\Shipments\Packaging $packaging Packaging object.
+	 * @param \Vendidero\Shiptastic\Packaging $packaging Packaging object.
 	 */
 	public function update( &$packaging ) {
 		global $wpdb;
@@ -160,7 +153,7 @@ class Packaging extends WC_Data_Store_WP implements WC_Object_Data_Store_Interfa
 
 		if ( ! empty( $packaging_data ) ) {
 			$wpdb->update(
-				$wpdb->gzd_packaging,
+				$wpdb->stc_packaging,
 				$packaging_data,
 				array( 'packaging_id' => $packaging->get_id() )
 			);
@@ -177,26 +170,24 @@ class Packaging extends WC_Data_Store_WP implements WC_Object_Data_Store_Interfa
 		 * Action that indicates that a Packaging has been updated in the DB.
 		 *
 		 * @param integer  $packaging_id The packaging id.
-		 * @param \Vendidero\Germanized\Shipments\Packaging $packaging The packaging instance.
+		 * @param \Vendidero\Shiptastic\Packaging $packaging The packaging instance.
 		 *
-		 * @since 3.3.0
-		 * @package Vendidero/Germanized/Shipments
+		 * @package Vendidero/Shiptastic
 		 */
-		do_action( 'woocommerce_gzd_packaging_updated', $packaging->get_id(), $packaging );
+		do_action( 'woocommerce_shiptastic_packaging_updated', $packaging->get_id(), $packaging );
 	}
 
 	/**
 	 * Remove a Packaging from the database.
 	 *
-	 * @since 3.0.0
-	 * @param \Vendidero\Germanized\Shipments\Packaging $packaging Packaging object.
+	 * @param \Vendidero\Shiptastic\Packaging $packaging Packaging object.
 	 * @param bool                $force_delete Unused param.
 	 */
 	public function delete( &$packaging, $force_delete = false ) {
 		global $wpdb;
 
-		$wpdb->delete( $wpdb->gzd_packaging, array( 'packaging_id' => $packaging->get_id() ), array( '%d' ) );
-		$wpdb->delete( $wpdb->gzd_packagingmeta, array( 'gzd_packaging_id' => $packaging->get_id() ), array( '%d' ) );
+		$wpdb->delete( $wpdb->stc_packaging, array( 'packaging_id' => $packaging->get_id() ), array( '%d' ) );
+		$wpdb->delete( $wpdb->stc_packagingmeta, array( 'stc_packaging_id' => $packaging->get_id() ), array( '%d' ) );
 
 		$this->clear_caches( $packaging );
 
@@ -204,20 +195,18 @@ class Packaging extends WC_Data_Store_WP implements WC_Object_Data_Store_Interfa
 		 * Action that indicates that a Packaging has been deleted from the DB.
 		 *
 		 * @param integer  $packaging_id The packaging id.
-		 * @param \Vendidero\Germanized\Shipments\Packaging $packaging The packaging instance.
+		 * @param \Vendidero\Shiptastic\Packaging $packaging The packaging instance.
 		 *
-		 * @since 3.3.0
-		 * @package Vendidero/Germanized/Shipments
+		 * @package Vendidero/Shiptastic
 		 */
-		do_action( 'woocommerce_gzd_packaging_deleted', $packaging->get_id(), $packaging );
+		do_action( 'woocommerce_shiptastic_packaging_deleted', $packaging->get_id(), $packaging );
 	}
 
 	/**
 	 * Read a Packaging from the database.
 	 *
-	 * @since 3.3.0
 	 *
-	 * @param \Vendidero\Germanized\Shipments\Packaging $packaging Packaging object.
+	 * @param \Vendidero\Shiptastic\Packaging $packaging Packaging object.
 	 *
 	 * @throws Exception Throw exception if invalid packaging.
 	 */
@@ -226,7 +215,7 @@ class Packaging extends WC_Data_Store_WP implements WC_Object_Data_Store_Interfa
 
 		$data = $wpdb->get_row(
 			$wpdb->prepare(
-				"SELECT * FROM {$wpdb->gzd_packaging} WHERE packaging_id = %d LIMIT 1",
+				"SELECT * FROM {$wpdb->stc_packaging} WHERE packaging_id = %d LIMIT 1",
 				$packaging->get_id()
 			)
 		);
@@ -259,30 +248,28 @@ class Packaging extends WC_Data_Store_WP implements WC_Object_Data_Store_Interfa
 			/**
 			 * Action that indicates that a Packaging has been loaded from DB.
 			 *
-			 * @param \Vendidero\Germanized\Shipments\Packaging $packaging The Packaging object.
+			 * @param \Vendidero\Shiptastic\Packaging $packaging The Packaging object.
 			 *
-			 * @since 3.3.0
-			 * @package Vendidero/Germanized/Shipments
+			 * @package Vendidero/Shiptastic
 			 */
-			do_action( 'woocommerce_gzd_packaging_loaded', $packaging );
+			do_action( 'woocommerce_shiptastic_packaging_loaded', $packaging );
 		} else {
-			throw new Exception( _x( 'Invalid packaging.', 'shipments', 'woocommerce-germanized-shipments' ) );
+			throw new Exception( esc_html_x( 'Invalid packaging.', 'shipments', 'shiptastic-for-woocommerce' ) );
 		}
 	}
 
 	/**
 	 * Clear any caches.
 	 *
-	 * @param \Vendidero\Germanized\Shipments\Packaging $packaging Packaging object.
-	 * @since 3.0.0
+	 * @param \Vendidero\Shiptastic\Packaging $packaging Packaging object.
 	 */
 	protected function clear_caches( &$packaging ) {
 		wp_cache_delete( $packaging->get_id(), $this->meta_type . '_meta' );
-		wp_cache_delete( 'packaging-list', 'packaging' );
+		wp_cache_delete( 'packaging-list', 'shiptastic-packaging' );
 
 		Helper::clear_cache();
 
-		if ( $cache = \Vendidero\Germanized\Shipments\Caches\Helper::get_cache_object( 'packagings' ) ) {
+		if ( $cache = \Vendidero\Shiptastic\Caches\Helper::get_cache_object( 'packagings' ) ) {
 			$cache->remove( $packaging->get_id() );
 		}
 	}
@@ -304,7 +291,7 @@ class Packaging extends WC_Data_Store_WP implements WC_Object_Data_Store_Interfa
 
 		$type = $wpdb->get_col(
 			$wpdb->prepare(
-				"SELECT packaging_type FROM {$wpdb->gzd_packaging} WHERE packaging_id = %d LIMIT 1",
+				"SELECT packaging_type FROM {$wpdb->stc_packaging} WHERE packaging_id = %d LIMIT 1",
 				$packing_id
 			)
 		);
@@ -315,21 +302,20 @@ class Packaging extends WC_Data_Store_WP implements WC_Object_Data_Store_Interfa
 	/**
 	 * Read extra data associated with the Packaging.
 	 *
-	 * @param \Vendidero\Germanized\Shipments\Packaging $packaging Packaging object.
-	 * @since 3.0.0
+	 * @param \Vendidero\Shiptastic\Packaging $packaging Packaging object.
 	 */
 	protected function read_packaging_data( &$packaging ) {
 		$props = array();
 
 		foreach ( $this->internal_meta_keys as $meta_key ) {
-			$props[ substr( $meta_key, 1 ) ] = get_metadata( 'gzd_packaging', $packaging->get_id(), $meta_key, true );
+			$props[ substr( $meta_key, 1 ) ] = get_metadata( 'stc_packaging', $packaging->get_id(), $meta_key, true );
 		}
 
 		$packaging->set_props( $props );
 	}
 
 	/**
-	 * @param \Vendidero\Germanized\Shipments\Packaging $packaging
+	 * @param \Vendidero\Shiptastic\Packaging $packaging
 	 */
 	protected function save_packaging_data( &$packaging ) {
 		$updated_props     = array();
@@ -365,13 +351,12 @@ class Packaging extends WC_Data_Store_WP implements WC_Object_Data_Store_Interfa
 		/**
 		 * Action that fires after updating a Packaging's properties.
 		 *
-		 * @param \Vendidero\Germanized\Shipments\Packaging $packaging The Packaging object.
+		 * @param \Vendidero\Shiptastic\Packaging $packaging The Packaging object.
 		 * @param array                                    $changed_props The updated properties.
 		 *
-		 * @since 3.3.0
-		 * @package Vendidero/Germanized/Shipments
+		 * @package Vendidero/Shiptastic
 		 */
-		do_action( 'woocommerce_gzd_packaging_object_updated_props', $packaging, $updated_props );
+		do_action( 'woocommerce_shiptastic_packaging_object_updated_props', $packaging, $updated_props );
 	}
 
 	/**
@@ -387,7 +372,6 @@ class Packaging extends WC_Data_Store_WP implements WC_Object_Data_Store_Interfa
 	 * @param string  $meta_key Meta key to update.
 	 * @param mixed   $meta_value Value to save.
 	 *
-	 * @since 3.6.0 Added to prevent empty meta being stored unless required.
 	 *
 	 * @return bool True if updated/deleted.
 	 */
@@ -404,7 +388,6 @@ class Packaging extends WC_Data_Store_WP implements WC_Object_Data_Store_Interfa
 	/**
 	 * Get valid WP_Query args from a WC_Order_Query's query variables.
 	 *
-	 * @since 3.0.6
 	 * @param array $query_vars query vars from a WC_Order_Query.
 	 * @return array
 	 */
@@ -452,7 +435,7 @@ class Packaging extends WC_Data_Store_WP implements WC_Object_Data_Store_Interfa
 					$date_query = $date_query_args['date_query'][0];
 
 					if ( 'post_date' === $date_query['column'] ) {
-						$date_query['column'] = $wpdb->gzd_shipments . '.shipment_' . $db_key;
+						$date_query['column'] = $wpdb->stc_shipments . '.shipment_' . $db_key;
 					}
 
 					$wp_query_args['date_query'][] = $date_query;
@@ -471,10 +454,9 @@ class Packaging extends WC_Data_Store_WP implements WC_Object_Data_Store_Interfa
 		 * @param array     $query_vars The original query arguments.
 		 * @param Packaging $data_store The packaging data store object.
 		 *
-		 * @since 3.3.0
-		 * @package Vendidero/Germanized/Shipments
+		 * @package Vendidero/Shiptastic
 		 */
-		return apply_filters( 'woocommerce_gzd_packaging_data_store_get_shipments_query', $wp_query_args, $query_vars, $this );
+		return apply_filters( 'woocommerce_shiptastic_packaging_data_store_get_shipments_query', $wp_query_args, $query_vars, $this );
 	}
 
 	/**
@@ -484,17 +466,17 @@ class Packaging extends WC_Data_Store_WP implements WC_Object_Data_Store_Interfa
 		global $wpdb;
 
 		// Get from cache if available.
-		$results = wp_cache_get( 'packaging-list', 'packaging' );
+		$results = wp_cache_get( 'packaging-list', 'shiptastic-packaging' );
 
 		if ( false === $results ) {
 			$query = "
-				SELECT packaging_id FROM {$wpdb->gzd_packaging} 
+				SELECT packaging_id FROM {$wpdb->stc_packaging} 
 				ORDER BY packaging_order ASC
 			";
 
 			$results = $wpdb->get_results( $query ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 
-			wp_cache_set( 'packaging-list', $results, 'packaging' );
+			wp_cache_set( 'packaging-list', $results, 'shiptastic-packaging' );
 		}
 
 		return $results;
@@ -503,20 +485,20 @@ class Packaging extends WC_Data_Store_WP implements WC_Object_Data_Store_Interfa
 	/**
 	 * @param $args
 	 *
-	 * @return \Vendidero\Germanized\Shipments\Packaging[]
+	 * @return \Vendidero\Shiptastic\Packaging[]
 	 */
 	public function get_packaging_list( $args = array() ) {
 		return Helper::get_packaging_list( $args );
 	}
 
 	/**
-	 * @param \Vendidero\Germanized\Shipments\Shipment $shipment
-	 * @param \Vendidero\Germanized\Shipments\Packaging|PackagingBox $packaging
+	 * @param \Vendidero\Shiptastic\Shipment $shipment
+	 * @param \Vendidero\Shiptastic\Packaging|PackagingBox $packaging
 	 *
 	 * @return bool
 	 */
 	public function shipment_fits_into_packaging_naive( $shipment, $packaging ) {
-		if ( is_a( $packaging, '\Vendidero\Germanized\Shipments\Packing\PackagingBox' ) ) {
+		if ( is_a( $packaging, '\Vendidero\Shiptastic\Packing\PackagingBox' ) ) {
 			$packaging = $packaging->getReference();
 		}
 
@@ -528,8 +510,8 @@ class Packaging extends WC_Data_Store_WP implements WC_Object_Data_Store_Interfa
 			return false;
 		}
 
-		$weight = (float) wc_format_decimal( empty( $shipment->get_content_weight() ) ? 0 : wc_get_weight( $shipment->get_content_weight(), wc_gzd_get_packaging_weight_unit(), $shipment->get_weight_unit() ), 3 );
-		$volume = (float) wc_format_decimal( empty( $shipment->get_content_volume() ) ? 0 : wc_gzd_get_volume_dimension( $shipment->get_content_volume(), wc_gzd_get_packaging_dimension_unit(), $shipment->get_dimension_unit() ), 1 );
+		$weight = (float) wc_format_decimal( empty( $shipment->get_content_weight() ) ? 0 : wc_get_weight( $shipment->get_content_weight(), wc_stc_get_packaging_weight_unit(), $shipment->get_weight_unit() ), 3 );
+		$volume = (float) wc_format_decimal( empty( $shipment->get_content_volume() ) ? 0 : wc_stc_get_volume_dimension( $shipment->get_content_volume(), wc_stc_get_packaging_dimension_unit(), $shipment->get_dimension_unit() ), 1 );
 		$fits   = true;
 
 		if ( $packaging->has_inner_dimensions() ) {
@@ -553,9 +535,9 @@ class Packaging extends WC_Data_Store_WP implements WC_Object_Data_Store_Interfa
 	}
 
 	/**
-	 * @param \Vendidero\Germanized\Shipments\Shipment $shipment
+	 * @param \Vendidero\Shiptastic\Shipment $shipment
 	 *
-	 * @return \Vendidero\Germanized\Shipments\Packaging[]
+	 * @return \Vendidero\Shiptastic\Packaging[]
 	 */
 	public function find_available_packaging_for_shipment( $shipment ) {
 		$packaging_available = array();
@@ -564,7 +546,7 @@ class Packaging extends WC_Data_Store_WP implements WC_Object_Data_Store_Interfa
 
 		// Get from cache if available.
 		if ( $shipment->get_id() > 0 ) {
-			$results = wp_cache_get( 'available-packaging-' . $shipment->get_id(), 'shipments' );
+			$results = wp_cache_get( 'available-packaging-' . $shipment->get_id(), 'shiptastic-shipments' );
 		}
 
 		if ( false === $results && count( $items ) > 0 ) {
@@ -595,13 +577,13 @@ class Packaging extends WC_Data_Store_WP implements WC_Object_Data_Store_Interfa
 			} else {
 				global $wpdb;
 
-				$weight = (float) wc_format_decimal( empty( $shipment->get_weight() ) ? 0 : wc_get_weight( $shipment->get_weight(), wc_gzd_get_packaging_weight_unit(), $shipment->get_weight_unit() ), 3 );
-				$length = (float) wc_format_decimal( empty( $shipment->get_length() ) ? 0 : wc_get_dimension( $shipment->get_length(), wc_gzd_get_packaging_dimension_unit(), $shipment->get_dimension_unit() ), 1 );
-				$width  = (float) wc_format_decimal( empty( $shipment->get_width() ) ? 0 : wc_get_dimension( $shipment->get_width(), wc_gzd_get_packaging_dimension_unit(), $shipment->get_dimension_unit() ), 1 );
-				$height = (float) wc_format_decimal( empty( $shipment->get_height() ) ? 0 : wc_get_dimension( $shipment->get_height(), wc_gzd_get_packaging_dimension_unit(), $shipment->get_dimension_unit() ), 1 );
+				$weight = (float) wc_format_decimal( empty( $shipment->get_weight() ) ? 0 : wc_get_weight( $shipment->get_weight(), wc_stc_get_packaging_weight_unit(), $shipment->get_weight_unit() ), 3 );
+				$length = (float) wc_format_decimal( empty( $shipment->get_length() ) ? 0 : wc_get_dimension( $shipment->get_length(), wc_stc_get_packaging_dimension_unit(), $shipment->get_dimension_unit() ), 1 );
+				$width  = (float) wc_format_decimal( empty( $shipment->get_width() ) ? 0 : wc_get_dimension( $shipment->get_width(), wc_stc_get_packaging_dimension_unit(), $shipment->get_dimension_unit() ), 1 );
+				$height = (float) wc_format_decimal( empty( $shipment->get_height() ) ? 0 : wc_get_dimension( $shipment->get_height(), wc_stc_get_packaging_dimension_unit(), $shipment->get_dimension_unit() ), 1 );
 
-				$types     = array_keys( wc_gzd_get_packaging_types() );
-				$threshold = apply_filters( 'woocommerce_gzd_shipment_packaging_match_threshold', 0, $shipment );
+				$types     = array_keys( wc_stc_get_packaging_types() );
+				$threshold = apply_filters( 'woocommerce_shiptastic_shipment_packaging_match_threshold', 0, $shipment );
 
 				$query_sql = "SELECT 
 					packaging_id,
@@ -620,7 +602,7 @@ class Packaging extends WC_Data_Store_WP implements WC_Object_Data_Store_Interfa
                  			THEN (packaging_inner_height - %f)
                   		ELSE (packaging_height - %f)
                     END as height_diff
-					FROM {$wpdb->gzd_packaging} 
+					FROM {$wpdb->stc_packaging} 
 					WHERE ( packaging_max_content_weight = 0 OR packaging_max_content_weight >= %f ) AND packaging_type IN ( '" . implode( "','", $types ) . "' )
 					HAVING length_diff >= %f AND width_diff >= %f AND height_diff >= %f
 					ORDER BY (length_diff+width_diff+height_diff) ASC, packaging_weight ASC, packaging_order ASC
@@ -631,7 +613,7 @@ class Packaging extends WC_Data_Store_WP implements WC_Object_Data_Store_Interfa
 
 				if ( $results ) {
 					foreach ( $results as $result ) {
-						$packaging = wc_gzd_get_packaging( $result->packaging_id );
+						$packaging = wc_stc_get_packaging( $result->packaging_id );
 
 						if ( ! $packaging->supports_shipping_provider( $shipment->get_shipping_provider() ) ) {
 							continue;
@@ -643,12 +625,12 @@ class Packaging extends WC_Data_Store_WP implements WC_Object_Data_Store_Interfa
 				}
 			}
 
-			wp_cache_set( 'available-packaging-' . $shipment->get_id(), $available_packaging_ids, 'shipments' );
+			wp_cache_set( 'available-packaging-' . $shipment->get_id(), $available_packaging_ids, 'shiptastic-shipments' );
 		} elseif ( count( $items ) <= 0 ) {
 			$packaging_available = $this->get_packaging_list();
 		} else {
 			foreach ( (array) $results as $packaging_id ) {
-				$packaging = wc_gzd_get_packaging( $packaging_id );
+				$packaging = wc_stc_get_packaging( $packaging_id );
 
 				if ( ! $packaging->supports_shipping_provider( $shipment->get_shipping_provider() ) ) {
 					continue;
@@ -658,7 +640,7 @@ class Packaging extends WC_Data_Store_WP implements WC_Object_Data_Store_Interfa
 			}
 		}
 
-		$packaging_list = apply_filters( 'woocommerce_gzd_find_available_packaging_for_shipment', $packaging_available, $shipment );
+		$packaging_list = apply_filters( 'woocommerce_shiptastic_find_available_packaging_for_shipment', $packaging_available, $shipment );
 
 		return $this->sort_packaging_list( $packaging_list );
 	}
@@ -670,8 +652,8 @@ class Packaging extends WC_Data_Store_WP implements WC_Object_Data_Store_Interfa
 	}
 
 	/**
-	 * @param \Vendidero\Germanized\Shipments\Packaging $packaging_a
-	 * @param \Vendidero\Germanized\Shipments\Packaging $packaging_b
+	 * @param \Vendidero\Shiptastic\Packaging $packaging_a
+	 * @param \Vendidero\Shiptastic\Packaging $packaging_b
 	 *
 	 * @return int
 	 */
@@ -684,10 +666,10 @@ class Packaging extends WC_Data_Store_WP implements WC_Object_Data_Store_Interfa
 	}
 
 	/**
-	 * @param \Vendidero\Germanized\Shipments\Shipment $shipment
+	 * @param \Vendidero\Shiptastic\Shipment $shipment
 	 * @param string|array $types
 	 *
-	 * @return \Vendidero\Germanized\Shipments\Packaging|false
+	 * @return \Vendidero\Shiptastic\Packaging|false
 	 */
 	public function find_best_match_for_shipment( $shipment ) {
 		$results   = $this->find_available_packaging_for_shipment( $shipment );
@@ -715,20 +697,19 @@ class Packaging extends WC_Data_Store_WP implements WC_Object_Data_Store_Interfa
 			}
 		}
 
-		return apply_filters( 'woocommerce_gzd_find_best_matching_packaging_for_shipment', $packaging, $shipment );
+		return apply_filters( 'woocommerce_shiptastic_find_best_matching_packaging_for_shipment', $packaging, $shipment );
 	}
 
 	/**
 	 * Table structure is slightly different between meta types, this function will return what we need to know.
 	 *
-	 * @since  3.0.0
 	 * @return array Array elements: table, object_id_field, meta_id_field
 	 */
 	protected function get_db_info() {
 		global $wpdb;
 
 		$meta_id_field   = 'meta_id'; // for some reason users calls this umeta_id so we need to track this as well.
-		$table           = $wpdb->gzd_packagingmeta;
+		$table           = $wpdb->stc_packagingmeta;
 		$object_id_field = $this->meta_type . '_id';
 
 		if ( ! empty( $this->object_id_field_for_meta ) ) {

@@ -1,6 +1,6 @@
 <?php
 
-namespace Vendidero\Germanized\Shipments\ShippingMethod;
+namespace Vendidero\Shiptastic\ShippingMethod;
 
 use Exception;
 use WC_Order;
@@ -13,7 +13,7 @@ defined( 'ABSPATH' ) || exit;
 /**
  * Shipment Order
  *
- * @class       WC_GZD_Shipment_Order
+ * @class       WC_STC_Shipment_Order
  * @version     1.0.0
  * @author      Vendidero
  */

@@ -1,9 +1,9 @@
 <?php
-namespace Vendidero\Germanized\Shipments\Blocks\StoreApi\Routes\V1;
+namespace Vendidero\Shiptastic\Blocks\StoreApi\Routes\V1;
 
 use Automattic\WooCommerce\StoreApi\Exceptions\RouteException;
 use Automattic\WooCommerce\StoreApi\Routes\V1\AbstractCartRoute;
-use Vendidero\Germanized\Shipments\PickupDelivery;
+use Vendidero\Shiptastic\PickupDelivery;
 
 /**
  * CartAddItem class.
@@ -45,29 +45,29 @@ class CartSearchPickupLocations extends AbstractCartRoute {
 				'permission_callback' => '__return_true',
 				'args'                => array(
 					'address'  => array(
-						'description' => _x( 'The address to search for.', 'shipments', 'woocommerce-germanized-shipments' ),
+						'description' => _x( 'The address to search for.', 'shipments', 'shiptastic-for-woocommerce' ),
 						'type'        => 'object',
 						'context'     => array( 'view', 'edit' ),
 						'properties'  => array(
 							'postcode'  => array(
-								'description' => _x( 'The postcode.', 'shipments', 'woocommerce-germanized-shipments' ),
+								'description' => _x( 'The postcode.', 'shipments', 'shiptastic-for-woocommerce' ),
 								'type'        => 'string',
 								'context'     => array( 'view', 'edit' ),
 							),
 							'address_1' => array(
-								'description' => _x( 'The street address.', 'shipments', 'woocommerce-germanized-shipments' ),
+								'description' => _x( 'The street address.', 'shipments', 'shiptastic-for-woocommerce' ),
 								'type'        => 'string',
 								'context'     => array( 'view', 'edit' ),
 							),
 							'country'   => array(
-								'description' => _x( 'The country code.', 'shipments', 'woocommerce-germanized-shipments' ),
+								'description' => _x( 'The country code.', 'shipments', 'shiptastic-for-woocommerce' ),
 								'type'        => 'string',
 								'context'     => array( 'view', 'edit' ),
 							),
 						),
 					),
 					'provider' => array(
-						'description' => _x( 'The shipping provider.', 'shipments', 'woocommerce-germanized-shipments' ),
+						'description' => _x( 'The shipping provider.', 'shipments', 'shiptastic-for-woocommerce' ),
 						'type'        => 'string',
 						'context'     => array( 'view', 'edit' ),
 					),

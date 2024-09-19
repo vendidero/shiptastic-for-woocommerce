@@ -1,13 +1,10 @@
 <?php
 /**
  * Order shipments HTML for meta box.
- *
- * @package WooCommerce_Germanized/DHL/Admin
  */
-
-use Vendidero\Germanized\Shipments\Admin\Admin;
-use Vendidero\Germanized\Shipments\Shipment;
-use Vendidero\Germanized\Shipments\ShipmentItem;
+use Vendidero\Shiptastic\Admin\Admin;
+use Vendidero\Shiptastic\Shipment;
+use Vendidero\Shiptastic\ShipmentItem;
 
 defined( 'ABSPATH' ) || exit;
 ?>
@@ -20,8 +17,8 @@ defined( 'ABSPATH' ) || exit;
 					<?php echo wp_kses_post( $item->get_name() ); ?> <?php echo ( $item->get_sku() ? '<small>(' . esc_html( $item->get_sku() ) . ')</small>' : '' ); ?>
 				<?php elseif ( 'return_reason' === $column_name ) : ?>
 					<select class="item-return-reason-code <?php echo ( $item->is_readonly() ? 'disabled' : '' ); ?>" id="shipment-item-return-reason-code-<?php echo esc_attr( $item->get_id() ); ?>" name="shipment_item[<?php echo esc_attr( $shipment->get_id() ); ?>][return_reason_code][<?php echo esc_attr( $item->get_id() ); ?>]" <?php echo ( $item->is_readonly() ? 'disabled' : '' ); ?>>
-						<option value=""><?php echo esc_html_x( 'None', 'shipments return reason', 'woocommerce-germanized-shipments' ); ?></option>
-						<?php foreach ( wc_gzd_get_return_shipment_reasons( $item->get_order_item() ) as $reason ) : ?>
+						<option value=""><?php echo esc_html_x( 'None', 'shipments return reason', 'shiptastic-for-woocommerce' ); ?></option>
+						<?php foreach ( wc_stc_get_return_shipment_reasons( $item->get_order_item() ) as $reason ) : ?>
 							<option value="<?php echo esc_attr( $reason->get_code() ); ?>" <?php selected( $reason->get_code(), $item->get_return_reason_code() ); ?>><?php echo esc_html( $reason->get_reason() ); ?></option>
 						<?php endforeach; ?>
 					</select>
@@ -30,12 +27,12 @@ defined( 'ABSPATH' ) || exit;
 				<?php elseif ( 'action' === $column_name ) : ?>
 					<?php if ( ! $item->is_readonly() ) : ?>
 						<?php
-						echo wc_gzd_render_shipment_action_buttons( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+						echo wc_stc_render_shipment_action_buttons( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 							array(
 								'delete' => array(
 									'classes'           => 'remove-shipment-item',
 									'action'            => 'delete',
-									'name'              => _x( 'Delete item', 'shipments', 'woocommerce-germanized-shipments' ),
+									'name'              => _x( 'Delete item', 'shipments', 'shiptastic-for-woocommerce' ),
 									'custom_attributes' => array(
 										'data-delete' => $item->get_id(),
 									),
@@ -52,17 +49,16 @@ defined( 'ABSPATH' ) || exit;
 				 *
 				 * The dynamic portion of this hook `$column_name` refers to the column name e.g. name or quantity.
 				 *
-				 * Example hook name: woocommerce_gzd_shipments_meta_box_shipment_item_after_name
+				 * Example hook name: woocommerce_shiptastic_meta_box_shipment_item_after_name
 				 *
 				 * @param integer      $item_id The shipment item id.
 				 * @param ShipmentItem $shipment_item The shipment item instance.
 				 * @param Shipment     $shipment The shipment instance.
 				 * @param string       $column_name The column name.
 				 *
-				 * @since 3.0.6
-				 * @package Vendidero/Germanized/Shipments
+				 * @package Vendidero/Shiptastic
 				 */
-				do_action( "woocommerce_gzd_shipments_meta_box_shipment_item_after_{$column_name}", $item->get_id(), $item, $shipment, $column_name );
+				do_action( "woocommerce_shiptastic_meta_box_shipment_item_after_{$column_name}", $item->get_id(), $item, $shipment, $column_name );
 				?>
 			</div>
 		<?php endforeach; ?>

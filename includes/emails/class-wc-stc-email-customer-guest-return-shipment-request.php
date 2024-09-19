@@ -1,19 +1,19 @@
 <?php
 /**
- * Class WC_GZD_Email_Customer_Return_Shipment_Request file.
+ * Class WC_STC_Email_Customer_Return_Shipment_Request file.
  *
- * @package Vendidero/Germanized/Shipments/Emails
+ * @package Vendidero/Shiptastic/Emails
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit; // Exit if accessed directly.
 }
 
-use Vendidero\Germanized\Shipments\Package;
-use Vendidero\Germanized\Shipments\Shipment;
-use Vendidero\Germanized\Shipments\ReturnShipment;
+use Vendidero\Shiptastic\Package;
+use Vendidero\Shiptastic\Shipment;
+use Vendidero\Shiptastic\ReturnShipment;
 
-if ( ! class_exists( 'WC_GZD_Email_Customer_Guest_Return_Shipment_Request', false ) ) :
+if ( ! class_exists( 'WC_STC_Email_Customer_Guest_Return_Shipment_Request', false ) ) :
 
 	/**
 	 * Customer return shipment notification.
@@ -21,12 +21,12 @@ if ( ! class_exists( 'WC_GZD_Email_Customer_Guest_Return_Shipment_Request', fals
 	 * Return shipment request notifications are sent to the customer (guest) after submitting a new return request
 	 * via the return request form.
 	 *
-	 * @class    WC_GZD_Email_Customer_Return_Shipment_Request
+	 * @class    WC_STC_Email_Customer_Return_Shipment_Request
 	 * @version  1.0.0
-	 * @package  Vendidero/Germanized/Shipments/Emails
+	 * @package  Vendidero/Shiptastic/Emails
 	 * @extends  WC_Email
 	 */
-	class WC_GZD_Email_Customer_Guest_Return_Shipment_Request extends WC_Email {
+	class WC_STC_Email_Customer_Guest_Return_Shipment_Request extends WC_Email {
 
 		public $request_url = '';
 
@@ -38,13 +38,13 @@ if ( ! class_exists( 'WC_GZD_Email_Customer_Guest_Return_Shipment_Request', fals
 		public function __construct() {
 			$this->customer_email = true;
 			$this->id             = 'customer_guest_return_shipment_request';
-			$this->title          = _x( 'Order guest return request', 'shipments', 'woocommerce-germanized-shipments' );
-			$this->description    = _x( 'Order guest return request are sent to the customer after submitting a new return request as a guest.', 'shipments', 'woocommerce-germanized-shipments' );
+			$this->title          = _x( 'Order guest return request', 'shipments', 'shiptastic-for-woocommerce' );
+			$this->description    = _x( 'Order guest return request are sent to the customer after submitting a new return request as a guest.', 'shipments', 'shiptastic-for-woocommerce' );
 
 			$this->template_html  = 'emails/customer-guest-return-shipment-request.php';
 			$this->template_plain = 'emails/plain/customer-guest-return-shipment-request.php';
 			$this->template_base  = Package::get_path() . '/templates/';
-			$this->helper         = function_exists( 'wc_gzd_get_email_helper' ) ? wc_gzd_get_email_helper( $this ) : false;
+			$this->helper         = function_exists( 'wc_stc_get_email_helper' ) ? wc_stc_get_email_helper( $this ) : false;
 
 			$this->placeholders = array(
 				'{site_title}'   => $this->get_blogname(),
@@ -59,42 +59,32 @@ if ( ! class_exists( 'WC_GZD_Email_Customer_Guest_Return_Shipment_Request', fals
 		/**
 		 * Get email subject.
 		 *
-		 * @since  3.1.0
 		 * @return string
 		 */
 		public function get_default_subject() {
-			return _x( 'Your return request to your order {order_number}', 'shipments', 'woocommerce-germanized-shipments' );
+			return _x( 'Your return request to your order {order_number}', 'shipments', 'shiptastic-for-woocommerce' );
 		}
 
 		/**
 		 * Get email heading.
 		 *
-		 * @since  3.1.0
 		 * @return string
 		 */
 		public function get_default_heading() {
-			return _x( 'Return request to your order: {order_number}', 'shipments', 'woocommerce-germanized-shipments' );
+			return _x( 'Return request to your order: {order_number}', 'shipments', 'shiptastic-for-woocommerce' );
 		}
 
-		/**
-		 * Switch Woo and Germanized locale
-		 */
 		public function setup_locale() {
-
-			if ( $this->is_customer_email() && function_exists( 'wc_gzd_switch_to_site_locale' ) && apply_filters( 'woocommerce_email_setup_locale', true ) ) {
-				wc_gzd_switch_to_site_locale();
+			if ( $this->is_customer_email() && function_exists( 'wc_stc_switch_to_site_locale' ) && apply_filters( 'woocommerce_email_setup_locale', true ) ) {
+				wc_stc_switch_to_site_locale();
 			}
 
 			parent::setup_locale();
 		}
 
-		/**
-		 * Restore Woo and Germanized locale
-		 */
 		public function restore_locale() {
-
-			if ( $this->is_customer_email() && function_exists( 'wc_gzd_restore_locale' ) && apply_filters( 'woocommerce_email_restore_locale', true ) ) {
-				wc_gzd_restore_locale();
+			if ( $this->is_customer_email() && function_exists( 'wc_stc_restore_locale' ) && apply_filters( 'woocommerce_email_restore_locale', true ) ) {
+				wc_stc_restore_locale();
 			}
 
 			parent::restore_locale();
@@ -116,7 +106,7 @@ if ( ! class_exists( 'WC_GZD_Email_Customer_Guest_Return_Shipment_Request', fals
 
 				$this->placeholders['{order_number}'] = $this->object->get_order_number();
 
-				if ( ( $order_shipment = wc_gzd_get_shipment_order( $this->object ) ) && ( $this->request_url = wc_gzd_get_order_customer_add_return_url( $this->object ) ) ) {
+				if ( ( $order_shipment = wc_stc_get_shipment_order( $this->object ) ) && ( $this->request_url = wc_stc_get_order_customer_add_return_url( $this->object ) ) ) {
 					$this->recipient                      = $this->object->get_billing_email();
 					$this->placeholders['{order_date}']   = wc_format_datetime( $this->object->get_date_created() );
 					$this->placeholders['{order_number}'] = $this->object->get_order_number();
@@ -147,7 +137,6 @@ if ( ! class_exists( 'WC_GZD_Email_Customer_Guest_Return_Shipment_Request', fals
 		 *
 		 * Displayed above the footer.
 		 *
-		 * @since 2.0.4
 		 * @return string
 		 */
 		public function get_additional_content() {
@@ -201,7 +190,6 @@ if ( ! class_exists( 'WC_GZD_Email_Customer_Guest_Return_Shipment_Request', fals
 		/**
 		 * Default content to show below main email content.
 		 *
-		 * @since 1.0.1
 		 * @return string
 		 */
 		public function get_default_additional_content() {
@@ -211,4 +199,4 @@ if ( ! class_exists( 'WC_GZD_Email_Customer_Guest_Return_Shipment_Request', fals
 
 endif;
 
-return new WC_GZD_Email_Customer_Guest_Return_Shipment_Request();
+return new WC_STC_Email_Customer_Guest_Return_Shipment_Request();

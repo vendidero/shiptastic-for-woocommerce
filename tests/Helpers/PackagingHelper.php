@@ -5,9 +5,9 @@
  * @package WooCommerce\Tests\Framework\Helpers
  */
 
-namespace Vendidero\Germanized\Shipments\Tests\Helpers;
+namespace Vendidero\Shiptastic\Tests\Helpers;
 
-use Vendidero\Germanized\Shipments\Packaging;
+use Vendidero\Shiptastic\Packaging;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -34,7 +34,7 @@ class PackagingHelper {
 			'description'        => 'Test',
 		) );
 
-		$packaging = wc_gzd_get_packaging( 0 );
+		$packaging = wc_stc_get_packaging( 0 );
 		$packaging->set_props( $props );
 		$packaging->save();
 

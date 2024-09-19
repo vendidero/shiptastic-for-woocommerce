@@ -1,5 +1,5 @@
 <?php
-namespace Vendidero\Germanized\Shipments\Registry;
+namespace Vendidero\Shiptastic\Registry;
 
 /**
  * An abstract class for dependency types.
@@ -8,7 +8,6 @@ namespace Vendidero\Germanized\Shipments\Registry;
  * Dependency Injection Container for storing dependencies to invoke as they
  * are needed.
  *
- * @since 2.5.0
  */
 abstract class AbstractDependencyType {
 

@@ -1,6 +1,6 @@
 <?php
 
-namespace Vendidero\Germanized\Shipments;
+namespace Vendidero\Shiptastic;
 
 use WC_Product;
 
@@ -33,7 +33,7 @@ class Product {
 		}
 
 		if ( ! is_a( $product, 'WC_Product' ) ) {
-			throw new \Exception( _x( 'Invalid product.', 'shipments', 'woocommerce-germanized-shipments' ) );
+			throw new \Exception( esc_html_x( 'Invalid product.', 'shipments', 'shiptastic-for-woocommerce' ) );
 		}
 
 		$this->product = $product;
@@ -69,7 +69,7 @@ class Product {
 			$length = $this->get_product()->get_length();
 
 			if ( $this->is_variation() && '' === $length ) {
-				$length = wc_gzd_shipments_get_product( $this->get_forced_parent_product() )->get_shipping_length( $context );
+				$length = wc_shiptastic_get_product( $this->get_forced_parent_product() )->get_shipping_length( $context );
 			}
 		}
 
@@ -83,7 +83,7 @@ class Product {
 			$width = $this->get_product()->get_width();
 
 			if ( $this->is_variation() && '' === $width ) {
-				$width = wc_gzd_shipments_get_product( $this->get_forced_parent_product() )->get_shipping_width( $context );
+				$width = wc_shiptastic_get_product( $this->get_forced_parent_product() )->get_shipping_width( $context );
 			}
 		}
 
@@ -97,7 +97,7 @@ class Product {
 			$height = $this->get_product()->get_height();
 
 			if ( $this->is_variation() && '' === $height ) {
-				$height = wc_gzd_shipments_get_product( $this->get_forced_parent_product() )->get_shipping_height( $context );
+				$height = wc_shiptastic_get_product( $this->get_forced_parent_product() )->get_shipping_height( $context );
 			}
 		}
 

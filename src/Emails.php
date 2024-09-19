@@ -1,6 +1,6 @@
 <?php
 
-namespace Vendidero\Germanized\Shipments;
+namespace Vendidero\Shiptastic;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -12,7 +12,6 @@ class Emails {
 
 		add_action( 'init', array( __CLASS__, 'email_hooks' ), 10 );
 
-		// Change email template path if is germanized email template
 		add_filter( 'woocommerce_template_directory', array( __CLASS__, 'set_woocommerce_template_dir' ), 10, 2 );
 
 		// Attach shipments to order notifications
@@ -20,8 +19,8 @@ class Emails {
 	}
 
 	public static function attach_shipments_data( $order, $sent_to_admin, $plain_text, $email = false ) {
-		if ( $email && ( apply_filters( 'woocommerce_gzd_shipments_embed_shipment_details_in_notification', ( 'customer_completed_order' === $email->id ), $email ) ) ) {
-			if ( $shipments_order = wc_gzd_get_shipment_order( $order ) ) {
+		if ( $email && ( apply_filters( 'woocommerce_shiptastic_embed_shipment_details_in_notification', ( 'customer_completed_order' === $email->id ), $email ) ) ) {
+			if ( $shipments_order = wc_stc_get_shipment_order( $order ) ) {
 				$template = $plain_text ? 'plain/email-order-shipments.php' : 'email-order-shipments.php';
 
 				wc_get_template(
@@ -39,48 +38,48 @@ class Emails {
 
 	public static function set_woocommerce_template_dir( $dir, $template ) {
 		if ( file_exists( Package::get_path() . '/templates/' . $template ) ) {
-			return 'woocommerce-germanized';
+			return untrailingslashit( Package::get_template_path() );
 		}
 
 		return $dir;
 	}
 
 	public static function register_emails( $emails ) {
-		$emails['WC_GZD_Email_Customer_Shipment']                      = include Package::get_path() . '/includes/emails/class-wc-gzd-email-customer-shipment.php';
-		$emails['WC_GZD_Email_Customer_Return_Shipment']               = include Package::get_path() . '/includes/emails/class-wc-gzd-email-customer-return-shipment.php';
-		$emails['WC_GZD_Email_Customer_Return_Shipment_Delivered']     = include Package::get_path() . '/includes/emails/class-wc-gzd-email-customer-return-shipment-delivered.php';
-		$emails['WC_GZD_Email_Customer_Guest_Return_Shipment_Request'] = include Package::get_path() . '/includes/emails/class-wc-gzd-email-customer-guest-return-shipment-request.php';
-		$emails['WC_GZD_Email_New_Return_Shipment_Request']            = include Package::get_path() . '/includes/emails/class-wc-gzd-email-new-return-shipment-request.php';
+		$emails['WC_STC_Email_Customer_Shipment']                      = include Package::get_path() . '/includes/emails/class-wc-stc-email-customer-shipment.php';
+		$emails['WC_STC_Email_Customer_Return_Shipment']               = include Package::get_path() . '/includes/emails/class-wc-stc-email-customer-return-shipment.php';
+		$emails['WC_STC_Email_Customer_Return_Shipment_Delivered']     = include Package::get_path() . '/includes/emails/class-wc-stc-email-customer-return-shipment-delivered.php';
+		$emails['WC_STC_Email_Customer_Guest_Return_Shipment_Request'] = include Package::get_path() . '/includes/emails/class-wc-stc-email-customer-guest-return-shipment-request.php';
+		$emails['WC_STC_Email_New_Return_Shipment_Request']            = include Package::get_path() . '/includes/emails/class-wc-stc-email-new-return-shipment-request.php';
 
 		return $emails;
 	}
 
 	public static function email_hooks() {
-		add_action( 'woocommerce_gzd_email_shipment_details', array( __CLASS__, 'email_return_instructions' ), 5, 4 );
-		add_action( 'woocommerce_gzd_email_shipment_details', array( __CLASS__, 'email_tracking' ), 10, 4 );
-		add_action( 'woocommerce_gzd_email_shipment_details', array( __CLASS__, 'email_address' ), 20, 4 );
-		add_action( 'woocommerce_gzd_email_shipment_details', array( __CLASS__, 'email_details' ), 30, 4 );
+		add_action( 'woocommerce_shiptastic_email_shipment_details', array( __CLASS__, 'email_return_instructions' ), 5, 4 );
+		add_action( 'woocommerce_shiptastic_email_shipment_details', array( __CLASS__, 'email_tracking' ), 10, 4 );
+		add_action( 'woocommerce_shiptastic_email_shipment_details', array( __CLASS__, 'email_address' ), 20, 4 );
+		add_action( 'woocommerce_shiptastic_email_shipment_details', array( __CLASS__, 'email_details' ), 30, 4 );
 	}
 
 	public static function register_email_notifications( $actions ) {
 		$actions = array_merge(
 			$actions,
 			array(
-				'woocommerce_gzd_shipment_status_draft_to_processing',
-				'woocommerce_gzd_shipment_status_draft_to_shipped',
-				'woocommerce_gzd_shipment_status_draft_to_delivered',
-				'woocommerce_gzd_shipment_status_processing_to_shipped',
-				'woocommerce_gzd_shipment_status_processing_to_delivered',
-				'woocommerce_gzd_shipment_status_shipped_to_delivered',
-				'woocommerce_gzd_return_shipment_status_draft_to_processing',
-				'woocommerce_gzd_return_shipment_status_draft_to_shipped',
-				'woocommerce_gzd_return_shipment_status_draft_to_delivered',
-				'woocommerce_gzd_return_shipment_status_draft_to_requested',
-				'woocommerce_gzd_return_shipment_status_processing_to_shipped',
-				'woocommerce_gzd_return_shipment_status_processing_to_delivered',
-				'woocommerce_gzd_return_shipment_status_shipped_to_delivered',
-				'woocommerce_gzd_return_shipment_status_requested_to_processing',
-				'woocommerce_gzd_return_shipment_status_requested_to_shipped',
+				'woocommerce_shiptastic_shipment_status_draft_to_processing',
+				'woocommerce_shiptastic_shipment_status_draft_to_shipped',
+				'woocommerce_shiptastic_shipment_status_draft_to_delivered',
+				'woocommerce_shiptastic_shipment_status_processing_to_shipped',
+				'woocommerce_shiptastic_shipment_status_processing_to_delivered',
+				'woocommerce_shiptastic_shipment_status_shipped_to_delivered',
+				'woocommerce_shiptastic_return_shipment_status_draft_to_processing',
+				'woocommerce_shiptastic_return_shipment_status_draft_to_shipped',
+				'woocommerce_shiptastic_return_shipment_status_draft_to_delivered',
+				'woocommerce_shiptastic_return_shipment_status_draft_to_requested',
+				'woocommerce_shiptastic_return_shipment_status_processing_to_shipped',
+				'woocommerce_shiptastic_return_shipment_status_processing_to_delivered',
+				'woocommerce_shiptastic_return_shipment_status_shipped_to_delivered',
+				'woocommerce_shiptastic_return_shipment_status_requested_to_processing',
+				'woocommerce_shiptastic_return_shipment_status_requested_to_shipped',
 			)
 		);
 
@@ -166,7 +165,7 @@ class Emails {
 	 * @param string $email
 	 */
 	public static function email_address( $shipment, $sent_to_admin = false, $plain_text = false, $email = '' ) {
-		if ( is_a( $shipment, 'Vendidero\Germanized\Shipments\ReturnShipment' ) ) {
+		if ( is_a( $shipment, 'Vendidero\Shiptastic\ReturnShipment' ) ) {
 			if ( $shipment->hide_return_address() ) {
 				return;
 			}

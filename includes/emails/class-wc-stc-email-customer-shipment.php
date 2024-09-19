@@ -1,30 +1,30 @@
 <?php
 /**
- * Class WC_GZD_Email_Customer_Shipment file.
+ * Class WC_STC_Email_Customer_Shipment file.
  *
- * @package Vendidero/Germanized/Shipments/Emails
+ * @package Vendidero/Shiptastic/Emails
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit; // Exit if accessed directly.
 }
 
-use Vendidero\Germanized\Shipments\Package;
-use Vendidero\Germanized\Shipments\Shipment;
+use Vendidero\Shiptastic\Package;
+use Vendidero\Shiptastic\Shipment;
 
-if ( ! class_exists( 'WC_GZD_Email_Customer_Shipment', false ) ) :
+if ( ! class_exists( 'WC_STC_Email_Customer_Shipment', false ) ) :
 
 	/**
 	 * Customer Shipment notification.
 	 *
 	 * Shipment notification are sent as soon as a shipment is marked as shipped.
 	 *
-	 * @class    WC_GZD_Email_Customer_Shipment
+	 * @class    WC_STC_Email_Customer_Shipment
 	 * @version  1.0.0
-	 * @package  Vendidero/Germanized/Shipments/Emails
+	 * @package  Vendidero/Shiptastic/Emails
 	 * @extends  WC_Email
 	 */
-	class WC_GZD_Email_Customer_Shipment extends WC_Email {
+	class WC_STC_Email_Customer_Shipment extends WC_Email {
 
 		/**
 		 * Shipment.
@@ -52,13 +52,13 @@ if ( ! class_exists( 'WC_GZD_Email_Customer_Shipment', false ) ) :
 		public function __construct() {
 			$this->customer_email = true;
 			$this->id             = 'customer_shipment';
-			$this->title          = _x( 'Order shipped', 'shipments', 'woocommerce-germanized-shipments' );
-			$this->description    = _x( 'Shipment notifications are sent to the customer when a shipment gets shipped.', 'shipments', 'woocommerce-germanized-shipments' );
+			$this->title          = _x( 'Order shipped', 'shipments', 'shiptastic-for-woocommerce' );
+			$this->description    = _x( 'Shipment notifications are sent to the customer when a shipment gets shipped.', 'shipments', 'shiptastic-for-woocommerce' );
 
 			$this->template_html  = 'emails/customer-shipment.php';
 			$this->template_plain = 'emails/plain/customer-shipment.php';
 			$this->template_base  = Package::get_path() . '/templates/';
-			$this->helper         = function_exists( 'wc_gzd_get_email_helper' ) ? wc_gzd_get_email_helper( $this ) : false;
+			$this->helper         = function_exists( 'wc_stc_get_email_helper' ) ? wc_stc_get_email_helper( $this ) : false;
 
 			$this->placeholders = array(
 				'{site_title}'           => $this->get_blogname(),
@@ -72,8 +72,8 @@ if ( ! class_exists( 'WC_GZD_Email_Customer_Shipment', false ) ) :
 
 			// Triggers for this email.
 			if ( 'yes' === Package::get_setting( 'notify_enable' ) ) {
-				add_action( 'woocommerce_gzd_shipment_status_draft_to_shipped_notification', array( $this, 'trigger' ), 10 );
-				add_action( 'woocommerce_gzd_shipment_status_processing_to_shipped_notification', array( $this, 'trigger' ), 10 );
+				add_action( 'woocommerce_shiptastic_shipment_status_draft_to_shipped_notification', array( $this, 'trigger' ), 10 );
+				add_action( 'woocommerce_shiptastic_shipment_status_processing_to_shipped_notification', array( $this, 'trigger' ), 10 );
 			}
 
 			// Call parent constructor.
@@ -84,14 +84,13 @@ if ( ! class_exists( 'WC_GZD_Email_Customer_Shipment', false ) ) :
 		 * Get email subject.
 		 *
 		 * @param bool $partial Whether it is a partial refund or a full refund.
-		 * @since  3.1.0
 		 * @return string
 		 */
 		public function get_default_subject( $partial = false ) {
 			if ( $partial ) {
-				return _x( 'Your {site_title} order #{order_number} has been partially shipped ({current_shipment_num}/{total_shipments})', 'shipments', 'woocommerce-germanized-shipments' );
+				return _x( 'Your {site_title} order #{order_number} has been partially shipped ({current_shipment_num}/{total_shipments})', 'shipments', 'shiptastic-for-woocommerce' );
 			} else {
-				return _x( 'Your {site_title} order #{order_number} has been shipped ({current_shipment_num}/{total_shipments})', 'shipments', 'woocommerce-germanized-shipments' );
+				return _x( 'Your {site_title} order #{order_number} has been shipped ({current_shipment_num}/{total_shipments})', 'shipments', 'shiptastic-for-woocommerce' );
 			}
 		}
 
@@ -99,14 +98,13 @@ if ( ! class_exists( 'WC_GZD_Email_Customer_Shipment', false ) ) :
 		 * Get email heading.
 		 *
 		 * @param bool $partial Whether it is a partial refund or a full refund.
-		 * @since  3.1.0
 		 * @return string
 		 */
 		public function get_default_heading( $partial = false ) {
 			if ( $partial ) {
-				return _x( 'Partial shipment to your order: {order_number}', 'shipments', 'woocommerce-germanized-shipments' );
+				return _x( 'Partial shipment to your order: {order_number}', 'shipments', 'shiptastic-for-woocommerce' );
 			} else {
-				return _x( 'Shipment to your order: {order_number}', 'shipments', 'woocommerce-germanized-shipments' );
+				return _x( 'Shipment to your order: {order_number}', 'shipments', 'shiptastic-for-woocommerce' );
 			}
 		}
 
@@ -126,10 +124,9 @@ if ( ! class_exists( 'WC_GZD_Email_Customer_Shipment', false ) ) :
 			 * Filter to adjust the email subject for a shipped Shipment.
 			 *
 			 * @param string                         $subject The subject.
-			 * @param WC_GZD_Email_Customer_Shipment $email The email instance.
+			 * @param WC_STC_Email_Customer_Shipment $email The email instance.
 			 *
-			 * @since 3.0.0
-			 * @package Vendidero/Germanized/Shipments
+			 * @package Vendidero/Shiptastic
 			 */
 			return apply_filters( 'woocommerce_email_subject_customer_shipment', $this->format_string( $subject ), $this->object, $this );
 		}
@@ -150,33 +147,27 @@ if ( ! class_exists( 'WC_GZD_Email_Customer_Shipment', false ) ) :
 			 * Filter to adjust the email heading for a shipped Shipment.
 			 *
 			 * @param string                         $heading The heading.
-			 * @param WC_GZD_Email_Customer_Shipment $email The email instance.
+			 * @param WC_STC_Email_Customer_Shipment $email The email instance.
 			 *
-			 * @since 3.0.0
-			 * @package Vendidero/Germanized/Shipments
+			 * @package Vendidero/Shiptastic
 			 */
 			return apply_filters( 'woocommerce_email_heading_customer_shipment', $this->format_string( $heading ), $this->object, $this );
 		}
 
-		/**
-		 * Switch Woo and Germanized locale
-		 */
 		public function setup_locale() {
-
-			if ( $this->is_customer_email() && function_exists( 'wc_gzd_switch_to_site_locale' ) && apply_filters( 'woocommerce_email_setup_locale', true ) ) {
-				wc_gzd_switch_to_site_locale();
+			if ( $this->is_customer_email() && function_exists( 'wc_stc_switch_to_site_locale' ) && apply_filters( 'woocommerce_email_setup_locale', true ) ) {
+				wc_stc_switch_to_site_locale();
 			}
 
 			parent::setup_locale();
 		}
 
 		/**
-		 * Restore Woo and Germanized locale
+		 * Restore locale
 		 */
 		public function restore_locale() {
-
-			if ( $this->is_customer_email() && function_exists( 'wc_gzd_restore_locale' ) && apply_filters( 'woocommerce_email_restore_locale', true ) ) {
-				wc_gzd_restore_locale();
+			if ( $this->is_customer_email() && function_exists( 'wc_stc_restore_locale' ) && apply_filters( 'woocommerce_email_restore_locale', true ) ) {
+				wc_stc_restore_locale();
 			}
 
 			parent::restore_locale();
@@ -185,11 +176,11 @@ if ( ! class_exists( 'WC_GZD_Email_Customer_Shipment', false ) ) :
 		public function get_shipped_position_number( $shipment_id ) {
 			$shipped_count = 1;
 
-			if ( ! $this->object || ( ! $order = wc_gzd_get_shipment_order( $this->object ) ) ) {
+			if ( ! $this->object || ( ! $order = wc_stc_get_shipment_order( $this->object ) ) ) {
 				return $shipped_count;
 			}
 
-			if ( is_a( $shipment_id, '\Vendidero\Germanized\Shipments\Shipment' ) ) {
+			if ( is_a( $shipment_id, '\Vendidero\Shiptastic\Shipment' ) ) {
 				$shipment_id = $shipment_id->get_id();
 			}
 
@@ -222,11 +213,11 @@ if ( ! class_exists( 'WC_GZD_Email_Customer_Shipment', false ) ) :
 
 			$this->partial_shipment = false;
 
-			if ( $this->shipment = wc_gzd_get_shipment( $shipment_id ) ) {
+			if ( $this->shipment = wc_stc_get_shipment( $shipment_id ) ) {
 
 				$this->placeholders['{shipment_number}'] = $this->shipment->get_shipment_number();
 
-				if ( $order_shipment = wc_gzd_get_shipment_order( $this->shipment->get_order() ) ) {
+				if ( $order_shipment = wc_stc_get_shipment_order( $this->shipment->get_order() ) ) {
 					$this->object          = $this->shipment->get_order();
 					$this->total_shipments = count( $order_shipment->get_simple_shipments() );
 					$this->cur_position    = $this->get_shipped_position_number( $shipment_id );
@@ -275,7 +266,6 @@ if ( ! class_exists( 'WC_GZD_Email_Customer_Shipment', false ) ) :
 		 *
 		 * Displayed above the footer.
 		 *
-		 * @since 2.0.4
 		 * @return string
 		 */
 		public function get_additional_content() {
@@ -335,7 +325,6 @@ if ( ! class_exists( 'WC_GZD_Email_Customer_Shipment', false ) ) :
 		/**
 		 * Default content to show below main email content.
 		 *
-		 * @since 1.0.1
 		 * @return string
 		 */
 		public function get_default_additional_content() {
@@ -347,17 +336,17 @@ if ( ! class_exists( 'WC_GZD_Email_Customer_Shipment', false ) ) :
 		 */
 		public function init_form_fields() {
 			/* translators: %s: list of placeholders */
-			$placeholder_text = sprintf( _x( 'Available placeholders: %s', 'shipments', 'woocommerce-germanized-shipments' ), '<code>' . esc_html( implode( '</code>, <code>', array_keys( $this->placeholders ) ) ) . '</code>' );
+			$placeholder_text = sprintf( _x( 'Available placeholders: %s', 'shipments', 'shiptastic-for-woocommerce' ), '<code>' . esc_html( implode( '</code>, <code>', array_keys( $this->placeholders ) ) ) . '</code>' );
 
 			$this->form_fields = array(
 				'enabled'            => array(
-					'title'   => _x( 'Enable/Disable', 'shipments', 'woocommerce-germanized-shipments' ),
+					'title'   => _x( 'Enable/Disable', 'shipments', 'shiptastic-for-woocommerce' ),
 					'type'    => 'checkbox',
-					'label'   => _x( 'Enable this email notification', 'shipments', 'woocommerce-germanized-shipments' ),
+					'label'   => _x( 'Enable this email notification', 'shipments', 'shiptastic-for-woocommerce' ),
 					'default' => 'yes',
 				),
 				'subject_full'       => array(
-					'title'       => _x( 'Full shipment subject', 'shipments', 'woocommerce-germanized-shipments' ),
+					'title'       => _x( 'Full shipment subject', 'shipments', 'shiptastic-for-woocommerce' ),
 					'type'        => 'text',
 					'desc_tip'    => true,
 					'description' => $placeholder_text,
@@ -365,7 +354,7 @@ if ( ! class_exists( 'WC_GZD_Email_Customer_Shipment', false ) ) :
 					'default'     => '',
 				),
 				'subject_partial'    => array(
-					'title'       => _x( 'Partial shipment subject', 'shipments', 'woocommerce-germanized-shipments' ),
+					'title'       => _x( 'Partial shipment subject', 'shipments', 'shiptastic-for-woocommerce' ),
 					'type'        => 'text',
 					'desc_tip'    => true,
 					'description' => $placeholder_text,
@@ -373,7 +362,7 @@ if ( ! class_exists( 'WC_GZD_Email_Customer_Shipment', false ) ) :
 					'default'     => '',
 				),
 				'heading_full'       => array(
-					'title'       => _x( 'Full shipment email heading', 'shipments', 'woocommerce-germanized-shipments' ),
+					'title'       => _x( 'Full shipment email heading', 'shipments', 'shiptastic-for-woocommerce' ),
 					'type'        => 'text',
 					'desc_tip'    => true,
 					'description' => $placeholder_text,
@@ -381,7 +370,7 @@ if ( ! class_exists( 'WC_GZD_Email_Customer_Shipment', false ) ) :
 					'default'     => '',
 				),
 				'heading_partial'    => array(
-					'title'       => _x( 'Partial shipment email heading', 'shipments', 'woocommerce-germanized-shipments' ),
+					'title'       => _x( 'Partial shipment email heading', 'shipments', 'shiptastic-for-woocommerce' ),
 					'type'        => 'text',
 					'desc_tip'    => true,
 					'description' => $placeholder_text,
@@ -389,18 +378,18 @@ if ( ! class_exists( 'WC_GZD_Email_Customer_Shipment', false ) ) :
 					'default'     => '',
 				),
 				'additional_content' => array(
-					'title'       => _x( 'Additional content', 'shipments', 'woocommerce-germanized-shipments' ),
-					'description' => _x( 'Text to appear below the main email content.', 'shipments', 'woocommerce-germanized-shipments' ) . ' ' . $placeholder_text,
+					'title'       => _x( 'Additional content', 'shipments', 'shiptastic-for-woocommerce' ),
+					'description' => _x( 'Text to appear below the main email content.', 'shipments', 'shiptastic-for-woocommerce' ) . ' ' . $placeholder_text,
 					'css'         => 'width:400px; height: 75px;',
-					'placeholder' => _x( 'N/A', 'shipments', 'woocommerce-germanized-shipments' ),
+					'placeholder' => _x( 'N/A', 'shipments', 'shiptastic-for-woocommerce' ),
 					'type'        => 'textarea',
 					'default'     => $this->get_default_additional_content(),
 					'desc_tip'    => true,
 				),
 				'email_type'         => array(
-					'title'       => _x( 'Email type', 'shipments', 'woocommerce-germanized-shipments' ),
+					'title'       => _x( 'Email type', 'shipments', 'shiptastic-for-woocommerce' ),
 					'type'        => 'select',
-					'description' => _x( 'Choose which format of email to send.', 'shipments', 'woocommerce-germanized-shipments' ),
+					'description' => _x( 'Choose which format of email to send.', 'shipments', 'shiptastic-for-woocommerce' ),
 					'default'     => 'html',
 					'class'       => 'email_type wc-enhanced-select',
 					'options'     => $this->get_email_type_options(),
@@ -412,4 +401,4 @@ if ( ! class_exists( 'WC_GZD_Email_Customer_Shipment', false ) ) :
 
 endif;
 
-return new WC_GZD_Email_Customer_Shipment();
+return new WC_STC_Email_Customer_Shipment();

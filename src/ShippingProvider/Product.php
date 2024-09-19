@@ -1,9 +1,9 @@
 <?php
 
-namespace Vendidero\Germanized\Shipments\ShippingProvider;
+namespace Vendidero\Shiptastic\ShippingProvider;
 
-use Vendidero\Germanized\Shipments\Package;
-use Vendidero\Germanized\Shipments\Shipment;
+use Vendidero\Shiptastic\Package;
+use Vendidero\Shiptastic\Shipment;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -46,7 +46,7 @@ class Product {
 	protected $description = '';
 
 	public function __construct( $shipping_provider, $args = array() ) {
-		if ( is_a( $shipping_provider, 'Vendidero\Germanized\Shipments\Interfaces\ShippingProvider' ) ) {
+		if ( is_a( $shipping_provider, 'Vendidero\Shiptastic\Interfaces\ShippingProvider' ) ) {
 			$this->shipping_provider      = $shipping_provider;
 			$this->shipping_provider_name = $shipping_provider->get_name();
 		} else {
@@ -63,7 +63,7 @@ class Product {
 				'description'    => '',
 				'shipment_types' => array( 'simple' ),
 				'countries'      => null,
-				'zones'          => array_keys( wc_gzd_get_shipping_label_zones() ),
+				'zones'          => array_keys( wc_stc_get_shipping_label_zones() ),
 				'price'          => 0.0,
 				'weight'         => null,
 				'length'         => null,
@@ -80,7 +80,7 @@ class Product {
 		}
 
 		if ( empty( $args['id'] ) ) {
-			throw new \Exception( _x( 'A product needs an id.', 'shipments', 'woocommerce-germanized-shipments' ), 500 );
+			throw new \Exception( esc_html_x( 'A product needs an id.', 'shipments', 'shiptastic-for-woocommerce' ), 500 );
 		}
 
 		$this->id             = $args['id'];
@@ -278,7 +278,7 @@ class Product {
 			}
 
 			if ( ! is_null( $max ) ) {
-				$formatted_dimension .= ( empty( $formatted_dimension ) ? sprintf( _x( 'until %s', 'dhl', 'woocommerce-germanized-shipments' ), wc_format_localized_decimal( $max ) ) : '-' . wc_format_localized_decimal( $max ) );
+				$formatted_dimension .= ( empty( $formatted_dimension ) ? sprintf( _x( 'until %s', 'dhl', 'shiptastic-for-woocommerce' ), wc_format_localized_decimal( $max ) ) : '-' . wc_format_localized_decimal( $max ) );
 			}
 
 			if ( ! empty( $formatted_dimension ) ) {
@@ -317,7 +317,7 @@ class Product {
 			$include_product = false;
 		}
 
-		if ( $include_product && ! empty( $filter_args['shipment'] ) && ( $shipment = wc_gzd_get_shipment( $filter_args['shipment'] ) ) ) {
+		if ( $include_product && ! empty( $filter_args['shipment'] ) && ( $shipment = wc_stc_get_shipment( $filter_args['shipment'] ) ) ) {
 			$include_product = $this->supports_shipment( $shipment );
 
 			$filter_args['shipment_type']  = '';
@@ -436,7 +436,7 @@ class Product {
 
 	public function get_shipping_provider() {
 		if ( is_null( $this->shipping_provider ) ) {
-			$this->shipping_provider = wc_gzd_get_shipping_provider( $this->shipping_provider_name );
+			$this->shipping_provider = wc_stc_get_shipping_provider( $this->shipping_provider_name );
 		}
 
 		return $this->shipping_provider;

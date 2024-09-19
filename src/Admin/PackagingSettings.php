@@ -1,9 +1,9 @@
 <?php
 
-namespace Vendidero\Germanized\Shipments\Admin;
+namespace Vendidero\Shiptastic\Admin;
 
-use Vendidero\Germanized\Shipments\Package;
-use Vendidero\Germanized\Shipments\Packaging;
+use Vendidero\Shiptastic\Package;
+use Vendidero\Shiptastic\Packaging;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -16,11 +16,11 @@ class PackagingSettings {
 	 */
 	public static function get_tabs( $packaging ) {
 		$tabs = array(
-			'' => _x( 'General', 'shipments-packaging-tab', 'woocommerce-germanized-shipments' ),
+			'' => _x( 'General', 'shipments-packaging-tab', 'shiptastic-for-woocommerce' ),
 		);
 
 		foreach ( $packaging->get_available_shipping_provider() as $provider_name ) {
-			if ( $provider = wc_gzd_get_shipping_provider( $provider_name ) ) {
+			if ( $provider = wc_stc_get_shipping_provider( $provider_name ) ) {
 				if ( $provider->is_activated() && ! $provider->is_manual_integration() ) {
 					$tabs[ $provider_name ] = $provider->get_title();
 				}
@@ -40,9 +40,9 @@ class PackagingSettings {
 		$sections = array();
 
 		if ( ! empty( $tab ) ) {
-			if ( $current_provider = wc_gzd_get_shipping_provider( $tab ) ) {
+			if ( $current_provider = wc_stc_get_shipping_provider( $tab ) ) {
 				foreach ( array_keys( $current_provider->get_packaging_label_settings( $packaging ) ) as $shipment_type ) {
-					$sections[ $shipment_type ] = wc_gzd_get_shipment_label_title( $shipment_type, true );
+					$sections[ $shipment_type ] = wc_stc_get_shipment_label_title( $shipment_type, true );
 				}
 			}
 		}
@@ -83,7 +83,7 @@ class PackagingSettings {
 					'section'   => $section,
 				)
 			);
-		} elseif ( $current_provider = wc_gzd_get_shipping_provider( $tab ) ) {
+		} elseif ( $current_provider = wc_stc_get_shipping_provider( $tab ) ) {
 			$all_settings          = $current_provider->get_packaging_label_settings( $packaging );
 			$current_shipment_type = empty( $section ) ? 'simple' : $section;
 			$settings              = isset( $all_settings[ $current_shipment_type ] ) ? $all_settings[ $current_shipment_type ] : array();
@@ -97,7 +97,7 @@ class PackagingSettings {
 		$is_provider = false;
 
 		if ( ! is_callable( array( __CLASS__, "get_{$tab}_settings" ) ) ) {
-			if ( wc_gzd_get_shipping_provider( $tab ) ) {
+			if ( wc_stc_get_shipping_provider( $tab ) ) {
 				$is_provider = true;
 			}
 		}
@@ -119,37 +119,37 @@ class PackagingSettings {
 				'id'    => 'packaging_general_options',
 			),
 			array(
-				'title'   => _x( 'Description', 'shipments', 'woocommerce-germanized-shipments' ),
+				'title'   => _x( 'Description', 'shipments', 'shiptastic-for-woocommerce' ),
 				'type'    => 'text',
 				'id'      => 'description',
 				'default' => '',
 				'value'   => $packaging->get_description(),
 			),
 			array(
-				'title'   => _x( 'Type', 'shipments', 'woocommerce-germanized-shipments' ),
+				'title'   => _x( 'Type', 'shipments', 'shiptastic-for-woocommerce' ),
 				'type'    => 'select',
 				'id'      => 'type',
 				'default' => '',
-				'options' => wc_gzd_get_packaging_types(),
+				'options' => wc_stc_get_packaging_types(),
 				'value'   => $packaging->get_type(),
 			),
 			array(
-				'title'             => _x( 'Shipping Provider', 'shipments', 'woocommerce-germanized-shipments' ),
+				'title'             => _x( 'Shipping Provider', 'shipments', 'shiptastic-for-woocommerce' ),
 				'type'              => 'multiselect',
 				'id'                => 'available_shipping_provider',
-				'desc_tip'          => _x( 'Choose which shipping provider support the packaging.', 'shipments', 'woocommerce-germanized-shipments' ),
+				'desc_tip'          => _x( 'Choose which shipping provider support the packaging.', 'shipments', 'shiptastic-for-woocommerce' ),
 				'class'             => 'wc-enhanced-select',
 				'default'           => array(),
-				'options'           => wc_gzd_get_shipping_provider_select( false ),
+				'options'           => wc_stc_get_shipping_provider_select( false ),
 				'value'             => $packaging->get_available_shipping_provider( 'edit' ),
 				'custom_attributes' => array(
-					'data-placeholder' => _x( 'All shipping provider', 'shipments', 'woocommerce-germanized-shipments' ),
+					'data-placeholder' => _x( 'All shipping provider', 'shipments', 'shiptastic-for-woocommerce' ),
 				),
 			),
 			array(
-				'title'             => _x( 'Shipping Classes', 'shipments', 'woocommerce-germanized-shipments' ),
+				'title'             => _x( 'Shipping Classes', 'shipments', 'shiptastic-for-woocommerce' ),
 				'type'              => 'multiselect',
-				'desc_tip'          => _x( 'You may restrict the packaging to only support items with certain shipping class(es).', 'shipments', 'woocommerce-germanized-shipments' ),
+				'desc_tip'          => _x( 'You may restrict the packaging to only support items with certain shipping class(es).', 'shipments', 'shiptastic-for-woocommerce' ),
 				'id'                => 'available_shipping_classes',
 				'class'             => 'wc-enhanced-select',
 				'default'           => array(),
@@ -160,26 +160,26 @@ class PackagingSettings {
 				 */
 				'value'             => array_map( 'strval', $packaging->get_available_shipping_classes( 'edit' ) ),
 				'custom_attributes' => array(
-					'data-placeholder' => _x( 'All shipping classes', 'shipments', 'woocommerce-germanized-shipments' ),
+					'data-placeholder' => _x( 'All shipping classes', 'shipments', 'shiptastic-for-woocommerce' ),
 				),
 			),
 			array(
-				'title'     => _x( 'Weight', 'shipments', 'woocommerce-germanized-shipments' ),
+				'title'     => _x( 'Weight', 'shipments', 'shiptastic-for-woocommerce' ),
 				'type'      => 'text',
 				'css'       => 'max-width: 60px;',
 				'class'     => 'wc_input_decimal',
 				'row_class' => 'with-suffix',
-				'desc_tip'  => _x( 'The weight of the packaging.', 'shipments', 'woocommerce-germanized-shipments' ),
+				'desc_tip'  => _x( 'The weight of the packaging.', 'shipments', 'shiptastic-for-woocommerce' ),
 				'id'        => 'weight',
-				'desc'      => wc_gzd_get_packaging_weight_unit(),
+				'desc'      => wc_stc_get_packaging_weight_unit(),
 				'default'   => '',
 				'value'     => wc_format_localized_decimal( $packaging->get_weight() ),
 			),
 			array(
-				'title' => _x( 'Dimensions', 'shipments', 'woocommerce-germanized-shipments' ),
+				'title' => _x( 'Dimensions', 'shipments', 'shiptastic-for-woocommerce' ),
 				'type'  => 'dimensions',
 				'id'    => 'dimensions',
-				'desc'  => wc_gzd_get_packaging_dimension_unit(),
+				'desc'  => wc_stc_get_packaging_dimension_unit(),
 				'value' => array(
 					'length' => wc_format_localized_decimal( $packaging->get_length() ),
 					'width'  => wc_format_localized_decimal( $packaging->get_width() ),
@@ -187,10 +187,10 @@ class PackagingSettings {
 				),
 			),
 			array(
-				'title'       => _x( 'Inner Dimensions', 'shipments', 'woocommerce-germanized-shipments' ),
+				'title'       => _x( 'Inner Dimensions', 'shipments', 'shiptastic-for-woocommerce' ),
 				'type'        => 'dimensions',
 				'id'          => 'inner_dimensions',
-				'desc'        => wc_gzd_get_packaging_dimension_unit(),
+				'desc'        => wc_stc_get_packaging_dimension_unit(),
 				'value'       => array(
 					'length' => $packaging->get_inner_length( 'edit' ) ? wc_format_localized_decimal( $packaging->get_inner_length() ) : '',
 					'width'  => $packaging->get_inner_width( 'edit' ) ? wc_format_localized_decimal( $packaging->get_inner_width() ) : '',
@@ -203,14 +203,14 @@ class PackagingSettings {
 				),
 			),
 			array(
-				'title'     => _x( 'Load Capacity', 'shipments', 'woocommerce-germanized-shipments' ),
+				'title'     => _x( 'Load Capacity', 'shipments', 'shiptastic-for-woocommerce' ),
 				'type'      => 'text',
 				'css'       => 'max-width: 60px;',
 				'class'     => 'wc_input_decimal',
 				'row_class' => 'with-suffix',
-				'desc_tip'  => _x( 'The maximum weight this packaging can hold. Leave empty to not restrict maximum weight.', 'shipments', 'woocommerce-germanized-shipments' ),
+				'desc_tip'  => _x( 'The maximum weight this packaging can hold. Leave empty to not restrict maximum weight.', 'shipments', 'shiptastic-for-woocommerce' ),
 				'id'        => 'max_content_weight',
-				'desc'      => wc_gzd_get_packaging_weight_unit(),
+				'desc'      => wc_stc_get_packaging_weight_unit(),
 				'default'   => '',
 				'value'     => wc_format_localized_decimal( $packaging->get_max_content_weight() ),
 			),
@@ -228,7 +228,7 @@ class PackagingSettings {
 	 * @return string
 	 */
 	public static function to_packaging_weight( $weight, $packaging ) {
-		return wc_get_weight( (float) wc_format_decimal( $weight ), $packaging->get_weight_unit(), wc_gzd_get_packaging_weight_unit() );
+		return wc_get_weight( (float) wc_format_decimal( $weight ), $packaging->get_weight_unit(), wc_stc_get_packaging_weight_unit() );
 	}
 
 	/**
@@ -238,7 +238,7 @@ class PackagingSettings {
 	 * @return string
 	 */
 	public static function to_packaging_dimension( $dimension, $packaging ) {
-		return wc_get_dimension( (float) wc_format_decimal( $dimension ), $packaging->get_dimension_unit(), wc_gzd_get_packaging_dimension_unit() );
+		return wc_get_dimension( (float) wc_format_decimal( $dimension ), $packaging->get_dimension_unit(), wc_stc_get_packaging_dimension_unit() );
 	}
 
 	/**
@@ -252,7 +252,7 @@ class PackagingSettings {
 		$settings = self::get_settings( $packaging, $tab, $section );
 
 		if ( ! empty( $settings ) ) {
-			if ( self::is_provider( $tab ) && ( $shipping_provider = wc_gzd_get_shipping_provider( $tab ) ) ) {
+			if ( self::is_provider( $tab ) && ( $shipping_provider = wc_stc_get_shipping_provider( $tab ) ) ) {
 				$current_shipment_type = empty( $section ) ? 'simple' : $section;
 
 				$packaging->reset_configuration_sets(

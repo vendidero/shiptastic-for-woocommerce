@@ -1,12 +1,12 @@
 <?php
 
-namespace Vendidero\Germanized\Shipments\ShippingMethod;
+namespace Vendidero\Shiptastic\ShippingMethod;
 
-use Vendidero\Germanized\Shipments\Package;
-use Vendidero\Germanized\Shipments\Packing\CartItem;
-use Vendidero\Germanized\Shipments\Packing\ItemList;
-use Vendidero\Germanized\Shipments\ShippingProvider\Helper;
-use Vendidero\Germanized\Shipments\Utilities\NumberUtil;
+use Vendidero\Shiptastic\Package;
+use Vendidero\Shiptastic\Packing\CartItem;
+use Vendidero\Shiptastic\Packing\ItemList;
+use Vendidero\Shiptastic\ShippingProvider\Helper;
+use Vendidero\Shiptastic\Utilities\NumberUtil;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -63,7 +63,7 @@ class MethodHelper {
 	}
 
 	public static function register_cart_items_to_pack( $cart_contents ) {
-		if ( ! Package::is_packing_supported() || apply_filters( 'woocommerce_gzd_shipments_disable_cart_packing', false ) ) {
+		if ( ! Package::is_packing_supported() || apply_filters( 'woocommerce_shiptastic_disable_cart_packing', false ) ) {
 			return $cart_contents;
 		}
 
@@ -81,17 +81,17 @@ class MethodHelper {
 
 			$items = new ItemList();
 
-			do_action( 'woocommerce_gzd_shipments_before_prepare_cart_contents' );
+			do_action( 'woocommerce_shiptastic_before_prepare_cart_contents' );
 
 			foreach ( $content['contents'] as $content_key => $item ) {
-				$item    = apply_filters( 'woocommerce_gzd_shipments_cart_item', $item, $content_key );
+				$item    = apply_filters( 'woocommerce_shiptastic_cart_item', $item, $content_key );
 				$product = $item['data'];
 
 				if ( ! is_a( $product, 'WC_Product' ) ) {
 					continue;
 				}
 
-				$s_product     = wc_gzd_shipments_get_product( $product );
+				$s_product     = wc_shiptastic_get_product( $product );
 				$line_total    = (float) $item['line_total'];
 				$line_subtotal = (float) $item['line_subtotal'];
 
@@ -126,7 +126,7 @@ class MethodHelper {
 				$items->insert( $cart_item, $quantity );
 			}
 
-			do_action( 'woocommerce_gzd_shipments_after_prepare_cart_contents' );
+			do_action( 'woocommerce_shiptastic_after_prepare_cart_contents' );
 
 			/**
 			 * In case prices have already been calculated, use the official
@@ -318,7 +318,7 @@ class MethodHelper {
 
 	public static function method_is_excluded( $method ) {
 		$is_excluded = false;
-		$excluded    = apply_filters( 'woocommerce_gzd_shipments_get_methods_excluded_from_provider_settings', array( 'pr_dhl_paket', 'flexible_shipping_info' ) );
+		$excluded    = apply_filters( 'woocommerce_shiptastic_get_methods_excluded_from_provider_settings', array( 'pr_dhl_paket', 'flexible_shipping_info' ) );
 
 		if ( in_array( $method, $excluded, true ) ) {
 			$is_excluded = true;
@@ -326,7 +326,7 @@ class MethodHelper {
 			$is_excluded = true;
 		}
 
-		return apply_filters( 'woocommerce_gzd_shipments_shipping_method_is_excluded_from_provider_settings', $is_excluded, $method );
+		return apply_filters( 'woocommerce_shiptastic_shipping_method_is_excluded_from_provider_settings', $is_excluded, $method );
 	}
 
 	public static function validate_method_zone_override( $value ) {
@@ -433,26 +433,25 @@ class MethodHelper {
 		$load_all_settings = $force_load_all ? true : self::load_all_method_settings();
 		$method_settings   = array(
 			'label_configuration_set_shipping_provider_title' => array(
-				'title'       => _x( 'Shipping Provider Settings', 'shipments', 'woocommerce-germanized-shipments' ),
+				'title'       => _x( 'Shipping Provider Settings', 'shipments', 'shiptastic-for-woocommerce' ),
 				'type'        => 'title',
 				'id'          => 'label_configuration_set_shipping_provider_title',
 				'default'     => '',
-				'description' => _x( 'Adjust shipping provider settings used for managing shipments.', 'shipments', 'woocommerce-germanized-shipments' ),
+				'description' => _x( 'Adjust shipping provider settings used for managing shipments.', 'shipments', 'shiptastic-for-woocommerce' ),
 			),
 			'shipping_provider'  => array(
-				'title'       => _x( 'Shipping Provider', 'shipments', 'woocommerce-germanized-shipments' ),
+				'title'       => _x( 'Shipping Provider', 'shipments', 'shiptastic-for-woocommerce' ),
 				'type'        => 'select',
 				/**
 				 * Filter to adjust default shipping provider pre-selected within shipping provider method settings.
 				 *
 				 * @param string $provider_name The shipping provider name e.g. dhl.
 				 *
-				 * @since 3.0.6
-				 * @package Vendidero/Germanized/Shipments
+				 * @package Vendidero/Shiptastic
 				 */
-				'default'     => apply_filters( 'woocommerce_gzd_shipping_provider_method_default_provider', '' ),
-				'options'     => wc_gzd_get_shipping_provider_select(),
-				'description' => _x( 'Choose a shipping provider which will be selected by default for an eligible shipment.', 'shipments', 'woocommerce-germanized-shipments' ),
+				'default'     => apply_filters( 'woocommerce_shiptastic_shipping_provider_method_default_provider', '' ),
+				'options'     => wc_stc_get_shipping_provider_select(),
+				'description' => _x( 'Choose a shipping provider which will be selected by default for an eligible shipment.', 'shipments', 'shiptastic-for-woocommerce' ),
 			),
 			'configuration_sets' => array(
 				'title'   => '',
@@ -465,7 +464,7 @@ class MethodHelper {
 			if ( is_null( self::$provider_method_settings ) ) {
 				self::$provider_method_settings = array();
 
-				foreach ( wc_gzd_get_shipping_providers() as $provider ) {
+				foreach ( wc_stc_get_shipping_providers() as $provider ) {
 					if ( ! $provider->is_activated() ) {
 						continue;
 					}
@@ -474,7 +473,7 @@ class MethodHelper {
 				}
 			}
 
-			$supported_zones = array_keys( wc_gzd_get_shipping_label_zones() );
+			$supported_zones = array_keys( wc_stc_get_shipping_label_zones() );
 
 			foreach ( self::$provider_method_settings as $provider => $zone_settings ) {
 				$provider_tabs           = array();
@@ -491,7 +490,7 @@ class MethodHelper {
 						}
 
 						$provider_inner_settings[ $shipment_type ]         = array_merge( $provider_inner_settings[ $shipment_type ], $settings );
-						$provider_tabs[ $provider . '_' . $shipment_type ] = wc_gzd_get_shipment_label_title( $shipment_type );
+						$provider_tabs[ $provider . '_' . $shipment_type ] = wc_stc_get_shipment_label_title( $shipment_type );
 					}
 				}
 
@@ -557,7 +556,7 @@ class MethodHelper {
 		 * Append a stop title to make sure the table is closed within settings.
 		 */
 		$method_settings = array_merge(
-			apply_filters( 'woocommerce_gzd_shipping_provider_method_admin_settings', $method_settings, $load_all_settings ),
+			apply_filters( 'woocommerce_shiptastic_shipping_provider_method_admin_settings', $method_settings, $load_all_settings ),
 			array(
 				'label_configuration_set_shipping_provider_stop_title' => array(
 					'title'   => '',
@@ -585,7 +584,7 @@ class MethodHelper {
 			)
 		);
 
-		return '</table><div class="wc-gzd-shipping-provider-method-tab-content ' . ( $setting['active'] ? 'tab-content-active' : '' ) . '" id="' . esc_attr( $setting['id'] ) . '" data-tab="' . esc_attr( $setting['tab'] ) . '">';
+		return '</table><div class="wc-stc-shipping-provider-method-tab-content ' . ( $setting['active'] ? 'tab-content-active' : '' ) . '" id="' . esc_attr( $setting['id'] ) . '" data-tab="' . esc_attr( $setting['tab'] ) . '">';
 	}
 
 	public static function render_zone_override_close( $html, $key, $setting, $method ) {
@@ -610,19 +609,19 @@ class MethodHelper {
 		ob_start();
 		?>
 		</table>
-		<div class="wc-gzd-shipping-provider-override-wrapper">
-		<div class="wc-gzd-shipping-provider-override-title-wrapper">
+		<div class="wc-stc-shipping-provider-override-wrapper">
+		<div class="wc-stc-shipping-provider-override-title-wrapper">
 			<h3 class="wc-settings-sub-title <?php echo esc_attr( $setting['class'] ); ?>"><?php echo wp_kses_post( $setting['title'] ); ?></h3>
 
 			<p class="override-checkbox">
 				<label for="<?php echo esc_attr( $field_key ); ?>">
 					<input <?php disabled( $setting['disabled'], true ); ?> class="<?php echo esc_attr( $setting['class'] ); ?>" type="checkbox" name="<?php echo esc_attr( $field_key ); ?>" id="<?php echo esc_attr( $field_key ); ?>" style="<?php echo esc_attr( $setting['css'] ); ?>" value="1" <?php checked( $field_value, 'yes' ); ?> <?php echo $method->get_custom_attribute_html( $setting ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?> />
-					<?php echo wp_kses_post( _x( 'Override?', 'shipments', 'woocommerce-germanized-shipments' ) ); ?>
+					<?php echo wp_kses_post( _x( 'Override?', 'shipments', 'shiptastic-for-woocommerce' ) ); ?>
 					<?php echo $method->get_tooltip_html( $setting ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
 				</label>
 			</p>
 		</div>
-		<div class="wc-gzd-shipping-provider-override-inner-wrapper <?php echo esc_attr( 'yes' === $field_value ? 'has-override' : '' ); ?>">
+		<div class="wc-stc-shipping-provider-override-inner-wrapper <?php echo esc_attr( 'yes' === $field_value ? 'has-override' : '' ); ?>">
 		<table class="form-table">
 		<?php
 		$html = ob_get_clean();
@@ -643,7 +642,7 @@ class MethodHelper {
 		ob_start();
 		?>
 		</table>
-		<div class="wc-gzd-shipping-provider-method-tabs" id="<?php echo esc_attr( $setting['id'] ); ?>" data-provider="<?php echo esc_attr( $setting['provider'] ); ?>">
+		<div class="wc-stc-shipping-provider-method-tabs" id="<?php echo esc_attr( $setting['id'] ); ?>" data-provider="<?php echo esc_attr( $setting['provider'] ); ?>">
 			<nav class="nav-tab-wrapper woo-nav-tab-wrapper shipments-nav-tab-wrapper">
 				<?php
 				foreach ( $setting['tabs'] as $tab => $tab_title ) :

@@ -1,6 +1,6 @@
 <?php
 
-namespace Vendidero\Germanized\Shipments;
+namespace Vendidero\Shiptastic;
 
 class ShipmentError extends \WP_Error {
 
@@ -89,7 +89,6 @@ class ShipmentError extends \WP_Error {
 	/**
 	 * Merges the errors in the given error object into this one.
 	 *
-	 * @since 5.6.0
 	 *
 	 * @param \WP_Error|ShipmentError $error Error object to merge.
 	 */
@@ -100,7 +99,6 @@ class ShipmentError extends \WP_Error {
 	/**
 	 * Copies errors from one WP_Error instance to another.
 	 *
-	 * @since 5.6.0
 	 *
 	 * @param \WP_Error $from The WP_Error to copy from.
 	 * @param \WP_Error $to   The WP_Error to copy to.

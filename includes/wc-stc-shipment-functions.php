@@ -1,28 +1,26 @@
 <?php
 /**
- * WooCommerce Germanized DHL Shipment Functions
+ * Shipment Functions
  *
  * Functions for shipment specific things.
  *
- * @package WooCommerce_Germanized/DHL/Functions
  * @version 3.4.0
  */
-
-use Vendidero\Germanized\Shipments\Order;
-use Vendidero\Germanized\Shipments\ReturnReason;
-use Vendidero\Germanized\Shipments\Shipment;
-use Vendidero\Germanized\Shipments\AddressSplitter;
-use Vendidero\Germanized\Shipments\ShipmentFactory;
-use Vendidero\Germanized\Shipments\ShipmentItem;
-use Vendidero\Germanized\Shipments\ShipmentReturnItem;
-use Vendidero\Germanized\Shipments\SimpleShipment;
-use Vendidero\Germanized\Shipments\ReturnShipment;
-use Vendidero\Germanized\Shipments\Package;
-use Vendidero\Germanized\Shipments\ShippingProvider;
+use Vendidero\Shiptastic\Order;
+use Vendidero\Shiptastic\ReturnReason;
+use Vendidero\Shiptastic\Shipment;
+use Vendidero\Shiptastic\AddressSplitter;
+use Vendidero\Shiptastic\ShipmentFactory;
+use Vendidero\Shiptastic\ShipmentItem;
+use Vendidero\Shiptastic\ShipmentReturnItem;
+use Vendidero\Shiptastic\SimpleShipment;
+use Vendidero\Shiptastic\ReturnShipment;
+use Vendidero\Shiptastic\Package;
+use Vendidero\Shiptastic\ShippingProvider;
 
 defined( 'ABSPATH' ) || exit;
 
-function wc_gzd_get_formatted_state( $country = '', $state = '' ) {
+function wc_stc_get_formatted_state( $country = '', $state = '' ) {
 	if ( empty( $country ) ) {
 		return '';
 	}
@@ -33,80 +31,80 @@ function wc_gzd_get_formatted_state( $country = '', $state = '' ) {
 	return $formatted_state;
 }
 
-function wc_gzd_country_to_alpha3( $country ) {
+function wc_stc_country_to_alpha3( $country ) {
 	return Package::get_country_iso_alpha3( $country );
 }
 
-function wc_gzd_get_customer_preferred_shipping_provider( $user_id ) {
-	$default_provider = wc_gzd_get_default_shipping_provider();
+function wc_stc_get_customer_preferred_shipping_provider( $user_id ) {
+	$default_provider = wc_stc_get_default_shipping_provider();
 	$provider         = false;
 
 	if ( ! $default_provider ) {
-		$available        = wc_gzd_get_available_shipping_providers();
+		$available        = wc_stc_get_available_shipping_providers();
 		$default_provider = 1 === count( $available ) ? array_values( $available )[0] : false;
 	}
 
 	if ( $customer = new WC_Customer( $user_id ) ) {
 		if ( $last_order = $customer->get_last_order() ) {
-			$provider = wc_gzd_get_order_shipping_provider( $last_order );
+			$provider = wc_stc_get_order_shipping_provider( $last_order );
 		}
 	}
 
 	if ( ! $provider && $default_provider ) {
-		$provider = wc_gzd_get_shipping_provider( $default_provider );
+		$provider = wc_stc_get_shipping_provider( $default_provider );
 	}
 
-	return apply_filters( 'woocommerce_gzd_customer_shipping_provider', $provider, $user_id );
+	return apply_filters( 'woocommerce_shiptastic_customer_shipping_provider', $provider, $user_id );
 }
 
-function wc_gzd_country_to_alpha2( $country ) {
+function wc_stc_country_to_alpha2( $country ) {
 	return Package::get_country_iso_alpha2( $country );
 }
 
-function wc_gzd_get_shipment_order( $order ) {
-	return \Vendidero\Germanized\Shipments\Orders\Factory::get_order( $order );
+function wc_stc_get_shipment_order( $order ) {
+	return \Vendidero\Shiptastic\Orders\Factory::get_order( $order );
 }
 
-function wc_gzd_get_shipment_label_title( $type, $plural = false ) {
-	$type_data = wc_gzd_get_shipment_type_data( $type );
+function wc_stc_get_shipment_label_title( $type, $plural = false ) {
+	$type_data = wc_stc_get_shipment_type_data( $type );
 
 	return ( ! $plural ? $type_data['labels']['singular'] : $type_data['labels']['plural'] );
 }
 
-function wc_gzd_get_shipping_label_zones() {
+function wc_stc_get_shipping_label_zones() {
 	return apply_filters(
-		'woocommerce_gzd_shipments_shipping_label_zones',
+		'woocommerce_shiptastic_shipping_label_zones',
 		array(
-			'dom' => _x( 'Domestic', 'shipments', 'woocommerce-germanized-shipments' ),
-			'eu'  => _x( 'EU', 'shipments', 'woocommerce-germanized-shipments' ),
-			'int' => _x( 'International', 'shipments', 'woocommerce-germanized-shipments' ),
+			'dom' => _x( 'Domestic', 'shipments', 'shiptastic-for-woocommerce' ),
+			'eu'  => _x( 'EU', 'shipments', 'shiptastic-for-woocommerce' ),
+			'int' => _x( 'International', 'shipments', 'shiptastic-for-woocommerce' ),
 		)
 	);
 }
 
-function wc_gzd_get_shipping_label_zone_title( $zone ) {
-	$zones = wc_gzd_get_shipping_label_zones();
+function wc_stc_get_shipping_label_zone_title( $zone ) {
+	$zones = wc_stc_get_shipping_label_zones();
 	$title = array_key_exists( $zone, $zones ) ? $zones[ $zone ] : '';
 
-	return apply_filters( 'woocommerce_gzd_shipments_shipping_label_zone_title', $title, $zone );
+	return apply_filters( 'woocommerce_shiptastic_shipping_label_zone_title', $title, $zone );
 }
 
-function wc_gzd_get_shipping_shipments_label_zone_title( $zone ) {
-	$title = _x( '%1$s shipments', 'shipments-zone-title', 'woocommerce-germanized-shipments' );
+function wc_stc_get_shipping_shipments_label_zone_title( $zone ) {
+	$title = _x( '%1$s shipments', 'shipments-zone-title', 'shiptastic-for-woocommerce' );
 
 	$zones = array(
-		'dom' => _x( 'Domestic Shipments', 'shipments', 'woocommerce-germanized-shipments' ),
-		'eu'  => _x( 'EU Shipments', 'shipments', 'woocommerce-germanized-shipments' ),
-		'int' => _x( 'International Shipments', 'shipments', 'woocommerce-germanized-shipments' ),
+		'dom' => _x( 'Domestic Shipments', 'shipments', 'shiptastic-for-woocommerce' ),
+		'eu'  => _x( 'EU Shipments', 'shipments', 'shiptastic-for-woocommerce' ),
+		'int' => _x( 'International Shipments', 'shipments', 'shiptastic-for-woocommerce' ),
 	);
 
 	$title = array_key_exists( $zone, $zones ) ? $zones[ $zone ] : $title;
 
-	return apply_filters( 'woocommerce_gzd_shipments_shipping_shipments_label_zone_title', $title, $zone );
+	return apply_filters( 'woocommerce_shiptastic_shipping_shipments_label_zone_title', $title, $zone );
 }
 
-function wc_gzd_get_shipment_types() {
-	return array_keys( wc_gzd_get_shipment_type_data( false ) );
+function wc_stc_get_shipment_types() {
+	return array_keys( wc_stc_get_shipment_type_data( false ) );
 }
 
 /**
@@ -115,24 +113,24 @@ function wc_gzd_get_shipment_types() {
  * @param  string $type type name.
  * @return bool|array Details about the shipment type.
  *
- * @package Vendidero/Germanized/Shipments
+ * @package Vendidero/Shiptastic
  */
-function wc_gzd_get_shipment_type_data( $type = false ) {
+function wc_stc_get_shipment_type_data( $type = false ) {
 	$types = apply_filters(
-		'woocommerce_gzd_shipment_type_data',
+		'woocommerce_shiptastic_shipment_type_data',
 		array(
 			'simple' => array(
-				'class_name' => '\Vendidero\Germanized\Shipments\SimpleShipment',
+				'class_name' => '\Vendidero\Shiptastic\SimpleShipment',
 				'labels'     => array(
-					'singular' => _x( 'Shipment', 'shipments', 'woocommerce-germanized-shipments' ),
-					'plural'   => _x( 'Shipments', 'shipments', 'woocommerce-germanized-shipments' ),
+					'singular' => _x( 'Shipment', 'shipments', 'shiptastic-for-woocommerce' ),
+					'plural'   => _x( 'Shipments', 'shipments', 'shiptastic-for-woocommerce' ),
 				),
 			),
 			'return' => array(
-				'class_name' => '\Vendidero\Germanized\Shipments\ReturnShipment',
+				'class_name' => '\Vendidero\Shiptastic\ReturnShipment',
 				'labels'     => array(
-					'singular' => _x( 'Return', 'shipments', 'woocommerce-germanized-shipments' ),
-					'plural'   => _x( 'Returns', 'shipments', 'woocommerce-germanized-shipments' ),
+					'singular' => _x( 'Return', 'shipments', 'shiptastic-for-woocommerce' ),
+					'plural'   => _x( 'Returns', 'shipments', 'shiptastic-for-woocommerce' ),
 				),
 			),
 		)
@@ -147,24 +145,24 @@ function wc_gzd_get_shipment_type_data( $type = false ) {
 	}
 }
 
-function wc_gzd_get_shipments_by_order( $order ) {
+function wc_stc_get_shipments_by_order( $order ) {
 	$shipments = array();
 
-	if ( $order_shipment = wc_gzd_get_shipment_order( $order ) ) {
+	if ( $order_shipment = wc_stc_get_shipment_order( $order ) ) {
 		$shipments = $order_shipment->get_shipments();
 	}
 
 	return $shipments;
 }
 
-function wc_gzd_get_shipment_order_shipping_statuses() {
+function wc_stc_get_shipment_order_shipping_statuses() {
 	$shipment_statuses = array(
-		'gzd-not-shipped'         => _x( 'Not shipped', 'shipments', 'woocommerce-germanized-shipments' ),
-		'gzd-partially-shipped'   => _x( 'Partially shipped', 'shipments', 'woocommerce-germanized-shipments' ),
-		'gzd-shipped'             => _x( 'Shipped', 'shipments', 'woocommerce-germanized-shipments' ),
-		'gzd-partially-delivered' => _x( 'Partially delivered', 'shipments', 'woocommerce-germanized-shipments' ),
-		'gzd-delivered'           => _x( 'Delivered', 'shipments', 'woocommerce-germanized-shipments' ),
-		'gzd-no-shipping-needed'  => _x( 'No shipping needed', 'shipments', 'woocommerce-germanized-shipments' ),
+		'not-shipped'         => _x( 'Not shipped', 'shipments', 'shiptastic-for-woocommerce' ),
+		'partially-shipped'   => _x( 'Partially shipped', 'shipments', 'shiptastic-for-woocommerce' ),
+		'shipped'             => _x( 'Shipped', 'shipments', 'shiptastic-for-woocommerce' ),
+		'partially-delivered' => _x( 'Partially delivered', 'shipments', 'shiptastic-for-woocommerce' ),
+		'delivered'           => _x( 'Delivered', 'shipments', 'shiptastic-for-woocommerce' ),
+		'no-shipping-needed'  => _x( 'No shipping needed', 'shipments', 'shiptastic-for-woocommerce' ),
 	);
 
 	/**
@@ -173,17 +171,16 @@ function wc_gzd_get_shipment_order_shipping_statuses() {
 	 *
 	 * @param array $shipment_statuses Available order shipping statuses.
 	 *
-	 * @since 3.0.0
-	 * @package Vendidero/Germanized/Shipments
+	 * @package Vendidero/Shiptastic
 	 */
-	return apply_filters( 'woocommerce_gzd_order_shipping_statuses', $shipment_statuses );
+	return apply_filters( 'woocommerce_shiptastic_order_shipping_statuses', $shipment_statuses );
 }
 
-function wc_gzd_get_shipment_order_return_statuses() {
+function wc_stc_get_shipment_order_return_statuses() {
 	$shipment_statuses = array(
-		'gzd-open'               => _x( 'Open', 'shipments', 'woocommerce-germanized-shipments' ),
-		'gzd-partially-returned' => _x( 'Partially returned', 'shipments', 'woocommerce-germanized-shipments' ),
-		'gzd-returned'           => _x( 'Returned', 'shipments', 'woocommerce-germanized-shipments' ),
+		'open'               => _x( 'Open', 'shipments', 'shiptastic-for-woocommerce' ),
+		'partially-returned' => _x( 'Partially returned', 'shipments', 'shiptastic-for-woocommerce' ),
+		'returned'           => _x( 'Returned', 'shipments', 'shiptastic-for-woocommerce' ),
 	);
 
 	/**
@@ -192,19 +189,18 @@ function wc_gzd_get_shipment_order_return_statuses() {
 	 *
 	 * @param array $shipment_statuses Available order return statuses.
 	 *
-	 * @since 3.0.0
-	 * @package Vendidero/Germanized/Shipments
+	 * @package Vendidero/Shiptastic
 	 */
-	return apply_filters( 'woocommerce_gzd_order_return_statuses', $shipment_statuses );
+	return apply_filters( 'woocommerce_shiptastic_order_return_statuses', $shipment_statuses );
 }
 
 /**
  * @param $instance_id
  *
- * @return \Vendidero\Germanized\Shipments\ShippingMethod\ProviderMethod|false
+ * @return \Vendidero\Shiptastic\ShippingMethod\ProviderMethod|false
  */
-function wc_gzd_get_shipping_provider_method( $instance_id ) {
-	return \Vendidero\Germanized\Shipments\ShippingMethod\MethodHelper::get_provider_method( $instance_id );
+function wc_stc_get_shipping_provider_method( $instance_id ) {
+	return \Vendidero\Shiptastic\ShippingMethod\MethodHelper::get_provider_method( $instance_id );
 }
 
 /**
@@ -212,7 +208,7 @@ function wc_gzd_get_shipping_provider_method( $instance_id ) {
  *
  * @return false|string
  */
-function wc_gzd_get_current_shipping_method_id() {
+function wc_stc_get_current_shipping_method_id() {
 	$chosen_shipping_methods = WC()->session ? WC()->session->get( 'chosen_shipping_methods' ) : array();
 
 	if ( ! empty( $chosen_shipping_methods ) ) {
@@ -222,21 +218,21 @@ function wc_gzd_get_current_shipping_method_id() {
 	return false;
 }
 
-function wc_gzd_get_current_shipping_provider_method() {
-	if ( $current = wc_gzd_get_current_shipping_method_id() ) {
-		return wc_gzd_get_shipping_provider_method( $current );
+function wc_stc_get_current_shipping_provider_method() {
+	if ( $current = wc_stc_get_current_shipping_method_id() ) {
+		return wc_stc_get_shipping_provider_method( $current );
 	}
 
 	return false;
 }
 
-function wc_gzd_get_shipment_order_shipping_status_name( $status ) {
-	if ( 'gzd-' !== substr( $status, 0, 4 ) ) {
-		$status = 'gzd-' . $status;
-	}
+function wc_stc_get_prefixed_shipment_status_name( $status ) {
+	return $status;
+}
 
+function wc_stc_get_shipment_order_shipping_status_name( $status ) {
 	$status_name = '';
-	$statuses    = wc_gzd_get_shipment_order_shipping_statuses();
+	$statuses    = wc_stc_get_shipment_order_shipping_statuses();
 
 	if ( array_key_exists( $status, $statuses ) ) {
 		$status_name = $statuses[ $status ];
@@ -245,24 +241,19 @@ function wc_gzd_get_shipment_order_shipping_status_name( $status ) {
 	/**
 	 * Filter to adjust the status name for a certain order shipping status.
 	 *
-	 * @see wc_gzd_get_shipment_order_shipping_statuses()
+	 * @see wc_stc_get_shipment_order_shipping_statuses()
 	 *
 	 * @param string $status_name The status name.
 	 * @param string $status The shipping status.
 	 *
-	 * @since 3.0.0
-	 * @package Vendidero/Germanized/Shipments
+	 * @package Vendidero/Shiptastic
 	 */
-	return apply_filters( 'woocommerce_gzd_order_shipping_status_name', $status_name, $status );
+	return apply_filters( 'woocommerce_shiptastic_order_shipping_status_name', $status_name, $status );
 }
 
-function wc_gzd_get_shipment_order_return_status_name( $status ) {
-	if ( 'gzd-' !== substr( $status, 0, 4 ) ) {
-		$status = 'gzd-' . $status;
-	}
-
+function wc_stc_get_shipment_order_return_status_name( $status ) {
 	$status_name = '';
-	$statuses    = wc_gzd_get_shipment_order_return_statuses();
+	$statuses    = wc_stc_get_shipment_order_return_statuses();
 
 	if ( array_key_exists( $status, $statuses ) ) {
 		$status_name = $statuses[ $status ];
@@ -271,15 +262,14 @@ function wc_gzd_get_shipment_order_return_status_name( $status ) {
 	/**
 	 * Filter to adjust the status name for a certain order return status.
 	 *
-	 * @see wc_gzd_get_shipment_order_return_statuses()
+	 * @see wc_stc_get_shipment_order_return_statuses()
 	 *
 	 * @param string $status_name The status name.
 	 * @param string $status The return status.
 	 *
-	 * @since 3.0.0
-	 * @package Vendidero/Germanized/Shipments
+	 * @package Vendidero/Shiptastic
 	 */
-	return apply_filters( 'woocommerce_gzd_order_return_status_name', $status_name, $status );
+	return apply_filters( 'woocommerce_shiptastic_order_return_status_name', $status_name, $status );
 }
 
 /**
@@ -288,17 +278,16 @@ function wc_gzd_get_shipment_order_return_status_name( $status ) {
  * @param  array $args Array of args (above).
  *
  * @return Shipment[] The shipments found.
- *@since  3.0.0
  */
-function wc_gzd_get_shipments( $args ) {
-	$query = new Vendidero\Germanized\Shipments\ShipmentQuery( $args );
+function wc_stc_get_shipments( $args ) {
+	$query = new Vendidero\Shiptastic\ShipmentQuery( $args );
 
 	return $query->get_shipments();
 }
 
-function wc_gzd_get_shipment_customer_visible_statuses( $shipment_type = 'simple' ) {
-	$statuses = array_keys( wc_gzd_get_shipment_statuses() );
-	$statuses = array_diff( $statuses, array( 'gzd-draft' ) );
+function wc_stc_get_shipment_customer_visible_statuses( $shipment_type = 'simple' ) {
+	$statuses = array_keys( wc_stc_get_shipment_statuses() );
+	$statuses = array_diff( $statuses, array( 'draft' ) );
 
 	/**
 	 * Filter to decide which shipment statuses should be visible to customers
@@ -307,10 +296,9 @@ function wc_gzd_get_shipment_customer_visible_statuses( $shipment_type = 'simple
 	 * @param array  $shipment_statuses The available shipment statuses.
 	 * @param string $shipment_type The shipment type.
 	 *
-	 * @since 3.1.0
-	 * @package Vendidero/Germanized/Shipments
+	 * @package Vendidero/Shiptastic
 	 */
-	return apply_filters( 'woocommerce_gzd_shipment_customer_visible_statuses', $statuses, $shipment_type );
+	return apply_filters( 'woocommerce_shiptastic_shipment_customer_visible_statuses', $statuses, $shipment_type );
 }
 
 /**
@@ -320,7 +308,7 @@ function wc_gzd_get_shipment_customer_visible_statuses( $shipment_type = 'simple
  *
  * @return bool|SimpleShipment|ReturnShipment|Shipment
  */
-function wc_gzd_get_shipment( $the_shipment ) {
+function wc_stc_get_shipment( $the_shipment ) {
 	return ShipmentFactory::get_shipment( $the_shipment );
 }
 
@@ -329,13 +317,13 @@ function wc_gzd_get_shipment( $the_shipment ) {
  *
  * @return array
  */
-function wc_gzd_get_shipment_statuses() {
+function wc_stc_get_shipment_statuses() {
 	$shipment_statuses = array(
-		'gzd-draft'      => _x( 'Draft', 'shipments', 'woocommerce-germanized-shipments' ),
-		'gzd-processing' => _x( 'Processing', 'shipments', 'woocommerce-germanized-shipments' ),
-		'gzd-shipped'    => _x( 'Shipped', 'shipments', 'woocommerce-germanized-shipments' ),
-		'gzd-delivered'  => _x( 'Delivered', 'shipments', 'woocommerce-germanized-shipments' ),
-		'gzd-requested'  => _x( 'Requested', 'shipments', 'woocommerce-germanized-shipments' ),
+		'draft'      => _x( 'Draft', 'shipments', 'shiptastic-for-woocommerce' ),
+		'processing' => _x( 'Processing', 'shipments', 'shiptastic-for-woocommerce' ),
+		'shipped'    => _x( 'Shipped', 'shipments', 'shiptastic-for-woocommerce' ),
+		'delivered'  => _x( 'Delivered', 'shipments', 'shiptastic-for-woocommerce' ),
+		'requested'  => _x( 'Requested', 'shipments', 'shiptastic-for-woocommerce' ),
 	);
 
 	/**
@@ -343,10 +331,9 @@ function wc_gzd_get_shipment_statuses() {
 	 *
 	 * @param array $shipment_statuses The available shipment statuses.
 	 *
-	 * @since 3.0.0
-	 * @package Vendidero/Germanized/Shipments
+	 * @package Vendidero/Shiptastic
 	 */
-	return apply_filters( 'woocommerce_gzd_shipment_statuses', $shipment_statuses );
+	return apply_filters( 'woocommerce_shiptastic_shipment_statuses', $shipment_statuses );
 }
 
 /**
@@ -354,11 +341,11 @@ function wc_gzd_get_shipment_statuses() {
  *
  * @return mixed|void
  */
-function wc_gzd_get_shipment_selectable_statuses( $shipment ) {
-	$shipment_statuses = wc_gzd_get_shipment_statuses();
+function wc_stc_get_shipment_selectable_statuses( $shipment ) {
+	$shipment_statuses = wc_stc_get_shipment_statuses();
 
-	if ( ! $shipment->has_status( 'requested' ) && isset( $shipment_statuses['gzd-requested'] ) ) {
-		unset( $shipment_statuses['gzd-requested'] );
+	if ( ! $shipment->has_status( 'requested' ) && isset( $shipment_statuses['requested'] ) ) {
+		unset( $shipment_statuses['requested'] );
 	}
 
 	/**
@@ -368,10 +355,9 @@ function wc_gzd_get_shipment_selectable_statuses( $shipment ) {
 	 * @param string   $type The shipment type e.g. return.
 	 * @param Shipment $shipment The shipment instance.
 	 *
-	 * @since 3.0.0
-	 * @package Vendidero/Germanized/Shipments
+	 * @package Vendidero/Shiptastic
 	 */
-	return apply_filters( 'woocommerce_gzd_shipment_selectable_statuses', $shipment_statuses, $shipment->get_type(), $shipment );
+	return apply_filters( 'woocommerce_shiptastic_shipment_selectable_statuses', $shipment_statuses, $shipment->get_type(), $shipment );
 }
 
 /**
@@ -380,15 +366,15 @@ function wc_gzd_get_shipment_selectable_statuses( $shipment ) {
  *
  * @return ReturnShipment|WP_Error
  */
-function wc_gzd_create_return_shipment( $order_shipment, $args = array() ) {
+function wc_stc_create_return_shipment( $order_shipment, $args = array() ) {
 	try {
 
-		if ( ! $order_shipment || ! is_a( $order_shipment, 'Vendidero\Germanized\Shipments\Order' ) ) {
-			throw new Exception( _x( 'Invalid order.', 'shipments', 'woocommerce-germanized-shipments' ) );
+		if ( ! $order_shipment || ! is_a( $order_shipment, 'Vendidero\Shiptastic\Order' ) ) {
+			throw new Exception( esc_html_x( 'Invalid order.', 'shipments', 'shiptastic-for-woocommerce' ) );
 		}
 
 		if ( ! $order_shipment->needs_return() ) {
-			throw new Exception( _x( 'This order is already fully returned.', 'shipments', 'woocommerce-germanized-shipments' ) );
+			throw new Exception( esc_html_x( 'This order is already fully returned.', 'shipments', 'shiptastic-for-woocommerce' ) );
 		}
 
 		$args = wp_parse_args(
@@ -402,7 +388,7 @@ function wc_gzd_create_return_shipment( $order_shipment, $args = array() ) {
 		$shipment = ShipmentFactory::get_shipment( false, 'return' );
 
 		if ( ! $shipment ) {
-			throw new Exception( _x( 'Error while creating the shipment instance', 'shipments', 'woocommerce-germanized-shipments' ) );
+			throw new Exception( esc_html_x( 'Error while creating the shipment instance', 'shipments', 'shiptastic-for-woocommerce' ) );
 		}
 
 		// Make sure shipment knows its parent
@@ -424,14 +410,14 @@ function wc_gzd_create_return_shipment( $order_shipment, $args = array() ) {
  *
  * @return Shipment|WP_Error
  */
-function wc_gzd_create_shipment( $order_shipment, $args = array() ) {
+function wc_stc_create_shipment( $order_shipment, $args = array() ) {
 	try {
-		if ( ! $order_shipment || ! is_a( $order_shipment, 'Vendidero\Germanized\Shipments\Order' ) ) {
-			throw new Exception( _x( 'Invalid shipment order', 'shipments', 'woocommerce-germanized-shipments' ) );
+		if ( ! $order_shipment || ! is_a( $order_shipment, 'Vendidero\Shiptastic\Order' ) ) {
+			throw new Exception( esc_html_x( 'Invalid shipment order', 'shipments', 'shiptastic-for-woocommerce' ) );
 		}
 
 		if ( ! $order = $order_shipment->get_order() ) {
-			throw new Exception( _x( 'Invalid shipment order', 'shipments', 'woocommerce-germanized-shipments' ) );
+			throw new Exception( esc_html_x( 'Invalid shipment order', 'shipments', 'shiptastic-for-woocommerce' ) );
 		}
 
 		$args = wp_parse_args(
@@ -445,7 +431,7 @@ function wc_gzd_create_shipment( $order_shipment, $args = array() ) {
 		$shipment = ShipmentFactory::get_shipment( false, 'simple' );
 
 		if ( ! $shipment ) {
-			throw new Exception( _x( 'Error while creating the shipment instance', 'shipments', 'woocommerce-germanized-shipments' ) );
+			throw new Exception( esc_html_x( 'Error while creating the shipment instance', 'shipments', 'shiptastic-for-woocommerce' ) );
 		}
 
 		$shipment->set_order_shipment( $order_shipment );
@@ -459,13 +445,13 @@ function wc_gzd_create_shipment( $order_shipment, $args = array() ) {
 	return $shipment;
 }
 
-function wc_gzd_create_shipment_item( $shipment, $order_item, $args = array() ) {
+function wc_stc_create_shipment_item( $shipment, $order_item, $args = array() ) {
 	try {
 		if ( ! $order_item || ! is_a( $order_item, 'WC_Order_Item' ) ) {
-			throw new Exception( _x( 'Invalid order item', 'shipments', 'woocommerce-germanized-shipments' ) );
+			throw new Exception( esc_html_x( 'Invalid order item', 'shipments', 'shiptastic-for-woocommerce' ) );
 		}
 
-		$item = new Vendidero\Germanized\Shipments\ShipmentItem();
+		$item = new Vendidero\Shiptastic\ShipmentItem();
 
 		$item->set_order_item_id( $order_item->get_id() );
 		$item->set_shipment( $shipment );
@@ -481,8 +467,8 @@ function wc_gzd_create_shipment_item( $shipment, $order_item, $args = array() ) 
 	return $item;
 }
 
-function wc_gzd_allow_customer_return_empty_return_reason( $order ) {
-	return apply_filters( 'woocommerce_gzd_allow_customer_return_empty_return_reason', true, $order );
+function wc_stc_allow_customer_return_empty_return_reason( $order ) {
+	return apply_filters( 'woocommerce_shiptastic_allow_customer_return_empty_return_reason', true, $order );
 }
 
 /**
@@ -491,7 +477,7 @@ function wc_gzd_allow_customer_return_empty_return_reason( $order ) {
  *
  * @return ReturnReason[]
  */
-function wc_gzd_get_return_shipment_reasons( $order_item = false ) {
+function wc_stc_get_return_shipment_reasons( $order_item = false ) {
 	$reasons = Package::get_setting( 'return_reasons' );
 
 	if ( ! is_array( $reasons ) ) {
@@ -506,17 +492,16 @@ function wc_gzd_get_return_shipment_reasons( $order_item = false ) {
 	 * @param array               $reasons Available return reasons.
 	 * @param WC_Order_Item|false $order_item The order item object if available to further filter reasons.
 	 *
-	 * @since 3.1.0
-	 * @package Vendidero/Germanized/Shipments
+	 * @package Vendidero/Shiptastic
 	 */
-	$reasons   = apply_filters( 'woocommerce_gzd_return_shipment_reasons_raw', $reasons, $order_item );
+	$reasons   = apply_filters( 'woocommerce_shiptastic_return_shipment_reasons_raw', $reasons, $order_item );
 	$instances = array();
 
 	foreach ( $reasons as $reason ) {
 		$instances[] = new ReturnReason( $reason );
 	}
 
-	usort( $instances, '_wc_gzd_sort_return_shipment_reasons' );
+	usort( $instances, '_wc_stc_sort_return_shipment_reasons' );
 
 	/**
 	 * Filter that allows to adjust available return reasons for a specific shipment.
@@ -524,14 +509,13 @@ function wc_gzd_get_return_shipment_reasons( $order_item = false ) {
 	 * @param ReturnReason[]         $reasons Available return reasons.
 	 * @param WC_Order_Item|false    $order_item The order item object if available to further filter reasons.
 	 *
-	 * @since 3.1.0
-	 * @package Vendidero/Germanized/Shipments
+	 * @package Vendidero/Shiptastic
 	 */
-	return apply_filters( 'woocommerce_gzd_return_shipment_reasons', $instances, $order_item );
+	return apply_filters( 'woocommerce_shiptastic_return_shipment_reasons', $instances, $order_item );
 }
 
-function wc_gzd_return_shipment_reason_exists( $maybe_reason, $shipment = false ) {
-	$reasons = wc_gzd_get_return_shipment_reasons( $shipment );
+function wc_stc_return_shipment_reason_exists( $maybe_reason, $shipment = false ) {
+	$reasons = wc_stc_get_return_shipment_reasons( $shipment );
 	$exists  = false;
 
 	foreach ( $reasons as $reason ) {
@@ -549,7 +533,7 @@ function wc_gzd_return_shipment_reason_exists( $maybe_reason, $shipment = false 
  * @param ReturnReason $a
  * @param ReturnReason $b
  */
-function _wc_gzd_sort_return_shipment_reasons( $a, $b ) {
+function _wc_stc_sort_return_shipment_reasons( $a, $b ) {
 	if ( $a->get_order() === $b->get_order() ) {
 		return 0;
 	} elseif ( $a->get_order() > $b->get_order() ) {
@@ -564,7 +548,7 @@ function _wc_gzd_sort_return_shipment_reasons( $a, $b ) {
  *
  * @return bool
  */
-function wc_gzd_shipment_wp_error_has_errors( $error ) {
+function wc_stc_shipment_wp_error_has_errors( $error ) {
 	if ( is_callable( array( $error, 'has_errors' ) ) ) {
 		return $error->has_errors();
 	} else {
@@ -581,13 +565,13 @@ function wc_gzd_shipment_wp_error_has_errors( $error ) {
  *
  * @return ShipmentReturnItem|WP_Error
  */
-function wc_gzd_create_return_shipment_item( $shipment, $shipment_item, $args = array() ) {
+function wc_stc_create_return_shipment_item( $shipment, $shipment_item, $args = array() ) {
 	try {
-		if ( ! $shipment_item || ! is_a( $shipment_item, '\Vendidero\Germanized\Shipments\ShipmentItem' ) ) {
-			throw new Exception( _x( 'Invalid shipment item', 'shipments', 'woocommerce-germanized-shipments' ) );
+		if ( ! $shipment_item || ! is_a( $shipment_item, '\Vendidero\Shiptastic\ShipmentItem' ) ) {
+			throw new Exception( esc_html_x( 'Invalid shipment item', 'shipments', 'shiptastic-for-woocommerce' ) );
 		}
 
-		$item = new Vendidero\Germanized\Shipments\ShipmentReturnItem();
+		$item = new Vendidero\Shiptastic\ShipmentReturnItem();
 		$item->set_order_item_id( $shipment_item->get_order_item_id() );
 		$item->set_shipment( $shipment );
 		$item->sync( $args );
@@ -599,23 +583,22 @@ function wc_gzd_create_return_shipment_item( $shipment, $shipment_item, $args = 
 	return $item;
 }
 
-function wc_gzd_get_shipment_editable_statuses() {
+function wc_stc_get_shipment_editable_statuses() {
 	/**
 	 * Filter that allows to adjust Shipment statuses which decide upon whether
 	 * a Shipment is editable or not.
 	 *
 	 * @param array $statuses Statuses which should be considered as editable.
 	 *
-	 * @since 3.0.0
-	 * @package Vendidero/Germanized/Shipments
+	 * @package Vendidero/Shiptastic
 	 */
-	return apply_filters( 'woocommerce_gzd_shipment_editable_statuses', array( 'draft', 'requested', 'processing' ) );
+	return apply_filters( 'woocommerce_shiptastic_shipment_editable_statuses', array( 'draft', 'requested', 'processing' ) );
 }
 
 /**
  * @param Shipment $shipment
  */
-function wc_gzd_get_shipment_address_addition( $shipment ) {
+function wc_stc_get_shipment_address_addition( $shipment ) {
 	$addition        = $shipment->get_address_2();
 	$street_addition = $shipment->get_address_street_addition();
 
@@ -626,7 +609,7 @@ function wc_gzd_get_shipment_address_addition( $shipment ) {
 	return trim( $addition );
 }
 
-function wc_gzd_split_shipment_street( $street_str ) {
+function wc_stc_split_shipment_street( $street_str ) {
 	$return = array(
 		'street'     => $street_str,
 		'number'     => '',
@@ -656,19 +639,19 @@ function wc_gzd_split_shipment_street( $street_str ) {
 /**
  * @return ShippingProvider\Auto[]|ShippingProvider\Simple[]
  */
-function wc_gzd_get_shipping_providers() {
+function wc_stc_get_shipping_providers() {
 	return ShippingProvider\Helper::instance()->get_shipping_providers();
 }
 
-function wc_gzd_get_available_shipping_providers() {
+function wc_stc_get_available_shipping_providers() {
 	return ShippingProvider\Helper::instance()->get_available_shipping_providers();
 }
 
-function wc_gzd_get_shipping_provider( $name ) {
+function wc_stc_get_shipping_provider( $name ) {
 	return ShippingProvider\Helper::instance()->get_shipping_provider( $name );
 }
 
-function wc_gzd_get_default_shipping_provider() {
+function wc_stc_get_default_shipping_provider() {
 	$default = Package::get_setting( 'default_shipping_provider' );
 
 	/**
@@ -677,16 +660,15 @@ function wc_gzd_get_default_shipping_provider() {
 	 *
 	 * @param string  $title The shipping provider slug.
 	 *
-	 * @since 3.0.6
-	 * @package Vendidero/Germanized/Shipments
+	 * @package Vendidero/Shiptastic
 	 */
-	return apply_filters( 'woocommerce_gzd_default_shipping_provider', $default );
+	return apply_filters( 'woocommerce_shiptastic_default_shipping_provider', $default );
 }
 
-function wc_gzd_get_shipping_provider_select( $include_none = true ) {
-	$providers = wc_gzd_get_shipping_providers();
+function wc_stc_get_shipping_provider_select( $include_none = true ) {
+	$providers = wc_stc_get_shipping_providers();
 	$select    = $include_none ? array(
-		'' => _x( 'None', 'shipments', 'woocommerce-germanized-shipments' ),
+		'' => _x( 'None', 'shipments', 'shiptastic-for-woocommerce' ),
 	) : array();
 
 	foreach ( $providers as $provider ) {
@@ -699,8 +681,8 @@ function wc_gzd_get_shipping_provider_select( $include_none = true ) {
 	return $select;
 }
 
-function wc_gzd_get_shipping_provider_title( $slug ) {
-	$providers = wc_gzd_get_shipping_providers();
+function wc_stc_get_shipping_provider_title( $slug ) {
+	$providers = wc_stc_get_shipping_providers();
 
 	if ( array_key_exists( $slug, $providers ) ) {
 		$title = $providers[ $slug ]->get_title();
@@ -714,31 +696,30 @@ function wc_gzd_get_shipping_provider_title( $slug ) {
 	 * @param string  $title The shipping provider title.
 	 * @param string  $slug The shipping provider slug.
 	 *
-	 * @since 3.0.0
-	 * @package Vendidero/Germanized/Shipments
+	 * @package Vendidero/Shiptastic
 	 */
-	return apply_filters( 'woocommerce_gzd_shipping_provider_title', $title, $slug );
+	return apply_filters( 'woocommerce_shiptastic_shipping_provider_title', $title, $slug );
 }
 
 /**
  * @param Shipment $shipment
  */
-function wc_gzd_get_shipment_shipping_provider_title( $shipment ) {
+function wc_stc_get_shipment_shipping_provider_title( $shipment ) {
 	$title = $shipment->get_shipping_provider_title();
 
 	if ( empty( $title ) ) {
-		$title = apply_filters( 'woocommerce_gzd_shipping_provider_unknown_title', _x( 'Unknown', 'shipments-shipping-provider', 'woocommerce-germanized-shipments' ) );
+		$title = apply_filters( 'woocommerce_shiptastic_shipping_provider_unknown_title', _x( 'Unknown', 'shipments-shipping-provider', 'shiptastic-for-woocommerce' ) );
 	}
 
 	return $title;
 }
 
-function wc_gzd_get_shipping_provider_service_locations() {
+function wc_stc_get_shipping_provider_service_locations() {
 	return array( 'settings', 'shipping_provider_settings', 'shipping_method_settings', 'packaging_settings', 'labels', 'label_services' );
 }
 
-function wc_gzd_get_shipping_provider_slug( $provider ) {
-	$providers = wc_gzd_get_shipping_providers();
+function wc_stc_get_shipping_provider_slug( $provider ) {
+	$providers = wc_stc_get_shipping_providers();
 
 	if ( in_array( $provider, $providers, true ) ) {
 		$slug = array_search( $provider, $providers, true );
@@ -751,20 +732,20 @@ function wc_gzd_get_shipping_provider_slug( $provider ) {
 	return $slug;
 }
 
-function _wc_gzd_shipments_keep_force_filename( $new_filename ) {
-	return isset( $GLOBALS['gzd_shipments_unique_filename'] ) ? $GLOBALS['gzd_shipments_unique_filename'] : $new_filename;
+function _wc_shiptastic_keep_force_filename( $new_filename ) {
+	return isset( $GLOBALS['stc_unique_filename'] ) ? $GLOBALS['stc_unique_filename'] : $new_filename;
 }
 
-function wc_gzd_shipments_upload_data( $filename, $bits, $relative = true ) {
+function wc_shiptastic_upload_data( $filename, $bits, $relative = true ) {
 	try {
 		Package::set_upload_dir_filter();
-		$GLOBALS['gzd_shipments_unique_filename'] = $filename;
-		add_filter( 'wp_unique_filename', '_wc_gzd_shipments_keep_force_filename', 10, 1 );
+		$GLOBALS['stc_unique_filename'] = $filename;
+		add_filter( 'wp_unique_filename', '_wc_shiptastic_keep_force_filename', 10, 1 );
 
 		$tmp = wp_upload_bits( $filename, null, $bits );
 
-		unset( $GLOBALS['gzd_shipments_unique_filename'] );
-		remove_filter( 'wp_unique_filename', '_wc_gzd_shipments_keep_force_filename', 10 );
+		unset( $GLOBALS['stc_unique_filename'] );
+		remove_filter( 'wp_unique_filename', '_wc_shiptastic_keep_force_filename', 10 );
 		Package::unset_upload_dir_filter();
 
 		if ( isset( $tmp['file'] ) ) {
@@ -776,47 +757,47 @@ function wc_gzd_shipments_upload_data( $filename, $bits, $relative = true ) {
 
 			return $path;
 		} else {
-			throw new Exception( _x( 'Error while uploading file.', 'shipments', 'woocommerce-germanized-shipments' ) );
+			throw new Exception( esc_html_x( 'Error while uploading file.', 'shipments', 'shiptastic-for-woocommerce' ) );
 		}
 	} catch ( Exception $e ) {
 		return false;
 	}
 }
 
-function wc_gzd_get_shipment_setting_default_address_fields( $type = 'shipper' ) {
+function wc_stc_get_shipment_setting_default_address_fields( $type = 'shipper' ) {
 	$address_fields = array(
-		'first_name'               => _x( 'First Name', 'shipments', 'woocommerce-germanized-shipments' ),
-		'last_name'                => _x( 'Last Name', 'shipments', 'woocommerce-germanized-shipments' ),
-		'full_name'                => _x( 'Full Name', 'shipments', 'woocommerce-germanized-shipments' ),
-		'company'                  => _x( 'Company', 'shipments', 'woocommerce-germanized-shipments' ),
-		'address_1'                => _x( 'Address 1', 'shipments', 'woocommerce-germanized-shipments' ),
-		'address_2'                => _x( 'Address 2', 'shipments', 'woocommerce-germanized-shipments' ),
-		'street'                   => _x( 'Street', 'shipments', 'woocommerce-germanized-shipments' ),
-		'street_number'            => _x( 'House Number', 'shipments', 'woocommerce-germanized-shipments' ),
-		'postcode'                 => _x( 'Postcode', 'shipments', 'woocommerce-germanized-shipments' ),
-		'city'                     => _x( 'City', 'shipments', 'woocommerce-germanized-shipments' ),
-		'country'                  => _x( 'Country', 'shipments', 'woocommerce-germanized-shipments' ),
-		'state'                    => _x( 'State', 'shipments', 'woocommerce-germanized-shipments' ),
-		'phone'                    => _x( 'Phone', 'shipments', 'woocommerce-germanized-shipments' ),
-		'email'                    => _x( 'Email', 'shipments', 'woocommerce-germanized-shipments' ),
-		'customs_reference_number' => _x( 'Customs Reference Number', 'shipments', 'woocommerce-germanized-shipments' ),
-		'customs_uk_vat_id'        => _x( 'UK VAT ID (HMRC)', 'shipments', 'woocommerce-germanized-shipments' ),
+		'first_name'               => _x( 'First Name', 'shipments', 'shiptastic-for-woocommerce' ),
+		'last_name'                => _x( 'Last Name', 'shipments', 'shiptastic-for-woocommerce' ),
+		'full_name'                => _x( 'Full Name', 'shipments', 'shiptastic-for-woocommerce' ),
+		'company'                  => _x( 'Company', 'shipments', 'shiptastic-for-woocommerce' ),
+		'address_1'                => _x( 'Address 1', 'shipments', 'shiptastic-for-woocommerce' ),
+		'address_2'                => _x( 'Address 2', 'shipments', 'shiptastic-for-woocommerce' ),
+		'street'                   => _x( 'Street', 'shipments', 'shiptastic-for-woocommerce' ),
+		'street_number'            => _x( 'House Number', 'shipments', 'shiptastic-for-woocommerce' ),
+		'postcode'                 => _x( 'Postcode', 'shipments', 'shiptastic-for-woocommerce' ),
+		'city'                     => _x( 'City', 'shipments', 'shiptastic-for-woocommerce' ),
+		'country'                  => _x( 'Country', 'shipments', 'shiptastic-for-woocommerce' ),
+		'state'                    => _x( 'State', 'shipments', 'shiptastic-for-woocommerce' ),
+		'phone'                    => _x( 'Phone', 'shipments', 'shiptastic-for-woocommerce' ),
+		'email'                    => _x( 'Email', 'shipments', 'shiptastic-for-woocommerce' ),
+		'customs_reference_number' => _x( 'Customs Reference Number', 'shipments', 'shiptastic-for-woocommerce' ),
+		'customs_uk_vat_id'        => _x( 'UK VAT ID (HMRC)', 'shipments', 'shiptastic-for-woocommerce' ),
 	);
 
-	return apply_filters( 'woocommerce_gzd_shipment_default_address_fields', $address_fields, $type );
+	return apply_filters( 'woocommerce_shiptastic_shipment_default_address_fields', $address_fields, $type );
 }
 
 /**
  * @return array
  */
-function wc_gzd_get_shipment_setting_address_fields( $address_type = 'shipper' ) {
-	$default_address_fields = array_keys( wc_gzd_get_shipment_setting_default_address_fields( $address_type ) );
+function wc_stc_get_shipment_setting_address_fields( $address_type = 'shipper' ) {
+	$default_address_fields = array_keys( wc_stc_get_shipment_setting_default_address_fields( $address_type ) );
 
 	if ( 'return' === $address_type ) {
-		$default_address_data = wc_gzd_get_shipment_setting_address_fields( 'shipper' );
+		$default_address_data = wc_stc_get_shipment_setting_address_fields( 'shipper' );
 
 		if ( 'no' === Package::get_setting( 'use_alternate_return' ) ) {
-			return apply_filters( "woocommerce_gzd_shipment_{$address_type}_address_fields", $default_address_data, $address_type );
+			return apply_filters( "woocommerce_shiptastic_shipment_{$address_type}_address_fields", $default_address_data, $address_type );
 		}
 
 		$default_address_data['country'] = $default_address_data['country'] . ':' . $default_address_data['state'];
@@ -833,7 +814,7 @@ function wc_gzd_get_shipment_setting_address_fields( $address_type = 'shipper' )
 	}
 
 	foreach ( $default_address_fields as $prop ) {
-		$key   = "woocommerce_gzd_shipments_{$address_type}_address_{$prop}";
+		$key   = "woocommerce_shiptastic_{$address_type}_address_{$prop}";
 		$value = get_option( $key, null );
 
 		if ( null === $value ) {
@@ -857,7 +838,7 @@ function wc_gzd_get_shipment_setting_address_fields( $address_type = 'shipper' )
 	 * Format/split address 1 into street and house number
 	 */
 	if ( ! empty( $address_fields['address_1'] ) ) {
-		$split = wc_gzd_split_shipment_street( $address_fields['address_1'] );
+		$split = wc_stc_split_shipment_street( $address_fields['address_1'] );
 
 		$address_fields['street']        = $split['street'];
 		$address_fields['street_number'] = $split['number'];
@@ -869,9 +850,9 @@ function wc_gzd_get_shipment_setting_address_fields( $address_type = 'shipper' )
 	/**
 	 * Attach formatted full name
 	 */
-	$address_fields['full_name'] = trim( sprintf( _x( '%1$s %2$s', 'full name', 'woocommerce-germanized-shipments' ), $address_fields['first_name'], $address_fields['last_name'] ) );
+	$address_fields['full_name'] = trim( sprintf( _x( '%1$s %2$s', 'full name', 'shiptastic-for-woocommerce' ), $address_fields['first_name'], $address_fields['last_name'] ) );
 
-	return apply_filters( "woocommerce_gzd_shipment_{$address_type}_address_fields", $address_fields, $address_type );
+	return apply_filters( "woocommerce_shiptastic_shipment_{$address_type}_address_fields", $address_fields, $address_type );
 }
 
 /**
@@ -879,15 +860,15 @@ function wc_gzd_get_shipment_setting_address_fields( $address_type = 'shipper' )
  *
  * @return array
  */
-function wc_gzd_get_shipment_return_address( $shipment_order = false ) {
-	return wc_gzd_get_shipment_setting_address_fields( 'return' );
+function wc_stc_get_shipment_return_address( $shipment_order = false ) {
+	return wc_stc_get_shipment_setting_address_fields( 'return' );
 }
 
 /**
  * @param WC_Order $order
  * @return WC_Order_Item_Shipping|false
  */
-function wc_gzd_get_shipment_order_shipping_method( $order ) {
+function wc_stc_get_shipment_order_shipping_method( $order ) {
 	$methods = $order->get_shipping_methods();
 	$method  = false;
 
@@ -906,19 +887,18 @@ function wc_gzd_get_shipment_order_shipping_method( $order ) {
 	 * @param WC_Order_Item_Shipping|false $method The order item.
 	 * @param WC_Order $order The order object.
 	 *
-	 * @since 3.0.0
-	 * @package Vendidero/Germanized/Shipments
+	 * @package Vendidero/Shiptastic
 	 */
-	return apply_filters( 'woocommerce_gzd_shipment_order_shipping_method', $method, $order );
+	return apply_filters( 'woocommerce_shiptastic_shipment_order_shipping_method', $method, $order );
 }
 
 /**
  * @param WC_Order $order
  */
-function wc_gzd_get_shipment_order_shipping_method_id( $order ) {
+function wc_stc_get_shipment_order_shipping_method_id( $order ) {
 	$id = '';
 
-	if ( $method = wc_gzd_get_shipment_order_shipping_method( $order ) ) {
+	if ( $method = wc_stc_get_shipment_order_shipping_method( $order ) ) {
 		$id = $method->get_method_id() . ':' . $method->get_instance_id();
 	}
 
@@ -928,13 +908,12 @@ function wc_gzd_get_shipment_order_shipping_method_id( $order ) {
 	 * @param string   $id The shipping method id.
 	 * @param WC_Order $order The order object.
 	 *
-	 * @since 3.0.0
-	 * @package Vendidero/Germanized/Shipments
+	 * @package Vendidero/Shiptastic
 	 */
-	return apply_filters( 'woocommerce_gzd_shipment_order_shipping_method_id', $id, $order );
+	return apply_filters( 'woocommerce_shiptastic_shipment_order_shipping_method_id', $id, $order );
 }
 
-function wc_gzd_render_shipment_action_buttons( $actions ) {
+function wc_stc_render_shipment_action_buttons( $actions ) {
 	$actions_html = '';
 
 	foreach ( $actions as $action ) {
@@ -953,9 +932,9 @@ function wc_gzd_render_shipment_action_buttons( $actions ) {
 		);
 
 		if ( ! empty( $action['group'] ) ) {
-			$actions_html .= '<div class="wc-gzd-shipment-action-button-group"><label>' . esc_html( $action['group'] ) . '</label> <span class="wc-gzd-shipment-action-button-group__items">' . wc_gzd_render_shipment_action_buttons( $action['actions'] ) . '</span></div>';
+			$actions_html .= '<div class="wc-stc-shipment-action-button-group"><label>' . esc_html( $action['group'] ) . '</label> <span class="wc-stc-shipment-action-button-group__items">' . wc_stc_render_shipment_action_buttons( $action['actions'] ) . '</span></div>';
 		} elseif ( isset( $action['action'], $action['url'], $action['name'] ) ) {
-			$classes = 'button wc-gzd-shipment-action-button tip wc-gzd-shipment-action-button-' . $action['action'] . ' ' . $action['action'] . ' ' . $action['classes'];
+			$classes = 'button wc-stc-shipment-action-button tip wc-stc-shipment-action-button-' . $action['action'] . ' ' . $action['action'] . ' ' . $action['classes'];
 
 			if ( empty( $action['title'] ) ) {
 				$action['title'] = $action['name'];
@@ -974,13 +953,9 @@ function wc_gzd_render_shipment_action_buttons( $actions ) {
 	return $actions_html;
 }
 
-function wc_gzd_get_shipment_status_name( $status ) {
-	if ( 'gzd-' !== substr( $status, 0, 4 ) ) {
-		$status = 'gzd-' . $status;
-	}
-
+function wc_stc_get_shipment_status_name( $status ) {
 	$status_name = '';
-	$statuses    = wc_gzd_get_shipment_statuses();
+	$statuses    = wc_stc_get_shipment_statuses();
 
 	if ( array_key_exists( $status, $statuses ) ) {
 		$status_name = $statuses[ $status ];
@@ -992,23 +967,21 @@ function wc_gzd_get_shipment_status_name( $status ) {
 	 * @param string  $status_name The status name or title.
 	 * @param integer $status The status slug.
 	 *
-	 * @since 3.0.0
-	 * @package Vendidero/Germanized/Shipments
+	 * @package Vendidero/Shiptastic
 	 */
-	return apply_filters( 'woocommerce_gzd_shipment_status_name', $status_name, $status );
+	return apply_filters( 'woocommerce_shiptastic_shipment_status_name', $status_name, $status );
 }
 
-function wc_gzd_get_shipment_sent_statuses() {
+function wc_stc_get_shipment_sent_statuses() {
 	/**
 	 * Filter to adjust which Shipment statuses should be considered as sent.
 	 *
 	 * @param array $statuses An array of statuses considered as shipped,
 	 *
-	 * @since 3.0.0
-	 * @package Vendidero/Germanized/Shipments
+	 * @package Vendidero/Shiptastic
 	 */
 	return apply_filters(
-		'woocommerce_gzd_shipment_sent_statuses',
+		'woocommerce_shiptastic_shipment_sent_statuses',
 		array(
 			'shipped',
 			'delivered',
@@ -1016,20 +989,19 @@ function wc_gzd_get_shipment_sent_statuses() {
 	);
 }
 
-function wc_gzd_get_shipment_counts( $type = '' ) {
+function wc_stc_get_shipment_counts( $type = '' ) {
 	$counts = array();
 
-	foreach ( array_keys( wc_gzd_get_shipment_statuses() ) as $status ) {
-		$counts[ $status ] = wc_gzd_get_shipment_count( $status, $type );
+	foreach ( array_keys( wc_stc_get_shipment_statuses() ) as $status ) {
+		$counts[ $status ] = wc_stc_get_shipment_count( $status, $type );
 	}
 
 	return $counts;
 }
 
-function wc_gzd_get_shipment_count( $status, $type = '' ) {
+function wc_stc_get_shipment_count( $status, $type = '' ) {
 	$count             = 0;
-	$status            = ( substr( $status, 0, 4 ) ) === 'gzd-' ? $status : 'gzd-' . $status;
-	$shipment_statuses = array_keys( wc_gzd_get_shipment_statuses() );
+	$shipment_statuses = array_keys( wc_stc_get_shipment_statuses() );
 
 	if ( ! in_array( $status, $shipment_statuses, true ) ) {
 		return 0;
@@ -1056,11 +1028,11 @@ function wc_gzd_get_shipment_count( $status, $type = '' ) {
 /**
  * See if a string is a shipment status.
  *
- * @param  string $maybe_status Status, including any gzd- prefix.
+ * @param  string $maybe_status Status, including any wc-stc- prefix.
  * @return bool
  */
-function wc_gzd_is_shipment_status( $maybe_status ) {
-	$shipment_statuses = wc_gzd_get_shipment_statuses();
+function wc_stc_is_shipment_status( $maybe_status ) {
+	$shipment_statuses = wc_stc_get_shipment_statuses();
 
 	return isset( $shipment_statuses[ $maybe_status ] );
 }
@@ -1068,24 +1040,23 @@ function wc_gzd_is_shipment_status( $maybe_status ) {
 /**
  * Main function for returning shipment items.
  *
- * @since  2.2
  *
  * @param mixed $the_item Object or shipment item id.
  * @param string $item_type The shipment item type.
  *
  * @return bool|ShipmentItem
  */
-function wc_gzd_get_shipment_item( $the_item = false, $item_type = 'simple' ) {
-	$item_id = wc_gzd_get_shipment_item_id( $the_item );
+function wc_stc_get_shipment_item( $the_item = false, $item_type = 'simple' ) {
+	$item_id = wc_stc_get_shipment_item_id( $the_item );
 
 	if ( ! $item_id ) {
 		return false;
 	}
 
-	$item_class = 'Vendidero\Germanized\Shipments\ShipmentItem';
+	$item_class = 'Vendidero\Shiptastic\ShipmentItem';
 
 	if ( 'return' === $item_type ) {
-		$item_class = 'Vendidero\Germanized\Shipments\ShipmentReturnItem';
+		$item_class = 'Vendidero\Shiptastic\ShipmentReturnItem';
 	}
 
 	/**
@@ -1095,10 +1066,9 @@ function wc_gzd_get_shipment_item( $the_item = false, $item_type = 'simple' ) {
 	 * @param integer $item_id The shipment item id.
 	 * @param string  $item_type The shipment item type.
 	 *
-	 * @since 3.0.0
-	 * @package Vendidero/Germanized/Shipments
+	 * @package Vendidero/Shiptastic
 	 */
-	$classname = apply_filters( 'woocommerce_gzd_shipment_item_class', $item_class, $item_id, $item_type );
+	$classname = apply_filters( 'woocommerce_shiptastic_shipment_item_class', $item_class, $item_id, $item_type );
 
 	if ( ! class_exists( $classname ) ) {
 		return false;
@@ -1115,14 +1085,13 @@ function wc_gzd_get_shipment_item( $the_item = false, $item_type = 'simple' ) {
 /**
  * Get the shipment item ID depending on what was passed.
  *
- * @since 3.0.0
  * @param  mixed $item Item data to convert to an ID.
  * @return int|bool false on failure
  */
-function wc_gzd_get_shipment_item_id( $item ) {
+function wc_stc_get_shipment_item_id( $item ) {
 	if ( is_numeric( $item ) ) {
 		return $item;
-	} elseif ( $item instanceof Vendidero\Germanized\Shipments\ShipmentItem ) {
+	} elseif ( $item instanceof Vendidero\Shiptastic\ShipmentItem ) {
 		return $item->get_id();
 	} elseif ( ! empty( $item->shipment_item_id ) ) {
 		return $item->shipment_item_id;
@@ -1134,18 +1103,17 @@ function wc_gzd_get_shipment_item_id( $item ) {
 /**
  * Format dimensions for display.
  *
- * @since  3.0.0
  * @param  array $dimensions Array of dimensions.
  * @return string
  */
-function wc_gzd_format_shipment_dimensions( $dimensions, $unit = '' ) {
+function wc_stc_format_shipment_dimensions( $dimensions, $unit = '' ) {
 	$dimension_string = implode( ' &times; ', array_filter( array_map( 'wc_format_localized_decimal', $dimensions ) ) );
 
 	if ( ! empty( $dimension_string ) ) {
 		$unit              = empty( $unit ) ? get_option( 'woocommerce_dimension_unit' ) : $unit;
 		$dimension_string .= ' ' . $unit;
 	} else {
-		$dimension_string = _x( 'N/A', 'shipments', 'woocommerce-germanized-shipments' );
+		$dimension_string = _x( 'N/A', 'shipments', 'shiptastic-for-woocommerce' );
 	}
 
 	/**
@@ -1155,27 +1123,25 @@ function wc_gzd_format_shipment_dimensions( $dimensions, $unit = '' ) {
 	 * @param array   $dimensions Array containing the dimensions.
 	 * @param string  $unit The dimension unit.
 	 *
-	 * @since 3.0.0
-	 * @package Vendidero/Germanized/Shipments
+	 * @package Vendidero/Shiptastic
 	 */
-	return apply_filters( 'woocommerce_gzd_format_shipment_dimensions', $dimension_string, $dimensions, $unit );
+	return apply_filters( 'woocommerce_shiptastic_format_shipment_dimensions', $dimension_string, $dimensions, $unit );
 }
 
 /**
  * Format a weight for display.
  *
- * @since  3.0.0
  * @param  float $weight Weight.
  * @return string
  */
-function wc_gzd_format_shipment_weight( $weight, $unit = '' ) {
+function wc_stc_format_shipment_weight( $weight, $unit = '' ) {
 	$weight_string = wc_format_localized_decimal( $weight );
 
 	if ( ! empty( $weight_string ) ) {
 		$unit           = empty( $unit ) ? get_option( 'woocommerce_weight_unit' ) : $unit;
 		$weight_string .= ' ' . $unit;
 	} else {
-		$weight_string = _x( 'N/A', 'shipments', 'woocommerce-germanized-shipments' );
+		$weight_string = _x( 'N/A', 'shipments', 'shiptastic-for-woocommerce' );
 	}
 
 	/**
@@ -1185,19 +1151,17 @@ function wc_gzd_format_shipment_weight( $weight, $unit = '' ) {
 	 * @param string  $weight The Shipment weight.
 	 * @param string  $unit The dimension unit.
 	 *
-	 * @since 3.0.0
-	 * @package Vendidero/Germanized/Shipments
+	 * @package Vendidero/Shiptastic
 	 */
-	return apply_filters( 'woocommerce_gzd_format_shipment_weight', $weight_string, $weight, $unit );
+	return apply_filters( 'woocommerce_shiptastic_format_shipment_weight', $weight_string, $weight, $unit );
 }
 
 /**
  * Get My Account > Shipments columns.
  *
- * @since 3.0.0
  * @return array
  */
-function wc_gzd_get_account_shipments_columns( $type = 'simple' ) {
+function wc_stc_get_account_shipments_columns( $type = 'simple' ) {
 	/**
 	 * Filter to adjust columns being used to display shipments in a table view on the customer
 	 * account page.
@@ -1205,17 +1169,16 @@ function wc_gzd_get_account_shipments_columns( $type = 'simple' ) {
 	 * @param string[] $columns The columns in key => value pairs.
 	 * @param string   $type    The shipment type e.g. simple or return.
 	 *
-	 * @since 3.0.0
-	 * @package Vendidero/Germanized/Shipments
+	 * @package Vendidero/Shiptastic
 	 */
 	$columns = apply_filters(
-		'woocommerce_gzd_account_shipments_columns',
+		'woocommerce_stc_account_shipments_columns',
 		array(
-			'shipment-number'   => _x( 'Shipment', 'shipments', 'woocommerce-germanized-shipments' ),
-			'shipment-date'     => _x( 'Date', 'shipments', 'woocommerce-germanized-shipments' ),
-			'shipment-status'   => _x( 'Status', 'shipments', 'woocommerce-germanized-shipments' ),
-			'shipment-tracking' => _x( 'Tracking', 'shipments', 'woocommerce-germanized-shipments' ),
-			'shipment-actions'  => _x( 'Actions', 'shipments', 'woocommerce-germanized-shipments' ),
+			'shipment-number'   => _x( 'Shipment', 'shipments', 'shiptastic-for-woocommerce' ),
+			'shipment-date'     => _x( 'Date', 'shipments', 'shiptastic-for-woocommerce' ),
+			'shipment-status'   => _x( 'Status', 'shipments', 'shiptastic-for-woocommerce' ),
+			'shipment-tracking' => _x( 'Tracking', 'shipments', 'shiptastic-for-woocommerce' ),
+			'shipment-actions'  => _x( 'Actions', 'shipments', 'shiptastic-for-woocommerce' ),
 		),
 		$type
 	);
@@ -1227,8 +1190,8 @@ function wc_gzd_get_account_shipments_columns( $type = 'simple' ) {
 	return $columns;
 }
 
-function wc_gzd_get_order_customer_add_return_url( $order ) {
-	if ( ! $shipment_order = wc_gzd_get_shipment_order( $order ) ) {
+function wc_stc_get_order_customer_add_return_url( $order ) {
+	if ( ! $shipment_order = wc_stc_get_shipment_order( $order ) ) {
 		return false;
 	}
 
@@ -1250,10 +1213,9 @@ function wc_gzd_get_order_customer_add_return_url( $order ) {
 	 * @param string   $url The URL pointing to the add return page.
 	 * @param Order    $order The order object.
 	 *
-	 * @since 3.0.0
-	 * @package Vendidero/Germanized/Shipments
+	 * @package Vendidero/Shiptastic
 	 */
-	return apply_filters( 'woocommerce_gzd_shipments_add_return_shipment_url', $url, $shipment_order->get_order() );
+	return apply_filters( 'woocommerce_shiptastic_add_return_shipment_url', $url, $shipment_order->get_order() );
 }
 
 /**
@@ -1261,14 +1223,14 @@ function wc_gzd_get_order_customer_add_return_url( $order ) {
  *
  * @return mixed
  */
-function wc_gzd_order_is_customer_returnable( $order, $check_date = true ) {
+function wc_stc_order_is_customer_returnable( $order, $check_date = true ) {
 	$is_returnable = false;
 
-	if ( ! $shipment_order = wc_gzd_get_shipment_order( $order ) ) {
+	if ( ! $shipment_order = wc_stc_get_shipment_order( $order ) ) {
 		return false;
 	}
 
-	if ( $provider = wc_gzd_get_order_shipping_provider( $order ) ) {
+	if ( $provider = wc_stc_get_order_shipping_provider( $order ) ) {
 		$is_returnable = $provider->supports_customer_returns( $shipment_order->get_order() );
 
 		if ( $shipment_order->get_order()->get_customer_id() <= 0 && ! $provider->supports_guest_returns() ) {
@@ -1308,10 +1270,9 @@ function wc_gzd_order_is_customer_returnable( $order, $check_date = true ) {
 			 * @param WC_DateTime $completed_date The order completed date.
 			 * @param WC_Order    $order The order instance.
 			 *
-			 * @since 3.1.0
-			 * @package Vendidero/Germanized/Shipments
+			 * @package Vendidero/Shiptastic
 			 */
-			$completed_date = apply_filters( 'woocommerce_gzd_order_return_completed_date', $completed_date, $shipment_order->get_order() );
+			$completed_date = apply_filters( 'woocommerce_shiptastic_order_return_completed_date', $completed_date, $shipment_order->get_order() );
 
 			if ( $completed_date ) {
 				$today = new WC_DateTime();
@@ -1331,21 +1292,20 @@ function wc_gzd_order_is_customer_returnable( $order, $check_date = true ) {
 	 * @param WC_Order $order The order instance for which the return shall be created.
 	 * @param bool     $check_date Whether to check for a maximum date or not.
 	 *
-	 * @since 3.1.0
-	 * @package Vendidero/Germanized/Shipments
+	 * @package Vendidero/Shiptastic
 	 */
-	return apply_filters( 'woocommerce_gzd_order_is_returnable_by_customer', $is_returnable, $shipment_order->get_order(), $check_date );
+	return apply_filters( 'woocommerce_shiptastic_order_is_returnable_by_customer', $is_returnable, $shipment_order->get_order(), $check_date );
 }
 
 /**
  * @param $order
  *
- * @return bool|\Vendidero\Germanized\Shipments\Interfaces\ShippingProvider
+ * @return bool|\Vendidero\Shiptastic\Interfaces\ShippingProvider
  */
-function wc_gzd_get_order_shipping_provider( $order ) {
+function wc_stc_get_order_shipping_provider( $order ) {
 	if ( is_numeric( $order ) ) {
 		$order = wc_get_order( $order );
-	} elseif ( is_a( $order, '\Vendidero\Germanized\Shipments\Order' ) ) {
+	} elseif ( is_a( $order, '\Vendidero\Shiptastic\Order' ) ) {
 		$order = $order->get_order();
 	}
 
@@ -1355,7 +1315,7 @@ function wc_gzd_get_order_shipping_provider( $order ) {
 
 	$provider = false;
 
-	foreach ( array_reverse( wc_gzd_get_shipment_order( $order )->get_shipments() ) as $shipment ) {
+	foreach ( array_reverse( wc_stc_get_shipment_order( $order )->get_shipments() ) as $shipment ) {
 		if ( $shipment->get_shipping_provider_instance() ) {
 			$provider = $shipment->get_shipping_provider_instance();
 			break;
@@ -1363,9 +1323,9 @@ function wc_gzd_get_order_shipping_provider( $order ) {
 	}
 
 	if ( ! $provider ) {
-		$method_id = wc_gzd_get_shipment_order_shipping_method_id( $order );
+		$method_id = wc_stc_get_shipment_order_shipping_method_id( $order );
 
-		if ( $method = wc_gzd_get_shipping_provider_method( $method_id ) ) {
+		if ( $method = wc_stc_get_shipping_provider_method( $method_id ) ) {
 			$provider = $method->get_shipping_provider_instance();
 		}
 	}
@@ -1373,32 +1333,31 @@ function wc_gzd_get_order_shipping_provider( $order ) {
 	/**
 	 * Filters the shipping provider detected for a specific order.
 	 *
-	 * @param bool|\Vendidero\Germanized\Shipments\Interfaces\ShippingProvider $provider The shipping provider instance.
+	 * @param bool|\Vendidero\Shiptastic\Interfaces\ShippingProvider $provider The shipping provider instance.
 	 * @param WC_Order              $order The order instance.
 	 *
-	 * @since 3.1.0
-	 * @package Vendidero/Germanized/Shipments
+	 * @package Vendidero/Shiptastic
 	 */
-	return apply_filters( 'woocommerce_gzd_get_order_shipping_provider', $provider, $order );
+	return apply_filters( 'woocommerce_shiptastic_get_order_shipping_provider', $provider, $order );
 }
 
-function wc_gzd_get_customer_order_return_request_key() {
+function wc_stc_get_customer_order_return_request_key() {
 	$key = ( isset( $_REQUEST['key'] ) ? wc_clean( wp_unslash( $_REQUEST['key'] ) ) : '' ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 
 	return $key;
 }
 
-function wc_gzd_shipments_additional_costs_include_tax() {
-	return apply_filters( 'woocommerce_gzd_shipments_additional_costs_include_tax', false );
+function wc_shiptastic_additional_costs_include_tax() {
+	return apply_filters( 'woocommerce_shiptastic_additional_costs_include_tax', false );
 }
 
-function wc_gzd_customer_can_add_return_shipment( $order_id ) {
+function wc_stc_customer_can_add_return_shipment( $order_id ) {
 	$can_view_shipments = false;
 
 	if ( isset( $_REQUEST['key'] ) && ! empty( $_REQUEST['key'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-		$key = wc_gzd_get_customer_order_return_request_key();
+		$key = wc_stc_get_customer_order_return_request_key();
 
-		if ( ( $order_shipment = wc_gzd_get_shipment_order( $order_id ) ) && ! empty( $key ) ) {
+		if ( ( $order_shipment = wc_stc_get_shipment_order( $order_id ) ) && ! empty( $key ) ) {
 
 			if ( hash_equals( $order_shipment->get_order_return_request_key(), $key ) ) {
 				$can_view_shipments = true;
@@ -1414,16 +1373,15 @@ function wc_gzd_customer_can_add_return_shipment( $order_id ) {
 	 * @param bool    $can_view_shipments Whether the user (or guest) might see shipments or not.
 	 * @param integer $order_id The order id.
 	 *
-	 * @since 3.1.0
-	 * @package Vendidero/Germanized/Shipments
+	 * @package Vendidero/Shiptastic
 	 */
-	return apply_filters( 'woocommerce_gzd_customer_can_view_shipments', $can_view_shipments, $order_id );
+	return apply_filters( 'woocommerce_shiptastic_customer_can_view_shipments', $can_view_shipments, $order_id );
 }
 
 /**
  * @param WC_Order|integer $order
  */
-function wc_gzd_customer_return_needs_manual_confirmation( $order ) {
+function wc_stc_customer_return_needs_manual_confirmation( $order ) {
 	if ( is_numeric( $order ) ) {
 		$order = wc_get_order( $order );
 	}
@@ -1434,7 +1392,7 @@ function wc_gzd_customer_return_needs_manual_confirmation( $order ) {
 
 	$needs_manual_confirmation = true;
 
-	if ( $provider = wc_gzd_get_order_shipping_provider( $order ) ) {
+	if ( $provider = wc_stc_get_order_shipping_provider( $order ) ) {
 		$needs_manual_confirmation = $provider->needs_manual_confirmation_for_returns();
 	}
 
@@ -1445,23 +1403,21 @@ function wc_gzd_customer_return_needs_manual_confirmation( $order ) {
 	 * @param bool     $needs_manual_confirmation Whether needs manual confirmation or not.
 	 * @param WC_Order $order The order instance for which the return shall be created.
 	 *
-	 * @since 3.1.0
-	 * @package Vendidero/Germanized/Shipments
+	 * @package Vendidero/Shiptastic
 	 */
-	return apply_filters( 'woocommerce_gzd_customer_return_needs_manual_confirmation', $needs_manual_confirmation, $order );
+	return apply_filters( 'woocommerce_shiptastic_customer_return_needs_manual_confirmation', $needs_manual_confirmation, $order );
 }
 
 /**
  * Get account shipments actions.
  *
- * @since  3.2.0
  * @param  int|Shipment $shipment Shipment instance or ID.
  * @return array
  */
-function wc_gzd_get_account_shipments_actions( $shipment ) {
+function wc_stc_get_account_shipments_actions( $shipment ) {
 	if ( ! is_object( $shipment ) ) {
 		$shipment_id = absint( $shipment );
-		$shipment    = wc_gzd_get_shipment( $shipment_id );
+		$shipment    = wc_stc_get_shipment( $shipment_id );
 	}
 
 	if ( ! $shipment ) {
@@ -1471,14 +1427,14 @@ function wc_gzd_get_account_shipments_actions( $shipment ) {
 	$actions = array(
 		'view' => array(
 			'url'  => $shipment->get_view_shipment_url(),
-			'name' => _x( 'View', 'shipments', 'woocommerce-germanized-shipments' ),
+			'name' => _x( 'View', 'shipments', 'shiptastic-for-woocommerce' ),
 		),
 	);
 
 	if ( 'return' === $shipment->get_type() && $shipment->has_label() && ! $shipment->has_status( 'delivered' ) ) {
 		$actions['download-label'] = array(
 			'url'  => $shipment->get_label()->get_download_url(),
-			'name' => _x( 'Download label', 'shipments', 'woocommerce-germanized-shipments' ),
+			'name' => _x( 'Download label', 'shipments', 'shiptastic-for-woocommerce' ),
 		);
 	}
 
@@ -1489,25 +1445,24 @@ function wc_gzd_get_account_shipments_actions( $shipment ) {
 	 * @param string[] $actions Available actions containing an id as key and a URL and name.
 	 * @param Shipment $shipment The shipment instance.
 	 *
-	 * @since 3.0.0
-	 * @package Vendidero/Germanized/Shipments
+	 * @package Vendidero/Shiptastic
 	 */
-	return apply_filters( 'woocommerce_gzd_account_shipments_actions', $actions, $shipment );
+	return apply_filters( 'woocommerce_shiptastic_account_shipments_actions', $actions, $shipment );
 }
 
-function wc_gzd_shipments_get_product( $the_product ) {
+function wc_shiptastic_get_product( $the_product ) {
 	try {
-		if ( is_a( $the_product, '\Vendidero\Germanized\Shipments\Product' ) ) {
+		if ( is_a( $the_product, '\Vendidero\Shiptastic\Product' ) ) {
 			return $the_product;
 		}
 
-		return new \Vendidero\Germanized\Shipments\Product( $the_product );
+		return new \Vendidero\Shiptastic\Product( $the_product );
 	} catch ( \Exception $e ) {
 		return false;
 	}
 }
 
-function wc_gzd_get_volume_dimension( $dimension, $to_unit, $from_unit = '' ) {
+function wc_stc_get_volume_dimension( $dimension, $to_unit, $from_unit = '' ) {
 	$to_unit = strtolower( $to_unit );
 
 	if ( empty( $from_unit ) ) {
@@ -1539,7 +1494,7 @@ function wc_gzd_get_volume_dimension( $dimension, $to_unit, $from_unit = '' ) {
 	return ( $dimension < 0 ) ? 0 : $dimension;
 }
 
-if ( ! function_exists( 'wc_gzd_wp_theme_get_element_class_name' ) ) {
+if ( ! function_exists( 'wc_stc_wp_theme_get_element_class_name' ) ) {
 	/**
 	 * Given an element name, returns a class name.
 	 *
@@ -1549,7 +1504,7 @@ if ( ! function_exists( 'wc_gzd_wp_theme_get_element_class_name' ) ) {
 	 *
 	 * @return string
 	 */
-	function wc_gzd_wp_theme_get_element_class_name( $element ) {
+	function wc_stc_wp_theme_get_element_class_name( $element ) {
 		if ( function_exists( 'wc_wp_theme_get_element_class_name' ) ) {
 			return wc_wp_theme_get_element_class_name( $element );
 		} elseif ( function_exists( 'wp_theme_get_element_class_name' ) ) {
@@ -1560,7 +1515,7 @@ if ( ! function_exists( 'wc_gzd_wp_theme_get_element_class_name' ) ) {
 	}
 }
 
-function wc_gzd_shipments_allow_deferred_sync( $type = 'shipments' ) {
+function wc_shiptastic_allow_deferred_sync( $type = 'shipments' ) {
 	$allow_defer = true;
 
 	if ( 'shipments' === $type || 'label' === $type || 'return_label' === $type ) {
@@ -1569,11 +1524,11 @@ function wc_gzd_shipments_allow_deferred_sync( $type = 'shipments' ) {
 		}
 	}
 
-	if ( apply_filters( 'woocommerce_gzd_shipments_disable_deferred_sync', false ) ) {
+	if ( apply_filters( 'woocommerce_shiptastic_disable_deferred_sync', false ) ) {
 		$allow_defer = false;
 	}
 
-	return apply_filters( "woocommerce_gzd_shipments_allow_{$type}_deferred_sync", $allow_defer );
+	return apply_filters( "woocommerce_shiptastic_allow_{$type}_deferred_sync", $allow_defer );
 }
 
 /**
@@ -1581,19 +1536,19 @@ function wc_gzd_shipments_allow_deferred_sync( $type = 'shipments' ) {
  *
  * @param $error
  *
- * @return mixed|\Vendidero\Germanized\Shipments\ShipmentError
+ * @return mixed|\Vendidero\Shiptastic\ShipmentError
  */
-function wc_gzd_get_shipment_error( $error ) {
+function wc_stc_get_shipment_error( $error ) {
 	if ( ! is_wp_error( $error ) ) {
 		return $error;
-	} elseif ( is_a( $error, 'Vendidero\Germanized\Shipments\ShipmentError' ) ) {
+	} elseif ( is_a( $error, 'Vendidero\Shiptastic\ShipmentError' ) ) {
 		return $error;
 	} else {
-		return \Vendidero\Germanized\Shipments\ShipmentError::from_wp_error( $error );
+		return \Vendidero\Shiptastic\ShipmentError::from_wp_error( $error );
 	}
 }
 
-function wc_gzd_shipments_substring( $string, $start, $length = null ) {
+function wc_shiptastic_substring( $string, $start, $length = null ) {
 	if ( function_exists( 'mb_substr' ) ) {
 		$string = mb_substr( $string, $start, $length );
 	} else {

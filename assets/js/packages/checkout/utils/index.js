@@ -51,7 +51,7 @@ export const getCheckoutData = () => {
         'pickup_location_customer_number': ''
     };
 
-    return extensionsData.hasOwnProperty( 'woocommerce-gzd-shipments' ) ? extensionsData['woocommerce-gzd-shipments'] : defaultData;
+    return extensionsData.hasOwnProperty( 'woocommerce-shiptastic' ) ? extensionsData['woocommerce-shiptastic'] : defaultData;
 };
 
 export const getCartData = () => {
@@ -64,5 +64,5 @@ export const getCartData = () => {
         'default_pickup_location_customer_number': '',
     };
 
-    return extensionsData.hasOwnProperty( 'woocommerce-gzd-shipments' ) ? extensionsData['woocommerce-gzd-shipments'] : defaultData;
+    return extensionsData.hasOwnProperty( 'woocommerce-shiptastic' ) ? extensionsData['woocommerce-shiptastic'] : defaultData;
 };

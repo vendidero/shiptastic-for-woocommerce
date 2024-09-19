@@ -1,45 +1,35 @@
 <?php
 
-namespace Vendidero\Germanized\Shipments;
+namespace Vendidero\Shiptastic;
 
-use Vendidero\Germanized\Shipments\ShippingProvider\Helper;
-use Vendidero\Germanized\Shipments\ShippingProvider\Simple;
-use WC_GZD_Compatibility_WPML;
+use Vendidero\Shiptastic\ShippingProvider\Helper;
+use Vendidero\Shiptastic\ShippingProvider\Simple;
 
 defined( 'ABSPATH' ) || exit;
 
 class WPMLHelper {
 
-	private static $compatibility = false;
-
-	/**
-	 * @param bool|WC_GZD_Compatibility_WPML $compatibility
-	 */
-	public static function init( $compatibility = false ) {
-		self::$compatibility = $compatibility;
-
-		add_filter( 'woocommerce_gzd_wpml_email_ids', array( __CLASS__, 'register_emails' ), 10 );
-
+	public static function init() {
 		/**
 		 * Register custom strings (e.g. tracking description placeholder) via WPML. These strings might be translated through
 		 * the translation dashboard (admin.php?page=wpml-translation-management). Use "Shipping Provider" as a filter/kind for translating.
 		 */
-		add_action( 'woocommerce_gzd_new_shipping_provider', array( __CLASS__, 'register_shipping_provider_strings' ), 10, 2 );
-		add_action( 'woocommerce_gzd_shipping_provider_updated', array( __CLASS__, 'register_shipping_provider_strings' ), 10, 2 );
+		add_action( 'woocommerce_shiptastic_new_shipping_provider', array( __CLASS__, 'register_shipping_provider_strings' ), 10, 2 );
+		add_action( 'woocommerce_shiptastic_shipping_provider_updated', array( __CLASS__, 'register_shipping_provider_strings' ), 10, 2 );
 
 		/**
 		 * The shipping provider filter name depends on the instance name - register filters while loading providers.
 		 */
-		if ( did_action( 'woocommerce_gzd_load_shipping_providers' ) ) {
+		if ( did_action( 'woocommerce_shiptastic_load_shipping_providers' ) ) {
 			self::register_provider_filters();
 		} else {
-			add_action( 'woocommerce_gzd_load_shipping_providers', array( __CLASS__, 'register_provider_filters' ) );
+			add_action( 'woocommerce_shiptastic_load_shipping_providers', array( __CLASS__, 'register_provider_filters' ) );
 		}
 
 		/**
 		 * Translate shipment item name
 		 */
-		add_filter( 'woocommerce_gzd_email_shipment_items_args', array( __CLASS__, 'translate_email_shipment_items' ), 10 );
+		add_filter( 'woocommerce_shiptastic_email_shipment_items_args', array( __CLASS__, 'translate_email_shipment_items' ), 10 );
 	}
 
 	public static function translate_email_shipment_items( $args ) {
@@ -62,14 +52,14 @@ class WPMLHelper {
 	}
 
 	public static function register_provider_filters() {
-		add_filter( 'woocommerce_gzd_shipping_provider_get_tracking_desc_placeholder', array( __CLASS__, 'filter_shipping_provider_placeholder' ), 10, 2 );
-		add_filter( 'woocommerce_gzd_shipping_provider_get_tracking_url_placeholder', array( __CLASS__, 'filter_shipping_provider_url' ), 10, 2 );
-		add_filter( 'woocommerce_gzd_shipping_provider_get_return_instructions', array( __CLASS__, 'filter_shipping_provider_return_instructions' ), 10, 2 );
+		add_filter( 'woocommerce_shiptastic_shipping_provider_get_tracking_desc_placeholder', array( __CLASS__, 'filter_shipping_provider_placeholder' ), 10, 2 );
+		add_filter( 'woocommerce_shiptastic_shipping_provider_get_tracking_url_placeholder', array( __CLASS__, 'filter_shipping_provider_url' ), 10, 2 );
+		add_filter( 'woocommerce_shiptastic_shipping_provider_get_return_instructions', array( __CLASS__, 'filter_shipping_provider_return_instructions' ), 10, 2 );
 
 		foreach ( Helper::instance()->get_shipping_providers() as $provider ) {
-			add_filter( "woocommerce_gzd_shipping_provider_{$provider->get_name()}_get_tracking_desc_placeholder", array( __CLASS__, 'filter_shipping_provider_placeholder' ), 10, 2 );
-			add_filter( "woocommerce_gzd_shipping_provider_{$provider->get_name()}_get_tracking_url_placeholder", array( __CLASS__, 'filter_shipping_provider_url' ), 10, 2 );
-			add_filter( "woocommerce_gzd_shipping_provider_{$provider->get_name()}_get_return_instructions", array( __CLASS__, 'filter_shipping_provider_return_instructions' ), 10, 2 );
+			add_filter( "woocommerce_shiptastic_shipping_provider_{$provider->get_name()}_get_tracking_desc_placeholder", array( __CLASS__, 'filter_shipping_provider_placeholder' ), 10, 2 );
+			add_filter( "woocommerce_shiptastic_shipping_provider_{$provider->get_name()}_get_tracking_url_placeholder", array( __CLASS__, 'filter_shipping_provider_url' ), 10, 2 );
+			add_filter( "woocommerce_shiptastic_shipping_provider_{$provider->get_name()}_get_return_instructions", array( __CLASS__, 'filter_shipping_provider_return_instructions' ), 10, 2 );
 		}
 	}
 
@@ -99,7 +89,6 @@ class WPMLHelper {
 	 * @param Simple $provider
 	 */
 	public static function register_shipping_provider_strings( $provider_id, $provider ) {
-
 		foreach ( self::get_shipping_provider_strings() as $string_name => $title ) {
 			$title  = sprintf( $title, $provider->get_title() );
 			$getter = "get_{$string_name}";
@@ -114,9 +103,9 @@ class WPMLHelper {
 
 	protected static function get_shipping_provider_strings() {
 		$strings = array(
-			'tracking_desc_placeholder' => _x( '%s tracking description', 'shipments', 'woocommerce-germanized-shipments' ),
-			'tracking_url_placeholder'  => _x( '%s tracking URL', 'shipments', 'woocommerce-germanized-shipments' ),
-			'return_instructions'       => _x( '%s return instructions', 'shipments', 'woocommerce-germanized-shipments' ),
+			'tracking_desc_placeholder' => _x( '%s tracking description', 'shipments', 'shiptastic-for-woocommerce' ),
+			'tracking_url_placeholder'  => _x( '%s tracking URL', 'shipments', 'shiptastic-for-woocommerce' ),
+			'return_instructions'       => _x( '%s return instructions', 'shipments', 'shiptastic-for-woocommerce' ),
 		);
 
 		return $strings;
@@ -127,7 +116,7 @@ class WPMLHelper {
 	 * @param Simple $provider
 	 */
 	protected static function get_shipping_provider_string_id( $string_name, $provider ) {
-		return "woocommerce_gzd_shipping_provider_{$provider->get_name()}_{$string_name}";
+		return "woocommerce_shiptastic_shipping_provider_{$provider->get_name()}_{$string_name}";
 	}
 
 	/**
@@ -156,10 +145,10 @@ class WPMLHelper {
 	 * @param $emails
 	 */
 	public static function register_emails( $emails ) {
-		$emails['WC_GZD_Email_Customer_Shipment']                      = 'customer_shipment';
-		$emails['WC_GZD_Email_Customer_Return_Shipment']               = 'customer_return_shipment';
-		$emails['WC_GZD_Email_Customer_Return_Shipment_Delivered']     = 'customer_return_shipment_delivered';
-		$emails['WC_GZD_Email_Customer_Guest_Return_Shipment_Request'] = 'customer_guest_return_shipment_request';
+		$emails['WC_STC_Email_Customer_Shipment']                      = 'customer_shipment';
+		$emails['WC_STC_Email_Customer_Return_Shipment']               = 'customer_return_shipment';
+		$emails['WC_STC_Email_Customer_Return_Shipment_Delivered']     = 'customer_return_shipment_delivered';
+		$emails['WC_STC_Email_Customer_Guest_Return_Shipment_Request'] = 'customer_guest_return_shipment_request';
 
 		return $emails;
 	}

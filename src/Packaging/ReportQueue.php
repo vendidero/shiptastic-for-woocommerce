@@ -1,8 +1,8 @@
 <?php
 
-namespace Vendidero\Germanized\Shipments\Packaging;
+namespace Vendidero\Shiptastic\Packaging;
 
-use Vendidero\Germanized\Shipments\Package;
+use Vendidero\Shiptastic\Package;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -29,7 +29,7 @@ class ReportQueue {
 
 		$report = $generator->start();
 
-		if ( is_a( $report, '\Vendidero\Germanized\Shipments\Packaging\Report' ) && $report->exists() ) {
+		if ( is_a( $report, '\Vendidero\Shiptastic\Packaging\Report' ) && $report->exists() ) {
 			Package::log( sprintf( 'Starting new %1$s', $report->get_title() ) );
 			Package::log( sprintf( 'Default report arguments: %s', wc_print_r( $queue_args, true ) ) );
 
@@ -37,7 +37,7 @@ class ReportQueue {
 				time() + 10,
 				self::get_hook_name( $generator->get_id() ),
 				array( 'args' => $queue_args ),
-				'woocommerce_gzd_shipments'
+				'woocommerce_shiptastic'
 			);
 
 			$running = self::get_reports_running();
@@ -46,7 +46,7 @@ class ReportQueue {
 				$running[] = $generator->get_id();
 			}
 
-			update_option( 'woocommerce_gzd_shipments_packaging_reports_running', $running, false );
+			update_option( 'woocommerce_shiptastic_packaging_reports_running', $running, false );
 			self::clear_cache();
 
 			return $generator->get_id();
@@ -56,7 +56,7 @@ class ReportQueue {
 	}
 
 	public static function clear_cache() {
-		wp_cache_delete( 'woocommerce_gzd_shipments_packaging_reports_running', 'options' );
+		wp_cache_delete( 'woocommerce_shiptastic_packaging_reports_running', 'options' );
 	}
 
 	public static function get_queue_details( $report_id ) {
@@ -115,20 +115,20 @@ class ReportQueue {
 	}
 
 	public static function get_batch_size() {
-		return apply_filters( 'woocommerce_gzd_shipments_packaging_report_batch_size', 25 );
+		return apply_filters( 'woocommerce_shiptastic_packaging_report_batch_size', 25 );
 	}
 
 	public static function get_shipment_statuses() {
-		$statuses = array_keys( wc_gzd_get_shipment_statuses() );
-		$statuses = array_diff( $statuses, array( 'gzd-draft', 'gzd-requested' ) );
+		$statuses = array_keys( wc_stc_get_shipment_statuses() );
+		$statuses = array_diff( $statuses, array( 'draft', 'requested' ) );
 
-		return apply_filters( 'woocommerce_gzd_shipments_packaging_report_valid_statuses', $statuses );
+		return apply_filters( 'woocommerce_shiptastic_packaging_report_valid_statuses', $statuses );
 	}
 
 	/**
 	 * @param $args
 	 *
-	 * @return \Vendidero\Germanized\Shipments\Shipment[]
+	 * @return \Vendidero\Shiptastic\Shipment[]
 	 */
 	public static function query( $args ) {
 		$query_args = array(
@@ -139,7 +139,7 @@ class ReportQueue {
 			'limit'        => $args['limit'],
 		);
 
-		return wc_gzd_get_shipments( $query_args );
+		return wc_stc_get_shipments( $query_args );
 	}
 
 	public static function cancel( $id ) {
@@ -152,7 +152,7 @@ class ReportQueue {
 			$running = array_diff( $running, array( $id ) );
 			Package::log( sprintf( 'Cancelled %s', ReportHelper::get_report_title( $id ) ) );
 
-			update_option( 'woocommerce_gzd_shipments_packaging_reports_running', $running, false );
+			update_option( 'woocommerce_shiptastic_packaging_reports_running', $running, false );
 			self::clear_cache();
 			$generator->delete();
 		}
@@ -178,8 +178,8 @@ class ReportQueue {
 	}
 
 	public static function get_hook_name( $id ) {
-		if ( ! strstr( $id, 'woocommerce_gzd_shipments_' ) ) {
-			$id = 'woocommerce_gzd_shipments_' . $id;
+		if ( ! strstr( $id, 'woocommerce_shiptastic_' ) ) {
+			$id = 'woocommerce_shiptastic_' . $id;
 		}
 
 		return $id;
@@ -209,7 +209,7 @@ class ReportQueue {
 				time() + 10,
 				self::get_hook_name( $generator->get_id() ),
 				array( 'args' => $new_args ),
-				'woocommerce_gzd_shipments'
+				'woocommerce_shiptastic'
 			);
 		} else {
 			self::complete( $generator );
@@ -231,7 +231,7 @@ class ReportQueue {
 		$report = $generator->complete();
 		$status = 'failed';
 
-		if ( is_a( $report, '\Vendidero\Germanized\Shipments\Packaging\Report' ) && $report->exists() ) {
+		if ( is_a( $report, '\Vendidero\Shiptastic\Packaging\Report' ) && $report->exists() ) {
 			$status = 'completed';
 		}
 
@@ -245,7 +245,7 @@ class ReportQueue {
 
 		if ( in_array( $report_id, $reports_running, true ) ) {
 			$reports_running = array_diff( $reports_running, array( $report_id ) );
-			update_option( 'woocommerce_gzd_shipments_packaging_reports_running', $reports_running, false );
+			update_option( 'woocommerce_shiptastic_packaging_reports_running', $reports_running, false );
 
 			if ( $queue = self::get_queue() ) {
 				$queue->cancel_all( self::get_hook_name( $report_id ) );
@@ -254,7 +254,7 @@ class ReportQueue {
 			/**
 			 * Force non-cached running option
 			 */
-			wp_cache_delete( 'woocommerce_gzd_shipments_packaging_reports_running', 'options' );
+			wp_cache_delete( 'woocommerce_shiptastic_packaging_reports_running', 'options' );
 
 			return true;
 		}
@@ -263,7 +263,7 @@ class ReportQueue {
 	}
 
 	public static function get_reports_running() {
-		return (array) get_option( 'woocommerce_gzd_shipments_packaging_reports_running', array() );
+		return (array) get_option( 'woocommerce_shiptastic_packaging_reports_running', array() );
 	}
 
 	public static function get_timeframe( $type, $date = null, $date_end = null ) {

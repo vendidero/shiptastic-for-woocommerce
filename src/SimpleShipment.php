@@ -2,10 +2,10 @@
 /**
  * Regular shipment
  *
- * @package Vendidero/Germanized/Shipments
+ * @package Vendidero/Shiptastic
  * @version 1.0.0
  */
-namespace Vendidero\Germanized\Shipments;
+namespace Vendidero\Shiptastic;
 
 use WC_Data;
 use WC_Data_Store;
@@ -99,7 +99,7 @@ class SimpleShipment extends Shipment {
 	public function get_order_shipment() {
 		if ( is_null( $this->order_shipment ) ) {
 			$order                = $this->get_order();
-			$this->order_shipment = ( $order ? wc_gzd_get_shipment_order( $order ) : false );
+			$this->order_shipment = ( $order ? wc_stc_get_shipment_order( $order ) : false );
 		}
 
 		return $this->order_shipment;
@@ -115,15 +115,15 @@ class SimpleShipment extends Shipment {
 	public function sync( $args = array() ) {
 		try {
 			if ( ! $order_shipment = $this->get_order_shipment() ) {
-				throw new Exception( _x( 'Invalid shipment order', 'shipments', 'woocommerce-germanized-shipments' ) );
+				throw new Exception( _x( 'Invalid shipment order', 'shipments', 'shiptastic-for-woocommerce' ) );
 			}
 
 			/**
 			 * Hotfix WCML infinite loop
 			 *
 			 */
-			if ( function_exists( 'wc_gzd_remove_class_filter' ) ) {
-				wc_gzd_remove_class_filter( 'woocommerce_order_get_items', 'WCML_Orders', 'woocommerce_order_get_items', 10 );
+			if ( function_exists( 'wc_stc_remove_class_filter' ) ) {
+				wc_stc_remove_class_filter( 'woocommerce_order_get_items', 'WCML_Orders', 'woocommerce_order_get_items', 10 );
 			}
 
 			$order = $order_shipment->get_order();
@@ -131,7 +131,7 @@ class SimpleShipment extends Shipment {
 			/**
 			 * Make sure that manually adjusted providers are not overridden by syncing.
 			 */
-			$default_provider_instance = wc_gzd_get_order_shipping_provider( $order );
+			$default_provider_instance = wc_stc_get_order_shipping_provider( $order );
 			$default_provider          = $default_provider_instance ? $default_provider_instance->get_name() : '';
 			$provider                  = $this->get_shipping_provider( 'edit' );
 			$address_data              = array_merge(
@@ -174,7 +174,7 @@ class SimpleShipment extends Shipment {
 				$args,
 				array(
 					'order_id'                        => $order->get_id(),
-					'shipping_method'                 => wc_gzd_get_shipment_order_shipping_method_id( $order ),
+					'shipping_method'                 => wc_stc_get_shipment_order_shipping_method_id( $order ),
 					'shipping_provider'               => ( ! empty( $provider ) ) ? $provider : $default_provider,
 					'packaging_id'                    => $this->get_packaging_id( 'edit' ),
 					'address'                         => $address_data,
@@ -197,10 +197,9 @@ class SimpleShipment extends Shipment {
 			 * @param SimpleShipment $shipment The shipment object.
 			 * @param Order          $order_shipment The shipment order object.
 			 *
-			 * @since 3.0.0
-			 * @package Vendidero/Germanized/Shipments
+			 * @package Vendidero/Shiptastic
 			 */
-			$args = apply_filters( 'woocommerce_gzd_shipment_sync_props', $args, $this, $order_shipment );
+			$args = apply_filters( 'woocommerce_shiptastic_shipment_sync_props', $args, $this, $order_shipment );
 
 			$this->set_props( $args );
 
@@ -212,10 +211,9 @@ class SimpleShipment extends Shipment {
 			 * @param Order          $order_shipment The shipment order object.
 			 * @param array          $args Array containing properties in key => value pairs to be updated.
 			 *
-			 * @since 3.0.0
-			 * @package Vendidero/Germanized/Shipments
+			 * @package Vendidero/Shiptastic
 			 */
-			do_action( 'woocommerce_gzd_shipment_synced', $this, $order_shipment, $args );
+			do_action( 'woocommerce_shiptastic_shipment_synced', $this, $order_shipment, $args );
 		} catch ( Exception $e ) {
 			return false;
 		}
@@ -234,7 +232,7 @@ class SimpleShipment extends Shipment {
 	public function sync_items( $args = array() ) {
 		try {
 			if ( ! $order_shipment = $this->get_order_shipment() ) {
-				throw new Exception( _x( 'Invalid shipment order', 'shipments', 'woocommerce-germanized-shipments' ) );
+				throw new Exception( _x( 'Invalid shipment order', 'shipments', 'shiptastic-for-woocommerce' ) );
 			}
 
 			$order = $order_shipment->get_order();
@@ -270,7 +268,7 @@ class SimpleShipment extends Shipment {
 					}
 
 					if ( ! $shipment_item = $this->get_item_by_order_item_id( $item_id ) ) {
-						$shipment_item = wc_gzd_create_shipment_item( $this, $order_item, array( 'quantity' => $quantity ) );
+						$shipment_item = wc_stc_create_shipment_item( $this, $order_item, array( 'quantity' => $quantity ) );
 
 						$this->add_item( $shipment_item );
 					} else {
@@ -296,10 +294,9 @@ class SimpleShipment extends Shipment {
 			 * @param Order          $order_shipment The shipment order object.
 			 * @param array          $args Array containing additional data e.g. items.
 			 *
-			 * @since 3.0.0
-			 * @package Vendidero/Germanized/Shipments
+			 * @package Vendidero/Shiptastic
 			 */
-			do_action( 'woocommerce_gzd_shipment_items_synced', $this, $order_shipment, $args );
+			do_action( 'woocommerce_shiptastic_shipment_items_synced', $this, $order_shipment, $args );
 
 		} catch ( Exception $e ) {
 			return false;
@@ -349,7 +346,7 @@ class SimpleShipment extends Shipment {
 	 */
 	public function needs_items( $available_items = false ) {
 
-		if ( ! $available_items && ( $order = wc_gzd_get_shipment_order( $this->get_order() ) ) ) {
+		if ( ! $available_items && ( $order = wc_stc_get_shipment_order( $this->get_order() ) ) ) {
 			$available_items = array_keys( $order->get_available_items_for_shipment() );
 		}
 
@@ -368,13 +365,12 @@ class SimpleShipment extends Shipment {
 		 * The dynamic portion of this hook, `$this->get_hook_prefix()` is used to construct a
 		 * unique hook for a shipment type.
 		 *
-		 * Example hook name: woocommerce_gzd_shipment_get_edit_url
+		 * Example hook name: woocommerce_shiptastic_shipment_get_edit_url
 		 *
 		 * @param string   $url  The URL.
 		 * @param Shipment $this The shipment object.
 		 *
-		 * @since 3.0.0
-		 * @package Vendidero/Germanized/Shipments
+		 * @package Vendidero/Shiptastic
 		 */
 		return apply_filters( "{$this->get_hook_prefix()}edit_url", get_admin_url( null, 'post.php?post=' . $this->get_order_id() . '&action=edit&shipment_id=' . $this->get_id() ), $this );
 	}

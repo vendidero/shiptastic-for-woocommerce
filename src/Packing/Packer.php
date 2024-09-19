@@ -1,5 +1,5 @@
 <?php
-namespace Vendidero\Germanized\Shipments\Packing;
+namespace Vendidero\Shiptastic\Packing;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -17,10 +17,10 @@ class Packer {
 	}
 
 	public function set_boxes( $boxes ) {
-		if ( ! is_a( $boxes, 'Vendidero\Germanized\Shipments\Packing\PackagingList' ) ) {
+		if ( ! is_a( $boxes, 'Vendidero\Shiptastic\Packing\PackagingList' ) ) {
 			$first_box = ! empty( $boxes ) ? array_values( $boxes )[0] : false;
 
-			if ( ! empty( $boxes ) && ! is_a( $first_box, 'Vendidero\Germanized\Shipments\Packing\PackagingBox' ) ) {
+			if ( ! empty( $boxes ) && ! is_a( $first_box, 'Vendidero\Shiptastic\Packing\PackagingBox' ) ) {
 				$boxes = PackagingList::fromArray( Helper::get_packaging_boxes( $boxes ) );
 			} else {
 				$boxes = PackagingList::fromArray( $boxes );

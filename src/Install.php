@@ -1,12 +1,12 @@
 <?php
 
-namespace Vendidero\Germanized\Shipments;
+namespace Vendidero\Shiptastic;
 
-use Vendidero\Germanized\Shipments\Admin\Tabs\Tabs;
-use Vendidero\Germanized\Shipments\Interfaces\ShippingProvider;
-use Vendidero\Germanized\Shipments\Labels\ConfigurationSetTrait;
-use Vendidero\Germanized\Shipments\ShippingMethod\MethodHelper;
-use Vendidero\Germanized\Shipments\ShippingProvider\Helper;
+use Vendidero\Shiptastic\Admin\Tabs\Tabs;
+use Vendidero\Shiptastic\Interfaces\ShippingProvider;
+use Vendidero\Shiptastic\Labels\ConfigurationSetTrait;
+use Vendidero\Shiptastic\ShippingMethod\MethodHelper;
+use Vendidero\Shiptastic\ShippingProvider\Helper;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -16,56 +16,37 @@ defined( 'ABSPATH' ) || exit;
 class Install {
 
 	public static function install() {
-		$current_version = get_option( 'woocommerce_gzd_shipments_version', null );
+		$current_version = get_option( 'woocommerce_shiptastic_version', null );
 
 		self::create_upload_dir();
 		self::create_tables();
 		self::create_default_options();
 		self::maybe_create_return_reasons();
-
-		if ( ! is_null( $current_version ) ) {
-			if ( version_compare( $current_version, '3.0.0', '<' ) ) {
-				self::migrate_to_configuration_sets();
-			} elseif ( version_compare( $current_version, '3.0.1', '<' ) ) {
-				self::migrate_to_configuration_sets( 'dhl' );
-			}
-
-			if ( version_compare( $current_version, '3.5.0', '<' ) ) {
-				if ( $provider = wc_gzd_get_shipping_provider( 'dhl' ) ) {
-					if ( is_a( $provider, '\Vendidero\Germanized\Shipments\ShippingProvider\Auto' ) && $provider->is_activated() ) {
-						if ( 'yes' === $provider->get_setting( 'parcel_pickup_packstation_enable' ) || 'yes' === $provider->get_setting( 'parcel_pickup_postoffice_enable' ) || 'yes' === $provider->get_setting( 'parcel_pickup_parcelshop_enable' ) ) {
-							$provider->update_setting( 'pickup_locations_enable', 'yes' );
-							$provider->update_setting( 'pickup_locations_max_results', $provider->get_setting( 'parcel_pickup_max_results', 20 ) );
-						} else {
-							$provider->update_setting( 'pickup_locations_enable', 'no' );
-						}
-
-						$provider->save();
-					}
-				}
-
-				if ( $provider = wc_gzd_get_shipping_provider( 'deutsche_post' ) ) {
-					if ( is_a( $provider, '\Vendidero\Germanized\Shipments\ShippingProvider\Auto' ) && $provider->is_activated() ) {
-						if ( 'yes' === $provider->get_setting( 'parcel_pickup_packstation_enable' ) ) {
-							$provider->update_setting( 'pickup_locations_enable', 'yes' );
-							$provider->update_setting( 'pickup_locations_max_results', $provider->get_setting( 'parcel_pickup_max_results', 20 ) );
-						} else {
-							$provider->update_setting( 'pickup_locations_enable', 'no' );
-						}
-
-						$provider->save();
-					}
-				}
-			}
-		}
-
+		self::maybe_insert_encryption_key();
 		self::maybe_create_packaging();
-		self::update_providers();
 
-		update_option( 'woocommerce_gzd_shipments_version', Package::get_version() );
-		update_option( 'woocommerce_gzd_shipments_db_version', Package::get_version() );
+		update_option( 'woocommerce_shiptastic_version', Package::get_version() );
+		update_option( 'woocommerce_shiptastic_db_version', Package::get_version() );
 
 		do_action( 'woocommerce_flush_rewrite_rules' );
+	}
+
+	public static function deactivate() {
+		if ( function_exists( 'as_unschedule_all_actions' ) ) {
+			$hooks = array(
+				'woocommerce_shiptastic_daily_cleanup',
+			);
+
+			foreach ( $hooks as $hook ) {
+				as_unschedule_all_actions( $hook );
+			}
+		}
+	}
+
+	protected static function maybe_insert_encryption_key() {
+		if ( ! SecretBox::has_valid_encryption_key() ) {
+			SecretBox::maybe_insert_missing_key();
+		}
 	}
 
 	public static function deactivate() {
@@ -91,7 +72,7 @@ class Install {
 			include_once WC()->plugin_path() . '/includes/admin/class-wc-admin-settings.php';
 
 			foreach ( \WC_Admin_Settings::get_settings_pages() as $page ) {
-				if ( is_a( $page, '\Vendidero\Germanized\Shipments\Admin\Tabs\Tabs' ) ) {
+				if ( is_a( $page, '\Vendidero\Shiptastic\Admin\Tabs\Tabs' ) ) {
 					$settings = $page;
 				}
 			}
@@ -123,242 +104,44 @@ class Install {
 		}
 	}
 
-	protected static function get_configuration_set_data( $setting_name, $value ) {
-		$is_service   = 'label_service_' === substr( $setting_name, 0, strlen( 'label_service_' ) );
-		$services     = array();
-		$products     = array();
-		$service_meta = array();
-
-		if ( ! empty( $value ) ) {
-			if ( 'label_default_product_dom' === $setting_name ) {
-				$products['dom'] = $value;
-			} elseif ( 'label_default_product_eu' === $setting_name ) {
-				$products['eu'] = $value;
-			} elseif ( 'label_default_product_int' === $setting_name ) {
-				$products['int'] = $value;
-			} elseif ( $is_service ) {
-				$service_name = substr( $setting_name, strlen( 'label_service_' ) );
-
-				if ( 'no' !== $value ) {
-					$services[ $service_name ] = $value;
-				}
-			} elseif ( 'label_visual_min_age' === $setting_name ) {
-				$service_name              = 'VisualCheckOfAge';
-				$services[ $service_name ] = 'yes';
-
-				$service_meta[ $service_name ] = array(
-					'min_age' => $value,
-				);
-			} elseif ( 'label_ident_min_age' === $setting_name ) {
-				$service_name              = 'IdentCheck';
-				$services[ $service_name ] = 'yes';
-
-				$service_meta[ $service_name ] = array(
-					'min_age' => $value,
-				);
-			} elseif ( 'label_auto_inlay_return_label' === $setting_name ) {
-				if ( 'no' !== $value ) {
-					$services['dhlRetoure'] = 'yes';
-				}
-			}
-		}
-
-		return array(
-			'products'     => $products,
-			'services'     => $services,
-			'service_meta' => $service_meta,
-		);
-	}
-
-	/**
-	 * @param array $config_set_data
-	 * @param ConfigurationSetTrait $handler
-	 * @param ShippingProvider $provider
-	 * @param string $shipment_type
-	 *
-	 * @return boolean
-	 * @throws \Exception
-	 */
-	protected static function create_configuration_set_from_migration_data( $config_set_data, $handler, $provider, $shipment_type = 'simple' ) {
-		foreach ( $config_set_data['products'] as $zone => $product ) {
-			$config_set = $handler->get_or_create_configuration_set(
-				array(
-					'shipping_provider_name' => $provider->get_name(),
-					'shipment_type'          => $shipment_type,
-					'zone'                   => $zone,
-				)
-			);
-
-			$config_set->update_product( $product );
-
-			foreach ( $config_set_data['services'] as $service_name => $value ) {
-				if ( $p_service = $provider->get_service( $service_name ) ) {
-					if ( $p_service->supports(
-						array(
-							'product_id'    => $product,
-							'zone'          => $zone,
-							'shipment_type' => 'simple',
-						)
-					) ) {
-						$config_set->update_service( $service_name, $value );
-
-						if ( array_key_exists( $service_name, $config_set_data['service_meta'] ) ) {
-							foreach ( $config_set_data['service_meta'][ $service_name ] as $k => $v ) {
-								$config_set->update_service_meta( $service_name, $k, $v );
-							}
-						}
-					}
-				}
-			}
-		}
-
-		return true;
-	}
-
-	public static function migrate_to_configuration_sets( $providers_to_migrate = array() ) {
-		$providers    = empty( $providers_to_migrate ) ? Helper::instance()->get_shipping_providers() : (array) $providers_to_migrate;
-		$provider_ids = array();
-
-		foreach ( $providers as $provider ) {
-			if ( ! is_a( $provider, '\Vendidero\Germanized\Shipments\Interfaces\ShippingProvider' ) ) {
-				$provider = wc_gzd_get_shipping_provider( $provider );
-			}
-
-			if ( is_a( $provider, '\Vendidero\Germanized\Shipments\ShippingProvider\Auto' ) && $provider->is_activated() ) {
-				$provider_ids[] = $provider->get_id();
-
-				if ( is_callable( array( $provider, 'get_configuration_sets' ) ) ) {
-					$config_data = array();
-
-					foreach ( $provider->get_meta_data() as $meta ) {
-						$setting_name = $meta->key;
-						$value        = $meta->value;
-
-						if ( 'label_default_page_format' === $setting_name ) {
-							$provider->set_label_print_format( $value );
-						} else {
-							$config_data = array_replace_recursive( $config_data, self::get_configuration_set_data( $setting_name, $value ) );
-						}
-					}
-
-					if ( isset( $config_data['products'] ) ) {
-						self::create_configuration_set_from_migration_data( $config_data, $provider, $provider );
-					}
-
-					$provider->save();
-				}
-			}
-		}
-
-		// Make sure shipping zones are loaded
-		include_once WC_ABSPATH . 'includes/class-wc-shipping-zones.php';
-
-		foreach ( \WC_Shipping_Zones::get_zones() as $zone_data ) {
-			if ( $zone = \WC_Shipping_Zones::get_zone( $zone_data['id'] ) ) {
-				foreach ( $zone->get_shipping_methods() as $method ) {
-					if ( $shipment_method = MethodHelper::get_provider_method( $method ) ) {
-						if ( $shipment_method->is_placeholder() || ! $shipment_method->get_method()->supports( 'instance-settings' ) ) {
-							continue;
-						}
-
-						$shipment_method->get_method()->init_instance_settings();
-
-						$settings = $shipment_method->get_method()->instance_settings;
-
-						if ( isset( $settings['configuration_sets'] ) && ! empty( $settings['configuration_sets'] ) ) {
-							continue;
-						}
-
-						if ( isset( $settings['shipping_provider'] ) && ! empty( $settings['shipping_provider'] ) ) {
-							$provider_name = $settings['shipping_provider'];
-
-							if ( $provider = wc_gzd_get_shipping_provider( $provider_name ) ) {
-								if ( ! in_array( $provider->get_id(), $provider_ids, true ) ) {
-									continue;
-								}
-
-								$settings_prefix = "{$provider_name}_";
-								$config_data     = array();
-
-								foreach ( $settings as $setting_name => $value ) {
-									if ( substr( $setting_name, 0, strlen( $settings_prefix ) ) === $settings_prefix ) {
-										$setting_name = substr( $setting_name, strlen( $settings_prefix ) );
-										$config_data  = array_replace_recursive( $config_data, self::get_configuration_set_data( $setting_name, $value ) );
-									}
-								}
-
-								if ( isset( $config_data['products'] ) ) {
-									self::create_configuration_set_from_migration_data( $config_data, $shipment_method, $provider );
-
-									$configuration_sets = $shipment_method->get_configuration_sets();
-
-									if ( ! empty( $configuration_sets ) ) {
-										$current_settings = $shipment_method->get_method()->instance_settings;
-
-										if ( ! empty( $current_settings ) ) {
-											update_option( $shipment_method->get_method()->get_instance_option_key(), apply_filters( 'woocommerce_shipping_' . $shipment_method->get_method()->id . '_instance_settings_values', $current_settings, $shipment_method->get_method() ), 'yes' );
-										}
-									}
-								}
-							}
-						}
-					}
-				}
-			}
-		}
-	}
-
-	private static function update_providers() {
-		$providers = Helper::instance()->get_shipping_providers();
-
-		foreach ( $providers as $provider ) {
-			if ( ! $provider->is_activated() ) {
-				continue;
-			}
-
-			$provider->update_settings_with_defaults();
-			$provider->save();
-		}
-	}
-
 	private static function maybe_create_return_reasons() {
-		$reasons = get_option( 'woocommerce_gzd_shipments_return_reasons', null );
+		$reasons = get_option( 'woocommerce_shiptastic_return_reasons', null );
 
 		if ( is_null( $reasons ) ) {
 			$default_reasons = array(
 				array(
 					'order'  => 1,
 					'code'   => 'wrong-product',
-					'reason' => _x( 'Wrong product or size ordered', 'shipments', 'woocommerce-germanized-shipments' ),
+					'reason' => _x( 'Wrong product or size ordered', 'shipments', 'shiptastic-for-woocommerce' ),
 				),
 				array(
 					'order'  => 2,
 					'code'   => 'not-needed',
-					'reason' => _x( 'Product no longer needed', 'shipments', 'woocommerce-germanized-shipments' ),
+					'reason' => _x( 'Product no longer needed', 'shipments', 'shiptastic-for-woocommerce' ),
 				),
 				array(
 					'order'  => 3,
 					'code'   => 'look',
-					'reason' => _x( 'Don\'t like the look', 'shipments', 'woocommerce-germanized-shipments' ),
+					'reason' => _x( 'Don\'t like the look', 'shipments', 'shiptastic-for-woocommerce' ),
 				),
 			);
 
-			update_option( 'woocommerce_gzd_shipments_return_reasons', $default_reasons );
+			update_option( 'woocommerce_shiptastic_return_reasons', $default_reasons );
 		}
 	}
 
 	private static function get_db_version() {
-		return get_option( 'woocommerce_gzd_shipments_db_version', null );
+		return get_option( 'woocommerce_shiptastic_db_version', null );
 	}
 
 	private static function maybe_create_packaging() {
-		$packaging  = wc_gzd_get_packaging_list();
+		$packaging  = wc_stc_get_packaging_list();
 		$db_version = self::get_db_version();
 
 		if ( empty( $packaging ) && is_null( $db_version ) ) {
 			$defaults = array(
 				array(
-					'description'        => _x( 'Cardboard S', 'shipments', 'woocommerce-germanized-shipments' ),
+					'description'        => _x( 'Cardboard S', 'shipments', 'shiptastic-for-woocommerce' ),
 					'length'             => 25,
 					'width'              => 17.5,
 					'height'             => 10,
@@ -367,7 +150,7 @@ class Install {
 					'type'               => 'cardboard',
 				),
 				array(
-					'description'        => _x( 'Cardboard M', 'shipments', 'woocommerce-germanized-shipments' ),
+					'description'        => _x( 'Cardboard M', 'shipments', 'shiptastic-for-woocommerce' ),
 					'length'             => 37.5,
 					'width'              => 30,
 					'height'             => 13.5,
@@ -376,7 +159,7 @@ class Install {
 					'type'               => 'cardboard',
 				),
 				array(
-					'description'        => _x( 'Cardboard L', 'shipments', 'woocommerce-germanized-shipments' ),
+					'description'        => _x( 'Cardboard L', 'shipments', 'shiptastic-for-woocommerce' ),
 					'length'             => 45,
 					'width'              => 35,
 					'height'             => 20,
@@ -385,7 +168,7 @@ class Install {
 					'type'               => 'cardboard',
 				),
 				array(
-					'description'        => _x( 'Letter C5/6', 'shipments', 'woocommerce-germanized-shipments' ),
+					'description'        => _x( 'Letter C5/6', 'shipments', 'shiptastic-for-woocommerce' ),
 					'length'             => 22,
 					'width'              => 11,
 					'height'             => 1,
@@ -394,7 +177,7 @@ class Install {
 					'type'               => 'letter',
 				),
 				array(
-					'description'        => _x( 'Letter C4', 'shipments', 'woocommerce-germanized-shipments' ),
+					'description'        => _x( 'Letter C4', 'shipments', 'shiptastic-for-woocommerce' ),
 					'length'             => 32.4,
 					'width'              => 22.9,
 					'height'             => 2,
@@ -415,14 +198,14 @@ class Install {
 	private static function create_tables() {
 		global $wpdb;
 
-		$current_version    = get_option( 'woocommerce_gzd_shipments_version', null );
+		$current_version    = get_option( 'woocommerce_shiptastic_version', null );
 		$current_db_version = self::get_db_version();
 
 		/**
 		 * Make possible duplicate names unique.
 		 */
-		if ( null !== $current_version && isset( $wpdb->gzd_shipping_provider ) ) {
-			$providers          = $wpdb->get_results( "SELECT * FROM $wpdb->gzd_shipping_provider" );
+		if ( null !== $current_version && isset( $wpdb->stc_shipping_provider ) ) {
+			$providers          = $wpdb->get_results( "SELECT * FROM $wpdb->stc_shipping_provider" );
 			$shipping_providers = array();
 
 			foreach ( $providers as $provider ) {
@@ -430,7 +213,7 @@ class Install {
 					$unique_provider_name = sanitize_title( $provider->shipping_provider_name . '_' . wp_generate_password( 4, false, false ) );
 
 					$wpdb->update(
-						$wpdb->gzd_shipping_provider,
+						$wpdb->stc_shipping_provider,
 						array(
 							'shipping_provider_name' => $unique_provider_name,
 						),
@@ -451,7 +234,7 @@ class Install {
 		 */
 		if ( ! empty( $current_db_version ) && version_compare( $current_db_version, '2.3.0', '<' ) ) {
 			$date_fields = array(
-				"{$wpdb->prefix}woocommerce_gzd_shipments" => array(
+				"{$wpdb->stc_shipments}"       => array(
 					'shipment_date_created',
 					'shipment_date_created_gmt',
 					'shipment_date_sent',
@@ -459,11 +242,11 @@ class Install {
 					'shipment_est_delivery_date',
 					'shipment_est_delivery_date_gmt',
 				),
-				"{$wpdb->prefix}woocommerce_gzd_shipment_labels" => array(
+				"{$wpdb->stc_shipment_labels}" => array(
 					'label_date_created',
 					'label_date_created_gmt',
 				),
-				"{$wpdb->prefix}woocommerce_gzd_packaging" => array(
+				"{$wpdb->stc_packaging}"       => array(
 					'packaging_date_created',
 					'packaging_date_created_gmt',
 				),
@@ -516,7 +299,7 @@ class Install {
 		 * @see https://stackoverflow.com/a/31474509
 		 */
 		$tables = "
-CREATE TABLE {$wpdb->prefix}woocommerce_gzd_shipment_items (
+CREATE TABLE {$wpdb->prefix}woocommerce_stc_shipment_items (
   shipment_item_id bigint(20) unsigned NOT NULL auto_increment,
   shipment_id bigint(20) unsigned NOT NULL,
   shipment_item_name text NOT NULL,
@@ -532,16 +315,16 @@ CREATE TABLE {$wpdb->prefix}woocommerce_gzd_shipment_items (
   KEY shipment_item_parent_id (shipment_item_parent_id),
   KEY shipment_item_item_parent_id (shipment_item_item_parent_id)
 ) $collate;
-CREATE TABLE {$wpdb->prefix}woocommerce_gzd_shipment_itemmeta (
+CREATE TABLE {$wpdb->prefix}woocommerce_stc_shipment_itemmeta (
   meta_id bigint(20) unsigned NOT NULL auto_increment,
-  gzd_shipment_item_id bigint(20) unsigned NOT NULL,
+  stc_shipment_item_id bigint(20) unsigned NOT NULL,
   meta_key varchar(255) default NULL,
   meta_value longtext NULL,
   PRIMARY KEY  (meta_id),
-  KEY gzd_shipment_item_id (gzd_shipment_item_id),
+  KEY stc_shipment_item_id (stc_shipment_item_id),
   KEY meta_key (meta_key(32))
 ) $collate;
-CREATE TABLE {$wpdb->prefix}woocommerce_gzd_shipments (
+CREATE TABLE {$wpdb->prefix}woocommerce_stc_shipments (
   shipment_id bigint(20) unsigned NOT NULL auto_increment,
   shipment_date_created datetime default NULL,
   shipment_date_created_gmt datetime default NULL,
@@ -549,7 +332,7 @@ CREATE TABLE {$wpdb->prefix}woocommerce_gzd_shipments (
   shipment_date_sent_gmt datetime default NULL,
   shipment_est_delivery_date datetime default NULL,
   shipment_est_delivery_date_gmt datetime default NULL,
-  shipment_status varchar(20) NOT NULL default 'gzd-draft',
+  shipment_status varchar(100) NOT NULL default 'draft',
   shipment_order_id bigint(20) unsigned NOT NULL DEFAULT 0,
   shipment_packaging_id bigint(20) unsigned NOT NULL DEFAULT 0,
   shipment_parent_id bigint(20) unsigned NOT NULL DEFAULT 0,
@@ -565,7 +348,7 @@ CREATE TABLE {$wpdb->prefix}woocommerce_gzd_shipments (
   KEY shipment_packaging_id (shipment_packaging_id),
   KEY shipment_parent_id (shipment_parent_id)
 ) $collate;
-CREATE TABLE {$wpdb->prefix}woocommerce_gzd_shipment_labels (
+CREATE TABLE {$wpdb->prefix}woocommerce_stc_shipment_labels (
   label_id bigint(20) unsigned NOT NULL auto_increment,
   label_date_created datetime default NULL,
   label_date_created_gmt datetime default NULL,
@@ -580,25 +363,25 @@ CREATE TABLE {$wpdb->prefix}woocommerce_gzd_shipment_labels (
   KEY label_shipment_id (label_shipment_id),
   KEY label_parent_id (label_parent_id)
 ) $collate;
-CREATE TABLE {$wpdb->prefix}woocommerce_gzd_shipment_labelmeta (
+CREATE TABLE {$wpdb->prefix}woocommerce_stc_shipment_labelmeta (
   meta_id bigint(20) unsigned NOT NULL auto_increment,
-  gzd_shipment_label_id bigint(20) unsigned NOT NULL,
+  stc_shipment_label_id bigint(20) unsigned NOT NULL,
   meta_key varchar(255) default NULL,
   meta_value longtext NULL,
   PRIMARY KEY  (meta_id),
-  KEY gzd_shipment_label_id (gzd_shipment_label_id),
+  KEY stc_shipment_label_id (stc_shipment_label_id),
   KEY meta_key (meta_key(32))
 ) $collate;
-CREATE TABLE {$wpdb->prefix}woocommerce_gzd_shipmentmeta (
+CREATE TABLE {$wpdb->prefix}woocommerce_stc_shipmentmeta (
   meta_id bigint(20) unsigned NOT NULL auto_increment,
-  gzd_shipment_id bigint(20) unsigned NOT NULL,
+  stc_shipment_id bigint(20) unsigned NOT NULL,
   meta_key varchar(255) default NULL,
   meta_value longtext NULL,
   PRIMARY KEY  (meta_id),
-  KEY gzd_shipment_id (gzd_shipment_id),
+  KEY stc_shipment_id (stc_shipment_id),
   KEY meta_key (meta_key(32))
 ) $collate;
-CREATE TABLE {$wpdb->prefix}woocommerce_gzd_packaging (
+CREATE TABLE {$wpdb->prefix}woocommerce_stc_packaging (
   packaging_id bigint(20) unsigned NOT NULL auto_increment,
   packaging_date_created datetime default NULL,
   packaging_date_created_gmt datetime default NULL,
@@ -617,16 +400,16 @@ CREATE TABLE {$wpdb->prefix}woocommerce_gzd_packaging (
   packaging_inner_height decimal(6,2) unsigned NOT NULL DEFAULT 0,
   PRIMARY KEY  (packaging_id)
 ) $collate;
-CREATE TABLE {$wpdb->prefix}woocommerce_gzd_packagingmeta (
+CREATE TABLE {$wpdb->prefix}woocommerce_stc_packagingmeta (
   meta_id bigint(20) unsigned NOT NULL auto_increment,
-  gzd_packaging_id bigint(20) unsigned NOT NULL,
+  stc_packaging_id bigint(20) unsigned NOT NULL,
   meta_key varchar(255) default NULL,
   meta_value longtext NULL,
   PRIMARY KEY  (meta_id),
-  KEY gzd_packaging_id (gzd_packaging_id),
+  KEY stc_packaging_id (stc_packaging_id),
   KEY meta_key (meta_key(32))
 ) $collate;
-CREATE TABLE {$wpdb->prefix}woocommerce_gzd_shipping_provider (
+CREATE TABLE {$wpdb->prefix}woocommerce_stc_shipping_provider (
   shipping_provider_id bigint(20) unsigned NOT NULL auto_increment,
   shipping_provider_activated tinyint(1) NOT NULL default 1,
   shipping_provider_order smallint(10) NOT NULL DEFAULT 0,
@@ -635,13 +418,13 @@ CREATE TABLE {$wpdb->prefix}woocommerce_gzd_shipping_provider (
   PRIMARY KEY  (shipping_provider_id),
   UNIQUE KEY shipping_provider_name (shipping_provider_name)
 ) $collate;
-CREATE TABLE {$wpdb->prefix}woocommerce_gzd_shipping_providermeta (
+CREATE TABLE {$wpdb->prefix}woocommerce_stc_shipping_providermeta (
   meta_id bigint(20) unsigned NOT NULL auto_increment,
-  gzd_shipping_provider_id bigint(20) unsigned NOT NULL,
+  stc_shipping_provider_id bigint(20) unsigned NOT NULL,
   meta_key varchar(255) default NULL,
   meta_value longtext NULL,
   PRIMARY KEY  (meta_id),
-  KEY gzd_shipping_provider_id (gzd_shipping_provider_id),
+  KEY stc_shipping_provider_id (stc_shipping_provider_id),
   KEY meta_key (meta_key(32))
 ) $collate;";
 

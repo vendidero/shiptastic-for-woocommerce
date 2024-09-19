@@ -4,18 +4,18 @@
  *
  * @package WooCommerce/Blocks
  */
-namespace Vendidero\Germanized\Shipments\ShippingProvider;
+namespace Vendidero\Shiptastic\ShippingProvider;
 
-use Vendidero\Germanized\Shipments\Interfaces\ShippingProviderAuto;
-use Vendidero\Germanized\Shipments\Labels\ConfigurationSet;
-use Vendidero\Germanized\Shipments\Labels\ConfigurationSetTrait;
-use Vendidero\Germanized\Shipments\Labels\Factory;
-use Vendidero\Germanized\Shipments\Labels\Label;
-use Vendidero\Germanized\Shipments\Package;
-use Vendidero\Germanized\Shipments\Packaging;
-use Vendidero\Germanized\Shipments\Shipment;
-use Vendidero\Germanized\Shipments\ShipmentError;
-use Vendidero\Germanized\Shipments\SimpleShipment;
+use Vendidero\Shiptastic\Interfaces\ShippingProviderAuto;
+use Vendidero\Shiptastic\Labels\ConfigurationSet;
+use Vendidero\Shiptastic\Labels\ConfigurationSetTrait;
+use Vendidero\Shiptastic\Labels\Factory;
+use Vendidero\Shiptastic\Labels\Label;
+use Vendidero\Shiptastic\Package;
+use Vendidero\Shiptastic\Packaging;
+use Vendidero\Shiptastic\Shipment;
+use Vendidero\Shiptastic\ShipmentError;
+use Vendidero\Shiptastic\SimpleShipment;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -26,9 +26,9 @@ abstract class Auto extends Simple implements ShippingProviderAuto {
 	protected $extra_data = array(
 		'label_print_format'                 => '',
 		'label_auto_enable'                  => false,
-		'label_auto_shipment_status'         => 'gzd-processing',
+		'label_auto_shipment_status'         => 'processing',
 		'label_return_auto_enable'           => false,
-		'label_return_auto_shipment_status'  => 'gzd-processing',
+		'label_return_auto_shipment_status'  => 'processing',
 		'label_auto_shipment_status_shipped' => false,
 		'label_references'                   => array(),
 		'pickup_locations_enable'            => true,
@@ -176,9 +176,9 @@ abstract class Auto extends Simple implements ShippingProviderAuto {
 	 */
 	public function get_label_reference_placeholders( $shipment_type = 'simple', $label = null ) {
 		$placeholders = array(
-			'{shipment_number}' => _x( 'Shipment number, e.g. 5', 'shipments', 'woocommerce-germanized-shipments' ),
-			'{order_number}'    => _x( 'Order number, e.g. 1234', 'shipments', 'woocommerce-germanized-shipments' ),
-			'{item_count}'      => _x( 'Number of items included in the shipment, e.g. 5', 'shipments', 'woocommerce-germanized-shipments' ),
+			'{shipment_number}' => _x( 'Shipment number, e.g. 5', 'shipments', 'shiptastic-for-woocommerce' ),
+			'{order_number}'    => _x( 'Order number, e.g. 1234', 'shipments', 'shiptastic-for-woocommerce' ),
+			'{item_count}'      => _x( 'Number of items included in the shipment, e.g. 5', 'shipments', 'shiptastic-for-woocommerce' ),
 		);
 
 		if ( $label ) {
@@ -237,7 +237,7 @@ abstract class Auto extends Simple implements ShippingProviderAuto {
 		$formatted_ref = apply_filters( "{$this->get_hook_prefix()}formatted_label_reference", $reference, $label, $shipment_type, $reference_type );
 
 		if ( -1 !== $max_length ) {
-			$formatted_ref = wc_gzd_shipments_substring( $formatted_ref, 0, $max_length );
+			$formatted_ref = wc_shiptastic_substring( $formatted_ref, 0, $max_length );
 		}
 
 		return $formatted_ref;
@@ -296,10 +296,10 @@ abstract class Auto extends Simple implements ShippingProviderAuto {
 	}
 
 	public function get_label_classname( $type ) {
-		$classname = '\Vendidero\Germanized\Shipments\Labels\Label';
+		$classname = '\Vendidero\Shiptastic\Labels\Label';
 
 		if ( 'return' === $type ) {
-			$classname = '\Vendidero\Germanized\Shipments\Labels\ReturnLabel';
+			$classname = '\Vendidero\Shiptastic\Labels\ReturnLabel';
 		}
 
 		return $classname;
@@ -335,19 +335,19 @@ abstract class Auto extends Simple implements ShippingProviderAuto {
 	}
 
 	/**
-	 * @param \Vendidero\Germanized\Shipments\Shipment $shipment
+	 * @param \Vendidero\Shiptastic\Shipment $shipment
 	 *
 	 * @return mixed|void
 	 */
 	public function get_label( $shipment ) {
-		$type  = wc_gzd_get_label_type_by_shipment( $shipment );
-		$label = wc_gzd_get_label_by_shipment( $shipment, $type );
+		$type  = wc_stc_get_label_type_by_shipment( $shipment );
+		$label = wc_stc_get_label_by_shipment( $shipment, $type );
 
 		return apply_filters( "{$this->get_hook_prefix()}label", $label, $shipment, $this );
 	}
 
 	/**
-	 * @param \Vendidero\Germanized\Shipments\Shipment $shipment
+	 * @param \Vendidero\Shiptastic\Shipment $shipment
 	 */
 	public function get_label_fields_html( $shipment ) {
 		/**
@@ -384,7 +384,7 @@ abstract class Auto extends Simple implements ShippingProviderAuto {
 	protected function get_printing_settings() {
 		$settings = array(
 			array(
-				'title' => _x( 'Label Format', 'shipments', 'woocommerce-germanized-shipments' ),
+				'title' => _x( 'Label Format', 'shipments', 'shiptastic-for-woocommerce' ),
 				'type'  => 'title',
 				'id'    => 'shipping_provider_label_format_options',
 			),
@@ -394,11 +394,11 @@ abstract class Auto extends Simple implements ShippingProviderAuto {
 			$settings,
 			array(
 				array(
-					'title'   => _x( 'Default Format', 'shipments', 'woocommerce-germanized-shipments' ),
+					'title'   => _x( 'Default Format', 'shipments', 'shiptastic-for-woocommerce' ),
 					'type'    => 'select',
 					'id'      => 'label_print_format',
 					'default' => $this->get_default_label_default_print_format(),
-					'desc'    => _x( 'Set the default print format for a label.', 'shipments', 'woocommerce-germanized-shipments' ),
+					'desc'    => _x( 'Set the default print format for a label.', 'shipments', 'shiptastic-for-woocommerce' ),
 					'options' => $this->get_print_formats()->as_options(),
 					'class'   => 'wc-enhanced-select',
 					'value'   => $this->get_setting( 'label_print_format', $this->get_default_label_default_print_format() ),
@@ -415,8 +415,8 @@ abstract class Auto extends Simple implements ShippingProviderAuto {
 						'type'              => 'select',
 						'id'                => 'label_print_format_' . $product->get_id(),
 						'default'           => '',
-						'custom_attributes' => array( 'data-placeholder' => _x( 'Same as default format', 'shipments', 'woocommerce-germanized-shipments' ) ),
-						'options'           => array( '' => _x( 'Same as default format', 'shipments', 'woocommerce-germanized-shipments' ) ) + $this->get_print_formats( array( 'product_id' => $product->get_id() ) )->as_options(),
+						'custom_attributes' => array( 'data-placeholder' => _x( 'Same as default format', 'shipments', 'shiptastic-for-woocommerce' ) ),
+						'options'           => array( '' => _x( 'Same as default format', 'shipments', 'shiptastic-for-woocommerce' ) ) + $this->get_print_formats( array( 'product_id' => $product->get_id() ) )->as_options(),
 						'class'             => 'wc-enhanced-select-nostd',
 						'value'             => $this->get_setting( "label_print_format_{$product->get_id()}" ),
 					),
@@ -440,24 +440,24 @@ abstract class Auto extends Simple implements ShippingProviderAuto {
 	protected function get_pickup_locations_settings() {
 		$settings = array(
 			array(
-				'title' => _x( 'Pickup Locations', 'shipments', 'woocommerce-germanized-shipments' ),
+				'title' => _x( 'Pickup Locations', 'shipments', 'shiptastic-for-woocommerce' ),
 				'type'  => 'title',
 				'id'    => 'shipping_provider_pickup_locations_options',
 			),
 			array(
-				'title'   => _x( 'Enable', 'shipments', 'woocommerce-germanized-shipments' ),
-				'desc'    => _x( 'Allow customers to choose a pickup location within checkout.', 'shipments', 'woocommerce-germanized-shipments' ),
+				'title'   => _x( 'Enable', 'shipments', 'shiptastic-for-woocommerce' ),
+				'desc'    => _x( 'Allow customers to choose a pickup location within checkout.', 'shipments', 'shiptastic-for-woocommerce' ),
 				'id'      => 'pickup_locations_enable',
-				'type'    => 'gzd_shipments_toggle',
+				'type'    => 'shiptastic_toggle',
 				'default' => 'yes',
 				'value'   => wc_bool_to_string( $this->get_setting( 'pickup_locations_enable', 'yes' ) ),
 			),
 			array(
-				'title'             => _x( 'Limit results', 'shipments', 'woocommerce-germanized-shipments' ),
+				'title'             => _x( 'Limit results', 'shipments', 'shiptastic-for-woocommerce' ),
 				'type'              => 'number',
 				'id'                => 'pickup_locations_max_results',
 				'value'             => $this->get_setting( 'pickup_locations_max_results', 20 ),
-				'desc_tip'          => _x( 'Limit the number of pickup locations presented to the customer.', 'shipments', 'woocommerce-germanized-shipments' ),
+				'desc_tip'          => _x( 'Limit the number of pickup locations presented to the customer.', 'shipments', 'shiptastic-for-woocommerce' ),
 				'default'           => 20,
 				'css'               => 'max-width: 60px;',
 				'custom_attributes' => array(
@@ -483,30 +483,30 @@ abstract class Auto extends Simple implements ShippingProviderAuto {
 	protected function get_automation_settings() {
 		$settings = array(
 			array(
-				'title' => _x( 'Automation', 'shipments', 'woocommerce-germanized-shipments' ),
+				'title' => _x( 'Automation', 'shipments', 'shiptastic-for-woocommerce' ),
 				'type'  => 'title',
 				'id'    => 'shipping_provider_label_auto_options',
 			),
 		);
 
-		$shipment_statuses = array_diff_key( wc_gzd_get_shipment_statuses(), array_fill_keys( array( 'gzd-draft', 'gzd-delivered', 'gzd-returned', 'gzd-requested' ), '' ) );
+		$shipment_statuses = array_diff_key( wc_stc_get_shipment_statuses(), array_fill_keys( array( 'draft', 'delivered', 'returned', 'requested' ), '' ) );
 
 		$settings = array_merge(
 			$settings,
 			array(
 				array(
-					'title' => _x( 'Labels', 'shipments', 'woocommerce-germanized-shipments' ),
-					'desc'  => _x( 'Automatically create labels for shipments.', 'shipments', 'woocommerce-germanized-shipments' ),
+					'title' => _x( 'Labels', 'shipments', 'shiptastic-for-woocommerce' ),
+					'desc'  => _x( 'Automatically create labels for shipments.', 'shipments', 'shiptastic-for-woocommerce' ),
 					'id'    => 'label_auto_enable',
-					'type'  => 'gzd_shipments_toggle',
+					'type'  => 'shiptastic_toggle',
 					'value' => wc_bool_to_string( $this->get_setting( 'label_auto_enable' ) ),
 				),
 
 				array(
-					'title'             => _x( 'Status', 'shipments', 'woocommerce-germanized-shipments' ),
+					'title'             => _x( 'Status', 'shipments', 'shiptastic-for-woocommerce' ),
 					'type'              => 'select',
 					'id'                => 'label_auto_shipment_status',
-					'desc'              => '<div class="wc-gzd-shipments-additional-desc">' . _x( 'Choose a shipment status which should trigger generation of a label.', 'shipments', 'woocommerce-germanized-shipments' ) . ' ' . ( 'yes' === Package::get_setting( 'auto_enable' ) ? sprintf( _x( 'Your current default shipment status is: <em>%s</em>.', 'shipments', 'woocommerce-germanized-shipments' ), wc_gzd_get_shipment_status_name( Package::get_setting( 'auto_default_status' ) ) ) : '' ) . '</div>',
+					'desc'              => '<div class="wc-shiptastic-additional-desc">' . _x( 'Choose a shipment status which should trigger generation of a label.', 'shipments', 'shiptastic-for-woocommerce' ) . ' ' . ( 'yes' === Package::get_setting( 'auto_enable' ) ? sprintf( _x( 'Your current default shipment status is: <em>%s</em>.', 'shipments', 'shiptastic-for-woocommerce' ), wc_stc_get_shipment_status_name( Package::get_setting( 'auto_default_status' ) ) ) : '' ) . '</div>',
 					'options'           => $shipment_statuses,
 					'class'             => 'wc-enhanced-select',
 					'custom_attributes' => array( 'data-show_if_label_auto_enable' => '' ),
@@ -514,10 +514,10 @@ abstract class Auto extends Simple implements ShippingProviderAuto {
 				),
 
 				array(
-					'title' => _x( 'Shipment Status', 'shipments', 'woocommerce-germanized-shipments' ),
-					'desc'  => _x( 'Mark shipment as shipped after label has been created successfully.', 'shipments', 'woocommerce-germanized-shipments' ),
+					'title' => _x( 'Shipment Status', 'shipments', 'shiptastic-for-woocommerce' ),
+					'desc'  => _x( 'Mark shipment as shipped after label has been created successfully.', 'shipments', 'shiptastic-for-woocommerce' ),
 					'id'    => 'label_auto_shipment_status_shipped',
-					'type'  => 'gzd_shipments_toggle',
+					'type'  => 'shiptastic_toggle',
 					'value' => wc_bool_to_string( $this->get_setting( 'label_auto_shipment_status_shipped' ) ),
 				),
 			)
@@ -528,18 +528,18 @@ abstract class Auto extends Simple implements ShippingProviderAuto {
 				$settings,
 				array(
 					array(
-						'title' => _x( 'Returns', 'shipments', 'woocommerce-germanized-shipments' ),
-						'desc'  => _x( 'Automatically create labels for returns.', 'shipments', 'woocommerce-germanized-shipments' ),
+						'title' => _x( 'Returns', 'shipments', 'shiptastic-for-woocommerce' ),
+						'desc'  => _x( 'Automatically create labels for returns.', 'shipments', 'shiptastic-for-woocommerce' ),
 						'id'    => 'label_return_auto_enable',
-						'type'  => 'gzd_shipments_toggle',
+						'type'  => 'shiptastic_toggle',
 						'value' => wc_bool_to_string( $this->get_setting( 'label_return_auto_enable' ) ),
 					),
 
 					array(
-						'title'             => _x( 'Status', 'shipments', 'woocommerce-germanized-shipments' ),
+						'title'             => _x( 'Status', 'shipments', 'shiptastic-for-woocommerce' ),
 						'type'              => 'select',
 						'id'                => 'label_return_auto_shipment_status',
-						'desc'              => '<div class="wc-gzd-shipments-additional-desc">' . _x( 'Choose a shipment status which should trigger generation of a return label.', 'shipments', 'woocommerce-germanized-shipments' ) . '</div>',
+						'desc'              => '<div class="wc-shiptastic-additional-desc">' . _x( 'Choose a shipment status which should trigger generation of a return label.', 'shipments', 'shiptastic-for-woocommerce' ) . '</div>',
 						'options'           => $shipment_statuses,
 						'class'             => 'wc-enhanced-select',
 						'custom_attributes' => array( 'data-show_if_label_return_auto_enable' => '' ),
@@ -603,7 +603,7 @@ abstract class Auto extends Simple implements ShippingProviderAuto {
 			} else {
 				$pickup_location = false;
 			}
-		} elseif ( ! is_a( $pickup_location, 'Vendidero\Germanized\Shipments\ShippingProvider\PickupLocation' ) ) {
+		} elseif ( ! is_a( $pickup_location, 'Vendidero\Shiptastic\ShippingProvider\PickupLocation' ) ) {
 			$pickup_location = false;
 		}
 
@@ -617,7 +617,7 @@ abstract class Auto extends Simple implements ShippingProviderAuto {
 	protected function get_pickup_location_cache_key( $location_code, $address ) {
 		$address       = $this->parse_pickup_location_address_args( $address );
 		$location_code = $this->parse_pickup_location_code( $location_code );
-		$cache_key     = "woocommerce_gzd_shipments_{$this->get_name()}_pickup_location_" . sanitize_key( $location_code ) . '_' . sanitize_key( $address['country'] ) . '_' . $address['postcode'];
+		$cache_key     = "woocommerce_shiptastic_{$this->get_name()}_pickup_location_" . sanitize_key( $location_code ) . '_' . sanitize_key( $address['country'] ) . '_' . $address['postcode'];
 
 		return $cache_key;
 	}
@@ -631,7 +631,7 @@ abstract class Auto extends Simple implements ShippingProviderAuto {
 			$address['address_1'],
 		);
 
-		$cache_key = "woocommerce_gzd_shipments_{$this->get_name()}_pickup_locations";
+		$cache_key = "woocommerce_shiptastic_{$this->get_name()}_pickup_locations";
 
 		foreach ( $cache_key_values as $cache_key_value ) {
 			$cache_key .= '_' . sanitize_key( $cache_key_value );
@@ -740,7 +740,7 @@ abstract class Auto extends Simple implements ShippingProviderAuto {
 		$settings               = array();
 		$reference_settings     = array();
 		$label_placeholders     = $this->get_label_reference_placeholders( $shipment_type );
-		$formatted_placeholders = '<ul class="wc-gzd-shipments-available-placeholders">';
+		$formatted_placeholders = '<ul class="wc-shiptastic-available-placeholders">';
 
 		foreach ( $label_placeholders as $placeholder => $title ) {
 			$formatted_placeholders .= sprintf( '<li><code>%s</code>: %s</li>', esc_attr( $placeholder ), esc_html( $title ) );
@@ -757,11 +757,11 @@ abstract class Auto extends Simple implements ShippingProviderAuto {
 					'max_length' => -1,
 				)
 			);
-			$shipment_label_title = wc_gzd_get_shipment_label_title( $shipment_type );
+			$shipment_label_title = wc_stc_get_shipment_label_title( $shipment_type );
 
 			$reference_settings[] = array(
 				'title'        => $reference_type_data['label'],
-				'desc'         => '<div class="wc-gzd-shipments-additional-desc">' . sprintf( _x( 'Adjust %1$s printed on the %2$s label. Use the following placeholders to format the reference: %3$s', 'shipments', 'woocommerce-germanized-shipments' ), $reference_type_data['label'], $shipment_label_title, $formatted_placeholders ) . ( -1 !== $reference_type_data['max_length'] ? sprintf( _x( 'Please keep in mind that the formatted reference cannot exceed %1$s characters.', 'shipments', 'woocommerce-germanized-shipments' ), $reference_type_data['max_length'] ) : '' ) . '</div>',
+				'desc'         => '<div class="wc-shiptastic-additional-desc">' . sprintf( _x( 'Adjust %1$s printed on the %2$s label. Use the following placeholders to format the reference: %3$s', 'shipments', 'shiptastic-for-woocommerce' ), $reference_type_data['label'], $shipment_label_title, $formatted_placeholders ) . ( -1 !== $reference_type_data['max_length'] ? sprintf( _x( 'Please keep in mind that the formatted reference cannot exceed %1$s characters.', 'shipments', 'shiptastic-for-woocommerce' ), $reference_type_data['max_length'] ) : '' ) . '</div>',
 				'id'           => "shipping_provider_label_reference_{$shipment_type}_{$reference_type}",
 				'placeholder'  => $reference_type_data['default'],
 				'value'        => $this->get_label_reference( $shipment_type, $reference_type, 'edit' ),
@@ -777,7 +777,7 @@ abstract class Auto extends Simple implements ShippingProviderAuto {
 				$settings,
 				array(
 					array(
-						'title' => _x( 'Label references', 'shipments', 'woocommerce-germanized-shipments' ),
+						'title' => _x( 'Label references', 'shipments', 'shiptastic-for-woocommerce' ),
 						'type'  => 'title',
 						'id'    => 'shipping_provider_label_references',
 					),
@@ -813,7 +813,7 @@ abstract class Auto extends Simple implements ShippingProviderAuto {
 					$settings,
 					array(
 						array(
-							'title' => wc_gzd_get_shipping_shipments_label_zone_title( $zone ),
+							'title' => wc_stc_get_shipping_shipments_label_zone_title( $zone ),
 							'type'  => 'title',
 							'id'    => $setting_id,
 						),
@@ -900,12 +900,12 @@ abstract class Auto extends Simple implements ShippingProviderAuto {
 				$settings,
 				array(
 					array(
-						'title'                 => _x( 'Default Service', 'dhl', 'woocommerce-germanized-shipments' ),
+						'title'                 => _x( 'Default Service', 'dhl', 'shiptastic-for-woocommerce' ),
 						'type'                  => 'select',
 						'id'                    => $product_setting_id,
 						'default'               => 'shipping_provider' === $configuration_set->get_setting_type() ? $default_product : $this->get_setting( $product_setting_id, $default_product ),
 						'value'                 => $configuration_set->get_product() ? $configuration_set->get_product() : null,
-						'desc'                  => sprintf( _x( 'Select the default service for %1$s.', 'shipments', 'woocommerce-germanized-shipments' ), wc_gzd_get_shipping_shipments_label_zone_title( $configuration_set->get_zone() ) ),
+						'desc'                  => sprintf( _x( 'Select the default service for %1$s.', 'shipments', 'shiptastic-for-woocommerce' ), wc_stc_get_shipping_shipments_label_zone_title( $configuration_set->get_zone() ) ),
 						'options'               => $select,
 						'class'                 => 'wc-enhanced-select',
 						'provider'              => $this->get_name(),
@@ -961,14 +961,14 @@ abstract class Auto extends Simple implements ShippingProviderAuto {
 
 	public function get_setting_sections() {
 		$sections = array(
-			'' => _x( 'General', 'shipments', 'woocommerce-germanized-shipments' ),
+			'' => _x( 'General', 'shipments', 'shiptastic-for-woocommerce' ),
 		);
 
-		foreach ( wc_gzd_get_shipment_types() as $shipment_type ) {
+		foreach ( wc_stc_get_shipment_types() as $shipment_type ) {
 			$settings = $this->{"get_config_set_{$shipment_type}_label_settings"}();
 
 			if ( ! empty( $settings ) ) {
-				$section_title = 'simple' === $shipment_type ? _x( 'Labels', 'shipments', 'woocommerce-germanized-shipments' ) : sprintf( _x( '%1$s labels', 'shipments', 'woocommerce-germanized-shipments' ), wc_gzd_get_shipment_label_title( $shipment_type ) );
+				$section_title = 'simple' === $shipment_type ? _x( 'Labels', 'shipments', 'shiptastic-for-woocommerce' ) : sprintf( _x( '%1$s labels', 'shipments', 'shiptastic-for-woocommerce' ), wc_stc_get_shipment_label_title( $shipment_type ) );
 				$sections      = array_merge(
 					$sections,
 					array(
@@ -982,7 +982,7 @@ abstract class Auto extends Simple implements ShippingProviderAuto {
 			$sections = array_merge(
 				$sections,
 				array(
-					'printing' => _x( 'Printing', 'shipments', 'woocommerce-germanized-shipments' ),
+					'printing' => _x( 'Printing', 'shipments', 'shiptastic-for-woocommerce' ),
 				)
 			);
 		}
@@ -990,7 +990,7 @@ abstract class Auto extends Simple implements ShippingProviderAuto {
 		$sections = array_merge(
 			$sections,
 			array(
-				'automation' => _x( 'Automation', 'shipments', 'woocommerce-germanized-shipments' ),
+				'automation' => _x( 'Automation', 'shipments', 'shiptastic-for-woocommerce' ),
 			)
 		);
 
@@ -998,7 +998,7 @@ abstract class Auto extends Simple implements ShippingProviderAuto {
 			$sections = array_merge(
 				$sections,
 				array(
-					'pickup_locations' => _x( 'Pickup Locations', 'shipments', 'woocommerce-germanized-shipments' ),
+					'pickup_locations' => _x( 'Pickup Locations', 'shipments', 'shiptastic-for-woocommerce' ),
 				)
 			);
 		}
@@ -1009,7 +1009,7 @@ abstract class Auto extends Simple implements ShippingProviderAuto {
 	}
 
 	/**
-	 * @param \Vendidero\Germanized\Shipments\Shipment $shipment
+	 * @param \Vendidero\Shiptastic\Shipment $shipment
 	 */
 	public function get_label_fields( $shipment ) {
 		if ( 'return' === $shipment->get_type() ) {
@@ -1055,7 +1055,7 @@ abstract class Auto extends Simple implements ShippingProviderAuto {
 	}
 
 	/**
-	 * @param \Vendidero\Germanized\Shipments\Shipment $shipment
+	 * @param \Vendidero\Shiptastic\Shipment $shipment
 	 */
 	protected function get_simple_label_fields( $shipment ) {
 		$defaults      = $this->get_default_label_props( $shipment );
@@ -1065,7 +1065,7 @@ abstract class Auto extends Simple implements ShippingProviderAuto {
 		$settings = array(
 			array(
 				'id'          => 'product_id',
-				'label'       => sprintf( _x( '%s Product', 'shipments', 'woocommerce-germanized-shipments' ), $this->get_title() ),
+				'label'       => sprintf( _x( '%s Product', 'shipments', 'shiptastic-for-woocommerce' ), $this->get_title() ),
 				'description' => '',
 				'options'     => $available,
 				'value'       => $defaults['product_id'] && array_key_exists( $defaults['product_id'], $available ) ? $defaults['product_id'] : '',
@@ -1089,7 +1089,7 @@ abstract class Auto extends Simple implements ShippingProviderAuto {
 				array(
 					array(
 						'id'                => 'print_format',
-						'label'             => _x( 'Print Format', 'shipments', 'woocommerce-germanized-shipments' ),
+						'label'             => _x( 'Print Format', 'shipments', 'shiptastic-for-woocommerce' ),
 						'description'       => '',
 						'custom_attributes' => $custom_attributes,
 						'options'           => $print_formats,
@@ -1106,8 +1106,8 @@ abstract class Auto extends Simple implements ShippingProviderAuto {
 				array(
 					array(
 						'id'          => 'export_reference_number',
-						'label'       => _x( 'Export Reference Number', 'shipments', 'woocommerce-germanized-shipments' ),
-						'description' => _x( 'In case of a shipment with an export declaration - provide the assigned Export Reference Number for customs purposes.', 'shipments', 'woocommerce-germanized-shipments' ),
+						'label'       => _x( 'Export Reference Number', 'shipments', 'shiptastic-for-woocommerce' ),
+						'description' => _x( 'In case of a shipment with an export declaration - provide the assigned Export Reference Number for customs purposes.', 'shipments', 'shiptastic-for-woocommerce' ),
 						'value'       => '',
 						'type'        => 'text',
 						'desc_tip'    => true,
@@ -1124,7 +1124,7 @@ abstract class Auto extends Simple implements ShippingProviderAuto {
 	}
 
 	/**
-	 * @param \Vendidero\Germanized\Shipments\Shipment $shipment
+	 * @param \Vendidero\Shiptastic\Shipment $shipment
 	 */
 	protected function get_return_label_fields( $shipment ) {
 		return $this->get_simple_label_fields( $shipment );
@@ -1148,15 +1148,15 @@ abstract class Auto extends Simple implements ShippingProviderAuto {
 	protected function get_default_label_props( $shipment ) {
 		$default = array(
 			'shipping_provider' => $this->get_name(),
-			'weight'            => wc_gzd_get_shipment_label_weight( $shipment ),
-			'net_weight'        => wc_gzd_get_shipment_label_weight( $shipment, true ),
+			'weight'            => wc_stc_get_shipment_label_weight( $shipment ),
+			'net_weight'        => wc_stc_get_shipment_label_weight( $shipment, true ),
 			'shipment_id'       => $shipment->get_id(),
 			'services'          => array(),
 			'product_id'        => $this->get_default_label_product( $shipment ),
 			'print_format'      => $this->get_default_label_print_format( $shipment ),
 		);
 
-		$dimensions = wc_gzd_get_shipment_label_dimensions( $shipment );
+		$dimensions = wc_stc_get_shipment_label_dimensions( $shipment );
 		$default    = array_merge( $default, $dimensions );
 
 		foreach ( $this->get_services(
@@ -1209,7 +1209,7 @@ abstract class Auto extends Simple implements ShippingProviderAuto {
 	}
 
 	/**
-	 * @param \Vendidero\Germanized\Shipments\Shipment $shipment
+	 * @param \Vendidero\Shiptastic\Shipment $shipment
 	 * @param mixed $props
 	 *
 	 * @return ShipmentError|true
@@ -1338,7 +1338,7 @@ abstract class Auto extends Simple implements ShippingProviderAuto {
 			$errors->merge_from( $props );
 		}
 
-		if ( wc_gzd_shipment_wp_error_has_errors( $errors ) ) {
+		if ( wc_stc_shipment_wp_error_has_errors( $errors ) ) {
 			return $errors;
 		}
 
@@ -1367,7 +1367,7 @@ abstract class Auto extends Simple implements ShippingProviderAuto {
 			$result = $label->fetch();
 
 			if ( is_wp_error( $result ) ) {
-				$result = wc_gzd_get_shipment_error( $result );
+				$result = wc_stc_get_shipment_error( $result );
 
 				if ( ! $result->is_soft_error() ) {
 					$code = absint( $result->get_error_code() );
@@ -1378,7 +1378,7 @@ abstract class Auto extends Simple implements ShippingProviderAuto {
 					if ( 500 === $code || 429 === $code ) {
 						$hits = false === get_transient( "{$this->get_general_hook_prefix()}label_rate_limit_hits" ) ? 0 : absint( get_transient( "{$this->get_general_hook_prefix()}label_rate_limit_hits" ) );
 
-						if ( $hits <= apply_filters( 'woocommerce_gzd_shipments_max_api_retries', 5 ) ) {
+						if ( $hits <= apply_filters( 'woocommerce_shiptastic_max_api_retries', 5 ) ) {
 							$hits++;
 
 							sleep( 0.25 * $hits );
@@ -1402,7 +1402,7 @@ abstract class Auto extends Simple implements ShippingProviderAuto {
 			return is_wp_error( $result ) && $result->is_soft_error() ? $result : $label_id;
 		}
 
-		return new ShipmentError( 'label-error', _x( 'Error while creating the label.', 'shipments', 'woocommerce-germanized-shipments' ) );
+		return new ShipmentError( 'label-error', _x( 'Error while creating the label.', 'shipments', 'shiptastic-for-woocommerce' ) );
 	}
 
 	public function get_available_label_zones( $shipment_type = 'simple' ) {
@@ -1458,7 +1458,7 @@ abstract class Auto extends Simple implements ShippingProviderAuto {
 						'provider'      => $this->get_name(),
 						'shipment_zone' => $zone,
 						'shipment_type' => $shipment_type,
-						'title'         => wc_gzd_get_shipping_shipments_label_zone_title( $zone ),
+						'title'         => wc_stc_get_shipping_shipments_label_zone_title( $zone ),
 					);
 
 					$settings[ $shipment_type ][ $zone ] = array_merge( $settings[ $shipment_type ][ $zone ], $label_settings );
@@ -1479,7 +1479,7 @@ abstract class Auto extends Simple implements ShippingProviderAuto {
 	}
 
 	/**
-	 * @param \Vendidero\Germanized\Shipments\Shipment $shipment
+	 * @param \Vendidero\Shiptastic\Shipment $shipment
 	 */
 	public function get_available_label_services( $shipment ) {
 		$services = array();
@@ -1492,14 +1492,14 @@ abstract class Auto extends Simple implements ShippingProviderAuto {
 	}
 
 	/**
-	 * @param \Vendidero\Germanized\Shipments\Shipment $shipment
+	 * @param \Vendidero\Shiptastic\Shipment $shipment
 	 */
 	public function get_available_label_products( $shipment ) {
 		return $this->get_products( array( 'shipment' => $shipment ) )->as_options();
 	}
 
 	/**
-	 * @param \Vendidero\Germanized\Shipments\Shipment $shipment
+	 * @param \Vendidero\Shiptastic\Shipment $shipment
 	 */
 	public function get_available_label_print_formats( $shipment ) {
 		$products = $this->get_available_label_products( $shipment );
@@ -1513,7 +1513,7 @@ abstract class Auto extends Simple implements ShippingProviderAuto {
 	}
 
 	/**
-	 * @param \Vendidero\Germanized\Shipments\Shipment $shipment
+	 * @param \Vendidero\Shiptastic\Shipment $shipment
 	 */
 	public function get_default_label_product( $shipment ) {
 		$product_id = '';
@@ -1537,7 +1537,7 @@ abstract class Auto extends Simple implements ShippingProviderAuto {
 	}
 
 	/**
-	 * @param \Vendidero\Germanized\Shipments\Shipment $shipment
+	 * @param \Vendidero\Shiptastic\Shipment $shipment
 	 */
 	public function get_default_label_print_format( $shipment ) {
 		$product_id = $this->get_default_label_product( $shipment );
@@ -1576,11 +1576,11 @@ abstract class Auto extends Simple implements ShippingProviderAuto {
 							'id'                => $title_id,
 							'default'           => '',
 							'type'              => 'shipping_provider_method_zone_override_open',
-							'sanitize_callback' => array( '\Vendidero\Germanized\Shipments\ShippingMethod\MethodHelper', 'validate_method_zone_override' ),
+							'sanitize_callback' => array( '\Vendidero\Shiptastic\ShippingMethod\MethodHelper', 'validate_method_zone_override' ),
 							'provider'          => $this->get_name(),
 							'shipment_zone'     => $zone,
 							'shipment_type'     => $shipment_type,
-							'title'             => wc_gzd_get_shipping_shipments_label_zone_title( $zone ),
+							'title'             => wc_stc_get_shipping_shipments_label_zone_title( $zone ),
 						);
 					}
 
@@ -1614,7 +1614,7 @@ abstract class Auto extends Simple implements ShippingProviderAuto {
 
 						if ( 'sectionend' === $setting['type'] ) {
 							$setting['type'] = 'title';
-						} elseif ( 'gzd_shipments_toggle' === $setting['type'] ) {
+						} elseif ( 'shiptastic_toggle' === $setting['type'] ) {
 							$setting['type'] = 'checkbox';
 						}
 

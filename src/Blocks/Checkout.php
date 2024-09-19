@@ -1,14 +1,14 @@
 <?php
-namespace Vendidero\Germanized\Shipments\Blocks;
+namespace Vendidero\Shiptastic\Blocks;
 
 use Automattic\WooCommerce\StoreApi\Exceptions\RouteException;
 use Automattic\WooCommerce\StoreApi\Schemas\ExtendSchema;
 use Automattic\WooCommerce\StoreApi\Schemas\V1\CartSchema;
 use Automattic\WooCommerce\StoreApi\Schemas\V1\CheckoutSchema;
 use Automattic\WooCommerce\StoreApi\Utilities\CartController;
-use Vendidero\Germanized\Shipments\Blocks\StoreApi\SchemaController;
-use Vendidero\Germanized\Shipments\Package;
-use Vendidero\Germanized\Shipments\PickupDelivery;
+use Vendidero\Shiptastic\Blocks\StoreApi\SchemaController;
+use Vendidero\Shiptastic\Package;
+use Vendidero\Shiptastic\PickupDelivery;
 
 final class Checkout {
 
@@ -37,7 +37,7 @@ final class Checkout {
 	}
 
 	private function has_checkout_data( $param, $request ) {
-		$request_data = isset( $request['extensions']['woocommerce-gzd-shipments'] ) ? (array) $request['extensions']['woocommerce-gzd-shipments'] : array();
+		$request_data = isset( $request['extensions']['woocommerce-shiptastic'] ) ? (array) $request['extensions']['woocommerce-shiptastic'] : array();
 
 		return isset( $request_data[ $param ] ) && null !== $request_data[ $param ];
 	}
@@ -48,7 +48,7 @@ final class Checkout {
 	 * @return array
 	 */
 	private function get_checkout_data_from_request( $request ) {
-		$data = array_filter( (array) wc_clean( $request['extensions']['woocommerce-gzd-shipments'] ) );
+		$data = array_filter( (array) wc_clean( $request['extensions']['woocommerce-shiptastic'] ) );
 		$data = wp_parse_args(
 			$data,
 			array(
@@ -69,13 +69,13 @@ final class Checkout {
 	 * @return void
 	 */
 	private function validate_checkout_data( $order, $request ) {
-		$gzd_data                        = $this->get_checkout_data_from_request( $request );
+		$stc_data                        = $this->get_checkout_data_from_request( $request );
 		$pickup_location                 = false;
 		$pickup_location_customer_number = '';
 
-		if ( $this->has_checkout_data( 'pickup_location', $request ) && ! empty( $gzd_data['pickup_location'] ) ) {
-			$pickup_location_code            = $gzd_data['pickup_location'];
-			$pickup_location_customer_number = $gzd_data['pickup_location_customer_number'];
+		if ( $this->has_checkout_data( 'pickup_location', $request ) && ! empty( $stc_data['pickup_location'] ) ) {
+			$pickup_location_code            = $stc_data['pickup_location'];
+			$pickup_location_customer_number = $stc_data['pickup_location_customer_number'];
 			$supports_customer_number        = false;
 			$customer_number_is_mandatory    = false;
 			$is_valid                        = false;
@@ -87,8 +87,8 @@ final class Checkout {
 				'address_1' => $order->get_shipping_address_1(),
 			);
 
-			if ( $provider = wc_gzd_get_order_shipping_provider( $order ) ) {
-				if ( is_a( $provider, 'Vendidero\Germanized\Shipments\Interfaces\ShippingProviderAuto' ) ) {
+			if ( $provider = wc_stc_get_order_shipping_provider( $order ) ) {
+				if ( is_a( $provider, 'Vendidero\Shiptastic\Interfaces\ShippingProviderAuto' ) ) {
 					$query_args                    = PickupDelivery::get_pickup_delivery_cart_args();
 					$query_args['payment_gateway'] = $order->get_payment_method();
 
@@ -102,13 +102,13 @@ final class Checkout {
 			}
 
 			if ( ! $is_valid || ! $pickup_location ) {
-				throw new \Automattic\WooCommerce\StoreApi\Exceptions\RouteException( 'pickup_location_unknown', _x( 'Sorry, your current pickup location is not supported.', 'shipments', 'woocommerce-germanized-shipments' ), 400 );
+				throw new \Automattic\WooCommerce\StoreApi\Exceptions\RouteException( 'pickup_location_unknown', esc_html_x( 'Sorry, your current pickup location is not supported.', 'shipments', 'shiptastic-for-woocommerce' ), 400 );
 			} elseif ( $supports_customer_number && ( ! empty( $pickup_location_customer_number ) || $customer_number_is_mandatory ) ) {
 				if ( ! $validation = $pickup_location->customer_number_is_valid( $pickup_location_customer_number ) ) {
 					if ( is_a( $validation, 'WP_Error' ) ) {
-						throw new \Automattic\WooCommerce\StoreApi\Exceptions\RouteException( 'pickup_location_customer_number_invalid', $validation->get_error_message(), 400 );
+						throw new \Automattic\WooCommerce\StoreApi\Exceptions\RouteException( 'pickup_location_customer_number_invalid', wp_kses_post( $validation->get_error_message() ), 400 );
 					} else {
-						throw new \Automattic\WooCommerce\StoreApi\Exceptions\RouteException( 'pickup_location_customer_number_invalid', _x( 'Sorry, your pickup location customer number is invalid.', 'shipments', 'woocommerce-germanized-shipments' ), 400 );
+						throw new \Automattic\WooCommerce\StoreApi\Exceptions\RouteException( 'pickup_location_customer_number_invalid', esc_html_x( 'Sorry, your pickup location customer number is invalid.', 'shipments', 'shiptastic-for-woocommerce' ), 400 );
 					}
 				}
 			}
@@ -168,8 +168,8 @@ final class Checkout {
 	}
 
 	/**
-	 * Use woocommerce-gzd-shipments as namespace to not conflict with the
-	 * woocommerce-germanized-shipments textdomain which might get replaced within js files
+	 * Use woocommerce-shiptastic as namespace to not conflict with the
+	 * shiptastic-for-woocommerce textdomain which might get replaced within js files
 	 * while bundling the package.
 	 *
 	 * @return void
@@ -178,7 +178,7 @@ final class Checkout {
 		woocommerce_store_api_register_endpoint_data(
 			array(
 				'endpoint'        => CartSchema::IDENTIFIER,
-				'namespace'       => 'woocommerce-gzd-shipments',
+				'namespace'       => 'woocommerce-shiptastic',
 				'data_callback'   => function() {
 					return $this->get_cart_data();
 				},
@@ -191,7 +191,7 @@ final class Checkout {
 		woocommerce_store_api_register_endpoint_data(
 			array(
 				'endpoint'        => CheckoutSchema::IDENTIFIER,
-				'namespace'       => 'woocommerce-gzd-shipments',
+				'namespace'       => 'woocommerce-shiptastic',
 				'schema_callback' => function () {
 					return $this->get_checkout_schema();
 				},
@@ -202,13 +202,13 @@ final class Checkout {
 	private function get_checkout_schema() {
 		return array(
 			'pickup_location'                 => array(
-				'description' => _x( 'Pickup location', 'shipments', 'woocommerce-germanized-shipments' ),
+				'description' => _x( 'Pickup location', 'shipments', 'shiptastic-for-woocommerce' ),
 				'type'        => array( 'string', 'null' ),
 				'context'     => array( 'view', 'edit' ),
 				'default'     => '',
 			),
 			'pickup_location_customer_number' => array(
-				'description' => _x( 'Pickup location customer number', 'shipments', 'woocommerce-germanized-shipments' ),
+				'description' => _x( 'Pickup location customer number', 'shipments', 'shiptastic-for-woocommerce' ),
 				'type'        => array( 'string', 'null' ),
 				'context'     => array( 'view', 'edit' ),
 				'default'     => '',
@@ -221,20 +221,20 @@ final class Checkout {
 
 		$schema = array(
 			'pickup_location_delivery_available'      => array(
-				'description' => _x( 'Whether pickup location delivery is available', 'shipments', 'woocommerce-germanized-shipments' ),
+				'description' => _x( 'Whether pickup location delivery is available', 'shipments', 'shiptastic-for-woocommerce' ),
 				'type'        => 'boolean',
 				'context'     => array( 'view', 'edit' ),
 				'readonly'    => true,
 			),
 			'default_pickup_location'                 => array(
-				'description' => _x( 'Pickup location', 'shipments', 'woocommerce-germanized-shipments' ),
+				'description' => _x( 'Pickup location', 'shipments', 'shiptastic-for-woocommerce' ),
 				'type'        => array( 'string', 'null' ),
 				'context'     => array( 'view', 'edit' ),
 				'default'     => '',
 				'readonly'    => true,
 			),
 			'default_pickup_location_customer_number' => array(
-				'description' => _x( 'Pickup location customer number', 'shipments', 'woocommerce-germanized-shipments' ),
+				'description' => _x( 'Pickup location customer number', 'shipments', 'shiptastic-for-woocommerce' ),
 				'type'        => array( 'string', 'null' ),
 				'context'     => array( 'view', 'edit' ),
 				'default'     => '',
@@ -254,13 +254,13 @@ final class Checkout {
 		$locations    = array();
 
 		if ( PickupDelivery::is_available() ) {
-			$shipping_method = wc_gzd_get_current_shipping_provider_method();
+			$shipping_method = wc_stc_get_current_shipping_provider_method();
 
 			if ( $shipping_method ) {
 				$provider = $shipping_method->get_shipping_provider_instance();
 			}
 
-			if ( $provider && is_a( $provider, '\Vendidero\Germanized\Shipments\Interfaces\ShippingProviderAuto' ) ) {
+			if ( $provider && is_a( $provider, '\Vendidero\Shiptastic\Interfaces\ShippingProviderAuto' ) ) {
 				$address = array(
 					'postcode'  => $customer->get_shipping_postcode(),
 					'country'   => $customer->get_shipping_country(),

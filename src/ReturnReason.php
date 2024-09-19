@@ -1,6 +1,6 @@
 <?php
 
-namespace Vendidero\Germanized\Shipments;
+namespace Vendidero\Shiptastic;
 
 defined( 'ABSPATH' ) || exit;
 

@@ -1,20 +1,20 @@
 <?php
 
-namespace Vendidero\Germanized\Shipments\Admin\Tabs;
+namespace Vendidero\Shiptastic\Admin\Tabs;
 
-use Vendidero\Germanized\Shipments\Admin\Tutorial;
-use Vendidero\Germanized\Shipments\Package;
-use Vendidero\Germanized\Shipments\Packaging\ReportHelper;
-use Vendidero\Germanized\Shipments\Packaging\ReportQueue;
+use Vendidero\Shiptastic\Admin\Tutorial;
+use Vendidero\Shiptastic\Package;
+use Vendidero\Shiptastic\Packaging\ReportHelper;
+use Vendidero\Shiptastic\Packaging\ReportQueue;
 
 class Packaging extends Tab {
 
 	public function get_description() {
-		return _x( 'Manage available packaging options and create packaging reports.', 'shipments', 'woocommerce-germanized-shipments' );
+		return _x( 'Manage available packaging options and create packaging reports.', 'shipments', 'shiptastic-for-woocommerce' );
 	}
 
 	public function get_label() {
-		return _x( 'Pick & Pack', 'shipments', 'woocommerce-germanized-shipments' );
+		return _x( 'Pick & Pack', 'shipments', 'shiptastic-for-woocommerce' );
 	}
 
 	public function get_name() {
@@ -23,12 +23,12 @@ class Packaging extends Tab {
 
 	public function get_sections() {
 		$sections = array(
-			''        => _x( 'Packaging', 'shipments', 'woocommerce-germanized-shipments' ),
-			'reports' => _x( 'Reports', 'shipments', 'woocommerce-germanized-shipments' ),
+			''        => _x( 'Packaging', 'shipments', 'shiptastic-for-woocommerce' ),
+			'reports' => _x( 'Reports', 'shipments', 'shiptastic-for-woocommerce' ),
 		);
 
 		if ( Package::is_packing_supported() ) {
-			$sections['packing'] = _x( 'Packing', 'shipments', 'woocommerce-germanized-shipments' );
+			$sections['packing'] = _x( 'Packing', 'shipments', 'shiptastic-for-woocommerce' );
 		}
 
 		return $sections;
@@ -41,82 +41,82 @@ class Packaging extends Tab {
 	protected function get_packing_settings() {
 		return array(
 			array(
-				'title' => _x( 'Automated packing', 'shipments', 'woocommerce-germanized-shipments' ),
+				'title' => _x( 'Automated packing', 'shipments', 'shiptastic-for-woocommerce' ),
 				'type'  => 'title',
 				'id'    => 'automated_packing_options',
 			),
 
 			array(
-				'title'   => _x( 'Enable', 'shipments', 'woocommerce-germanized-shipments' ),
-				'desc'    => _x( 'Automatically pack orders based on available packaging options', 'shipments', 'woocommerce-germanized-shipments' ) . '<div class="wc-gzd-shipments-additional-desc">' . sprintf( _x( 'By enabling this option, shipments will be packed based on your available packaging options. For that purpose a knapsack algorithm is used to best fit available order items within your packaging. <a href="%s" target="_blank">Learn more</a> about the feature.', 'shipments', 'woocommerce-germanized-shipments' ), 'https://vendidero.de/dokument/sendungen-automatisiert-packen' ) . '</div>',
-				'id'      => 'woocommerce_gzd_shipments_enable_auto_packing',
+				'title'   => _x( 'Enable', 'shipments', 'shiptastic-for-woocommerce' ),
+				'desc'    => _x( 'Automatically pack orders based on available packaging options', 'shipments', 'shiptastic-for-woocommerce' ) . '<div class="wc-shiptastic-additional-desc">' . sprintf( _x( 'By enabling this option, shipments will be packed based on your available packaging options. For that purpose a knapsack algorithm is used to best fit available order items within your packaging. <a href="%s" target="_blank">Learn more</a> about the feature.', 'shipments', 'shiptastic-for-woocommerce' ), 'https://vendidero.de/dokument/sendungen-automatisiert-packen' ) . '</div>',
+				'id'      => 'woocommerce_shiptastic_enable_auto_packing',
 				'default' => 'yes',
-				'type'    => 'gzd_shipments_toggle',
+				'type'    => 'shiptastic_toggle',
 			),
 
 			array(
-				'title'             => _x( 'Grouping', 'shipments', 'woocommerce-germanized-shipments' ),
-				'desc'              => _x( 'Group items by shipping class.', 'shipments', 'woocommerce-germanized-shipments' ) . '<div class="wc-gzd-shipments-additional-desc">' . sprintf( _x( 'Use this option to prevent items with different shipping classes from being packed in the same package.', 'shipments', 'woocommerce-germanized-shipments' ) ) . '</div>',
-				'id'                => 'woocommerce_gzd_shipments_packing_group_by_shipping_class',
+				'title'             => _x( 'Grouping', 'shipments', 'shiptastic-for-woocommerce' ),
+				'desc'              => _x( 'Group items by shipping class.', 'shipments', 'shiptastic-for-woocommerce' ) . '<div class="wc-shiptastic-additional-desc">' . sprintf( _x( 'Use this option to prevent items with different shipping classes from being packed in the same package.', 'shipments', 'shiptastic-for-woocommerce' ) ) . '</div>',
+				'id'                => 'woocommerce_shiptastic_packing_group_by_shipping_class',
 				'default'           => 'no',
-				'type'              => 'gzd_shipments_toggle',
+				'type'              => 'shiptastic_toggle',
 				'custom_attributes' => array(
-					'data-show_if_woocommerce_gzd_shipments_enable_auto_packing' => '',
+					'data-show_if_woocommerce_shiptastic_enable_auto_packing' => '',
 				),
 			),
 
 			array(
-				'title'             => _x( 'Balance weights', 'shipments', 'woocommerce-germanized-shipments' ),
-				'desc'              => _x( 'Automatically balance weights between packages in case multiple packages are needed.', 'shipments', 'woocommerce-germanized-shipments' ),
-				'id'                => 'woocommerce_gzd_shipments_packing_balance_weights',
+				'title'             => _x( 'Balance weights', 'shipments', 'shiptastic-for-woocommerce' ),
+				'desc'              => _x( 'Automatically balance weights between packages in case multiple packages are needed.', 'shipments', 'shiptastic-for-woocommerce' ),
+				'id'                => 'woocommerce_shiptastic_packing_balance_weights',
 				'default'           => 'no',
-				'type'              => 'gzd_shipments_toggle',
+				'type'              => 'shiptastic_toggle',
 				'custom_attributes' => array(
-					'data-show_if_woocommerce_gzd_shipments_enable_auto_packing' => '',
+					'data-show_if_woocommerce_shiptastic_enable_auto_packing' => '',
 				),
 			),
 
 			array(
-				'title'             => _x( 'Buffer type', 'shipments', 'woocommerce-germanized-shipments' ),
-				'desc'              => '<div class="wc-gzd-shipments-additional-desc">' . sprintf( _x( 'Choose a buffer type to leave space between the items and outer dimensions of your packaging.', 'shipments', 'woocommerce-germanized-shipments' ) ) . '</div>',
-				'id'                => 'woocommerce_gzd_shipments_packing_inner_buffer_type',
+				'title'             => _x( 'Buffer type', 'shipments', 'shiptastic-for-woocommerce' ),
+				'desc'              => '<div class="wc-shiptastic-additional-desc">' . sprintf( _x( 'Choose a buffer type to leave space between the items and outer dimensions of your packaging.', 'shipments', 'shiptastic-for-woocommerce' ) ) . '</div>',
+				'id'                => 'woocommerce_shiptastic_packing_inner_buffer_type',
 				'default'           => 'fixed',
 				'type'              => 'select',
 				'options'           => array(
-					'fixed'      => _x( 'Fixed', 'shipments', 'woocommerce-germanized-shipments' ),
-					'percentage' => _x( 'Percentage', 'shipments', 'woocommerce-germanized-shipments' ),
+					'fixed'      => _x( 'Fixed', 'shipments', 'shiptastic-for-woocommerce' ),
+					'percentage' => _x( 'Percentage', 'shipments', 'shiptastic-for-woocommerce' ),
 				),
 				'custom_attributes' => array(
-					'data-show_if_woocommerce_gzd_shipments_enable_auto_packing' => '',
+					'data-show_if_woocommerce_shiptastic_enable_auto_packing' => '',
 				),
 			),
 
 			array(
-				'title'             => _x( 'Fixed Buffer', 'shipments', 'woocommerce-germanized-shipments' ),
+				'title'             => _x( 'Fixed Buffer', 'shipments', 'shiptastic-for-woocommerce' ),
 				'desc'              => 'mm',
-				'id'                => 'woocommerce_gzd_shipments_packing_inner_fixed_buffer',
+				'id'                => 'woocommerce_shiptastic_packing_inner_fixed_buffer',
 				'default'           => '5',
 				'type'              => 'number',
 				'row_class'         => 'with-suffix',
 				'css'               => 'max-width: 60px',
 				'custom_attributes' => array(
-					'data-show_if_woocommerce_gzd_shipments_enable_auto_packing' => '',
-					'data-show_if_woocommerce_gzd_shipments_packing_inner_buffer_type' => 'fixed',
+					'data-show_if_woocommerce_shiptastic_enable_auto_packing' => '',
+					'data-show_if_woocommerce_shiptastic_packing_inner_buffer_type' => 'fixed',
 					'step' => 1,
 				),
 			),
 
 			array(
-				'title'             => _x( 'Percentage Buffer', 'shipments', 'woocommerce-germanized-shipments' ),
+				'title'             => _x( 'Percentage Buffer', 'shipments', 'shiptastic-for-woocommerce' ),
 				'desc'              => '%',
-				'id'                => 'woocommerce_gzd_shipments_packing_inner_percentage_buffer',
+				'id'                => 'woocommerce_shiptastic_packing_inner_percentage_buffer',
 				'default'           => '0.5',
 				'type'              => 'number',
 				'row_class'         => 'with-suffix',
 				'css'               => 'max-width: 60px',
 				'custom_attributes' => array(
-					'data-show_if_woocommerce_gzd_shipments_enable_auto_packing' => '',
-					'data-show_if_woocommerce_gzd_shipments_packing_inner_buffer_type' => 'percentage',
+					'data-show_if_woocommerce_shiptastic_enable_auto_packing' => '',
+					'data-show_if_woocommerce_shiptastic_packing_inner_buffer_type' => 'percentage',
 					'step' => 0.1,
 				),
 			),
@@ -137,7 +137,7 @@ class Packaging extends Tab {
 			),
 			array(
 				'type'  => 'packaging_reports',
-				'title' => _x( 'Packaging Report', 'shipments', 'woocommerce-germanized-shipments' ),
+				'title' => _x( 'Packaging Report', 'shipments', 'shiptastic-for-woocommerce' ),
 				'id'    => 'packaging_reports',
 			),
 			array(
@@ -184,12 +184,12 @@ class Packaging extends Tab {
 			),
 
 			array(
-				'title'    => _x( 'Default packaging', 'shipments', 'woocommerce-germanized-shipments' ),
-				'desc_tip' => _x( 'Choose a packaging which serves as fallback or default in case no suitable packaging could be matched for a certain shipment.', 'shipments', 'woocommerce-germanized-shipments' ),
-				'id'       => 'woocommerce_gzd_shipments_default_packaging',
+				'title'    => _x( 'Default packaging', 'shipments', 'shiptastic-for-woocommerce' ),
+				'desc_tip' => _x( 'Choose a packaging which serves as fallback or default in case no suitable packaging could be matched for a certain shipment.', 'shipments', 'shiptastic-for-woocommerce' ),
+				'id'       => 'woocommerce_shiptastic_default_packaging',
 				'default'  => '',
 				'type'     => 'select',
-				'options'  => wc_gzd_get_packaging_select(),
+				'options'  => wc_stc_get_packaging_select(),
 				'class'    => 'wc-enhanced-select',
 			),
 
@@ -208,12 +208,12 @@ class Packaging extends Tab {
 			$pointers = array(
 				'pointers' => array(
 					'packaging-edit' => array(
-						'target'       => 'tbody.packaging_list .wc-gzd-shipment-action-button:last',
+						'target'       => 'tbody.packaging_list .wc-stc-shipment-action-button:last',
 						'next'         => 'packaging-add',
 						'next_url'     => '',
 						'next_trigger' => array(),
 						'options'      => array(
-							'content'  => '<h3>' . esc_html_x( 'Edit packaging', 'shipments', 'woocommerce-germanized-shipments' ) . '</h3><p>' . esc_html_x( 'Configure additional packaging settings such as shipping class restrictions or inner dimensions.', 'shipments', 'woocommerce-germanized-shipments' ) . '</p>',
+							'content'  => '<h3>' . esc_html_x( 'Edit packaging', 'shipments', 'shiptastic-for-woocommerce' ) . '</h3><p>' . esc_html_x( 'Configure additional packaging settings such as shipping class restrictions or inner dimensions.', 'shipments', 'shiptastic-for-woocommerce' ) . '</p>',
 							'position' => array(
 								'edge'  => 'right',
 								'align' => 'left',
@@ -226,7 +226,7 @@ class Packaging extends Tab {
 						'next_url'     => Tutorial::get_tutorial_url( 'packaging', 'reports' ),
 						'next_trigger' => array(),
 						'options'      => array(
-							'content'  => '<h3>' . esc_html_x( 'Add packaging', 'shipments', 'woocommerce-germanized-shipments' ) . '</h3><p>' . esc_html_x( 'Add all your available packaging options to make sure the packing algorithm knows about it.', 'shipments', 'woocommerce-germanized-shipments' ) . '</p>',
+							'content'  => '<h3>' . esc_html_x( 'Add packaging', 'shipments', 'shiptastic-for-woocommerce' ) . '</h3><p>' . esc_html_x( 'Add all your available packaging options to make sure the packing algorithm knows about it.', 'shipments', 'shiptastic-for-woocommerce' ) . '</p>',
 							'position' => array(
 								'edge'  => 'left',
 								'align' => 'left',
@@ -239,12 +239,12 @@ class Packaging extends Tab {
 			$pointers = array(
 				'pointers' => array(
 					'create_report' => array(
-						'target'       => '.wc-gzd-shipments-create-packaging-report button',
+						'target'       => '.wc-shiptastic-create-packaging-report button',
 						'next'         => '',
 						'next_url'     => Tutorial::get_tutorial_url( 'packaging', 'packing' ),
 						'next_trigger' => array(),
 						'options'      => array(
-							'content'  => '<h3>' . esc_html_x( 'Create packaging reports', 'shipments', 'woocommerce-germanized-shipments' ) . '</h3><p>' . esc_html_x( 'You may create yearly packaging reports, e.g. for recycling purposes.', 'shipments', 'woocommerce-germanized-shipments' ) . '</p>',
+							'content'  => '<h3>' . esc_html_x( 'Create packaging reports', 'shipments', 'shiptastic-for-woocommerce' ) . '</h3><p>' . esc_html_x( 'You may create yearly packaging reports, e.g. for recycling purposes.', 'shipments', 'shiptastic-for-woocommerce' ) . '</p>',
 							'position' => array(
 								'edge'  => 'left',
 								'align' => 'left',
@@ -259,12 +259,12 @@ class Packaging extends Tab {
 			$pointers = array(
 				'pointers' => array(
 					'auto' => array(
-						'target'       => '#woocommerce_gzd_shipments_enable_auto_packing-toggle',
+						'target'       => '#woocommerce_shiptastic_enable_auto_packing-toggle',
 						'next'         => '',
 						'next_url'     => Tutorial::get_last_tutorial_url(),
 						'next_trigger' => array(),
 						'options'      => array(
-							'content'  => '<h3>' . esc_html_x( 'Automated packing', 'shipments', 'woocommerce-germanized-shipments' ) . '</h3><p>' . esc_html_x( 'The packing algorithm will determine which packaging option to use and may split an order into multiple shipments automatically.', 'shipments', 'woocommerce-germanized-shipments' ) . '</p>',
+							'content'  => '<h3>' . esc_html_x( 'Automated packing', 'shipments', 'shiptastic-for-woocommerce' ) . '</h3><p>' . esc_html_x( 'The packing algorithm will determine which packaging option to use and may split an order into multiple shipments automatically.', 'shipments', 'shiptastic-for-woocommerce' ) . '</p>',
 							'position' => array(
 								'edge'  => 'left',
 								'align' => 'left',

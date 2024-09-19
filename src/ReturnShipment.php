@@ -3,10 +3,10 @@
  * Return shipment. Counterparts to simple shipments. Return
  * shipments serve to handle retoure/return shipments from customers to the shop owner.
  *
- * @package Vendidero/Germanized/Shipments
+ * @package Vendidero/Shiptastic
  * @version 1.0.0
  */
-namespace Vendidero\Germanized\Shipments;
+namespace Vendidero\Shiptastic;
 
 use Exception;
 use WC_Order;
@@ -83,10 +83,9 @@ class ReturnShipment extends Shipment {
 				 * @param integer        $shipment_id The return shipment id.
 				 * @param ReturnShipment $shipment The return shipment object.
 				 *
-				 * @since 3.1.0
-				 * @package Vendidero/Germanized/Shipments
+				 * @package Vendidero/Shiptastic
 				 */
-				do_action( 'woocommerce_gzd_return_shipment_customer_confirmed', $this->get_id(), $this );
+				do_action( 'woocommerce_shiptastic_return_shipment_customer_confirmed', $this->get_id(), $this );
 
 				return true;
 			} else {
@@ -157,7 +156,7 @@ class ReturnShipment extends Shipment {
 	public function get_order_shipment() {
 		if ( is_null( $this->order_shipment ) ) {
 			$order                = $this->get_order();
-			$this->order_shipment = ( $order ? wc_gzd_get_shipment_order( $order ) : false );
+			$this->order_shipment = ( $order ? wc_stc_get_shipment_order( $order ) : false );
 		}
 
 		return $this->order_shipment;
@@ -222,13 +221,12 @@ class ReturnShipment extends Shipment {
 				 * The dynamic portion of this hook, `$this->get_hook_prefix()` is used to construct a
 				 * unique hook for a shipment type. `$prop` refers to the actual address property e.g. first_name.
 				 *
-				 * Example hook name: woocommerce_gzd_return_shipment_get_sender_address_first_name
+				 * Example hook name: woocommerce_shiptastic_return_shipment_get_sender_address_first_name
 				 *
 				 * @param string                                   $value The address property value.
 				 * @param Shipment $this The shipment object.
 				 *
-				 * @since 3.0.0
-				 * @package Vendidero/Germanized/Shipments
+				 * @package Vendidero/Shiptastic
 				 */
 				$value = apply_filters( "{$this->get_hook_prefix()}sender_address_{$prop}", $value, $this );
 			}
@@ -256,10 +254,10 @@ class ReturnShipment extends Shipment {
 	public function sync( $args = array() ) {
 		try {
 			if ( ! $order_shipment = $this->get_order_shipment() ) {
-				throw new Exception( _x( 'Invalid shipment order', 'shipments', 'woocommerce-germanized-shipments' ) );
+				throw new Exception( esc_html_x( 'Invalid shipment order', 'shipments', 'shiptastic-for-woocommerce' ) );
 			}
 
-			$return_address = wc_gzd_get_shipment_return_address( $order_shipment );
+			$return_address = wc_stc_get_shipment_return_address( $order_shipment );
 			$order          = $order_shipment->get_order();
 
 			/**
@@ -285,7 +283,7 @@ class ReturnShipment extends Shipment {
 				array(
 					'order_id'          => $order->get_id(),
 					'country'           => $return_address['country'],
-					'shipping_method'   => wc_gzd_get_shipment_order_shipping_method_id( $order ),
+					'shipping_method'   => wc_stc_get_shipment_order_shipping_method_id( $order ),
 					'shipping_provider' => ( ! empty( $provider ) ) ? $provider : $default_provider,
 					'address'           => $return_address,
 					'sender_address'    => $sender_address_data,
@@ -303,10 +301,9 @@ class ReturnShipment extends Shipment {
 			 * @param ReturnShipment $shipment The shipment object.
 			 * @param Order          $order_shipment The shipment order object.
 			 *
-			 * @since 3.0.0
-			 * @package Vendidero/Germanized/Shipments
+			 * @package Vendidero/Shiptastic
 			 */
-			$args = apply_filters( 'woocommerce_gzd_return_shipment_sync_props', $args, $this, $order_shipment );
+			$args = apply_filters( 'woocommerce_shiptastic_return_shipment_sync_props', $args, $this, $order_shipment );
 
 			$this->set_props( $args );
 
@@ -318,10 +315,9 @@ class ReturnShipment extends Shipment {
 			 * @param Order          $order_shipment The shipment order object.
 			 * @param array          $args Array containing properties in key => value pairs to be updated.
 			 *
-			 * @since 3.0.0
-			 * @package Vendidero/Germanized/Shipments
+			 * @package Vendidero/Shiptastic
 			 */
-			do_action( 'woocommerce_gzd_return_shipment_synced', $this, $order_shipment, $args );
+			do_action( 'woocommerce_shiptastic_return_shipment_synced', $this, $order_shipment, $args );
 
 		} catch ( Exception $e ) {
 			return false;
@@ -341,7 +337,7 @@ class ReturnShipment extends Shipment {
 	public function sync_items( $args = array() ) {
 		try {
 			if ( ! $order_shipment = $this->get_order_shipment() ) {
-				throw new Exception( _x( 'Invalid shipment order', 'shipments', 'woocommerce-germanized-shipments' ) );
+				throw new Exception( esc_html_x( 'Invalid shipment order', 'shipments', 'shiptastic-for-woocommerce' ) );
 			}
 
 			$order = $order_shipment->get_order();
@@ -407,7 +403,7 @@ class ReturnShipment extends Shipment {
 					}
 
 					if ( ! $shipment_item = $this->get_item_by_order_item_id( $order_item_id ) ) {
-						$shipment_item = wc_gzd_create_return_shipment_item( $this, $item, $sync_data );
+						$shipment_item = wc_stc_create_return_shipment_item( $this, $item, $sync_data );
 
 						$this->add_item( $shipment_item );
 					} else {
@@ -425,7 +421,7 @@ class ReturnShipment extends Shipment {
 							);
 
 							if ( ! $shipment_child_item = $this->get_item_by_order_item_id( $child_order_item_id ) ) {
-								$shipment_child_item = wc_gzd_create_return_shipment_item( $this, $child_item, $sync_child_data );
+								$shipment_child_item = wc_stc_create_return_shipment_item( $this, $child_item, $sync_child_data );
 
 								$this->add_item( $shipment_child_item );
 							} else {
@@ -453,10 +449,9 @@ class ReturnShipment extends Shipment {
 			 * @param Order          $order_shipment The shipment order object.
 			 * @param array          $args Array containing additional data e.g. items.
 			 *
-			 * @since 3.0.0
-			 * @package Vendidero/Germanized/Shipments
+			 * @package Vendidero/Shiptastic
 			 */
-			do_action( 'woocommerce_gzd_return_shipment_items_synced', $this, $order_shipment, $args );
+			do_action( 'woocommerce_shiptastic_return_shipment_items_synced', $this, $order_shipment, $args );
 
 		} catch ( Exception $e ) {
 			return false;
@@ -493,13 +488,12 @@ class ReturnShipment extends Shipment {
 		 * The dynamic portion of this hook, `$this->get_hook_prefix()` is used to construct a
 		 * unique hook for a shipment type.
 		 *
-		 * Example hook name: woocommerce_gzd_shipment_get_edit_url
+		 * Example hook name: woocommerce_shiptastic_shipment_get_edit_url
 		 *
 		 * @param string   $url  The URL.
 		 * @param Shipment $this The shipment object.
 		 *
-		 * @since 3.0.0
-		 * @package Vendidero/Germanized/Shipments
+		 * @package Vendidero/Shiptastic
 		 */
 		return apply_filters( "{$this->get_hook_prefix()}edit_url", get_admin_url( null, 'post.php?post=' . $this->get_order_id() . '&action=edit&shipment_id=' . $this->get_id() ), $this );
 	}

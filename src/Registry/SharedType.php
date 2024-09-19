@@ -1,10 +1,9 @@
 <?php
-namespace Vendidero\Germanized\Shipments\Registry;
+namespace Vendidero\Shiptastic\Registry;
 
 /**
  * A definition for the SharedType dependency type.
  *
- * @since 2.5.0
  */
 class SharedType extends AbstractDependencyType {
 

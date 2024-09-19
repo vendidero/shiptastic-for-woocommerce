@@ -1,9 +1,9 @@
 <?php
 
-namespace Vendidero\Germanized\Shipments\Caches;
+namespace Vendidero\Shiptastic\Caches;
 
 use Automattic\WooCommerce\Caching\ObjectCache;
-use Vendidero\Germanized\Shipments\Labels\Label;
+use Vendidero\Shiptastic\Labels\Label;
 
 /**
  * A class to cache order objects.
@@ -16,7 +16,7 @@ class ShipmentLabelCache extends ObjectCache {
 	 * @return string
 	 */
 	public function get_object_type(): string {
-		return 'shipment-labels';
+		return 'stc-shipment-labels';
 	}
 
 	/**

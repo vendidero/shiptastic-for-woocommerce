@@ -2,18 +2,18 @@
 /**
  * Regular shipment
  *
- * @package Vendidero/Germanized/Shipments
+ * @package Vendidero/Shiptastic
  * @version 1.0.0
  */
-namespace Vendidero\Germanized\Shipments;
+namespace Vendidero\Shiptastic;
 
 use DVDoug\BoxPacker\ItemList;
-use Vendidero\Germanized\Shipments\Caches\Helper;
-use Vendidero\Germanized\Shipments\Interfaces\ShipmentLabel;
-use Vendidero\Germanized\Shipments\Interfaces\ShipmentReturnLabel;
-use Vendidero\Germanized\Shipments\Labels\Label;
-use Vendidero\Germanized\Shipments\ShippingMethod\ProviderMethod;
-use Vendidero\Germanized\Shipments\ShippingProvider\PickupLocation;
+use Vendidero\Shiptastic\Caches\Helper;
+use Vendidero\Shiptastic\Interfaces\ShipmentLabel;
+use Vendidero\Shiptastic\Interfaces\ShipmentReturnLabel;
+use Vendidero\Shiptastic\Labels\Label;
+use Vendidero\Shiptastic\ShippingMethod\ProviderMethod;
+use Vendidero\Shiptastic\ShippingProvider\PickupLocation;
 use WC_Data;
 use WC_Data_Store;
 use Exception;
@@ -39,7 +39,6 @@ abstract class Shipment extends WC_Data {
 	/**
 	 * This is the name of this object type.
 	 *
-	 * @since 1.0.0
 	 * @var string
 	 */
 	protected $object_type = 'shipment';
@@ -47,7 +46,6 @@ abstract class Shipment extends WC_Data {
 	/**
 	 * Contains a reference to the data store for this class.
 	 *
-	 * @since 1.0.0
 	 * @var object
 	 */
 	protected $data_store_name = 'shipment';
@@ -56,7 +54,6 @@ abstract class Shipment extends WC_Data {
 	 * Stores meta in cache for future reads.
 	 * A group must be set to to enable caching.
 	 *
-	 * @since 1.0.0
 	 * @var string
 	 */
 	protected $cache_group = 'shipment';
@@ -167,7 +164,7 @@ abstract class Shipment extends WC_Data {
 
 	/**
 	 * Get the shipment if ID is passed, otherwise the shipment is new and empty.
-	 * This class should NOT be instantiated, but the `wc_gzd_get_shipment` function should be used.
+	 * This class should NOT be instantiated, but the `wc_stc_get_shipment` function should be used.
 	 *
 	 * @param int|object|Shipment $shipment Shipment to read.
 	 */
@@ -210,7 +207,6 @@ abstract class Shipment extends WC_Data {
 	 * Merge changes with data and clear.
 	 * Overrides WC_Data::apply_changes.
 	 *
-	 * @since 3.2.0
 	 */
 	public function apply_changes() {
 		if ( function_exists( 'array_replace' ) ) {
@@ -265,7 +261,7 @@ abstract class Shipment extends WC_Data {
 	protected function get_general_hook_prefix() {
 		$shipment_prefix = 'simple' === $this->get_type() ? '' : $this->get_type() . '_';
 
-		return "woocommerce_gzd_{$shipment_prefix}shipment_";
+		return "woocommerce_shiptastic_{$shipment_prefix}shipment_";
 	}
 
 	public function get_shipping_zone() {
@@ -329,7 +325,7 @@ abstract class Shipment extends WC_Data {
 	}
 
 	/**
-	 * Return the shipment statuses without gzd- internal prefix.
+	 * Return the shipment statuses without wc-stc- internal prefix.
 	 *
 	 * @param  string $context View or edit context.
 	 * @return string
@@ -345,12 +341,11 @@ abstract class Shipment extends WC_Data {
 			 * The dynamic portion of this hook, `$this->get_hook_prefix()` is used to construct a
 			 * unique hook for a shipment type.
 			 *
-			 * Example hook name: woocommerce_gzd_shipment_get_default_shipment_status
+			 * Example hook name: woocommerce_shiptastic_shipment_get_default_shipment_status
 			 *
 			 * @param string $status Default fallback status.
 			 *
-			 * @since 3.0.0
-			 * @package Vendidero/Germanized/Shipments
+			 * @package Vendidero/Shiptastic
 			 */
 			$status = apply_filters( "{$this->get_hook_prefix()}}default_shipment_status", 'draft' ); // phpcs:ignore WordPress.NamingConventions.ValidHookName.UseUnderscores
 		}
@@ -372,10 +367,9 @@ abstract class Shipment extends WC_Data {
 		 * @param Shipment $this The shipment object.
 		 * @param string                                   $status The status to be checked against.
 		 *
-		 * @since 3.0.0
-		 * @package Vendidero/Germanized/Shipments
+		 * @package Vendidero/Shiptastic
 		 */
-		return apply_filters( 'woocommerce_gzd_shipment_has_status', ( is_array( $status ) && in_array( $this->get_status(), $status, true ) ) || $this->get_status() === $status, $this, $status );
+		return apply_filters( 'woocommerce_shiptastic_shipment_has_status', ( is_array( $status ) && in_array( $this->get_status(), $status, true ) ) || $this->get_status() === $status, $this, $status );
 	}
 
 	/**
@@ -412,7 +406,7 @@ abstract class Shipment extends WC_Data {
 		$method_id = $this->get_shipping_method();
 
 		if ( is_null( $this->shipping_method_instance ) && ! empty( $method_id ) ) {
-			$this->shipping_method_instance = wc_gzd_get_shipping_provider_method( $this->get_shipping_method() );
+			$this->shipping_method_instance = wc_stc_get_shipping_provider_method( $this->get_shipping_method() );
 		}
 
 		return is_null( $this->shipping_method_instance ) ? false : $this->shipping_method_instance;
@@ -438,7 +432,7 @@ abstract class Shipment extends WC_Data {
 			}
 
 			if ( ! $this->label_configuration_set && ( $provider = $this->get_shipping_provider_instance() ) ) {
-				if ( is_a( $provider, 'Vendidero\Germanized\Shipments\Interfaces\LabelConfigurationSet' ) ) {
+				if ( is_a( $provider, 'Vendidero\Shiptastic\Interfaces\LabelConfigurationSet' ) ) {
 					if ( $provider_set = $provider->get_configuration_set( $this ) ) {
 						$this->label_configuration_set = $provider_set;
 					}
@@ -479,7 +473,7 @@ abstract class Shipment extends WC_Data {
 
 			if ( $packaging = $this->get_packaging() ) {
 				if ( ! empty( $packaging->get_weight() ) ) {
-					$weight = wc_get_weight( $packaging->get_weight(), $this->get_weight_unit(), wc_gzd_get_packaging_weight_unit() );
+					$weight = wc_get_weight( $packaging->get_weight(), $this->get_weight_unit(), wc_stc_get_packaging_weight_unit() );
 				}
 			}
 		}
@@ -573,7 +567,7 @@ abstract class Shipment extends WC_Data {
 		// Older versions did not sync dimensions with packaging dimensions
 		if ( '' === $this->get_version() ) {
 			if ( $packaging = $this->get_packaging() ) {
-				$length = wc_get_dimension( $packaging->get_length(), $this->get_dimension_unit(), wc_gzd_get_packaging_dimension_unit() );
+				$length = wc_get_dimension( $packaging->get_length(), $this->get_dimension_unit(), wc_stc_get_packaging_dimension_unit() );
 			}
 		}
 
@@ -605,7 +599,7 @@ abstract class Shipment extends WC_Data {
 
 		if ( '' === $this->get_version() ) {
 			if ( $packaging = $this->get_packaging() ) {
-				$width = wc_get_dimension( $packaging->get_width(), $this->get_dimension_unit(), wc_gzd_get_packaging_dimension_unit() );
+				$width = wc_get_dimension( $packaging->get_width(), $this->get_dimension_unit(), wc_stc_get_packaging_dimension_unit() );
 			}
 		}
 
@@ -633,7 +627,7 @@ abstract class Shipment extends WC_Data {
 
 		if ( '' === $this->get_version() ) {
 			if ( $packaging = $this->get_packaging() ) {
-				$height = wc_get_dimension( $packaging->get_height(), $this->get_dimension_unit(), wc_gzd_get_packaging_dimension_unit() );
+				$height = wc_get_dimension( $packaging->get_height(), $this->get_dimension_unit(), wc_stc_get_packaging_dimension_unit() );
 			}
 		}
 
@@ -940,7 +934,7 @@ abstract class Shipment extends WC_Data {
 
 			if ( $this->has_pickup_location() ) {
 				if ( $provider = $this->get_shipping_provider_instance() ) {
-					if ( is_a( $provider, 'Vendidero\Germanized\Shipments\Interfaces\ShippingProviderAuto' ) ) {
+					if ( is_a( $provider, 'Vendidero\Shiptastic\Interfaces\ShippingProviderAuto' ) ) {
 						$this->pickup_location = $provider->get_pickup_location_by_code( $this->get_pickup_location_code(), $this->get_address() );
 					}
 				}
@@ -968,13 +962,12 @@ abstract class Shipment extends WC_Data {
 		 * The dynamic portion of this hook, `$this->get_hook_prefix()` is used to construct a
 		 * unique hook for a shipment type.
 		 *
-		 * Example hook name: woocommerce_gzd_shipment_get_tracking_url
+		 * Example hook name: woocommerce_shiptastic_shipment_get_tracking_url
 		 *
 		 * @param string   $tracking_url The tracking URL.
 		 * @param Shipment $shipment The shipment object.
 		 *
-		 * @since 3.0.0
-		 * @package Vendidero/Germanized/Shipments
+		 * @package Vendidero/Shiptastic
 		 */
 		return apply_filters( "{$this->get_hook_prefix()}tracking_url", $tracking_url, $this );
 	}
@@ -997,13 +990,12 @@ abstract class Shipment extends WC_Data {
 		 * The dynamic portion of this hook, `$this->get_hook_prefix()` is used to construct a
 		 * unique hook for a shipment type.
 		 *
-		 * Example hook name: woocommerce_gzd_shipment_get_tracking_instruction
+		 * Example hook name: woocommerce_shiptastic_shipment_get_tracking_instruction
 		 *
 		 * @param string                                   $instruction The tracking instruction.
 		 * @param Shipment $this The shipment object.
 		 *
-		 * @since 3.0.0
-		 * @package Vendidero/Germanized/Shipments
+		 * @package Vendidero/Shiptastic
 		 */
 		return apply_filters( "{$this->get_hook_prefix()}tracking_instruction", $instruction, $this );
 	}
@@ -1041,7 +1033,7 @@ abstract class Shipment extends WC_Data {
 		$provider = $this->get_shipping_provider();
 
 		if ( ! empty( $provider ) ) {
-			return wc_gzd_get_shipping_provider( $provider );
+			return wc_stc_get_shipping_provider( $provider );
 		}
 
 		return false;
@@ -1074,13 +1066,12 @@ abstract class Shipment extends WC_Data {
 		 * The dynamic portion of this hook, `$this->get_hook_prefix()` is used to construct a
 		 * unique hook for a shipment type.
 		 *
-		 * Example hook name: woocommerce_gzd_shipment_get_address_map_url_parts
+		 * Example hook name: woocommerce_shiptastic_shipment_get_address_map_url_parts
 		 *
 		 * @param string[] $address The address parts used.
 		 * @param Shipment $this The shipment object.
 		 *
-		 * @since 3.0.6
-		 * @package Vendidero/Germanized/Shipments
+		 * @package Vendidero/Shiptastic
 		 */
 		$address = apply_filters( "{$this->get_hook_prefix()}address_map_url_parts", $address, $this );
 		$address = array_filter( $address );
@@ -1091,13 +1082,12 @@ abstract class Shipment extends WC_Data {
 		 * The dynamic portion of this hook, `$this->get_hook_prefix()` is used to construct a
 		 * unique hook for a shipment type.
 		 *
-		 * Example hook name: woocommerce_gzd_shipment_get_address_map_url
+		 * Example hook name: woocommerce_shiptastic_shipment_get_address_map_url
 		 *
 		 * @param string   $url The address url.
 		 * @param Shipment $this The shipment object.
 		 *
-		 * @since 3.0.6
-		 * @package Vendidero/Germanized/Shipments
+		 * @package Vendidero/Shiptastic
 		 */
 		return apply_filters( "{$this->get_hook_prefix()}address_map_url", 'https://maps.google.com/maps?&q=' . rawurlencode( implode( ', ', $address ) ) . '&z=16', $this );
 	}
@@ -1150,7 +1140,7 @@ abstract class Shipment extends WC_Data {
 	 * @return string
 	 */
 	public function get_address_street_number( $type = 'address_1' ) {
-		$split = wc_gzd_split_shipment_street( $this->{"get_$type"}() );
+		$split = wc_stc_split_shipment_street( $this->{"get_$type"}() );
 
 		/**
 		 * Filter to adjust the shipment address street number.
@@ -1158,10 +1148,9 @@ abstract class Shipment extends WC_Data {
 		 * @param string   $number The shipment address street number.
 		 * @param Shipment $shipment The shipment object.
 		 *
-		 * @since 3.0.6
-		 * @package Vendidero/Germanized/Shipments
+		 * @package Vendidero/Shiptastic
 		 */
-		return apply_filters( 'woocommerce_gzd_get_shipment_address_street_number', $split['number'], $this );
+		return apply_filters( 'woocommerce_shiptastic_get_shipment_address_street_number', $split['number'], $this );
 	}
 
 	/**
@@ -1172,7 +1161,7 @@ abstract class Shipment extends WC_Data {
 	 * @return string
 	 */
 	public function get_address_street( $type = 'address_1' ) {
-		$split = wc_gzd_split_shipment_street( $this->{"get_$type"}() );
+		$split = wc_stc_split_shipment_street( $this->{"get_$type"}() );
 
 		/**
 		 * Filter to adjust the shipment address street.
@@ -1180,14 +1169,13 @@ abstract class Shipment extends WC_Data {
 		 * @param string   $street The shipment address street without street number.
 		 * @param Shipment $shipment The shipment object.
 		 *
-		 * @since 3.0.6
-		 * @package Vendidero/Germanized/Shipments
+		 * @package Vendidero/Shiptastic
 		 */
-		return apply_filters( 'woocommerce_gzd_get_shipment_address_street', $split['street'], $this );
+		return apply_filters( 'woocommerce_shiptastic_get_shipment_address_street', $split['street'], $this );
 	}
 
 	public function get_address_street_addition( $type = 'address_1' ) {
-		$split = wc_gzd_split_shipment_street( $this->{"get_$type"}() );
+		$split = wc_stc_split_shipment_street( $this->{"get_$type"}() );
 
 		/**
 		 * Filter to adjust the shipment address street addition.
@@ -1195,14 +1183,13 @@ abstract class Shipment extends WC_Data {
 		 * @param string   $addition The shipment address street addition e.g. EG14.
 		 * @param Shipment $shipment The shipment object.
 		 *
-		 * @since 3.0.6
-		 * @package Vendidero/Germanized/Shipments
+		 * @package Vendidero/Shiptastic
 		 */
-		return apply_filters( 'woocommerce_gzd_get_shipment_address_street_addition', $split['addition'], $this );
+		return apply_filters( 'woocommerce_shiptastic_get_shipment_address_street_addition', $split['addition'], $this );
 	}
 
 	public function get_address_street_addition_2( $type = 'address_1' ) {
-		$split = wc_gzd_split_shipment_street( $this->{"get_$type"}() );
+		$split = wc_stc_split_shipment_street( $this->{"get_$type"}() );
 
 		/**
 		 * Filter to adjust the shipment address street addition.
@@ -1210,10 +1197,9 @@ abstract class Shipment extends WC_Data {
 		 * @param string   $addition The shipment address street addition e.g. EG14.
 		 * @param Shipment $shipment The shipment object.
 		 *
-		 * @since 3.0.6
-		 * @package Vendidero/Germanized/Shipments
+		 * @package Vendidero/Shiptastic
 		 */
-		return apply_filters( 'woocommerce_gzd_get_shipment_address_street_addition_2', $split['addition_2'], $this );
+		return apply_filters( 'woocommerce_shiptastic_get_shipment_address_street_addition_2', $split['addition_2'], $this );
 	}
 
 	/**
@@ -1252,7 +1238,7 @@ abstract class Shipment extends WC_Data {
 	 * @return string
 	 */
 	public function get_formatted_full_name() {
-		return sprintf( _x( '%1$s %2$s', 'full name', 'woocommerce-germanized-shipments' ), $this->get_first_name(), $this->get_last_name() );
+		return sprintf( _x( '%1$s %2$s', 'full name', 'shiptastic-for-woocommerce' ), $this->get_first_name(), $this->get_last_name() );
 	}
 
 	/**
@@ -1290,7 +1276,7 @@ abstract class Shipment extends WC_Data {
 			return '';
 		}
 
-		return wc_gzd_get_formatted_state( $this->get_state(), $this->get_country() );
+		return wc_stc_get_formatted_state( $this->get_state(), $this->get_country() );
 	}
 
 	/**
@@ -1332,7 +1318,7 @@ abstract class Shipment extends WC_Data {
 				$value = $provider->$getter( $context );
 			}
 		} else {
-			$sender_address = wc_gzd_get_shipment_setting_address_fields();
+			$sender_address = wc_stc_get_shipment_setting_address_fields();
 
 			if ( array_key_exists( $prop, $sender_address ) ) {
 				$value = $sender_address[ $prop ];
@@ -1346,13 +1332,12 @@ abstract class Shipment extends WC_Data {
 			 * The dynamic portion of this hook, `$this->get_hook_prefix()` is used to construct a
 			 * unique hook for a shipment type. `$prop` refers to the actual address property e.g. first_name.
 			 *
-			 * Example hook name: woocommerce_gzd_shipment_get_sender_address_first_name
+			 * Example hook name: woocommerce_shiptastic_shipment_get_sender_address_first_name
 			 *
 			 * @param string   $value The address property value.
 			 * @param Shipment $this The shipment object.
 			 *
-			 * @since 3.0.0
-			 * @package Vendidero/Germanized/Shipments
+			 * @package Vendidero/Shiptastic
 			 */
 			$value = apply_filters( "{$this->get_hook_prefix()}sender_address_{$prop}", $value, $this );
 		}
@@ -1444,7 +1429,7 @@ abstract class Shipment extends WC_Data {
 	 * @return string
 	 */
 	public function get_sender_address_street_number( $type = 'address_1' ) {
-		$split = wc_gzd_split_shipment_street( $this->{"get_sender_$type"}() );
+		$split = wc_stc_split_shipment_street( $this->{"get_sender_$type"}() );
 
 		return $split['number'];
 	}
@@ -1457,7 +1442,7 @@ abstract class Shipment extends WC_Data {
 	 * @return string
 	 */
 	public function get_sender_address_street( $type = 'address_1' ) {
-		$split = wc_gzd_split_shipment_street( $this->{"get_sender_$type"}() );
+		$split = wc_stc_split_shipment_street( $this->{"get_sender_$type"}() );
 
 		return $split['street'];
 	}
@@ -1470,13 +1455,13 @@ abstract class Shipment extends WC_Data {
 	 * @return string
 	 */
 	public function get_sender_address_street_addition( $type = 'address_1' ) {
-		$split = wc_gzd_split_shipment_street( $this->{"get_sender_$type"}() );
+		$split = wc_stc_split_shipment_street( $this->{"get_sender_$type"}() );
 
 		return $split['addition'];
 	}
 
 	public function get_sender_address_street_addition_2( $type = 'address_1' ) {
-		$split = wc_gzd_split_shipment_street( $this->{"get_sender_$type"}() );
+		$split = wc_stc_split_shipment_street( $this->{"get_sender_$type"}() );
 
 		return $split['addition_2'];
 	}
@@ -1517,7 +1502,7 @@ abstract class Shipment extends WC_Data {
 	 * @return string
 	 */
 	public function get_formatted_sender_full_name() {
-		return sprintf( _x( '%1$s %2$s', 'full name', 'woocommerce-germanized-shipments' ), $this->get_sender_first_name(), $this->get_sender_last_name() );
+		return sprintf( _x( '%1$s %2$s', 'full name', 'shiptastic-for-woocommerce' ), $this->get_sender_first_name(), $this->get_sender_last_name() );
 	}
 
 	/**
@@ -1575,7 +1560,7 @@ abstract class Shipment extends WC_Data {
 			return '';
 		}
 
-		return wc_gzd_get_formatted_state( $this->get_sender_state(), $this->get_sender_country() );
+		return wc_stc_get_formatted_state( $this->get_sender_state(), $this->get_sender_country() );
 	}
 
 	/**
@@ -1625,10 +1610,9 @@ abstract class Shipment extends WC_Data {
 		 * @param array                                    $types Array containing the types to be checked against, or empty.
 		 * @param Shipment $this The shipment object.
 		 *
-		 * @since 3.0.0
-		 * @package Vendidero/Germanized/Shipments
+		 * @package Vendidero/Shiptastic
 		 */
-		return apply_filters( 'woocommerce_gzd_shipment_send_to_external_pickup', $has_pickup, $types, $this );
+		return apply_filters( 'woocommerce_shiptastic_shipment_send_to_external_pickup', $has_pickup, $types, $this );
 	}
 
 	/**
@@ -1652,13 +1636,12 @@ abstract class Shipment extends WC_Data {
 				 * The dynamic portion of this hook, `$this->get_hook_prefix()` is used to construct a
 				 * unique hook for a shipment type. `$prop` refers to the actual address property e.g. first_name.
 				 *
-				 * Example hook name: woocommerce_gzd_shipment_get_address_first_name
+				 * Example hook name: woocommerce_shiptastic_shipment_get_address_first_name
 				 *
 				 * @param string                                   $value The address property value.
 				 * @param Shipment $this The shipment object.
 				 *
-				 * @since 3.0.0
-				 * @package Vendidero/Germanized/Shipments
+				 * @package Vendidero/Shiptastic
 				 */
 				$value = apply_filters( "{$this->get_hook_prefix()}address_{$prop}", $value, $this );
 			}
@@ -1694,11 +1677,11 @@ abstract class Shipment extends WC_Data {
 	}
 
 	public function get_formatted_dimensions() {
-		return wc_gzd_format_shipment_dimensions( $this->get_dimensions(), $this->get_dimension_unit() );
+		return wc_stc_format_shipment_dimensions( $this->get_dimensions(), $this->get_dimension_unit() );
 	}
 
 	public function get_formatted_package_dimensions() {
-		return wc_gzd_format_shipment_dimensions( $this->get_package_dimensions(), $this->get_dimension_unit() );
+		return wc_stc_format_shipment_dimensions( $this->get_package_dimensions(), $this->get_dimension_unit() );
 	}
 
 	/**
@@ -1713,10 +1696,9 @@ abstract class Shipment extends WC_Data {
 		 * @param boolean                                  $is_editable Whether the Shipment is editable or not.
 		 * @param Shipment $this The shipment object.
 		 *
-		 * @since 3.0.0
-		 * @package Vendidero/Germanized/Shipments
+		 * @package Vendidero/Shiptastic
 		 */
-		return apply_filters( 'woocommerce_gzd_shipment_is_editable', $this->has_status( wc_gzd_get_shipment_editable_statuses() ), $this );
+		return apply_filters( 'woocommerce_shiptastic_shipment_is_editable', $this->has_status( wc_stc_get_shipment_editable_statuses() ), $this );
 	}
 
 	/**
@@ -1731,13 +1713,12 @@ abstract class Shipment extends WC_Data {
 		 * The dynamic portion of this hook, `$this->get_hook_prefix()` is used to construct a
 		 * unique hook for a shipment type.
 		 *
-		 * Example hook name: woocommerce_gzd_shipment_get_shipment_number
+		 * Example hook name: woocommerce_shiptastic_shipment_get_shipment_number
 		 *
 		 * @param string                                   $number The shipment number.
 		 * @param Shipment $this The shipment object.
 		 *
-		 * @since 3.0.0
-		 * @package Vendidero/Germanized/Shipments
+		 * @package Vendidero/Shiptastic
 		 */
 		return (string) apply_filters( "{$this->get_hook_prefix()}shipment_number", $this->get_id(), $this );
 	}
@@ -1751,13 +1732,12 @@ abstract class Shipment extends WC_Data {
 	/**
 	 * Set shipment status.
 	 *
-	 * @param string  $new_status Status to change the shipment to. No internal gzd- prefix is required.
+	 * @param string  $new_status Status to change the shipment to. No internal wc-stc- prefix is required.
 	 * @param boolean $manual_update Whether it is a manual status update or not.
 	 * @return array  details of change
 	 */
 	public function set_status( $new_status, $manual_update = false ) {
 		$old_status = $this->get_status();
-		$new_status = 'gzd-' === substr( $new_status, 0, 4 ) ? substr( $new_status, 4 ) : $new_status;
 
 		$this->set_prop( 'status', $new_status );
 
@@ -1780,10 +1760,9 @@ abstract class Shipment extends WC_Data {
 				 * @param integer $shipment_id The shipment id.
 				 * @param string  $status The new shipment status.
 				 *
-				 * @since 3.0.0
-				 * @package Vendidero/Germanized/Shipments
+				 * @package Vendidero/Shiptastic
 				 */
-				do_action( 'woocommerce_gzd_shipment_edit_status', $this->get_id(), $result['to'] );
+				do_action( 'woocommerce_shiptastic_shipment_edit_status', $this->get_id(), $result['to'] );
 			}
 
 			$this->maybe_set_date_sent();
@@ -1793,7 +1772,7 @@ abstract class Shipment extends WC_Data {
 	}
 
 	public function is_shipped() {
-		$is_shipped = $this->has_status( wc_gzd_get_shipment_sent_statuses() );
+		$is_shipped = $this->has_status( wc_stc_get_shipment_sent_statuses() );
 
 		return apply_filters( $this->get_hook_prefix() . 'is_shipped', $is_shipped, $this );
 	}
@@ -1819,7 +1798,7 @@ abstract class Shipment extends WC_Data {
 	 *
 	 * @uses Shipment::set_status()
 	 *
-	 * @param string $new_status    Status to change the shipment to. No internal gzd- prefix is required.
+	 * @param string $new_status    Status to change the shipment to. No internal wc-stc- prefix is required.
 	 * @param bool   $manual        Is this a manual order status change?
 	 * @return bool
 	 */
@@ -2063,7 +2042,7 @@ abstract class Shipment extends WC_Data {
 	 * @param string $provider The shipping provider.
 	 */
 	public function set_shipping_provider( $provider ) {
-		$this->set_prop( 'shipping_provider', wc_gzd_get_shipping_provider_slug( $provider ) );
+		$this->set_prop( 'shipping_provider', wc_stc_get_shipping_provider_slug( $provider ) );
 	}
 
 	/**
@@ -2102,13 +2081,13 @@ abstract class Shipment extends WC_Data {
 
 	public function update_packaging() {
 		if ( $packaging = $this->get_packaging() ) {
-			$packaging_dimension = wc_gzd_get_packaging_dimension_unit();
+			$packaging_dimension = wc_stc_get_packaging_dimension_unit();
 
 			$props = array(
 				'width'            => wc_get_dimension( $packaging->get_width( 'edit' ), $this->get_dimension_unit(), $packaging_dimension ),
 				'length'           => wc_get_dimension( $packaging->get_length( 'edit' ), $this->get_dimension_unit(), $packaging_dimension ),
 				'height'           => wc_get_dimension( $packaging->get_height( 'edit' ), $this->get_dimension_unit(), $packaging_dimension ),
-				'packaging_weight' => wc_get_weight( $packaging->get_weight( 'edit' ), $this->get_weight_unit(), wc_gzd_get_packaging_weight_unit() ),
+				'packaging_weight' => wc_get_weight( $packaging->get_weight( 'edit' ), $this->get_weight_unit(), wc_stc_get_packaging_weight_unit() ),
 				'packaging_title'  => $packaging->get_title(),
 			);
 
@@ -2177,13 +2156,12 @@ abstract class Shipment extends WC_Data {
 		 * The dynamic portion of this hook, `$this->get_hook_prefix()` is used to construct a
 		 * unique hook for a shipment type.
 		 *
-		 * Example hook name: woocommerce_gzd_shipment_get_items
+		 * Example hook name: woocommerce_shiptastic_shipment_get_items
 		 *
 		 * @param string                                   $number The shipment number.
 		 * @param Shipment $this The shipment object.
 		 *
-		 * @since 3.0.0
-		 * @package Vendidero/Germanized/Shipments
+		 * @package Vendidero/Shiptastic
 		 */
 		return apply_filters( "{$this->get_hook_prefix()}items", $items, $this, $context );
 	}
@@ -2202,13 +2180,12 @@ abstract class Shipment extends WC_Data {
 		 * The dynamic portion of this hook, `$this->get_hook_prefix()` is used to construct a
 		 * unique hook for a shipment type.
 		 *
-		 * Example hook name: woocommerce_gzd_shipment_view_shipment_url
+		 * Example hook name: woocommerce_shiptastic_shipment_view_shipment_url
 		 *
 		 * @param string   $url The URL pointing to the view page.
 		 * @param Shipment $this The shipment object.
 		 *
-		 * @since 3.0.0
-		 * @package Vendidero/Germanized/Shipments
+		 * @package Vendidero/Shiptastic
 		 */
 		return apply_filters( "{$this->get_hook_prefix()}_view_shipment_url", wc_get_endpoint_url( 'view-shipment', $this->get_id(), wc_get_page_permalink( 'myaccount' ) ), $this );
 	}
@@ -2280,7 +2257,6 @@ abstract class Shipment extends WC_Data {
 	/**
 	 * Adds a shipment item to this shipment. The shipment item will not persist until save.
 	 *
-	 * @since 3.0.0
 	 * @param ShipmentItem $item Shipment item object.
 	 *
 	 * @return false|void
@@ -2338,13 +2314,12 @@ abstract class Shipment extends WC_Data {
 				 * @param Shipment $shipment The shipment object.
 				 * @param array    $status_transition The status transition data.
 				 *
-				 * @since 3.0.0
-				 * @package Vendidero/Germanized/Shipments
+				 * @package Vendidero/Shiptastic
 				 */
-				do_action( 'woocommerce_gzd_shipment_before_status_change', $this->get_id(), $this, $this->status_transition );
+				do_action( 'woocommerce_shiptastic_shipment_before_status_change', $this->get_id(), $this, $this->status_transition );
 
 				$status_to          = $status_transition['to'];
-				$status_hook_prefix = 'woocommerce_gzd_' . ( 'simple' === $this->get_type() ? '' : $this->get_type() . '_' ) . 'shipment_status';
+				$status_hook_prefix = 'woocommerce_shiptastic_' . ( 'simple' === $this->get_type() ? '' : $this->get_type() . '_' ) . 'shipment_status';
 
 				/**
 				 * Action that indicates shipment status change to a specific status.
@@ -2352,15 +2327,14 @@ abstract class Shipment extends WC_Data {
 				 * The dynamic portion of the hook name, `$status_hook_prefix` constructs a unique prefix
 				 * based on the shipment type. `$status_to` refers to the new shipment status.
 				 *
-				 * Example hook name: `woocommerce_gzd_return_shipment_status_processing`
+				 * Example hook name: `woocommerce_stc_return_shipment_status_processing`
 				 *
 				 * @param integer  $shipment_id The shipment id.
 				 * @param Shipment $shipment The shipment object.
 				 *
-				 * @see wc_gzd_get_shipment_statuses()
+				 * @see wc_stc_get_shipment_statuses()
 				 *
-				 * @since 3.0.0
-				 * @package Vendidero/Germanized/Shipments
+				 * @package Vendidero/Shiptastic
 				 */
 				do_action( "{$status_hook_prefix}_$status_to", $this->get_id(), $this );
 
@@ -2374,15 +2348,14 @@ abstract class Shipment extends WC_Data {
 					 * based on the shipment type. `$status_from` refers to the old shipment status.
 					 * `$status_to` refers to the new status.
 					 *
-					 * Example hook name: `woocommerce_gzd_return_shipment_status_processing_to_shipped`
+					 * Example hook name: `woocommerce_stc_return_shipment_status_processing_to_shipped`
 					 *
 					 * @param integer  $shipment_id The shipment id.
 					 * @param Shipment $shipment The shipment object.
 					 *
-					 * @see wc_gzd_get_shipment_statuses()
+					 * @see wc_stc_get_shipment_statuses()
 					 *
-					 * @since 3.0.0
-					 * @package Vendidero/Germanized/Shipments
+					 * @package Vendidero/Shiptastic
 					 */
 					do_action( "{$status_hook_prefix}_{$status_from}_to_{$status_to}", $this->get_id(), $this );
 
@@ -2394,12 +2367,11 @@ abstract class Shipment extends WC_Data {
 					 * @param string   $status_to The new shipment status.
 					 * @param Shipment $shipment The shipment object.
 					 *
-					 * @see wc_gzd_get_shipment_statuses()
+					 * @see wc_stc_get_shipment_statuses()
 					 *
-					 * @since 3.0.0
-					 * @package Vendidero/Germanized/Shipments
+					 * @package Vendidero/Shiptastic
 					 */
-					do_action( 'woocommerce_gzd_shipment_status_changed', $this->get_id(), $status_from, $status_to, $this );
+					do_action( 'woocommerce_shiptastic_shipment_status_changed', $this->get_id(), $status_from, $status_to, $this );
 				}
 			} catch ( Exception $e ) {
 				$logger = wc_get_logger();
@@ -2498,7 +2470,7 @@ abstract class Shipment extends WC_Data {
 
 	public function get_packaging() {
 		if ( is_null( $this->packaging ) && $this->get_packaging_id() > 0 ) {
-			if ( $packaging = wc_gzd_get_packaging( $this->get_packaging_id() ) ) {
+			if ( $packaging = wc_stc_get_packaging( $this->get_packaging_id() ) ) {
 				// Do only allow load packaging if it does really exist in DB.
 				if ( $packaging->get_id() > 0 ) {
 					$this->packaging = $packaging;
@@ -2526,7 +2498,7 @@ abstract class Shipment extends WC_Data {
 	 * @return Packaging[]
 	 */
 	public function get_selectable_packaging() {
-		$all       = wc_gzd_get_packaging_list( array( 'shipping_provider' => $this->get_shipping_provider() ) );
+		$all       = wc_stc_get_packaging_list( array( 'shipping_provider' => $this->get_shipping_provider() ) );
 		$available = $this->get_available_packaging();
 
 		$diff       = array_diff( $all, $available );
@@ -2542,8 +2514,8 @@ abstract class Shipment extends WC_Data {
 		if ( ! $default_packaging ) {
 			$setting = Package::get_setting( 'default_packaging' );
 
-			if ( ! empty( $setting ) && wc_gzd_get_packaging( $setting ) ) {
-				$default_packaging = wc_gzd_get_packaging( $setting );
+			if ( ! empty( $setting ) && wc_stc_get_packaging( $setting ) ) {
+				$default_packaging = wc_stc_get_packaging( $setting );
 			}
 		}
 
@@ -2608,10 +2580,9 @@ abstract class Shipment extends WC_Data {
 		 * @param integer[]                                $order_item_id The order item id(s).
 		 * @param Shipment $this The shipment object.
 		 *
-		 * @since 3.0.0
-		 * @package Vendidero/Germanized/Shipments
+		 * @package Vendidero/Shiptastic
 		 */
-		return apply_filters( 'woocommerce_gzd_shipment_contains_order_item', $contains, $item_id, $this );
+		return apply_filters( 'woocommerce_shiptastic_shipment_contains_order_item', $contains, $item_id, $this );
 	}
 
 	public function get_shippable_item_count() {
@@ -2673,13 +2644,12 @@ abstract class Shipment extends WC_Data {
 		 * unique hook for a shipment type. `$provider` is related to the current shipping provider
 		 * for the shipment (slug).
 		 *
-		 * Example hook name: `woocommerce_gzd_return_shipment_get_dhl_label`
+		 * Example hook name: `woocommerce_stc_return_shipment_get_dhl_label`
 		 *
 		 * @param boolean|ShipmentLabel $label The label instance.
 		 * @param Shipment              $shipment The current shipment instance.
 		 *
-		 * @since 3.0.6
-		 * @package Vendidero/Germanized/Shipments
+		 * @package Vendidero/Shiptastic
 		 */
 		return apply_filters( "{$this->get_hook_prefix()}{$prefix}label", $this->label, $this );
 	}
@@ -2703,12 +2673,11 @@ abstract class Shipment extends WC_Data {
 		 * unique hook for a shipment type. `$provider` is related to the current shipping provider
 		 * for the shipment (slug).
 		 *
-		 * Example hook name: `woocommerce_gzd_return_shipment_print_dhl_label_admin_fields`
+		 * Example hook name: `woocommerce_stc_return_shipment_print_dhl_label_admin_fields`
 		 *
 		 * @param Shipment $shipment The current shipment instance.
 		 *
-		 * @since 3.0.6
-		 * @package Vendidero/Germanized/Shipments
+		 * @package Vendidero/Shiptastic
 		 */
 		return apply_filters( "{$hook_prefix}label_settings_html", $html, $this );
 	}
@@ -2742,7 +2711,7 @@ abstract class Shipment extends WC_Data {
 			do_action( "{$hook_prefix}after_create_{$provider_name}label", $props, $this, $result );
 
 			if ( is_wp_error( $result ) ) {
-				$error = wc_gzd_get_shipment_error( $result );
+				$error = wc_stc_get_shipment_error( $result );
 
 				if ( ! $error->is_soft_error() ) {
 					return $error;
@@ -2756,18 +2725,17 @@ abstract class Shipment extends WC_Data {
 			 * unique hook for a shipment type. `$provider` is related to the current shipping provider
 			 * for the shipment (slug).
 			 *
-			 * Example hook name: `woocommerce_gzd_return_shipment_create_dhl_label`
+			 * Example hook name: `woocommerce_stc_return_shipment_create_dhl_label`
 			 *
 			 * @param array|false $props Array containing props extracted from post data (if created manually).
 			 * @param WP_Error    $error An WP_Error instance useful for returning errors while creating the label.
 			 * @param Shipment    $shipment The current shipment instance.
 			 *
-			 * @since 3.0.6
-			 * @package Vendidero/Germanized/Shipments
+			 * @package Vendidero/Shiptastic
 			 */
 			do_action( "{$hook_prefix}create_{$provider_name}label", $props, $error, $this );
 
-			if ( wc_gzd_shipment_wp_error_has_errors( $error ) && ! $error->is_soft_error() ) {
+			if ( wc_stc_shipment_wp_error_has_errors( $error ) && ! $error->is_soft_error() ) {
 				return $error;
 			}
 		}
@@ -2783,14 +2751,13 @@ abstract class Shipment extends WC_Data {
 			 * unique hook for a shipment type. `$provider` is related to the current shipping provider
 			 * for the shipment (slug).
 			 *
-			 * Example hook name: `woocommerce_gzd_return_shipment_created_dhl_label`
+			 * Example hook name: `woocommerce_stc_return_shipment_created_dhl_label`
 			 *
 			 * @param Shipment  $shipment The current shipment instance.
 			 * @param array     $props Array containing props extracted from post data (if created manually) and sanitized via `wc_clean`.
 			 * @param array     $raw_data Raw post data unsanitized.
 			 *
-			 * @since 3.1.2
-			 * @package Vendidero/Germanized/Shipments
+			 * @package Vendidero/Shiptastic
 			 */
 			do_action( "{$hook_prefix}created_{$provider_name}label", $this, $props );
 
@@ -2799,7 +2766,7 @@ abstract class Shipment extends WC_Data {
 			$this->save();
 		}
 
-		if ( wc_gzd_shipment_wp_error_has_errors( $error ) ) {
+		if ( wc_stc_shipment_wp_error_has_errors( $error ) ) {
 			return $error;
 		}
 
@@ -2873,14 +2840,13 @@ abstract class Shipment extends WC_Data {
 		 * unique hook for a shipment type. `$provider` is related to the current shipping provider
 		 * for the shipment (slug).
 		 *
-		 * Example hook name: `woocommerce_gzd_return_shipment_needs_dhl_label`
+		 * Example hook name: `woocommerce_stc_return_shipment_needs_dhl_label`
 		 *
 		 * @param boolean   $needs_label Whether or not the shipment needs a label.
 		 * @param boolean   $check_status Whether or not checking the shipment status is needed.
 		 * @param Shipment  $shipment The current shipment instance.
 		 *
-		 * @since 3.0.6
-		 * @package Vendidero/Germanized/Shipments
+		 * @package Vendidero/Shiptastic
 		 */
 		return apply_filters( "{$hook_prefix}needs_{$provider}label", $needs_label, $check_status, $this );
 	}
@@ -2893,9 +2859,9 @@ abstract class Shipment extends WC_Data {
 	public function has_label() {
 		$label = $this->get_label();
 
-		if ( $label && is_a( $label, '\Vendidero\Germanized\Shipments\Interfaces\ShipmentLabel' ) ) {
+		if ( $label && is_a( $label, '\Vendidero\Shiptastic\Interfaces\ShipmentLabel' ) ) {
 			if ( 'return' === $label->get_type() ) {
-				if ( ! is_a( $label, '\Vendidero\Germanized\Shipments\Interfaces\ShipmentReturnLabel' ) ) {
+				if ( ! is_a( $label, '\Vendidero\Shiptastic\Interfaces\ShipmentReturnLabel' ) ) {
 					return false;
 				}
 			}
@@ -2921,13 +2887,12 @@ abstract class Shipment extends WC_Data {
 		 * unique hook for a shipment type. `$provider` is related to the current shipping provider
 		 * for the shipment (slug).
 		 *
-		 * Example hook name: `woocommerce_gzd_return_shipment_get_dhl_label_download_url`
+		 * Example hook name: `woocommerce_stc_return_shipment_get_dhl_label_download_url`
 		 *
 		 * @param string   $url The download URL.
 		 * @param Shipment $shipment The current shipment instance.
 		 *
-		 * @since 3.0.6
-		 * @package Vendidero/Germanized/Shipments
+		 * @package Vendidero/Shiptastic
 		 */
 		return apply_filters( "{$this->get_hook_prefix()}{$provider}label_download_url", $download_url, $this );
 	}
@@ -3023,15 +2988,14 @@ abstract class Shipment extends WC_Data {
 			 * The dynamic portion of this hook, `$hook_postfix` is used to construct a
 			 * unique hook for a shipment type.
 			 *
-			 * Example hook name: woocommerce_gzd_shipment_after_save
+			 * Example hook name: woocommerce_shiptastic_shipment_after_save
 			 *
 			 * @param Shipment $shipment The shipment object being saved.
 			 * @param boolean  $is_new Indicator to determine whether this is a new shipment or not.
 			 *
-			 * @since 3.0.0
-			 * @package Vendidero/Germanized/Shipments
+			 * @package Vendidero/Shiptastic
 			 */
-			do_action( "woocommerce_gzd_{$hook_postfix}shipment_after_save", $this, $is_new );
+			do_action( "woocommerce_shiptastic_{$hook_postfix}shipment_after_save", $this, $is_new );
 
 			$this->status_transition();
 			$this->reset_content_data();

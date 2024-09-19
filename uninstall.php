@@ -5,9 +5,9 @@ if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
 
 global $wpdb, $wp_version;
 
-if ( defined( 'WC_GZD_SHIPMENTS_REMOVE_ALL_DATA' ) && true === WC_GZD_SHIPMENTS_REMOVE_ALL_DATA ) {
+if ( defined( 'WC_SHIPTASTIC_REMOVE_ALL_DATA' ) && true === WC_SHIPTASTIC_REMOVE_ALL_DATA ) {
 	// Delete options.
-	$wpdb->query( "DELETE FROM $wpdb->options WHERE option_name LIKE 'woocommerce_gzd_shipments\_%';" );
+	$wpdb->query( "DELETE FROM $wpdb->options WHERE option_name LIKE 'woocommerce_shiptastic\_%';" );
 
 	$meta_keys = array(
 		'_shipping_length',
@@ -28,16 +28,16 @@ if ( defined( 'WC_GZD_SHIPMENTS_REMOVE_ALL_DATA' ) && true === WC_GZD_SHIPMENTS_
 
 	// Remove Tables
 	$custom_tables = array(
-		"{$wpdb->prefix}woocommerce_gzd_shipping_providermeta",
-		"{$wpdb->prefix}woocommerce_gzd_shipping_provider",
-		"{$wpdb->prefix}woocommerce_gzd_packagingmeta",
-		"{$wpdb->prefix}woocommerce_gzd_packaging",
-		"{$wpdb->prefix}woocommerce_gzd_shipment_labelmeta",
-		"{$wpdb->prefix}woocommerce_gzd_shipment_labels",
-		"{$wpdb->prefix}woocommerce_gzd_shipmentmeta",
-		"{$wpdb->prefix}woocommerce_gzd_shipments",
-		"{$wpdb->prefix}woocommerce_gzd_shipment_itemmeta",
-		"{$wpdb->prefix}woocommerce_gzd_shipment_items",
+		"{$wpdb->prefix}woocommerce_stc_shipping_providermeta",
+		"{$wpdb->prefix}woocommerce_stc_shipping_provider",
+		"{$wpdb->prefix}woocommerce_stc_packagingmeta",
+		"{$wpdb->prefix}woocommerce_stc_packaging",
+		"{$wpdb->prefix}woocommerce_stc_shipment_labelmeta",
+		"{$wpdb->prefix}woocommerce_stc_shipment_labels",
+		"{$wpdb->prefix}woocommerce_stc_shipmentmeta",
+		"{$wpdb->prefix}woocommerce_stc_shipments",
+		"{$wpdb->prefix}woocommerce_stc_shipment_itemmeta",
+		"{$wpdb->prefix}woocommerce_stc_shipment_items",
 	);
 
 	foreach ( $custom_tables as $table ) {

@@ -1,11 +1,11 @@
 <?php
 
-namespace Vendidero\Germanized\Shipments\Labels;
+namespace Vendidero\Shiptastic\Labels;
 
-use Vendidero\Germanized\Shipments\Interfaces\ShipmentLabel;
-use Vendidero\Germanized\Shipments\Package;
-use Vendidero\Germanized\Shipments\Shipment;
-use Vendidero\Germanized\Shipments\ShipmentError;
+use Vendidero\Shiptastic\Interfaces\ShipmentLabel;
+use Vendidero\Shiptastic\Package;
+use Vendidero\Shiptastic\Shipment;
+use Vendidero\Shiptastic\ShipmentError;
 use WC_Data;
 use WC_Data_Store;
 use Exception;
@@ -21,7 +21,6 @@ class Label extends WC_Data implements ShipmentLabel {
 	/**
 	 * This is the name of this object type.
 	 *
-	 * @since 3.0.0
 	 * @var string
 	 */
 	protected $object_type = 'shipment_label';
@@ -37,7 +36,6 @@ class Label extends WC_Data implements ShipmentLabel {
 	 * Stores meta in cache for future reads.
 	 * A group must be set to to enable caching.
 	 *
-	 * @since 3.0.0
 	 * @var string
 	 */
 	protected $cache_group = 'shipment-labels';
@@ -113,7 +111,6 @@ class Label extends WC_Data implements ShipmentLabel {
 	 * array_replace_recursive does not work well for license because it merges domains registered instead
 	 * of replacing them.
 	 *
-	 * @since 3.2.0
 	 */
 	public function apply_changes() {
 		if ( function_exists( 'array_replace' ) ) {
@@ -129,19 +126,17 @@ class Label extends WC_Data implements ShipmentLabel {
 	/**
 	 * Prefix for action and filter hooks on data.
 	 *
-	 * @since  3.0.0
 	 * @return string
 	 */
 	protected function get_general_hook_prefix() {
 		$prefix = 'simple' === $this->get_type() ? '' : $this->get_type() . '_';
 
-		return "woocommerce_gzd_shipment_{$prefix}label_";
+		return "woocommerce_shiptastic_shipment_{$prefix}label_";
 	}
 
 	/**
 	 * Prefix for action and filter hooks on data.
 	 *
-	 * @since  3.0.0
 	 * @return string
 	 */
 	protected function get_hook_prefix() {
@@ -151,7 +146,6 @@ class Label extends WC_Data implements ShipmentLabel {
 	/**
 	 * Return the date this license was created.
 	 *
-	 * @since  3.0.0
 	 * @param  string $context What the value is for. Valid values are 'view' and 'edit'.
 	 * @return WC_DateTime|null object if the date is set or null if there is no date.
 	 */
@@ -171,7 +165,7 @@ class Label extends WC_Data implements ShipmentLabel {
 		$provider = $this->get_shipping_provider();
 
 		if ( ! empty( $provider ) ) {
-			return wc_gzd_get_shipping_provider( $provider );
+			return wc_stc_get_shipping_provider( $provider );
 		}
 
 		return false;
@@ -317,7 +311,7 @@ class Label extends WC_Data implements ShipmentLabel {
 
 	public function get_shipment() {
 		if ( is_null( $this->shipment ) ) {
-			$this->shipment = ( $this->get_shipment_id() > 0 ? wc_gzd_get_shipment( $this->get_shipment_id() ) : false );
+			$this->shipment = ( $this->get_shipment_id() > 0 ? wc_stc_get_shipment( $this->get_shipment_id() ) : false );
 		}
 
 		return $this->shipment;
@@ -332,7 +326,6 @@ class Label extends WC_Data implements ShipmentLabel {
 	/**
 	 * Set the date this license was last updated.
 	 *
-	 * @since  1.0.0
 	 * @param  string|integer|null $date UTC timestamp, or ISO 8601 DateTime. If the DateTime string has no timezone or offset, WordPress site timezone will be assumed. Null if their is no date.
 	 */
 	public function set_date_created( $date = null ) {
@@ -407,7 +400,7 @@ class Label extends WC_Data implements ShipmentLabel {
 	 * @return ShipmentLabel[]
 	 */
 	public function get_children() {
-		return wc_gzd_get_shipment_labels( array( 'parent_id' => $this->get_id() ) );
+		return wc_stc_get_shipment_labels( array( 'parent_id' => $this->get_id() ) );
 	}
 
 	public function has_children() {
@@ -554,7 +547,7 @@ class Label extends WC_Data implements ShipmentLabel {
 		$base_url     = is_admin() ? admin_url() : trailingslashit( home_url() );
 		$download_url = add_query_arg(
 			array(
-				'action'      => 'wc-gzd-download-shipment-label',
+				'action'      => 'wc-stc-download-shipment-label',
 				'shipment_id' => $this->get_shipment_id(),
 			),
 			wp_nonce_url( $base_url, 'download-shipment-label' )
@@ -575,13 +568,12 @@ class Label extends WC_Data implements ShipmentLabel {
 		 * unique hook for a shipment type. `$provider` is related to the current shipping provider
 		 * for the shipment (slug).
 		 *
-		 * Example hook name: `woocommerce_gzd_return_shipment_get_dhl_label_download_url`
+		 * Example hook name: `woocommerce_stc_return_shipment_get_dhl_label_download_url`
 		 *
 		 * @param string $url The download URL.
 		 * @param Label  $label The current shipment instance.
 		 *
-		 * @since 3.0.6
-		 * @package Vendidero/Germanized/Shipments
+		 * @package Vendidero/Shiptastic
 		 */
 		return esc_url_raw( apply_filters( "{$this->get_hook_prefix()}download_url", $download_url, $this ) );
 	}
@@ -590,7 +582,7 @@ class Label extends WC_Data implements ShipmentLabel {
 	 * @return ShipmentError|true
 	 */
 	public function fetch() {
-		$result = new ShipmentError( 'label-fetch-error', _x( 'This label misses the API implementation', 'shipments', 'woocommerce-germanized-shipments' ) );
+		$result = new ShipmentError( 'label-fetch-error', _x( 'This label misses the API implementation', 'shipments', 'shiptastic-for-woocommerce' ) );
 
 		return $result;
 	}
@@ -606,13 +598,13 @@ class Label extends WC_Data implements ShipmentLabel {
 			Package::set_upload_dir_filter();
 			$filename = $this->get_filename( $file_type );
 
-			$GLOBALS['gzd_shipments_unique_filename'] = $filename;
-			add_filter( 'wp_unique_filename', '_wc_gzd_shipments_keep_force_filename', 10, 1 );
+			$GLOBALS['stc_unique_filename'] = $filename;
+			add_filter( 'wp_unique_filename', '_wc_shiptastic_keep_force_filename', 10, 1 );
 
 			$tmp = wp_upload_bits( $this->get_filename( $file_type ), null, $stream );
 
-			unset( $GLOBALS['gzd_shipments_unique_filename'] );
-			remove_filter( 'wp_unique_filename', '_wc_gzd_shipments_keep_force_filename', 10 );
+			unset( $GLOBALS['stc_unique_filename'] );
+			remove_filter( 'wp_unique_filename', '_wc_shiptastic_keep_force_filename', 10 );
 
 			Package::unset_upload_dir_filter();
 
@@ -624,7 +616,7 @@ class Label extends WC_Data implements ShipmentLabel {
 
 				return $path;
 			} else {
-				throw new Exception( _x( 'Error while uploading label.', 'shipments', 'woocommerce-germanized-shipments' ) );
+				throw new Exception( _x( 'Error while uploading label.', 'shipments', 'shiptastic-for-woocommerce' ) );
 			}
 		} catch ( Exception $e ) {
 			return false;
@@ -646,14 +638,14 @@ class Label extends WC_Data implements ShipmentLabel {
 			}
 
 			if ( ! function_exists( 'download_url' ) ) {
-				throw new \Exception( _x( 'Error while downloading the PDF file.', 'shipments', 'woocommerce-germanized-shipments' ) );
+				throw new \Exception( esc_html_x( 'Error while downloading the PDF file.', 'shipments', 'shiptastic-for-woocommerce' ) );
 			}
 
 			// Download file to temp dir.
 			$temp_file = download_url( $url, $timeout_seconds );
 
 			if ( is_wp_error( $temp_file ) ) {
-				throw new \Exception( _x( 'Error while downloading the PDF file.', 'shipments', 'woocommerce-germanized-shipments' ) );
+				throw new \Exception( esc_html_x( 'Error while downloading the PDF file.', 'shipments', 'shiptastic-for-woocommerce' ) );
 			}
 
 			$file = array(
@@ -699,7 +691,7 @@ class Label extends WC_Data implements ShipmentLabel {
 		$supports_email_notification = false;
 
 		if ( ( $shipment = $this->get_shipment() ) && ( $order = $shipment->get_order() ) ) {
-			$supports_email_notification = wc_gzd_get_shipment_order( $order )->supports_third_party_email_transmission();
+			$supports_email_notification = wc_stc_get_shipment_order( $order )->supports_third_party_email_transmission();
 		}
 
 		return apply_filters( "{$this->get_general_hook_prefix()}supports_third_party_email_notification", $supports_email_notification, $this );
@@ -708,7 +700,6 @@ class Label extends WC_Data implements ShipmentLabel {
 	/**
 	 * Gets a prop for a getter method.
 	 *
-	 * @since  3.0.0
 	 * @param  string $prop Name of prop to get.
 	 * @param  string $address billing or shipping.
 	 * @param  string $context What the value is for. Valid values are view and edit.
@@ -725,17 +716,15 @@ class Label extends WC_Data implements ShipmentLabel {
 				 * Filter to adjust a specific address property for a DHL label.
 				 *
 				 * The dynamic portion of the hook name, `$this->get_hook_prefix()` constructs an individual
-				 * hook name which uses `woocommerce_gzd_dhl_label_get_` as a prefix. Additionally
+				 * hook name which uses `woocommerce_stc_dhl_label_get_` as a prefix. Additionally
 				 * `$address` contains the current address type e.g. sender_address and `$prop` contains the actual
 				 * property e.g. street.
 				 *
-				 * Example hook name: `woocommerce_gzd_dhl_return_label_get_sender_address_street`
+				 * Example hook name: `woocommerce_stc_dhl_return_label_get_sender_address_street`
 				 *
-				 * @param string                          $value The address property value.
-				 * @param \Vendidero\Germanized\DHL\Label\Label $label The label object.
+				 * @param string $value The address property value.
+				 * @param Label  $label The label object.
 				 *
-				 * @since 3.0.0
-				 * @package Vendidero/Germanized/DHL
 				 */
 				$value = apply_filters( "{$this->get_hook_prefix()}{$address}_{$prop}", $value, $this );
 			}
@@ -827,17 +816,17 @@ class Label extends WC_Data implements ShipmentLabel {
 		$total_value        = 0;
 		$use_subtotal       = false;
 
-		if ( $order && apply_filters( 'woocommerce_gzd_shipments_order_has_voucher', false, $order ) ) {
+		if ( $order && apply_filters( 'woocommerce_shiptastic_order_has_voucher', false, $order ) ) {
 			$use_subtotal = true;
 		}
 
-		$use_subtotal = apply_filters( 'woocommerce_gzd_shipments_customs_use_subtotal', $use_subtotal, $this );
+		$use_subtotal = apply_filters( 'woocommerce_shiptastic_customs_use_subtotal', $use_subtotal, $this );
 
 		foreach ( $shipment->get_items() as $key => $item ) {
 			$product = $item->get_product();
 
 			if ( $product ) {
-				$shipment_product = wc_gzd_shipments_get_product( $product );
+				$shipment_product = wc_shiptastic_get_product( $product );
 			}
 
 			$single_item_description = $item->get_customs_description();
@@ -867,7 +856,7 @@ class Label extends WC_Data implements ShipmentLabel {
 			$customs_items[ $key ] = apply_filters(
 				"{$this->get_general_hook_prefix()}customs_item",
 				array(
-					'description'         => apply_filters( "{$this->get_general_hook_prefix()}item_description", wc_clean( wc_gzd_shipments_substring( $single_item_description, 0, $max_desc_length ) ), $item, $this, $shipment ),
+					'description'         => apply_filters( "{$this->get_general_hook_prefix()}item_description", wc_clean( wc_shiptastic_substring( $single_item_description, 0, $max_desc_length ) ), $item, $this, $shipment ),
 					'category'            => apply_filters( "{$this->get_general_hook_prefix()}item_category", $category, $item, $this, $shipment ),
 					'origin_code'         => ( $shipment_product && $shipment_product->get_manufacture_country() ) ? $shipment_product->get_manufacture_country() : Package::get_base_country(),
 					'tariff_number'       => $shipment_product ? $shipment_product->get_hs_code() : '',
@@ -892,7 +881,7 @@ class Label extends WC_Data implements ShipmentLabel {
 			$total_value        += (float) $customs_items[ $key ]['value'];
 		}
 
-		$item_description = wc_gzd_shipments_substring( $item_description, 0, $max_desc_length );
+		$item_description = wc_shiptastic_substring( $item_description, 0, $max_desc_length );
 
 		$customs_data = apply_filters(
 			"{$this->get_general_hook_prefix()}customs_data",
@@ -924,13 +913,13 @@ class Label extends WC_Data implements ShipmentLabel {
 			$shipment
 		);
 
-		return apply_filters( 'woocommerce_gzd_shipments_label_customs_data', $customs_data, $this, $shipment, $max_desc_length );
+		return apply_filters( 'woocommerce_shiptastic_label_customs_data', $customs_data, $this, $shipment, $max_desc_length );
 	}
 
 	public function save() {
 		$id = parent::save();
 
-		if ( $cache = \Vendidero\Germanized\Shipments\Caches\Helper::get_cache_object( 'shipment-labels' ) ) {
+		if ( $cache = \Vendidero\Shiptastic\Caches\Helper::get_cache_object( 'shipment-labels' ) ) {
 			$cache->remove( $this->get_id() );
 		}
 

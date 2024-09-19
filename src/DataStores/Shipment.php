@@ -1,9 +1,9 @@
 <?php
 
-namespace Vendidero\Germanized\Shipments\DataStores;
+namespace Vendidero\Shiptastic\DataStores;
 
-use Vendidero\Germanized\Shipments\Caches\Helper;
-use Vendidero\Germanized\Shipments\Package;
+use Vendidero\Shiptastic\Caches\Helper;
+use Vendidero\Shiptastic\Package;
 use WC_Data_Store_WP;
 use WC_Object_Data_Store_Interface;
 use Exception;
@@ -18,19 +18,11 @@ defined( 'ABSPATH' ) || exit;
  */
 class Shipment extends WC_Data_Store_WP implements WC_Object_Data_Store_Interface {
 
-	/**
-	 * Internal meta type used to store order data.
-	 *
-	 * @var string
-	 */
-	protected $meta_type = 'gzd_shipment';
-
 	protected $must_exist_meta_keys = array();
 
 	/**
 	 * Data stored in meta keys, but not considered "meta" for an order.
 	 *
-	 * @since 3.0.0
 	 * @var array
 	 */
 	protected $internal_meta_keys = array(
@@ -71,6 +63,8 @@ class Shipment extends WC_Data_Store_WP implements WC_Object_Data_Store_Interfac
 		'version',
 	);
 
+	protected $meta_type = 'stc_shipment';
+
 	/*
 	|--------------------------------------------------------------------------
 	| CRUD Methods
@@ -80,7 +74,7 @@ class Shipment extends WC_Data_Store_WP implements WC_Object_Data_Store_Interfac
 	/**
 	 * Method to create a new shipment in the database.
 	 *
-	 * @param \Vendidero\Germanized\Shipments\Shipment $shipment Shipment object.
+	 * @param \Vendidero\Shiptastic\Shipment $shipment Shipment object.
 	 */
 	public function create( &$shipment ) {
 		global $wpdb;
@@ -116,7 +110,7 @@ class Shipment extends WC_Data_Store_WP implements WC_Object_Data_Store_Interfac
 		}
 
 		$wpdb->insert(
-			$wpdb->gzd_shipments,
+			$wpdb->stc_shipments,
 			$data
 		);
 
@@ -143,18 +137,16 @@ class Shipment extends WC_Data_Store_WP implements WC_Object_Data_Store_Interfac
 			 * @param integer  $shipment_id The shipment id.
 			 * @param Shipment $shipment The shipment instance.
 			 *
-			 * @since 3.0.0
-			 * @package Vendidero/Germanized/Shipments
+			 * @package Vendidero/Shiptastic
 			 */
-			do_action( "woocommerce_gzd_new_{$hook_postfix}shipment", $shipment_id, $shipment );
+			do_action( "woocommerce_shiptastic_new_{$hook_postfix}shipment", $shipment_id, $shipment );
 		}
 	}
 
 	/**
 	 * Get the status to save to the object.
 	 *
-	 * @since 3.6.0
-	 * @param \Vendidero\Germanized\Shipments\Shipment $shipment Shipment object.
+	 * @param \Vendidero\Shiptastic\Shipment $shipment Shipment object.
 	 * @return string
 	 */
 	protected function get_status( $shipment ) {
@@ -162,14 +154,7 @@ class Shipment extends WC_Data_Store_WP implements WC_Object_Data_Store_Interfac
 
 		if ( ! $shipment_status ) {
 			/** This filter is documented in src/Shipment.php */
-			$shipment_status = apply_filters( 'woocommerce_gzd_get_shipment_default_status', 'gzd-draft' );
-		}
-
-		$valid_statuses = array_keys( wc_gzd_get_shipment_statuses() );
-
-		// Add a gzd- prefix to the status.
-		if ( in_array( 'gzd-' . $shipment_status, $valid_statuses, true ) ) {
-			$shipment_status = 'gzd-' . $shipment_status;
+			$shipment_status = apply_filters( 'woocommerce_shiptastic_get_shipment_default_status', 'draft' );
 		}
 
 		return $shipment_status;
@@ -178,7 +163,7 @@ class Shipment extends WC_Data_Store_WP implements WC_Object_Data_Store_Interfac
 	/**
 	 * Method to update a shipment in the database.
 	 *
-	 * @param \Vendidero\Germanized\Shipments\Shipment $shipment Shipment object.
+	 * @param \Vendidero\Shiptastic\Shipment $shipment Shipment object.
 	 */
 	public function update( &$shipment ) {
 		global $wpdb;
@@ -206,7 +191,6 @@ class Shipment extends WC_Data_Store_WP implements WC_Object_Data_Store_Interfac
 
 		// Shipping provider has changed - lets remove existing label
 		if ( in_array( 'shipping_provider', $changed_props, true ) ) {
-
 			if ( $shipment->supports_label() && $shipment->has_label() ) {
 				$shipment->get_label()->delete();
 			}
@@ -241,7 +225,7 @@ class Shipment extends WC_Data_Store_WP implements WC_Object_Data_Store_Interfac
 			$shipment_data['shipment_search_index'] = $this->get_search_index( $shipment );
 
 			$wpdb->update(
-				$wpdb->gzd_shipments,
+				$wpdb->stc_shipments,
 				$shipment_data,
 				array( 'shipment_id' => $shipment->get_id() )
 			);
@@ -265,24 +249,22 @@ class Shipment extends WC_Data_Store_WP implements WC_Object_Data_Store_Interfac
 		 * @param integer  $shipment_id The shipment id.
 		 * @param Shipment $shipment The shipment instance.
 		 *
-		 * @since 3.0.0
-		 * @package Vendidero/Germanized/Shipments
+		 * @package Vendidero/Shiptastic
 		 */
-		do_action( "woocommerce_gzd_{$hook_postfix}shipment_updated", $shipment->get_id(), $shipment );
+		do_action( "woocommerce_shiptastic_{$hook_postfix}shipment_updated", $shipment->get_id(), $shipment );
 	}
 
 	/**
 	 * Remove a shipment from the database.
 	 *
-	 * @since 3.0.0
-	 * @param \Vendidero\Germanized\Shipments\Shipment $shipment Shipment object.
+	 * @param \Vendidero\Shiptastic\Shipment $shipment Shipment object.
 	 * @param bool                $force_delete Unused param.
 	 */
 	public function delete( &$shipment, $force_delete = false ) {
 		global $wpdb;
 
-		$wpdb->delete( $wpdb->gzd_shipments, array( 'shipment_id' => $shipment->get_id() ), array( '%d' ) );
-		$wpdb->delete( $wpdb->gzd_shipmentmeta, array( 'gzd_shipment_id' => $shipment->get_id() ), array( '%d' ) );
+		$wpdb->delete( $wpdb->stc_shipments, array( 'shipment_id' => $shipment->get_id() ), array( '%d' ) );
+		$wpdb->delete( $wpdb->stc_shipmentmeta, array( 'stc_shipment_id' => $shipment->get_id() ), array( '%d' ) );
 
 		$this->delete_items( $shipment );
 		$this->clear_caches( $shipment );
@@ -296,20 +278,18 @@ class Shipment extends WC_Data_Store_WP implements WC_Object_Data_Store_Interfac
 		 * shipment type in case it is not a simple shipment.
 		 *
 		 * @param integer                                  $shipment_id The shipment id.
-		 * @param \Vendidero\Germanized\Shipments\Shipment $shipment The shipment object.
+		 * @param \Vendidero\Shiptastic\Shipment $shipment The shipment object.
 		 *
-		 * @since 3.0.0
-		 * @package Vendidero/Germanized/Shipments
+		 * @package Vendidero/Shiptastic
 		 */
-		do_action( "woocommerce_gzd_{$hook_postfix}shipment_deleted", $shipment->get_id(), $shipment );
+		do_action( "woocommerce_shiptastic_{$hook_postfix}shipment_deleted", $shipment->get_id(), $shipment );
 	}
 
 	/**
 	 * Read a shipment from the database.
 	 *
-	 * @since 3.0.0
 	 *
-	 * @param \Vendidero\Germanized\Shipments\Shipment $shipment Shipment object.
+	 * @param \Vendidero\Shiptastic\Shipment $shipment Shipment object.
 	 *
 	 * @throws Exception Throw exception if invalid shipment.
 	 */
@@ -318,7 +298,7 @@ class Shipment extends WC_Data_Store_WP implements WC_Object_Data_Store_Interfac
 
 		$data = $wpdb->get_row(
 			$wpdb->prepare(
-				"SELECT * FROM {$wpdb->gzd_shipments} WHERE shipment_id = %d LIMIT 1",
+				"SELECT * FROM {$wpdb->stc_shipments} WHERE shipment_id = %d LIMIT 1",
 				$shipment->get_id()
 			)
 		);
@@ -354,33 +334,31 @@ class Shipment extends WC_Data_Store_WP implements WC_Object_Data_Store_Interfac
 			 * The dynamic portion of this hook, `$hook_postfix` refers to the
 			 * shipment type in case it is not a simple shipment.
 			 *
-			 * @param \Vendidero\Germanized\Shipments\Shipment $shipment The shipment object.
+			 * @param \Vendidero\Shiptastic\Shipment $shipment The shipment object.
 			 *
-			 * @since 3.0.0
-			 * @package Vendidero/Germanized/Shipments
+			 * @package Vendidero/Shiptastic
 			 */
-			do_action( "woocommerce_gzd_{$hook_postfix}shipment_loaded", $shipment );
+			do_action( "woocommerce_shiptastic_{$hook_postfix}shipment_loaded", $shipment );
 		} else {
-			throw new Exception( _x( 'Invalid shipment.', 'shipments', 'woocommerce-germanized-shipments' ) );
+			throw new Exception( esc_html_x( 'Invalid shipment.', 'shipments', 'shiptastic-for-woocommerce' ) );
 		}
 	}
 
 	/**
 	 * Clear any caches.
 	 *
-	 * @param \Vendidero\Germanized\Shipments\Shipment $shipment Shipment object.
-	 * @since 3.0.0
+	 * @param \Vendidero\Shiptastic\Shipment $shipment Shipment object.
 	 */
 	protected function clear_caches( &$shipment ) {
-		wp_cache_delete( 'shipment-items-' . $shipment->get_id(), 'shipments' );
+		wp_cache_delete( 'shipment-items-' . $shipment->get_id(), 'shiptastic-shipments' );
 		wp_cache_delete( $shipment->get_id(), $this->meta_type . '_meta' );
-		wp_cache_delete( 'available-packaging-' . $shipment->get_id(), 'shipments' );
-		wp_cache_delete( 'shipment-type' . $shipment->get_id(), 'shipments' );
+		wp_cache_delete( 'available-packaging-' . $shipment->get_id(), 'shiptastic-shipments' );
+		wp_cache_delete( 'shipment-type' . $shipment->get_id(), 'shiptastic-shipments' );
 
-		foreach ( array_keys( wc_gzd_get_shipment_statuses() ) as $status ) {
+		foreach ( array_keys( wc_stc_get_shipment_statuses() ) as $status ) {
 			$cache_key = 'shipment-count-' . $shipment->get_type() . '-' . $status;
 
-			wp_cache_delete( $cache_key, 'shipments' );
+			wp_cache_delete( $cache_key, 'shiptastic-shipments' );
 		}
 
 		if ( $cache = Helper::get_cache_object( 'shipments' ) ) {
@@ -399,12 +377,12 @@ class Shipment extends WC_Data_Store_WP implements WC_Object_Data_Store_Interfac
 	*/
 
 	/**
-	 * @param \Vendidero\Germanized\Shipments\Shipment $shipment
+	 * @param \Vendidero\Shiptastic\Shipment $shipment
 	 */
 	protected function get_search_index( $shipment ) {
 		$index = array();
 
-		if ( is_a( $shipment, '\Vendidero\Germanized\Shipments\ReturnShipment' ) ) {
+		if ( is_a( $shipment, '\Vendidero\Shiptastic\ReturnShipment' ) ) {
 			$index = array_merge( $index, $shipment->get_sender_address() );
 		} else {
 			$index = array_merge( $index, $shipment->get_address() );
@@ -430,19 +408,19 @@ class Shipment extends WC_Data_Store_WP implements WC_Object_Data_Store_Interfac
 	public function get_shipment_type( $shipment_id ) {
 		global $wpdb;
 
-		$type = wp_cache_get( 'shipment-type-' . $shipment_id, 'shipments' );
+		$type = wp_cache_get( 'shipment-type-' . $shipment_id, 'shiptastic-shipments' );
 
 		if ( false === $type ) {
 			$type = $wpdb->get_col(
 				$wpdb->prepare(
-					"SELECT shipment_type FROM {$wpdb->gzd_shipments} WHERE shipment_id = %d LIMIT 1",
+					"SELECT shipment_type FROM {$wpdb->stc_shipments} WHERE shipment_id = %d LIMIT 1",
 					$shipment_id
 				)
 			);
 
 			$type = ! empty( $type ) ? $type[0] : false;
 
-			wp_cache_set( 'shipment-type-' . $shipment_id, $type, 'shipments' );
+			wp_cache_set( 'shipment-type-' . $shipment_id, $type, 'shiptastic-shipments' );
 		}
 
 		return $type;
@@ -451,21 +429,20 @@ class Shipment extends WC_Data_Store_WP implements WC_Object_Data_Store_Interfac
 	/**
 	 * Read extra data associated with the shipment.
 	 *
-	 * @param \Vendidero\Germanized\Shipments\Shipment $shipment Shipment object.
-	 * @since 3.0.0
+	 * @param \Vendidero\Shiptastic\Shipment $shipment Shipment object.
 	 */
 	protected function read_shipment_data( &$shipment ) {
 		$props = array();
 
 		foreach ( $this->internal_meta_keys as $meta_key ) {
-			$props[ substr( $meta_key, 1 ) ] = get_metadata( 'gzd_shipment', $shipment->get_id(), $meta_key, true );
+			$props[ substr( $meta_key, 1 ) ] = get_metadata( 'stc_shipment', $shipment->get_id(), $meta_key, true );
 		}
 
 		$shipment->set_props( $props );
 	}
 
 	/**
-	 * @param \Vendidero\Germanized\Shipments\Shipment $shipment
+	 * @param \Vendidero\Shiptastic\Shipment $shipment
 	 */
 	protected function save_shipment_data( &$shipment ) {
 		$updated_props     = array();
@@ -481,7 +458,7 @@ class Shipment extends WC_Data_Store_WP implements WC_Object_Data_Store_Interfac
 			$meta_key_to_props[ $meta_key ] = $prop_name;
 		}
 
-		$props_to_update = $this->get_props_to_update( $shipment, $meta_key_to_props, 'gzd_shipment' );
+		$props_to_update = $this->get_props_to_update( $shipment, $meta_key_to_props, 'stc_shipment' );
 
 		foreach ( $props_to_update as $meta_key => $prop ) {
 			if ( ! is_callable( array( $shipment, "get_$prop" ) ) ) {
@@ -501,7 +478,7 @@ class Shipment extends WC_Data_Store_WP implements WC_Object_Data_Store_Interfac
 			if ( in_array( $prop, array( 'weight', 'width', 'length', 'height' ), true ) && ! $shipment->is_editable() ) {
 				// Get weight in view context to maybe allow calculating inner content props.
 				$value   = $shipment->{"get_$prop"}( 'view' );
-				$updated = update_metadata( 'gzd_shipment', $shipment->get_id(), $meta_key, $value );
+				$updated = update_metadata( 'stc_shipment', $shipment->get_id(), $meta_key, $value );
 			} else {
 				$updated = $this->update_or_delete_meta( $shipment, $meta_key, $value );
 			}
@@ -514,13 +491,12 @@ class Shipment extends WC_Data_Store_WP implements WC_Object_Data_Store_Interfac
 		/**
 		 * Action that fires after updating a Shipment's properties.
 		 *
-		 * @param \Vendidero\Germanized\Shipments\Shipment $shipment The shipment object.
+		 * @param \Vendidero\Shiptastic\Shipment $shipment The shipment object.
 		 * @param array                                    $changed_props The updated properties.
 		 *
-		 * @since 3.0.0
-		 * @package Vendidero/Germanized/Shipments
+		 * @package Vendidero/Shiptastic
 		 */
-		do_action( 'woocommerce_gzd_shipment_object_updated_props', $shipment, $updated_props );
+		do_action( 'woocommerce_shiptastic_shipment_object_updated_props', $shipment, $updated_props );
 	}
 
 	/**
@@ -536,15 +512,14 @@ class Shipment extends WC_Data_Store_WP implements WC_Object_Data_Store_Interfac
 	 * @param string  $meta_key Meta key to update.
 	 * @param mixed   $meta_value Value to save.
 	 *
-	 * @since 3.6.0 Added to prevent empty meta being stored unless required.
 	 *
 	 * @return bool True if updated/deleted.
 	 */
 	protected function update_or_delete_meta( $object, $meta_key, $meta_value ) {
 		if ( in_array( $meta_value, array( array(), '' ), true ) && ! in_array( $meta_key, $this->must_exist_meta_keys, true ) ) {
-			$updated = delete_metadata( 'gzd_shipment', $object->get_id(), $meta_key );
+			$updated = delete_metadata( 'stc_shipment', $object->get_id(), $meta_key );
 		} else {
-			$updated = update_metadata( 'gzd_shipment', $object->get_id(), $meta_key, $meta_value );
+			$updated = update_metadata( 'stc_shipment', $object->get_id(), $meta_key, $meta_value );
 		}
 
 		return (bool) $updated;
@@ -553,7 +528,7 @@ class Shipment extends WC_Data_Store_WP implements WC_Object_Data_Store_Interfac
 	/**
 	 * Read items from the database for this shipment.
 	 *
-	 * @param \Vendidero\Germanized\Shipments\Shipment $shipment Shipment object.
+	 * @param \Vendidero\Shiptastic\Shipment $shipment Shipment object.
 	 *
 	 * @return array
 	 */
@@ -565,19 +540,19 @@ class Shipment extends WC_Data_Store_WP implements WC_Object_Data_Store_Interfac
 		}
 
 		// Get from cache if available.
-		$items = 0 < $shipment->get_id() ? wp_cache_get( 'shipment-items-' . $shipment->get_id(), 'shipments' ) : false;
+		$items = 0 < $shipment->get_id() ? wp_cache_get( 'shipment-items-' . $shipment->get_id(), 'shiptastic-shipments' ) : false;
 
 		if ( false === $items ) {
 			$items = $wpdb->get_results(
-				$wpdb->prepare( "SELECT * FROM {$wpdb->gzd_shipment_items} WHERE shipment_id = %d ORDER BY shipment_item_id;", $shipment->get_id() )
+				$wpdb->prepare( "SELECT * FROM {$wpdb->stc_shipment_items} WHERE shipment_id = %d ORDER BY shipment_item_id;", $shipment->get_id() )
 			);
 
 			foreach ( $items as $item ) {
-				wp_cache_set( 'item-' . $item->shipment_item_id, $item, 'shipment-items' );
+				wp_cache_set( 'item-' . $item->shipment_item_id, $item, 'shiptastic-shipment-items' );
 			}
 
 			if ( 0 < $shipment->get_id() ) {
-				wp_cache_set( 'shipment-items-' . $shipment->get_id(), $items, 'shipments' );
+				wp_cache_set( 'shipment-items-' . $shipment->get_id(), $items, 'shiptastic-shipments' );
 			}
 		}
 
@@ -586,7 +561,7 @@ class Shipment extends WC_Data_Store_WP implements WC_Object_Data_Store_Interfac
 
 			$items = array_map(
 				function( $item_id ) use ( $shipment_type, $shipment ) {
-					$item = wc_gzd_get_shipment_item( $item_id, $shipment_type );
+					$item = wc_stc_get_shipment_item( $item_id, $shipment_type );
 
 					if ( $item ) {
 						$item->set_shipment( $shipment );
@@ -606,13 +581,13 @@ class Shipment extends WC_Data_Store_WP implements WC_Object_Data_Store_Interfac
 	/**
 	 * Remove all items from the shipment.
 	 *
-	 * @param \Vendidero\Germanized\Shipments\Shipment $shipment Shipment object.
+	 * @param \Vendidero\Shiptastic\Shipment $shipment Shipment object.
 	 */
 	public function delete_items( $shipment ) {
 		global $wpdb;
 
-		$wpdb->query( $wpdb->prepare( "DELETE FROM itemmeta USING {$wpdb->gzd_shipment_itemmeta} itemmeta INNER JOIN {$wpdb->gzd_shipment_items} items WHERE itemmeta.gzd_shipment_item_id = items.shipment_item_id and items.shipment_id = %d", $shipment->get_id() ) );
-		$wpdb->query( $wpdb->prepare( "DELETE FROM {$wpdb->gzd_shipment_items} WHERE shipment_id = %d", $shipment->get_id() ) );
+		$wpdb->query( $wpdb->prepare( "DELETE FROM itemmeta USING {$wpdb->stc_shipment_itemmeta} itemmeta INNER JOIN {$wpdb->stc_shipment_items} items WHERE itemmeta.stc_shipment_item_id = items.shipment_item_id and items.shipment_id = %d", $shipment->get_id() ) );
+		$wpdb->query( $wpdb->prepare( "DELETE FROM {$wpdb->stc_shipment_items} WHERE shipment_id = %d", $shipment->get_id() ) );
 
 		$this->clear_caches( $shipment );
 	}
@@ -620,23 +595,11 @@ class Shipment extends WC_Data_Store_WP implements WC_Object_Data_Store_Interfac
 	/**
 	 * Get valid WP_Query args from a WC_Order_Query's query variables.
 	 *
-	 * @since 3.0.6
 	 * @param array $query_vars query vars from a WC_Order_Query.
 	 * @return array
 	 */
 	protected function get_wp_query_args( $query_vars ) {
 		global $wpdb;
-
-		// Add the 'wc-' prefix to status if needed.
-		if ( ! empty( $query_vars['status'] ) ) {
-			if ( is_array( $query_vars['status'] ) ) {
-				foreach ( $query_vars['status'] as &$status ) {
-					$status = wc_gzd_is_shipment_status( 'gzd-' . $status ) ? 'gzd-' . $status : $status;
-				}
-			} else {
-				$query_vars['status'] = wc_gzd_is_shipment_status( 'gzd-' . $query_vars['status'] ) ? 'gzd-' . $query_vars['status'] : $query_vars['status'];
-			}
-		}
 
 		$wp_query_args = parent::get_wp_query_args( $query_vars );
 
@@ -680,7 +643,7 @@ class Shipment extends WC_Data_Store_WP implements WC_Object_Data_Store_Interfac
 					$date_query = $date_query_args['date_query'][0];
 
 					if ( 'post_date' === $date_query['column'] ) {
-						$date_query['column'] = $wpdb->gzd_shipments . '.shipment_' . $db_key;
+						$date_query['column'] = $wpdb->stc_shipments . '.shipment_' . $db_key;
 					}
 
 					$wp_query_args['date_query'][] = $date_query;
@@ -699,23 +662,21 @@ class Shipment extends WC_Data_Store_WP implements WC_Object_Data_Store_Interfac
 		 * @param array                                               $query_vars The original query arguments.
 		 * @param Shipment $data_store The shipment data store object.
 		 *
-		 * @since 3.0.0
-		 * @package Vendidero/Germanized/Shipments
+		 * @package Vendidero/Shiptastic
 		 */
-		return apply_filters( 'woocommerce_gzd_shipping_data_store_get_shipments_query', $wp_query_args, $query_vars, $this );
+		return apply_filters( 'woocommerce_shiptastic_shipping_data_store_get_shipments_query', $wp_query_args, $query_vars, $this );
 	}
 
 	/**
 	 * Table structure is slightly different between meta types, this function will return what we need to know.
 	 *
-	 * @since  3.0.0
 	 * @return array Array elements: table, object_id_field, meta_id_field
 	 */
 	protected function get_db_info() {
 		global $wpdb;
 
 		$meta_id_field   = 'meta_id'; // for some reason users calls this umeta_id so we need to track this as well.
-		$table           = $wpdb->gzd_shipmentmeta;
+		$table           = $wpdb->stc_shipmentmeta;
 		$object_id_field = $this->meta_type . '_id';
 
 		if ( ! empty( $this->object_id_field_for_meta ) ) {
@@ -737,18 +698,18 @@ class Shipment extends WC_Data_Store_WP implements WC_Object_Data_Store_Interfac
 		global $wpdb;
 
 		$cache_key = 'shipment-count-' . $type . '-' . $status;
-		$count     = wp_cache_get( $cache_key, 'shipments' );
+		$count     = wp_cache_get( $cache_key, 'shiptastic-shipments' );
 
 		if ( false === $count ) {
 			if ( empty( $type ) ) {
-				$query = $wpdb->prepare( "SELECT COUNT( * ) FROM {$wpdb->gzd_shipments} WHERE shipment_status = %s", $status );
+				$query = $wpdb->prepare( "SELECT COUNT( * ) FROM {$wpdb->stc_shipments} WHERE shipment_status = %s", $status );
 			} else {
-				$query = $wpdb->prepare( "SELECT COUNT( * ) FROM {$wpdb->gzd_shipments} WHERE shipment_status = %s and shipment_type = %s", $status, $type );
+				$query = $wpdb->prepare( "SELECT COUNT( * ) FROM {$wpdb->stc_shipments} WHERE shipment_status = %s and shipment_type = %s", $status, $type );
 			}
 
 			$count = absint( $wpdb->get_var( $query ) ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 
-			wp_cache_set( $cache_key, $count, 'shipments' );
+			wp_cache_set( $cache_key, $count, 'shiptastic-shipments' );
 		}
 
 		return $count;

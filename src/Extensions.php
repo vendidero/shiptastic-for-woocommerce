@@ -1,9 +1,9 @@
 <?php
 
-namespace Vendidero\Germanized\Shipments;
+namespace Vendidero\Shiptastic;
 
-use Vendidero\Germanized\Shipments\ShippingProvider\Helper;
-use Vendidero\Germanized\Shipments\ShippingProvider\Placeholder;
+use Vendidero\Shiptastic\ShippingProvider\Helper;
+use Vendidero\Shiptastic\ShippingProvider\Placeholder;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -163,14 +163,14 @@ class Extensions {
 	 * @return bool
 	 */
 	public static function is_provider_integration_active( $name, $extension_name ) {
-		return apply_filters( 'woocommerce_gzd_shipments_is_provider_integration_active', self::is_plugin_active( $extension_name ), $name, $extension_name );
+		return apply_filters( 'woocommerce_shiptastic_is_provider_integration_active', self::is_plugin_active( $extension_name ), $name, $extension_name );
 	}
 
 	/**
 	 * @return bool
 	 */
 	public static function is_woocommerce_plugin_active() {
-		return apply_filters( 'woocommerce_gzd_shipments_is_woocommerce_activated', self::is_plugin_active( 'woocommerce' ) );
+		return apply_filters( 'woocommerce_shiptastic_is_woocommerce_activated', self::is_plugin_active( 'woocommerce' ) );
 	}
 
 	/**
@@ -274,12 +274,12 @@ class Extensions {
 		} elseif ( ! self::is_plugin_installed( $plugin ) ) {
 			$result = self::install_plugins( $plugin );
 
-			if ( ! wc_gzd_wp_error_has_errors( $result['errors'] ) ) {
+			if ( ! wc_stc_wp_error_has_errors( $result['errors'] ) ) {
 				$result = self::activate_plugins( $plugin );
 			}
 		}
 
-		return ( ! wc_gzd_wp_error_has_errors( $result['errors'] ) ? true : false );
+		return ( ! wc_stc_wp_error_has_errors( $result['errors'] ) ? true : false );
 	}
 
 	/**
@@ -338,7 +338,7 @@ class Extensions {
 			);
 		}
 
-		return self::is_plugin_installed( $plugin ) ? sprintf( _x( 'Please <a href="%1$s">activate the %2$s &raquo;</a> plugin', 'shipments', 'woocommerce-germanized-shipments' ), esc_url( $install_url ), $plugin_name ) : sprintf( _x( 'Please <a href="%1$s">install the %2$s &raquo;</a> plugin', 'shipments', 'woocommerce-germanized-shipments' ), esc_url( $install_url ), $plugin_name );
+		return self::is_plugin_installed( $plugin ) ? sprintf( _x( 'Please <a href="%1$s">activate the %2$s &raquo;</a> plugin', 'shipments', 'shiptastic-for-woocommerce' ), esc_url( $install_url ), $plugin_name ) : sprintf( _x( 'Please <a href="%1$s">install the %2$s &raquo;</a> plugin', 'shipments', 'shiptastic-for-woocommerce' ), esc_url( $install_url ), $plugin_name );
 	}
 
 	/**
@@ -389,13 +389,13 @@ class Extensions {
 			);
 
 			if ( is_wp_error( $api ) ) {
-				do_action( 'woocommerce_gzd_plugins_install_api_error', $slug, $api );
+				do_action( 'woocommerce_shiptastic_plugins_install_api_error', $slug, $api );
 
 				$errors->add(
 					$plugin,
 					sprintf(
 						/* translators: %s: plugin slug (example: woocommerce-services) */
-						_x( 'The requested plugin `%s` could not be installed. Plugin API call failed.', 'shipments', 'woocommerce-germanized-shipments' ),
+						_x( 'The requested plugin `%s` could not be installed. Plugin API call failed.', 'shipments', 'shiptastic-for-woocommerce' ),
 						$slug
 					)
 				);
@@ -409,13 +409,13 @@ class Extensions {
 			$time[ $plugin ]    = round( ( microtime( true ) - $start_time ) * 1000 );
 
 			if ( is_wp_error( $result ) || is_null( $result ) ) {
-				do_action( 'woocommerce_gzd_shipments_plugins_install_error', $slug, $api, $result, $upgrader );
+				do_action( 'woocommerce_shiptastic_plugins_install_error', $slug, $api, $result, $upgrader );
 
 				$errors->add(
 					$plugin,
 					sprintf(
 						/* translators: %s: plugin slug (example: woocommerce-services) */
-						_x( 'The requested plugin `%s` could not be installed. Upgrader install failed.', 'shipments', 'woocommerce-germanized-shipments' ),
+						_x( 'The requested plugin `%s` could not be installed. Upgrader install failed.', 'shipments', 'shiptastic-for-woocommerce' ),
 						$slug
 					)
 				);
@@ -443,7 +443,7 @@ class Extensions {
 
 	protected static function get_whitelisted_plugins() {
 		$whitelisted = array(
-			'woocommerce' => _x( 'WooCommerce', 'shipments', 'woocommerce-germanized-shipments' ),
+			'woocommerce' => _x( 'WooCommerce', 'shipments', 'shiptastic-for-woocommerce' ),
 		);
 
 		foreach ( Helper::instance()->get_available_shipping_provider_integrations() as $integration ) {
@@ -487,19 +487,19 @@ class Extensions {
 				$errors->add(
 					$plugin,
 					/* translators: %s: plugin slug (example: woocommerce-services) */
-					sprintf( _x( 'The requested plugin `%s` is not yet installed.', 'shipments', 'woocommerce-germanized-shipments' ), $slug )
+					sprintf( _x( 'The requested plugin `%s` is not yet installed.', 'shipments', 'shiptastic-for-woocommerce' ), $slug )
 				);
 				continue;
 			}
 
 			$result = activate_plugin( $path );
 			if ( ! is_null( $result ) ) {
-				do_action( 'woocommerce_shipments_gzd_plugins_activate_error', $slug, $result );
+				do_action( 'woocommerce_shiptastic_plugins_activate_error', $slug, $result );
 
 				$errors->add(
 					$plugin,
 					/* translators: %s: plugin slug (example: woocommerce-services) */
-					sprintf( _x( 'The requested plugin `%s` could not be activated.', 'shipments', 'woocommerce-germanized-shipments' ), $slug )
+					sprintf( _x( 'The requested plugin `%s` could not be activated.', 'shipments', 'shiptastic-for-woocommerce' ), $slug )
 				);
 				continue;
 			}

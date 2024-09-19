@@ -1,9 +1,10 @@
 <?php
 
-namespace Vendidero\Germanized\Shipments\Admin\Tabs;
+namespace Vendidero\Shiptastic\Admin\Tabs;
 
-use Vendidero\Germanized\Shipments\Admin\Settings;
-use Vendidero\Germanized\Shipments\Package;
+use Vendidero\Shiptastic\Admin\Settings;
+use Vendidero\Shiptastic\Extensions;
+use Vendidero\Shiptastic\Package;
 
 /**
  * Settings Interface
@@ -11,7 +12,7 @@ use Vendidero\Germanized\Shipments\Package;
 abstract class Tab extends \WC_Settings_Page {
 
 	public function __construct() {
-		$this->id = 'shipments-' . $this->get_name();
+		$this->id = 'shiptastic-' . $this->get_name();
 
 		parent::__construct();
 
@@ -27,7 +28,7 @@ abstract class Tab extends \WC_Settings_Page {
 
 	public function needs_install() {
 		if ( $extension_name = $this->get_extension_name() ) {
-			return ! \Vendidero\Germanized\PluginsHelper::is_plugin_active( $extension_name );
+			return ! Extensions::is_plugin_active( $extension_name );
 		}
 
 		return false;
@@ -47,7 +48,7 @@ abstract class Tab extends \WC_Settings_Page {
 	public function header() {
 		$breadcrumb = $this->get_breadcrumb();
 
-		echo '<ul class="wc-gzd-shipments-settings-breadcrumb">';
+		echo '<ul class="wc-shiptastic-settings-breadcrumb">';
 		$count = 0;
 
 		foreach ( $breadcrumb as $breadcrumb_item ) {
@@ -107,7 +108,7 @@ abstract class Tab extends \WC_Settings_Page {
 		foreach ( $sections as $id => $label ) {
 			$class     = ( $current_section === $id ? 'current' : '' );
 			$separator = ( end( $array_keys ) === $id ? '' : '|' );
-			$text      = esc_html( $label ) . ( $this->is_pro( $id ) && ! Package::is_pro() ? '<span class="wc-gzd-shipments-pro wc-gzd-shipments-pro-outlined">pro</span>' : '' );
+			$text      = esc_html( $label ) . ( $this->is_pro( $id ) && ! Package::is_pro() ? '<span class="wc-shiptastic-pro wc-shiptastic-pro-outlined">pro</span>' : '' );
 			echo "<li><a href='" . esc_url( $this->get_section_url( $id ) ) . "' class='" . esc_attr( $class ) . "'>" . wp_kses_post( $text ) . '</a> ' . esc_html( $separator ) . '</li>';
 		}
 
@@ -140,7 +141,7 @@ abstract class Tab extends \WC_Settings_Page {
 
 		$breadcrumb = $this->get_additional_breadcrumb_items( $breadcrumb );
 
-		return apply_filters( "woocommerce_gzd_shipments_admin_settings_tab_{$this->get_name()}_breadcrumb", $breadcrumb );
+		return apply_filters( "woocommerce_shiptastic_admin_settings_tab_{$this->get_name()}_breadcrumb", $breadcrumb );
 	}
 
 	public function get_description() {
@@ -151,9 +152,9 @@ abstract class Tab extends \WC_Settings_Page {
 		$section = $this->get_current_section();
 
 		if ( empty( $section ) && $this->has_help_link() ) {
-			$label = $label . '<a class="page-title-action" href="' . esc_url( $this->get_help_link() ) . '" target="_blank">' . _x( 'Learn more', 'shipments', 'woocommerce-germanized-shipments' ) . '</a>';
+			$label = $label . '<a class="page-title-action" href="' . esc_url( $this->get_help_link() ) . '" target="_blank">' . _x( 'Learn more', 'shipments', 'shiptastic-for-woocommerce' ) . '</a>';
 		} elseif ( ! empty( $section ) && ! Package::is_pro() && $this->is_pro( $section ) ) {
-			$label = $label . '<span class="wc-gzd-shipments-pro wc-gzd-shipments-pro-outlined">pro</span>';
+			$label = $label . '<span class="wc-shiptastic-pro wc-shiptastic-pro-outlined">pro</span>';
 		}
 
 		return $label;
@@ -178,9 +179,8 @@ abstract class Tab extends \WC_Settings_Page {
 			 *
 			 * @param array $settings Array containing settings data.
 			 *
-			 * @since 3.0.0
 			 */
-			$settings = apply_filters( "woocommerce_gzd_shipments_admin_settings_tab_{$this->get_name()}", $settings );
+			$settings = apply_filters( "woocommerce_shiptastic_admin_settings_tab_{$this->get_name()}", $settings );
 		} else {
 			/**
 			 * Filter to adjust the settings for a certain section of a settings tab.
@@ -190,9 +190,8 @@ abstract class Tab extends \WC_Settings_Page {
 			 *
 			 * @param array $settings Array containing settings data.
 			 *
-			 * @since 3.0.0
 			 */
-			$settings = apply_filters( "woocommerce_gzd_shipments_admin_settings_tab_{$this->get_name()}_{$section_id}", $settings );
+			$settings = apply_filters( "woocommerce_shiptastic_admin_settings_tab_{$this->get_name()}_{$section_id}", $settings );
 		}
 
 		/**
@@ -202,10 +201,9 @@ abstract class Tab extends \WC_Settings_Page {
 		 * @param string $tab_name The name of the tab e.g. checkboxes
 		 * @param string $section_id The section name e.g. product_widgets. Might be empty too.
 		 *
-		 * @since 3.0.0
 		 *
 		 */
-		return apply_filters( 'woocommerce_gzd_shipments_admin_settings', $settings, $this->get_name(), $section_id );
+		return apply_filters( 'woocommerce_shiptastic_admin_settings', $settings, $this->get_name(), $section_id );
 	}
 
 	public function get_settings_for_section_core( $section_id ) {
@@ -254,9 +252,8 @@ abstract class Tab extends \WC_Settings_Page {
 		 *
 		 * @param string $current_section The current sub section of the tab.
 		 *
-		 * @since 3.0.0
 		 */
-		do_action( "woocommerce_gzd_shipments_admin_settings_before_wrapper_{$this->get_name()}", $current_section );
+		do_action( "woocommerce_shiptastic_admin_settings_before_wrapper_{$this->get_name()}", $current_section );
 
 		include Package::get_path( 'includes/admin/views/tabs/html-admin-settings-section.php' );
 	}
@@ -307,9 +304,8 @@ abstract class Tab extends \WC_Settings_Page {
 		 * @param array  $settings Array containing the settings to be saved.
 		 * @param string $current_section The current section.
 		 *
-		 * @since 3.0.0
 		 */
-		do_action( "woocommerce_gzd_shipments_admin_settings_before_save_{$this->get_name()}", $settings, $current_section );
+		do_action( "woocommerce_shiptastic_admin_settings_before_save_{$this->get_name()}", $settings, $current_section );
 
 		if ( ! empty( $current_section ) ) {
 
@@ -321,9 +317,8 @@ abstract class Tab extends \WC_Settings_Page {
 			 *
 			 * @param array $settings Array containing the settings to be saved.
 			 *
-			 * @since 3.0.0
 			 */
-			do_action( "woocommerce_gzd_shipments_admin_settings_before_save_{$this->get_name()}_{$current_section}", $settings );
+			do_action( "woocommerce_shiptastic_admin_settings_before_save_{$this->get_name()}_{$current_section}", $settings );
 		}
 	}
 
@@ -337,9 +332,8 @@ abstract class Tab extends \WC_Settings_Page {
 		 * @param array  $settings Array containing the settings to be saved.
 		 * @param string $current_section The current section.
 		 *
-		 * @since 3.0.0
 		 */
-		do_action( "woocommerce_gzd_shipments_admin_settings_after_save_{$this->get_name()}", $settings, $current_section );
+		do_action( "woocommerce_shiptastic_admin_settings_after_save_{$this->get_name()}", $settings, $current_section );
 
 		if ( ! empty( $current_section ) ) {
 
@@ -351,10 +345,9 @@ abstract class Tab extends \WC_Settings_Page {
 			 *
 			 * @param array $settings Array containing the settings to be saved.
 			 *
-			 * @since 3.0.0
 			 *
 			 */
-			do_action( "woocommerce_gzd_shipments_admin_settings_after_save_{$this->get_name()}_{$current_section}", $settings );
+			do_action( "woocommerce_shiptastic_admin_settings_after_save_{$this->get_name()}_{$current_section}", $settings );
 		}
 	}
 

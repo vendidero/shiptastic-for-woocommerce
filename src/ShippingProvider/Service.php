@@ -1,11 +1,11 @@
 <?php
 
-namespace Vendidero\Germanized\Shipments\ShippingProvider;
+namespace Vendidero\Shiptastic\ShippingProvider;
 
-use Vendidero\Germanized\Shipments\Labels\ConfigurationSet;
-use Vendidero\Germanized\Shipments\Package;
-use Vendidero\Germanized\Shipments\Shipment;
-use Vendidero\Germanized\Shipments\ShipmentError;
+use Vendidero\Shiptastic\Labels\ConfigurationSet;
+use Vendidero\Shiptastic\Package;
+use Vendidero\Shiptastic\Shipment;
+use Vendidero\Shiptastic\ShipmentError;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -46,7 +46,7 @@ class Service {
 	protected $long_description = '';
 
 	public function __construct( $shipping_provider, $args = array() ) {
-		if ( is_a( $shipping_provider, 'Vendidero\Germanized\Shipments\Interfaces\ShippingProvider' ) ) {
+		if ( is_a( $shipping_provider, 'Vendidero\Shiptastic\Interfaces\ShippingProvider' ) ) {
 			$this->shipping_provider      = $shipping_provider;
 			$this->shipping_provider_name = $shipping_provider->get_name();
 		} else {
@@ -68,7 +68,7 @@ class Service {
 				'products'           => null,
 				'shipment_types'     => array( 'simple' ),
 				'countries'          => null,
-				'zones'              => array_keys( wc_gzd_get_shipping_label_zones() ),
+				'zones'              => array_keys( wc_stc_get_shipping_label_zones() ),
 			)
 		);
 
@@ -77,7 +77,7 @@ class Service {
 		}
 
 		if ( empty( $args['id'] ) ) {
-			throw new \Exception( _x( 'A service needs an id.', 'shipments', 'woocommerce-germanized-shipments' ), 500 );
+			throw new \Exception( esc_html_x( 'A service needs an id.', 'shipments', 'shiptastic-for-woocommerce' ), 500 );
 		}
 
 		$this->id               = $args['id'];
@@ -88,7 +88,7 @@ class Service {
 		$this->option_type      = $args['option_type'];
 		$this->default_value    = $args['default_value'];
 		$this->options          = array_filter( (array) $args['options'] );
-		$this->locations        = array_diff( wc_gzd_get_shipping_provider_service_locations(), array_filter( (array) $args['excluded_locations'] ) );
+		$this->locations        = array_diff( wc_stc_get_shipping_provider_service_locations(), array_filter( (array) $args['excluded_locations'] ) );
 		$this->products         = is_null( $args['products'] ) ? null : array_filter( (array) $args['products'] );
 		$this->shipment_types   = array_filter( (array) $args['shipment_types'] );
 		$this->countries        = is_null( $args['countries'] ) ? null : array_filter( (array) $args['countries'] );
@@ -140,12 +140,12 @@ class Service {
 	}
 
 	public function get_setting_id( $args = array(), $service_meta = '' ) {
-		if ( is_a( $args, 'Vendidero\Germanized\Shipments\Shipment' ) ) {
+		if ( is_a( $args, 'Vendidero\Shiptastic\Shipment' ) ) {
 			$args = array(
 				'zone'          => $args->get_shipping_zone(),
 				'shipment_type' => $args->get_type(),
 			);
-		} elseif ( is_a( $args, 'Vendidero\Germanized\Shipments\Labels\ConfigurationSet' ) ) {
+		} elseif ( is_a( $args, 'Vendidero\Shiptastic\Labels\ConfigurationSet' ) ) {
 			$setting_id = $this->get_id() . ( empty( $service_meta ) ? '' : '-m-' . $service_meta );
 			$group      = empty( $service_meta ) ? 'service' : 'service_meta';
 
@@ -161,7 +161,7 @@ class Service {
 			)
 		);
 
-		if ( is_a( $args['shipment'], 'Vendidero\Germanized\Shipments\Shipment' ) ) {
+		if ( is_a( $args['shipment'], 'Vendidero\Shiptastic\Shipment' ) ) {
 			$args['zone']          = $args['shipment']->get_shipping_zone();
 			$args['shipment_type'] = $args['shipment']->get_type();
 		}
@@ -243,13 +243,13 @@ class Service {
 			$filter_args['product'] = $filter_args['product_id'];
 		}
 
-		if ( ! empty( $filter_args['product'] ) && is_a( $filter_args['product'], '\Vendidero\Germanized\Shipments\ShippingProvider\Product' ) ) {
+		if ( ! empty( $filter_args['product'] ) && is_a( $filter_args['product'], '\Vendidero\Shiptastic\ShippingProvider\Product' ) ) {
 			$filter_args['product'] = $filter_args['product']->get_id();
 		}
 
 		$include_service = true;
 
-		if ( ! empty( $filter_args['shipment'] ) && ( $shipment = wc_gzd_get_shipment( $filter_args['shipment'] ) ) ) {
+		if ( ! empty( $filter_args['shipment'] ) && ( $shipment = wc_stc_get_shipment( $filter_args['shipment'] ) ) ) {
 			$include_service = $this->supports_shipment( $shipment );
 
 			$filter_args['shipment_type'] = '';
@@ -309,7 +309,7 @@ class Service {
 
 	public function get_shipping_provider() {
 		if ( is_null( $this->shipping_provider ) ) {
-			$this->shipping_provider = wc_gzd_get_shipping_provider( $this->shipping_provider_name );
+			$this->shipping_provider = wc_stc_get_shipping_provider( $this->shipping_provider_name );
 		}
 
 		return $this->shipping_provider;
@@ -334,14 +334,14 @@ class Service {
 				$value = wc_bool_to_string( $value );
 			}
 
-			$option_type = 'gzd_shipments_toggle';
+			$option_type = 'shiptastic_toggle';
 		}
 
 		return array_merge(
 			array(
 				array(
 					'title'   => $this->get_label(),
-					'desc'    => $this->get_description() . ( ! empty( $this->get_long_description() ) ? ' <div class="wc-gzd-shipments-additional-desc">' . $this->get_long_description() . '</div>' : '' ),
+					'desc'    => $this->get_description() . ( ! empty( $this->get_long_description() ) ? ' <div class="wc-shiptastic-additional-desc">' . $this->get_long_description() . '</div>' : '' ),
 					'id'      => $setting_id,
 					'value'   => $value,
 					'default' => $this->get_default_value(),
@@ -391,12 +391,12 @@ class Service {
 				}
 
 				if ( empty( $value ) ) {
-					$error->add( 500, sprintf( _x( 'Please choose a valid value for the service %1$s: %2$s.', 'shipments', 'woocommerce-germanized-shipments' ), $this->get_label(), $field['label'] ) );
+					$error->add( 500, sprintf( _x( 'Please choose a valid value for the service %1$s: %2$s.', 'shipments', 'shiptastic-for-woocommerce' ), $this->get_label(), $field['label'] ) );
 				}
 			}
 		}
 
-		if ( wc_gzd_shipment_wp_error_has_errors( $error ) ) {
+		if ( wc_stc_shipment_wp_error_has_errors( $error ) ) {
 			return $error;
 		}
 
@@ -420,7 +420,7 @@ class Service {
 	 * @return mixed
 	 */
 	public function get_value( $shipment, $suffix = '' ) {
-		if ( is_a( $shipment, 'Vendidero\Germanized\Shipments\Labels\ConfigurationSet' ) ) {
+		if ( is_a( $shipment, 'Vendidero\Shiptastic\Labels\ConfigurationSet' ) ) {
 			$config_set = $shipment;
 		} else {
 			$config_set = $shipment->get_label_configuration_set();
@@ -436,7 +436,7 @@ class Service {
 			}
 		}
 
-		if ( 'no' === $value && is_a( $shipment, '\Vendidero\Germanized\Shipments\Shipment' ) && true === $this->book_as_default( $shipment ) ) {
+		if ( 'no' === $value && is_a( $shipment, '\Vendidero\Shiptastic\Shipment' ) && true === $this->book_as_default( $shipment ) ) {
 			$value = 'yes';
 		}
 

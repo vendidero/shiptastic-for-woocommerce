@@ -2,7 +2,7 @@
 /**
  * A class of utilities for dealing with numbers.
  */
-namespace Vendidero\Germanized\Shipments\Utilities;
+namespace Vendidero\Shiptastic\Utilities;
 
 /**
  * A class of utilities for dealing with numbers.

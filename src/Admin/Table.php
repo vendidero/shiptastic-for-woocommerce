@@ -1,20 +1,20 @@
 <?php
 
-namespace Vendidero\Germanized\Shipments\Admin;
+namespace Vendidero\Shiptastic\Admin;
 
-use Vendidero\Germanized\Shipments\Shipment;
-use Vendidero\Germanized\Shipments\Package;
-use Vendidero\Germanized\Shipments\ShipmentItem;
+use Vendidero\Shiptastic\Shipment;
+use Vendidero\Shiptastic\Package;
+use Vendidero\Shiptastic\ShipmentItem;
 use WC_DateTime;
 use WP_List_Table;
-use Vendidero\Germanized\Shipments\ShipmentQuery;
+use Vendidero\Shiptastic\ShipmentQuery;
 use WP_Query;
 
 defined( 'ABSPATH' ) || exit;
 
 /**
  * Class Table
- * @package Vendidero/Germanized/Shipments\Admin
+ * @package Vendidero/Shiptastic\Admin
  */
 class Table extends WP_List_Table {
 
@@ -31,7 +31,6 @@ class Table extends WP_List_Table {
 	/**
 	 * Constructor.
 	 *
-	 * @since 3.0.6
 	 *
 	 * @see WP_List_Table::__construct() for more information on default arguments.
 	 *
@@ -103,16 +102,13 @@ class Table extends WP_List_Table {
 		$changed = 0;
 
 		if ( false !== strpos( $action, 'mark_' ) ) {
-
-			$shipment_statuses = wc_gzd_get_shipment_statuses();
+			$shipment_statuses = wc_stc_get_shipment_statuses();
 			$new_status        = substr( $action, 5 ); // Get the status name from action.
 
 			// Sanity check: bail out if this is actually not a status, or is not a registered status.
-			if ( isset( $shipment_statuses[ 'gzd-' . $new_status ] ) ) {
-
+			if ( isset( $shipment_statuses[ $new_status ] ) ) {
 				foreach ( $ids as $id ) {
-
-					if ( $shipment = wc_gzd_get_shipment( $id ) ) {
+					if ( $shipment = wc_stc_get_shipment( $id ) ) {
 						$shipment->update_status( $new_status, true );
 
 						/**
@@ -121,24 +117,23 @@ class Table extends WP_List_Table {
 						 * @param integer $shipment_id The shipment id.
 						 * @param string  $new_status The new shipment status.
 						 *
-						 * @since 3.0.0
-						 * @package Vendidero/Germanized/Shipments
+						 * @package Vendidero/Shiptastic
 						 */
-						do_action( 'woocommerce_gzd_shipment_edit_status', $id, $new_status );
+						do_action( 'woocommerce_shiptastic_shipment_edit_status', $id, $new_status );
 						$changed++;
 					}
 				}
 			}
 		} elseif ( 'delete' === $action ) {
 			foreach ( $ids as $id ) {
-				if ( $shipment = wc_gzd_get_shipment( $id ) ) {
+				if ( $shipment = wc_stc_get_shipment( $id ) ) {
 					$shipment->delete( true );
 					$changed++;
 				}
 			}
 		} elseif ( 'confirm_requests' === $action ) {
 			foreach ( $ids as $id ) {
-				if ( $shipment = wc_gzd_get_shipment( $id ) ) {
+				if ( $shipment = wc_stc_get_shipment( $id ) ) {
 					if ( 'return' === $shipment->get_type() ) {
 						if ( $shipment->is_customer_requested() && $shipment->has_status( 'requested' ) ) {
 							if ( $shipment->confirm_customer_request() ) {
@@ -158,10 +153,9 @@ class Table extends WP_List_Table {
 		 * @param string                                      $redirect_to The redirect URL.
 		 * @param Table $table The table instance.
 		 *
-		 * @since 3.0.0
-		 * @package Vendidero/Germanized/Shipments
+		 * @package Vendidero/Shiptastic
 		 */
-		$changed = apply_filters( 'woocommerce_gzd_shipments_bulk_action', $changed, $action, $ids, $redirect_to, $this );
+		$changed = apply_filters( 'woocommerce_shiptastic_bulk_action', $changed, $action, $ids, $redirect_to, $this );
 
 		if ( $changed ) {
 			$redirect_to = add_query_arg(
@@ -197,18 +191,14 @@ class Table extends WP_List_Table {
 		$bulk_action = isset( $_REQUEST['bulk_action'] ) ? wc_clean( wp_unslash( $_REQUEST['bulk_action'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 
 		if ( 'delete' === $bulk_action ) {
-
-			$this->set_notice( sprintf( _nx( '%d shipment deleted.', '%d shipments deleted.', $number, 'shipments', 'woocommerce-germanized-shipments' ), number_format_i18n( $number ) ) );
-
+			$this->set_notice( sprintf( _nx( '%d shipment deleted.', '%d shipments deleted.', $number, 'shipments', 'shiptastic-for-woocommerce' ), number_format_i18n( $number ) ) );
 		} elseif ( strpos( $bulk_action, 'mark_' ) !== false ) {
-
-			$shipment_statuses = wc_gzd_get_shipment_statuses();
+			$shipment_statuses = wc_stc_get_shipment_statuses();
 
 			// Check if any status changes happened.
 			foreach ( $shipment_statuses as $slug => $name ) {
-
-				if ( 'mark_' . str_replace( 'gzd-', '', $slug ) === $bulk_action ) { // WPCS: input var ok, CSRF ok.
-					$this->set_notice( sprintf( _nx( '%d shipment status changed.', '%d shipment statuses changed.', $number, 'shipments', 'woocommerce-germanized-shipments' ), number_format_i18n( $number ) ) );
+				if ( "mark_{$slug}" === $bulk_action ) { // WPCS: input var ok, CSRF ok.
+					$this->set_notice( sprintf( _nx( '%d shipment status changed.', '%d shipment statuses changed.', $number, 'shipments', 'shiptastic-for-woocommerce' ), number_format_i18n( $number ) ) );
 					break;
 				}
 			}
@@ -221,13 +211,12 @@ class Table extends WP_List_Table {
 		 * The dynamic portion of this hook, `$this->get_hook_prefix()` is used to construct a
 		 * unique hook for a shipment type e.g. return. In case of simple shipments the type is omitted.
 		 *
-		 * Example hook name: woocommerce_gzd_return_shipments_table_bulk_notice
+		 * Example hook name: woocommerce_shiptastic_return_shipments_table_bulk_notice
 		 *
 		 * @param string $bulk_action The bulk action.
 		 * @param Table  $shipment_table The table object.
 		 *
-		 * @since 3.0.0
-		 * @package Vendidero/Germanized/Shipments
+		 * @package Vendidero/Shiptastic
 		 */
 		do_action( "{$this->get_hook_prefix()}bulk_notice", $bulk_action, $this );
 	}
@@ -251,7 +240,7 @@ class Table extends WP_List_Table {
 	}
 
 	public function get_page_option() {
-		return 'woocommerce_page_wc_gzd_shipments_per_page';
+		return 'woocommerce_page_wc_shiptastic_per_page';
 	}
 
 	/**
@@ -271,17 +260,16 @@ class Table extends WP_List_Table {
 		 * The dynamic portion of this hook, `$this->get_hook_prefix()` is used to construct a
 		 * unique hook for a shipment type e.g. return. In case of simple shipments the type is omitted.
 		 *
-		 * Example hook name: woocommerce_gzd_return_shipments_table_edit_per_page
+		 * Example hook name: woocommerce_shiptastic_return_shipments_table_edit_per_page
 		 *
 		 * @param integer $per_page Number of Shipments per page.
 		 * @param string  $type The type in this case shipment.
 		 *
-		 * @since 3.0.0
-		 * @package Vendidero/Germanized/Shipments
+		 * @package Vendidero/Shiptastic
 		 */
 		$per_page     = apply_filters( "{$this->get_hook_prefix()}edit_per_page", $per_page, 'shipment' ); // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
-		$this->stati  = wc_gzd_get_shipment_statuses();
-		$this->counts = wc_gzd_get_shipment_counts( $this->shipment_type );
+		$this->stati  = wc_stc_get_shipment_statuses();
+		$this->counts = wc_stc_get_shipment_counts( $this->shipment_type );
 		$paged        = $this->get_pagenum();
 
 		$args = array(
@@ -381,13 +369,12 @@ class Table extends WP_List_Table {
 	/**
 	 */
 	public function no_items() {
-		echo esc_html_x( 'No shipments found', 'shipments', 'woocommerce-germanized-shipments' );
+		echo esc_html_x( 'No shipments found', 'shipments', 'shiptastic-for-woocommerce' );
 	}
 
 	/**
 	 * Determine if the current view is the "All" view.
 	 *
-	 * @since 4.2.0
 	 *
 	 * @return bool Whether the current view is the "All" view.
 	 */
@@ -425,14 +412,14 @@ class Table extends WP_List_Table {
 				'All <span class="count">(%s)</span>',
 				$total_shipments,
 				'shipments',
-				'woocommerce-germanized-shipments'
+				'shiptastic-for-woocommerce'
 			),
 			number_format_i18n( $total_shipments )
 		);
 
 		$status_links['all'] = $this->get_edit_link( $all_args, $all_inner_html, $class );
 
-		foreach ( wc_gzd_get_shipment_statuses() as $status => $title ) {
+		foreach ( wc_stc_get_shipment_statuses() as $status => $title ) {
 			$class = '';
 
 			if ( ! in_array( $status, array_keys( $this->stati ), true ) || empty( $num_shipments[ $status ] ) ) {
@@ -448,7 +435,7 @@ class Table extends WP_List_Table {
 			);
 
 			$status_label = sprintf(
-				translate_nooped_plural( _nx_noop( ( $title . ' <span class="count">(%s)</span>' ), ( $title . ' <span class="count">(%s)</span>' ), 'shipments', 'woocommerce-germanized-shipments' ), $num_shipments[ $status ] ), // phpcs:ignore WordPress.WP.I18n.NonSingularStringLiteralSingle,WordPress.WP.I18n.NonSingularStringLiteralPlural
+				translate_nooped_plural( _nx_noop( ( $title . ' <span class="count">(%s)</span>' ), ( $title . ' <span class="count">(%s)</span>' ), 'shipments', 'shiptastic-for-woocommerce' ), $num_shipments[ $status ] ), // phpcs:ignore WordPress.WP.I18n.NonSingularStringLiteralSingle,WordPress.WP.I18n.NonSingularStringLiteralPlural
 				number_format_i18n( $num_shipments[ $status ] )
 			);
 
@@ -461,7 +448,6 @@ class Table extends WP_List_Table {
 	/**
 	 * Helper to create links to edit.php with params.
 	 *
-	 * @since 4.4.0
 	 *
 	 * @param string[] $args  Associative array of URL parameters for the link.
 	 * @param string   $label Link text.
@@ -506,7 +492,6 @@ class Table extends WP_List_Table {
 	/**
 	 * Display a monthly dropdown for filtering items
 	 *
-	 * @since 3.0.6
 	 *
 	 * @global wpdb      $wpdb
 	 * @global WP_Locale $wp_locale
@@ -522,7 +507,7 @@ class Table extends WP_List_Table {
 			$extra_checks = $wpdb->prepare( ' AND shipment_status = %s', wc_clean( wp_unslash( $_GET['shipment_status'] ) ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		}
 
-		$months      = $wpdb->get_results( "SELECT DISTINCT YEAR( shipment_date_created ) AS year, MONTH( shipment_date_created ) AS month FROM $wpdb->gzd_shipments WHERE 1=1 $extra_checks ORDER BY shipment_date_created DESC" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$months      = $wpdb->get_results( "SELECT DISTINCT YEAR( shipment_date_created ) AS year, MONTH( shipment_date_created ) AS month FROM $wpdb->stc_shipments WHERE 1=1 $extra_checks ORDER BY shipment_date_created DESC" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$month_count = count( $months );
 
 		if ( ! $month_count || ( 1 === $month_count && 0 === $months[0]->month ) ) {
@@ -531,9 +516,9 @@ class Table extends WP_List_Table {
 
 		$m = isset( $_GET['m'] ) ? absint( wp_unslash( $_GET['m'] ) ) : 0; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		?>
-		<label for="filter-by-date" class="screen-reader-text"><?php echo esc_html_x( 'Filter by date', 'shipments', 'woocommerce-germanized-shipments' ); ?></label>
+		<label for="filter-by-date" class="screen-reader-text"><?php echo esc_html_x( 'Filter by date', 'shipments', 'shiptastic-for-woocommerce' ); ?></label>
 		<select name="m" id="filter-by-date">
-			<option<?php selected( $m, 0 ); ?> value="0"><?php echo esc_html_x( 'All dates', 'shipments', 'woocommerce-germanized-shipments' ); ?></option>
+			<option<?php selected( $m, 0 ); ?> value="0"><?php echo esc_html_x( 'All dates', 'shipments', 'shiptastic-for-woocommerce' ); ?></option>
 			<?php
 			foreach ( $months as $arc_row ) {
 				if ( 0 === $arc_row->year ) {
@@ -559,7 +544,6 @@ class Table extends WP_List_Table {
 	/**
 	 * Generate the table navigation above or below the table
 	 *
-	 * @since 3.0.6
 	 * @param string $which
 	 */
 	protected function display_tablenav( $which ) {
@@ -569,7 +553,7 @@ class Table extends WP_List_Table {
 		if ( 'top' === $which ) {
 			?>
 			<div class="bulk-action-wrapper">
-				<h4 class="bulk-title"><?php echo esc_html_x( 'Processing bulk actions...', 'shipments', 'woocommerce-germanized-shipments' ); ?></h4>
+				<h4 class="bulk-title"><?php echo esc_html_x( 'Processing bulk actions...', 'shipments', 'shiptastic-for-woocommerce' ); ?></h4>
 				<div class="bulk-notice-wrapper"></div>
 				<progress class="woocommerce-shimpents-bulk-progress" max="100" value="0"></progress>
 			</div>
@@ -610,13 +594,12 @@ class Table extends WP_List_Table {
 				 * unique hook for a shipment type e.g. return. In case of simple shipments the type is omitted.
 				 * `$bulk_action` refers to the bulk action handled.
 				 *
-				 * Example hook name: woocommerce_gzd_return_shipments_table_mark_processing_handled
+				 * Example hook name: woocommerce_shiptastic_return_shipments_table_mark_processing_handled
 				 *
 				 * @param BulkActionHandler $bulk_action_handler The bulk action handler.
 				 * @param string            $bulk_action The bulk action.
 				 *
-				 * @since 3.0.0
-				 * @package Vendidero/Germanized/Shipments
+				 * @package Vendidero/Shiptastic
 				 */
 				do_action( "{$this->get_hook_prefix()}bulk_action_{$bulk_action}_handled", $handler, $bulk_action );
 				?>
@@ -650,12 +633,11 @@ class Table extends WP_List_Table {
 				 * The dynamic portion of this hook, `$this->get_hook_prefix()` is used to construct a
 				 * unique hook for a shipment type e.g. return. In case of simple shipments the type is omitted.
 				 *
-				 * Example hook name: woocommerce_gzd_return_shipments_table_filters
+				 * Example hook name: woocommerce_shiptastic_return_shipments_table_filters
 				 *
 				 * @param string $which top or bottom.
 				 *
-				 * @since 3.0.0
-				 * @package Vendidero/Germanized/Shipments
+				 * @package Vendidero/Shiptastic
 				 */
 				do_action( "{$this->get_hook_prefix()}filters", $which );
 
@@ -664,7 +646,7 @@ class Table extends WP_List_Table {
 				if ( ! empty( $output ) ) {
 					echo $output; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 
-					submit_button( _x( 'Filter', 'shipments', 'woocommerce-germanized-shipments' ), '', 'filter_action', false, array( 'id' => 'shipment-query-submit' ) );
+					submit_button( _x( 'Filter', 'shipments', 'shiptastic-for-woocommerce' ), '', 'filter_action', false, array( 'id' => 'shipment-query-submit' ) );
 				}
 			}
 			?>
@@ -680,12 +662,12 @@ class Table extends WP_List_Table {
 		if ( ! empty( $_GET['shipping_provider'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 			$shipping_provider = wc_clean( wp_unslash( $_GET['shipping_provider'] ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 
-			if ( $provider = wc_gzd_get_shipping_provider( $shipping_provider ) ) {
+			if ( $provider = wc_stc_get_shipping_provider( $shipping_provider ) ) {
 				$provider_string = $provider->get_title();
 			}
 		}
 		?>
-		<select class="wc-gzd-shipping-provider-search" name="shipping_provider" data-placeholder="<?php echo esc_attr_x( 'Filter by shipping provider', 'shipments', 'woocommerce-germanized-shipments' ); ?>" data-allow_clear="true">
+		<select class="wc-stc-shipping-provider-search" name="shipping_provider" data-placeholder="<?php echo esc_attr_x( 'Filter by shipping provider', 'shipments', 'shiptastic-for-woocommerce' ); ?>" data-allow_clear="true">
 			<option value="<?php echo esc_attr( $shipping_provider ); ?>" selected="selected"><?php echo htmlspecialchars( wp_kses_post( $provider_string ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?><option>
 		</select>
 		<?php
@@ -698,12 +680,12 @@ class Table extends WP_List_Table {
 		if ( ! empty( $_GET['order_id'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 			$order_id     = absint( $_GET['order_id'] ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 			$order_string = sprintf(
-				esc_html_x( 'Order #%s', 'shipments', 'woocommerce-germanized-shipments' ),
+				esc_html_x( 'Order #%s', 'shipments', 'shiptastic-for-woocommerce' ),
 				$order_id
 			);
 		}
 		?>
-		<select class="wc-gzd-order-search" name="order_id" data-placeholder="<?php echo esc_attr_x( 'Filter by order', 'shipments', 'woocommerce-germanized-shipments' ); ?>" data-allow_clear="true">
+		<select class="wc-stc-order-search" name="order_id" data-placeholder="<?php echo esc_attr_x( 'Filter by order', 'shipments', 'shiptastic-for-woocommerce' ); ?>" data-allow_clear="true">
 			<option value="<?php echo esc_attr( $order_id ); ?>" selected="selected"><?php echo htmlspecialchars( wp_kses_post( $order_string ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?><option>
 		</select>
 		<?php
@@ -720,16 +702,16 @@ class Table extends WP_List_Table {
 		$columns = array();
 
 		$columns['cb']         = '<input type="checkbox" />';
-		$columns['title']      = _x( 'Title', 'shipments', 'woocommerce-germanized-shipments' );
-		$columns['date']       = _x( 'Date', 'shipments', 'woocommerce-germanized-shipments' );
-		$columns['status']     = _x( 'Status', 'shipments', 'woocommerce-germanized-shipments' );
-		$columns['items']      = _x( 'Items', 'shipments', 'woocommerce-germanized-shipments' );
-		$columns['address']    = _x( 'Address', 'shipments', 'woocommerce-germanized-shipments' );
-		$columns['packaging']  = _x( 'Packaging', 'shipments', 'woocommerce-germanized-shipments' );
-		$columns['weight']     = _x( 'Weight', 'shipments', 'woocommerce-germanized-shipments' );
-		$columns['dimensions'] = _x( 'Dimensions', 'shipments', 'woocommerce-germanized-shipments' );
-		$columns['order']      = _x( 'Order', 'shipments', 'woocommerce-germanized-shipments' );
-		$columns['actions']    = _x( 'Actions', 'shipments', 'woocommerce-germanized-shipments' );
+		$columns['title']      = _x( 'Title', 'shipments', 'shiptastic-for-woocommerce' );
+		$columns['date']       = _x( 'Date', 'shipments', 'shiptastic-for-woocommerce' );
+		$columns['status']     = _x( 'Status', 'shipments', 'shiptastic-for-woocommerce' );
+		$columns['items']      = _x( 'Items', 'shipments', 'shiptastic-for-woocommerce' );
+		$columns['address']    = _x( 'Address', 'shipments', 'shiptastic-for-woocommerce' );
+		$columns['packaging']  = _x( 'Packaging', 'shipments', 'shiptastic-for-woocommerce' );
+		$columns['weight']     = _x( 'Weight', 'shipments', 'shiptastic-for-woocommerce' );
+		$columns['dimensions'] = _x( 'Dimensions', 'shipments', 'shiptastic-for-woocommerce' );
+		$columns['order']      = _x( 'Order', 'shipments', 'shiptastic-for-woocommerce' );
+		$columns['actions']    = _x( 'Actions', 'shipments', 'shiptastic-for-woocommerce' );
 
 		return $columns;
 	}
@@ -746,12 +728,11 @@ class Table extends WP_List_Table {
 		 * The dynamic portion of this hook, `$this->get_hook_prefix()` is used to construct a
 		 * unique hook for a shipment type e.g. return. In case of simple shipments the type is omitted.
 		 *
-		 * Example hook name: woocommerce_gzd_return_shipments_table_edit_per_page
+		 * Example hook name: woocommerce_shiptastic_return_shipments_table_edit_per_page
 		 *
 		 * @param string[] $columns An associative array of column headings.
 		 *
-		 * @since 3.0.0
-		 * @package Vendidero/Germanized/Shipments
+		 * @package Vendidero/Shiptastic
 		 */
 		$columns = apply_filters( "{$this->get_hook_prefix()}columns", $columns );
 
@@ -776,7 +757,6 @@ class Table extends WP_List_Table {
 	/**
 	 * Gets the name of the default primary column.
 	 *
-	 * @since 4.3.0
 	 *
 	 * @return string Name of the default primary column, in this case, 'title'.
 	 */
@@ -787,7 +767,6 @@ class Table extends WP_List_Table {
 	/**
 	 * Handles the default column output.
 	 *
-	 * @since 4.3.0
 	 *
 	 * @param Shipment $shipment The current shipment object.
 	 * @param string          $column_name The current column name.
@@ -800,30 +779,28 @@ class Table extends WP_List_Table {
 		 * The dynamic portion of this hook, `$this->get_hook_prefix()` is used to construct a
 		 * unique hook for a shipment type e.g. return. In case of simple shipments the type is omitted.
 		 *
-		 * Example hook name: woocommerce_gzd_return_shipments_table_filters
+		 * Example hook name: woocommerce_shiptastic_return_shipments_table_filters
 		 *
 		 * @param string  $column_name The name of the column to display.
 		 * @param integer $shipment_id The current shipment id.
 		 *
-		 * @since 3.0.0
-		 * @package Vendidero/Germanized/Shipments
+		 * @package Vendidero/Shiptastic
 		 */
 		do_action( "{$this->get_hook_prefix()}custom_column", $column_name, $shipment->get_id() );
 	}
 
 	public function get_main_page() {
-		return 'admin.php?page=wc-gzd-shipments';
+		return 'admin.php?page=wc-shiptastic';
 	}
 
 	/**
 	 * Handles the post author column output.
 	 *
-	 * @since 4.3.0
 	 *
 	 * @param Shipment $shipment The current shipment object.
 	 */
 	public function column_title( $shipment ) {
-		$title = sprintf( _x( '%1$s #%2$s', 'shipment title', 'woocommerce-germanized-shipments' ), wc_gzd_get_shipment_label_title( $shipment->get_type() ), $shipment->get_shipment_number() );
+		$title = sprintf( _x( '%1$s #%2$s', 'shipment title', 'shiptastic-for-woocommerce' ), wc_stc_get_shipment_label_title( $shipment->get_type() ), $shipment->get_shipment_number() );
 
 		if ( $order = $shipment->get_order() ) {
 			echo '<a href="' . esc_url( $shipment->get_edit_shipment_url() ) . '">' . wp_kses_post( $title ) . '</a> ';
@@ -831,28 +808,28 @@ class Table extends WP_List_Table {
 			echo wp_kses_post( $title ) . ' ';
 		}
 
-		echo '<a href="#" class="shipment-preview has-shipment-modal" data-id="wc-gzd-modal-preview-shipment" data-load-async="1" data-reference="' . esc_attr( $shipment->get_id() ) . '" data-nonce-params="wc_gzd_admin_shipments_table_params">' . esc_html_x( 'Preview', 'shipments', 'woocommerce-germanized-shipments' ) . '</a>';
+		echo '<a href="#" class="shipment-preview has-shipment-modal" data-id="wc-stc-modal-preview-shipment" data-load-async="1" data-reference="' . esc_attr( $shipment->get_id() ) . '" data-nonce-params="wc_stc_admin_shipments_table_params">' . esc_html_x( 'Preview', 'shipments', 'shiptastic-for-woocommerce' ) . '</a>';
 
 		?>
-		<script type="text/template" id="tmpl-wc-gzd-modal-preview-shipment-<?php echo esc_attr( $shipment->get_id() ); ?>" class="wc-gzd-shipment-preview-<?php echo esc_attr( $shipment->get_type() ); ?>">
-			<div class="wc-backbone-modal wc-gzd-admin-shipment-modal wc-gzd-modal-preview-shipment">
+		<script type="text/template" id="tmpl-wc-stc-modal-preview-shipment-<?php echo esc_attr( $shipment->get_id() ); ?>" class="wc-stc-shipment-preview-<?php echo esc_attr( $shipment->get_type() ); ?>">
+			<div class="wc-backbone-modal wc-stc-admin-shipment-modal wc-stc-modal-preview-shipment">
 				<div class="wc-backbone-modal-content">
 					<section class="wc-backbone-modal-main" role="main">
 						<header class="wc-backbone-modal-header">
-							<h1><?php printf( esc_html_x( '%1$s %2$s', 'shipments-preview-title', 'woocommerce-germanized-shipments' ), esc_html( wc_gzd_get_shipment_label_title( $shipment->get_type() ) ), esc_html( $shipment->get_shipment_number() ) ); ?></h1>
+							<h1><?php printf( esc_html_x( '%1$s %2$s', 'shipments-preview-title', 'shiptastic-for-woocommerce' ), esc_html( wc_stc_get_shipment_label_title( $shipment->get_type() ) ), esc_html( $shipment->get_shipment_number() ) ); ?></h1>
 							<div class="wc-backbone-modal-header-header-right">
-								<mark class="shipment-status shipment-type-<?php echo esc_attr( $shipment->get_type() ); ?>-status status-<?php echo esc_attr( $shipment->get_status() ); ?>"><?php echo esc_html( wc_gzd_get_shipment_status_name( $shipment->get_status() ) ); ?></mark>
+								<mark class="shipment-status shipment-type-<?php echo esc_attr( $shipment->get_type() ); ?>-status status-<?php echo esc_attr( $shipment->get_status() ); ?>"><?php echo esc_html( wc_stc_get_shipment_status_name( $shipment->get_status() ) ); ?></mark>
 								<button class="modal-close modal-close-link dashicons dashicons-no-alt">
 									<span class="screen-reader-text">Close modal panel</span>
 								</button>
 							</div>
 						</header>
-						<article class="germanized-shipments germanized-preview-shipment">
-							<div class="wc-gzd-preview-shipment"></div>
+						<article class="shiptastic-shipments shiptastic-preview-shipment">
+							<div class="wc-stc-preview-shipment"></div>
 						</article>
 						<footer>
 							<div class="inner">
-								<a class="button button-primary button-large" href="<?php echo esc_url( $shipment->get_edit_shipment_url() ); ?>"><?php echo esc_html_x( 'Edit', 'shipments', 'woocommerce-germanized-shipments' ); ?></a>
+								<a class="button button-primary button-large" href="<?php echo esc_url( $shipment->get_edit_shipment_url() ); ?>"><?php echo esc_html_x( 'Edit', 'shipments', 'shiptastic-for-woocommerce' ); ?></a>
 							</div>
 						</footer>
 					</section>
@@ -871,7 +848,7 @@ class Table extends WP_List_Table {
 		$provider = $shipment->get_shipping_provider();
 
 		if ( ! empty( $provider ) ) {
-			echo '<span class="shipment-shipping-provider">' . sprintf( esc_html_x( 'via %s', 'shipments', 'woocommerce-germanized-shipments' ), wp_kses_post( wc_gzd_get_shipping_provider_title( $provider ) ) ) . '</span> ';
+			echo '<span class="shipment-shipping-provider">' . sprintf( esc_html_x( 'via %s', 'shipments', 'shiptastic-for-woocommerce' ), wp_kses_post( wc_stc_get_shipping_provider_title( $provider ) ) ) . '</span> ';
 		}
 
 		if ( $tracking_id = $shipment->get_tracking_id() ) {
@@ -892,7 +869,6 @@ class Table extends WP_List_Table {
 	/**
 	 * Handles shipment actions.
 	 *
-	 * @since 0.0.1
 	 *
 	 * @param Shipment $shipment The current shipment object.
 	 */
@@ -905,12 +881,11 @@ class Table extends WP_List_Table {
 		 * The dynamic portion of this hook, `$this->get_hook_prefix()` is used to construct a
 		 * unique hook for a shipment type e.g. return. In case of simple shipments the type is omitted.
 		 *
-		 * Example hook name: woocommerce_gzd_return_shipments_table_actions_start
+		 * Example hook name: woocommerce_shiptastic_return_shipments_table_actions_start
 		 *
 		 * @param Shipment $shipment The shipment object.
 		 *
-		 * @since 3.0.0
-		 * @package Vendidero/Germanized/Shipments
+		 * @package Vendidero/Shiptastic
 		 */
 		do_action( "{$this->get_hook_prefix()}actions_start", $shipment );
 
@@ -918,16 +893,16 @@ class Table extends WP_List_Table {
 
 		if ( $shipment->has_status( array( 'draft' ) ) ) {
 			$actions['processing'] = array(
-				'url'    => wp_nonce_url( admin_url( 'admin-ajax.php?action=woocommerce_gzd_update_shipment_status&status=processing&shipment_id=' . $shipment->get_id() ), 'update-shipment-status' ),
-				'name'   => _x( 'Processing', 'shipments', 'woocommerce-germanized-shipments' ),
+				'url'    => wp_nonce_url( admin_url( 'admin-ajax.php?action=woocommerce_stc_update_shipment_status&status=processing&shipment_id=' . $shipment->get_id() ), 'update-shipment-status' ),
+				'name'   => _x( 'Processing', 'shipments', 'shiptastic-for-woocommerce' ),
 				'action' => 'processing',
 			);
 		}
 
 		if ( $shipment->has_status( array( 'draft', 'processing' ) ) ) {
 			$actions['shipped'] = array(
-				'url'    => wp_nonce_url( admin_url( 'admin-ajax.php?action=woocommerce_gzd_update_shipment_status&status=shipped&shipment_id=' . $shipment->get_id() ), 'update-shipment-status' ),
-				'name'   => _x( 'Shipped', 'shipments', 'woocommerce-germanized-shipments' ),
+				'url'    => wp_nonce_url( admin_url( 'admin-ajax.php?action=woocommerce_stc_update_shipment_status&status=shipped&shipment_id=' . $shipment->get_id() ), 'update-shipment-status' ),
+				'name'   => _x( 'Shipped', 'shipments', 'shiptastic-for-woocommerce' ),
 				'action' => 'shipped',
 			);
 		}
@@ -936,21 +911,21 @@ class Table extends WP_List_Table {
 			if ( $label = $shipment->get_label() ) {
 				$actions['download_label'] = array(
 					'url'    => $label->get_download_url(),
-					'name'   => _x( 'Download label', 'shipments', 'woocommerce-germanized-shipments' ),
+					'name'   => _x( 'Download label', 'shipments', 'shiptastic-for-woocommerce' ),
 					'action' => 'download-label download',
 					'target' => '_blank',
 				);
 			} elseif ( $shipment->needs_label() ) {
 				$actions['generate_label'] = array(
 					'url'               => '#',
-					'name'              => _x( 'Generate label', 'shipments', 'woocommerce-germanized-shipments' ),
+					'name'              => _x( 'Generate label', 'shipments', 'shiptastic-for-woocommerce' ),
 					'action'            => 'generate-label has-shipment-modal generate',
 					'custom_attributes' => array(
-						'id'                => 'wc-gzd-create-label-' . $shipment->get_id(),
-						'data-id'           => 'wc-gzd-modal-create-shipment-label',
+						'id'                => 'wc-stc-create-label-' . $shipment->get_id(),
+						'data-id'           => 'wc-stc-modal-create-shipment-label',
 						'data-load-async'   => true,
 						'data-reference'    => $shipment->get_id(),
-						'data-nonce-params' => 'wc_gzd_admin_shipments_table_params',
+						'data-nonce-params' => 'wc_stc_admin_shipments_table_params',
 					),
 				);
 
@@ -966,17 +941,16 @@ class Table extends WP_List_Table {
 		 * The dynamic portion of this hook, `$this->get_hook_prefix()` is used to construct a
 		 * unique hook for a shipment type e.g. return. In case of simple shipments the type is omitted.
 		 *
-		 * Example hook name: woocommerce_gzd_return_shipments_table_actions
+		 * Example hook name: woocommerce_shiptastic_return_shipments_table_actions
 		 *
 		 * @param array    $actions The registered Shipment actions.
 		 * @param Shipment $shipment The shipment object.
 		 *
-		 * @since 3.0.0
-		 * @package Vendidero/Germanized/Shipments
+		 * @package Vendidero/Shiptastic
 		 */
 		$actions = apply_filters( "{$this->get_hook_prefix()}actions", $actions, $shipment );
 
-		echo wc_gzd_render_shipment_action_buttons( $actions ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+		echo wc_stc_render_shipment_action_buttons( $actions ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 
 		/**
 		 * Action that fires after table actions are outputted for a Shipment.
@@ -984,12 +958,11 @@ class Table extends WP_List_Table {
 		 * The dynamic portion of this hook, `$this->get_hook_prefix()` is used to construct a
 		 * unique hook for a shipment type e.g. return. In case of simple shipments the type is omitted.
 		 *
-		 * Example hook name: woocommerce_gzd_return_shipments_table_actions_end
+		 * Example hook name: woocommerce_shiptastic_return_shipments_table_actions_end
 		 *
 		 * @param Shipment $shipment The shipment object.
 		 *
-		 * @since 3.0.0
-		 * @package Vendidero/Germanized/Shipments
+		 * @package Vendidero/Shiptastic
 		 */
 		do_action( "{$this->get_hook_prefix()}actions_end", $shipment );
 
@@ -1000,7 +973,7 @@ class Table extends WP_List_Table {
 		if ( current_user_can( 'edit_shop_orders' ) ) :
 			?>
 			<label class="screen-reader-text" for="cb-select-<?php echo esc_attr( $shipment->get_id() ); ?>">
-				<?php printf( esc_html_x( 'Select %s', 'shipments', 'woocommerce-germanized-shipments' ), esc_html( $shipment->get_id() ) ); ?>
+				<?php printf( esc_html_x( 'Select %s', 'shipments', 'shiptastic-for-woocommerce' ), esc_html( $shipment->get_id() ) ); ?>
 			</label>
 			<input id="cb-select-<?php echo esc_attr( $shipment->get_id() ); ?>" type="checkbox" name="shipment[]" value="<?php echo esc_attr( $shipment->get_id() ); ?>" />
 			<?php
@@ -1010,24 +983,23 @@ class Table extends WP_List_Table {
 	/**
 	 * Handles the post author column output.
 	 *
-	 * @since 4.3.0
 	 *
 	 * @param Shipment $shipment The current shipment object.
 	 */
 	public function column_items( $shipment ) {
 		?>
-		<table class="wc-gzd-shipments-preview">
+		<table class="wc-shiptastic-preview">
 			<tbody>
 			<?php foreach ( $shipment->get_items() as $item ) : ?>
-				<tr class="wc-gzd-shipment-item-preview wc-gzd-shipment-item-preview-<?php echo esc_attr( $item->get_id() ); ?> <?php echo esc_attr( $item->get_item_parent_id() > 0 ? 'shipment-item-is-child shipment-item-parent-' . $item->get_item_parent_id() : '' ); ?> <?php echo esc_attr( $item->has_children() ? 'shipment-item-is-parent' : '' ); ?>">
-					<td class="wc-gzd-shipment-item-column-name">
+				<tr class="wc-stc-shipment-item-preview wc-stc-shipment-item-preview-<?php echo esc_attr( $item->get_id() ); ?> <?php echo esc_attr( $item->get_item_parent_id() > 0 ? 'shipment-item-is-child shipment-item-parent-' . $item->get_item_parent_id() : '' ); ?> <?php echo esc_attr( $item->has_children() ? 'shipment-item-is-parent' : '' ); ?>">
+					<td class="wc-stc-shipment-item-column-name">
 						<?php if ( $product = $item->get_product() ) : ?>
 							<a href="<?php echo esc_url( get_edit_post_link( $product->get_parent_id() > 0 ? $product->get_parent_id() : $product->get_id() ) ); ?>"><?php echo wp_kses_post( $item->get_name() ); ?></a>
 						<?php else : ?>
 							<?php echo wp_kses_post( $item->get_name() ); ?>
 						<?php endif; ?>
 
-						<?php echo ( $item->get_sku() ? '<br/><small>' . esc_html_x( 'SKU:', 'shipments', 'woocommerce-germanized-shipments' ) . ' ' . esc_html( $item->get_sku() ) . '</small>' : '' ); ?>
+						<?php echo ( $item->get_sku() ? '<br/><small>' . esc_html_x( 'SKU:', 'shipments', 'shiptastic-for-woocommerce' ) . ' ' . esc_html( $item->get_sku() ) . '</small>' : '' ); ?>
 
 						<?php
 						/**
@@ -1037,13 +1009,12 @@ class Table extends WP_List_Table {
 						 * @param ShipmentItem $shipment_item The shipment item instance.
 						 * @param Shipment $shipment The shipment instance.
 						 *
-						 * @since 3.0.6
-						 * @package Vendidero/Germanized/Shipments
+						 * @package Vendidero/Shiptastic
 						 */
 						do_action( "{$this->get_hook_prefix()}item_after_name", $item->get_id(), $item, $shipment );
 						?>
 					</td>
-					<td class="wc-gzd-shipment-item-column-quantity">
+					<td class="wc-stc-shipment-item-column-quantity">
 						<?php echo esc_html( $item->get_quantity() ); ?>x
 					</td>
 				</tr>
@@ -1056,7 +1027,6 @@ class Table extends WP_List_Table {
 	/**
 	 * Handles the post author column output.
 	 *
-	 * @since 4.3.0
 	 *
 	 * @param Shipment $shipment The current shipment object.
 	 */
@@ -1073,29 +1043,26 @@ class Table extends WP_List_Table {
 	/**
 	 * Handles the post author column output.
 	 *
-	 * @since 4.3.0
 	 *
 	 * @param Shipment $shipment The current shipment object.
 	 */
 	public function column_status( $shipment ) {
-		echo '<span class="shipment-status shipment-type-' . esc_attr( $shipment->get_type() ) . '-status status-' . esc_attr( $shipment->get_status() ) . '">' . esc_html( wc_gzd_get_shipment_status_name( $shipment->get_status() ) ) . '</span>';
+		echo '<span class="shipment-status shipment-type-' . esc_attr( $shipment->get_type() ) . '-status status-' . esc_attr( $shipment->get_status() ) . '">' . esc_html( wc_stc_get_shipment_status_name( $shipment->get_status() ) ) . '</span>';
 	}
 
 	/**
 	 * Handles the post author column output.
 	 *
-	 * @since 4.3.0
 	 *
 	 * @param Shipment $shipment The current shipment object.
 	 */
 	public function column_weight( $shipment ) {
-		echo wc_gzd_format_shipment_weight( $shipment->get_total_weight(), $shipment->get_weight_unit() ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+		echo wc_stc_format_shipment_weight( $shipment->get_total_weight(), $shipment->get_weight_unit() ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 	}
 
 	/**
 	 * Handles the post author column output.
 	 *
-	 * @since 4.3.0
 	 *
 	 * @param Shipment $shipment The current shipment object.
 	 */
@@ -1110,18 +1077,16 @@ class Table extends WP_List_Table {
 	/**
 	 * Handles the post author column output.
 	 *
-	 * @since 4.3.0
 	 *
 	 * @param Shipment $shipment The current shipment object.
 	 */
 	public function column_dimensions( $shipment ) {
-		echo wc_gzd_format_shipment_dimensions( $shipment->get_dimensions(), $shipment->get_dimension_unit() ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+		echo wc_stc_format_shipment_dimensions( $shipment->get_dimensions(), $shipment->get_dimension_unit() ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 	}
 
 	/**
 	 * Handles the post author column output.
 	 *
-	 * @since 4.3.0
 	 *
 	 * @param Shipment $shipment The current shipment object.
 	 */
@@ -1137,7 +1102,7 @@ class Table extends WP_List_Table {
 		if ( $shipment_timestamp > strtotime( '-1 day', time() ) && $shipment_timestamp <= time() ) {
 			$show_date = sprintf(
 			/* translators: %s: human-readable time difference */
-				_x( '%s ago', '%s = human-readable time difference', 'woocommerce-germanized-shipments' ),
+				_x( '%s ago', '%s = human-readable time difference', 'shiptastic-for-woocommerce' ),
 				human_time_diff( $shipment->get_date_created()->getTimestamp(), time() )
 			);
 		} else {
@@ -1146,10 +1111,9 @@ class Table extends WP_List_Table {
 			 *
 			 * @param string $format The date format.
 			 *
-			 * @since 3.0.0
-			 * @package Vendidero/Germanized/Shipments
+			 * @package Vendidero/Shiptastic
 			 */
-			$show_date = $shipment->get_date_created()->date_i18n( apply_filters( 'woocommerce_gzd_shipments_admin_shipment_date_format', _x( 'M j, Y', 'shipments', 'woocommerce-germanized-shipments' ) ) );
+			$show_date = $shipment->get_date_created()->date_i18n( apply_filters( 'woocommerce_shiptastic_admin_shipment_date_format', _x( 'M j, Y', 'shipments', 'shiptastic-for-woocommerce' ) ) );
 		}
 
 		printf(
@@ -1163,7 +1127,6 @@ class Table extends WP_List_Table {
 	/**
 	 * Handles the post author column output.
 	 *
-	 * @since 4.3.0
 	 *
 	 * @param Shipment $shipment The current shipment object.
 	 */
@@ -1206,13 +1169,13 @@ class Table extends WP_List_Table {
 		$actions = array();
 
 		if ( current_user_can( 'delete_shop_orders' ) ) {
-			$actions['delete'] = _x( 'Delete Permanently', 'shipments', 'woocommerce-germanized-shipments' );
+			$actions['delete'] = _x( 'Delete Permanently', 'shipments', 'shiptastic-for-woocommerce' );
 		}
 
-		$actions['mark_processing'] = _x( 'Change status to processing', 'shipments', 'woocommerce-germanized-shipments' );
-		$actions['mark_shipped']    = _x( 'Change status to shipped', 'shipments', 'woocommerce-germanized-shipments' );
-		$actions['mark_delivered']  = _x( 'Change status to delivered', 'shipments', 'woocommerce-germanized-shipments' );
-		$actions['labels']          = _x( 'Generate and download labels', 'shipments', 'woocommerce-germanized-shipments' );
+		$actions['mark_processing'] = _x( 'Change status to processing', 'shipments', 'shiptastic-for-woocommerce' );
+		$actions['mark_shipped']    = _x( 'Change status to shipped', 'shipments', 'shiptastic-for-woocommerce' );
+		$actions['mark_delivered']  = _x( 'Change status to delivered', 'shipments', 'shiptastic-for-woocommerce' );
+		$actions['labels']          = _x( 'Generate and download labels', 'shipments', 'shiptastic-for-woocommerce' );
 
 		$actions = $this->get_custom_bulk_actions( $actions );
 
@@ -1222,12 +1185,11 @@ class Table extends WP_List_Table {
 		 * The dynamic portion of this hook, `$this->get_hook_prefix()` is used to construct a
 		 * unique hook for a shipment type e.g. return. In case of simple shipments the type is omitted.
 		 *
-		 * Example hook name: woocommerce_gzd_return_shipments_table_bulk_actions
+		 * Example hook name: woocommerce_shiptastic_return_shipments_table_bulk_actions
 		 *
 		 * @param array $actions Array containing key => value pairs.
 		 *
-		 * @since 3.0.0
-		 * @package Vendidero/Germanized/Shipments
+		 * @package Vendidero/Shiptastic
 		 */
 		return apply_filters( "{$this->get_hook_prefix()}bulk_actions", $actions );
 	}

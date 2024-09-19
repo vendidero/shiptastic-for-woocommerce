@@ -1,11 +1,10 @@
 <?php
 
-namespace Vendidero\Germanized\Shipments\Interfaces;
+namespace Vendidero\Shiptastic\Interfaces;
 
 /**
  * Compatibility
  *
- * @package  Germanized/StoreaBill/Interfaces
  * @version  1.0.0
  */
 if ( ! defined( 'ABSPATH' ) ) {

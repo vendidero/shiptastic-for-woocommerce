@@ -26,7 +26,7 @@ const Combobox = ( {
     required = false,
     errorId: incomingErrorId,
     autoComplete = 'off',
-    errorMessage = _x( 'Please select a valid option', 'shipments', 'woocommerce-germanized-shipments' ),
+    errorMessage = _x( 'Please select a valid option', 'shipments', 'shiptastic-for-woocommerce' ),
 } ) => {
     const controlRef = useRef( null );
     const fallbackId = useId();
@@ -72,7 +72,7 @@ const Combobox = ( {
     return (
         <div
             id={ controlId }
-            className={ classnames( 'wc-block-components-combobox', className, 'wc-gzd-shipments-components-combobox', {
+            className={ classnames( 'wc-block-components-combobox', className, 'wc-shiptastic-components-combobox', {
                 'is-active': value,
                 'has-error': error?.message && ! error?.hidden,
                 'has-reset': allowReset,

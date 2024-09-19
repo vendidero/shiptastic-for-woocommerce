@@ -2,20 +2,19 @@
 /**
  * Shipment return item
  *
- * This template can be overridden by copying it to yourtheme/woocommerce-germanized/shipment/shipment-return-item.php.
+ * This template can be overridden by copying it to yourtheme/shiptastic/shipment/shipment-return-item.php.
  *
- * HOWEVER, on occasion Germanized will need to update template files and you
+ * HOWEVER, on occasion Shiptastic will need to update template files and you
  * (the theme developer) will need to copy the new files to your theme to
  * maintain compatibility. We try to do this as little as possible, but it does
  * happen. When this occurs the version of the template file will be bumped and
  * the readme will list any important changes.
  *
- * @see https://github.com/vendidero/woocommerce-germanized/wiki/Overriding-Germanized-Templates
- * @package Vendidero/Germanized/Shipments/Templates
+ * @package Vendidero/Shiptastic/Templates
  * @version 3.0.2
  */
-use Vendidero\Germanized\Shipments\Shipment;
-use Vendidero\Germanized\Shipments\ShipmentItem;
+use Vendidero\Shiptastic\Shipment;
+use Vendidero\Shiptastic\ShipmentItem;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -34,10 +33,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 		$item_sku   = $item->get_sku();
 
 		/** This filter is documented in templates/myaccount/shipment/shipment-details-item.php */
-		$product_permalink = apply_filters( 'woocommerce_gzd_shipment_item_permalink', $is_visible ? $product->get_permalink() : '', $item, $order );
+		$product_permalink = apply_filters( 'woocommerce_shiptastic_shipment_item_permalink', $is_visible ? $product->get_permalink() : '', $item, $order );
 
 		/** This filter is documented in templates/emails/email-shipment-items.php */
-		echo apply_filters( 'woocommerce_gzd_shipment_item_name', ( $product_permalink ? sprintf( '<a href="%s">%s</a>', esc_url( $product_permalink ), $item->get_name() ) : $item->get_name() ) . ( ! empty( $item_sku ) ? ' <small>(' . esc_html( $item_sku ) . ')</small>' : '' ), $item, $is_visible ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+		echo apply_filters( 'woocommerce_shiptastic_shipment_item_name', ( $product_permalink ? sprintf( '<a href="%s">%s</a>', esc_url( $product_permalink ), $item->get_name() ) : $item->get_name() ) . ( ! empty( $item_sku ) ? ' <small>(' . esc_html( $item_sku ) . ')</small>' : '' ), $item, $is_visible ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 		?>
 	</td>
 
@@ -52,18 +51,17 @@ if ( ! defined( 'ABSPATH' ) ) {
 				 * @param boolean      $allow_empty Whether to allow empty return reasons or not..
 				 * @param WC_Order     $order The order instance.
 				 *
-				 * @since 3.1.0
-				 * @package Vendidero/Germanized/Shipments
+				 * @package Vendidero/Shiptastic
 				 */
-				if ( wc_gzd_allow_customer_return_empty_return_reason( $order ) ) :
+				if ( wc_stc_allow_customer_return_empty_return_reason( $order ) ) :
 					?>
-					<?php echo esc_html_x( 'None', 'shipments return reason', 'woocommerce-germanized-shipments' ); ?>
+					<?php echo esc_html_x( 'None', 'shipments return reason', 'shiptastic-for-woocommerce' ); ?>
 				<?php else : ?>
-					<?php echo esc_html_x( 'Please choose', 'shipments return reason', 'woocommerce-germanized-shipments' ); ?>
+					<?php echo esc_html_x( 'Please choose', 'shipments return reason', 'shiptastic-for-woocommerce' ); ?>
 				<?php endif; ?>
 			</option>
 
-			<?php foreach ( wc_gzd_get_return_shipment_reasons( $item->get_order_item() ) as $reason ) : ?>
+			<?php foreach ( wc_stc_get_return_shipment_reasons( $item->get_order_item() ) as $reason ) : ?>
 				<option value="<?php echo esc_attr( $reason->get_code() ); ?>"><?php echo esc_html( $reason->get_reason() ); ?></option>
 			<?php endforeach; ?>
 		</select>

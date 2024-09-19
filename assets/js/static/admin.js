@@ -1,5 +1,5 @@
-window.shipments = window.shipments || {};
-window.shipments.admin = window.shipments.admin || {};
+window.shiptastic = window.shiptastic || {};
+window.shiptastic.admin = window.shiptastic.admin || {};
 
 ( function( $, shipments ) {
     shipments.admin.shipments_admin = {
@@ -7,13 +7,13 @@ window.shipments.admin = window.shipments.admin || {};
 
         init: function() {
             var self = shipments.admin.shipments_admin;
-            self.params = wc_gzd_shipments_admin_params;
+            self.params = wc_shiptastic_admin_params;
 
-            $( document ).on( 'click', 'a.woocommerce-gzd-shipments-input-toggle-trigger', this.onInputToggleClick );
+            $( document ).on( 'click', 'a.woocommerce-shiptastic-input-toggle-trigger', this.onInputToggleClick );
         },
 
         onInputToggleClick: function() {
-            var $toggle   = $( this ).find( 'span.woocommerce-gzd-shipments-input-toggle' ),
+            var $toggle   = $( this ).find( 'span.woocommerce-shiptastic-input-toggle' ),
                 $row      = $toggle.parents( 'fieldset' ),
                 $checkbox = $row.find( 'input[type=checkbox]' ).length > 0 ? $row.find( 'input[type=checkbox]' ) : $toggle.parent().nextAll( 'input[type=checkbox]:first' ),
                 $enabled  = $toggle.hasClass( 'woocommerce-input-toggle--enabled' );
@@ -39,4 +39,4 @@ window.shipments.admin = window.shipments.admin || {};
         shipments.admin.shipments_admin.init();
     });
 
-})( jQuery, window.shipments );
+})( jQuery, window.shiptastic );

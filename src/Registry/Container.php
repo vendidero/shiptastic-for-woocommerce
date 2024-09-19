@@ -1,5 +1,5 @@
 <?php
-namespace Vendidero\Germanized\Shipments\Registry;
+namespace Vendidero\Shiptastic\Registry;
 
 use Closure;
 use Exception;
@@ -9,7 +9,6 @@ use Exception;
  *
  * This is used to manage dependencies used throughout the plugin.
  *
- * @since 2.5.0
  */
 class Container {
 

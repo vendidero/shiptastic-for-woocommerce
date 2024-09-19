@@ -1,6 +1,6 @@
 <?php
 
-namespace Vendidero\Germanized\Shipments;
+namespace Vendidero\Shiptastic;
 
 class SecretBox {
 	public static function get_encryption_key_notice( $encryption_type = '', $explanation = '' ) {
@@ -16,13 +16,13 @@ class SecretBox {
 
 			if ( empty( $explanation ) ) {
 				if ( empty( $encryption_type ) ) {
-					$explanation = _x( 'General purpose encryption, e.g. application password stored within settings', 'shipments', 'woocommerce-germanized-shipments' );
+					$explanation = _x( 'General purpose encryption, e.g. application password stored within settings', 'shipments', 'shiptastic-for-woocommerce' );
 				} else {
-					$explanation = sprintf( _x( 'Encryption of type %s', 'shipments', 'woocommerce-germanized-shipments' ), $encryption_type );
+					$explanation = sprintf( _x( 'Encryption of type %s', 'shipments', 'shiptastic-for-woocommerce' ), $encryption_type );
 				}
 			}
 
-			$notice  = '<p>' . sprintf( x_( 'Attention! The <em>%1$s</em> (%2$s) constant is missing. Shipments uses a derived key based on the <em>LOGGED_IN_KEY</em> constant instead. This constant might change under certain circumstances. To prevent data losses, please insert the following snippet within your <a href="%3$s" target="_blank">wp-config.php</a> file:', 'shipments', 'woocommerce-germanized-shipments' ), $constant, $explanation, 'https://wordpress.org/support/article/editing-wp-config-php/' ) . '</p>';
+			$notice  = '<p>' . sprintf( x_( 'Attention! The <em>%1$s</em> (%2$s) constant is missing. Shiptastic uses a derived key based on the <em>LOGGED_IN_KEY</em> constant instead. This constant might change under certain circumstances. To prevent data losses, please insert the following snippet within your <a href="%3$s" target="_blank">wp-config.php</a> file:', 'shipments', 'shiptastic-for-woocommerce' ), $constant, $explanation, 'https://wordpress.org/support/article/editing-wp-config-php/' ) . '</p>';
 			$notice .= '<p style="overflow: scroll">' . "<code>define( '" . $constant . "', '" . $new_key . "' );</code></p>";
 		}
 
@@ -41,7 +41,7 @@ class SecretBox {
 	}
 
 	public static function get_encryption_key_constant( $encryption_type = '' ) {
-		return apply_filters( 'woocommerce_gzd_shipments_encryption_key_constant', 'WC_GZD_SHIPMENTS_ENCRYPTION_KEY', $encryption_type );
+		return apply_filters( 'woocommerce_shiptastic_encryption_key_constant', 'WC_SHIPTASTIC_ENCRYPTION_KEY', $encryption_type );
 	}
 
 	/**
@@ -296,18 +296,16 @@ class SecretBox {
 	 * @param \WP_Error $error
 	 */
 	protected static function log_error( $error ) {
-		update_option( 'woocommerce_gzd_shipments_has_encryption_error', 'yes' );
+		update_option( 'woocommerce_shiptastic_has_encryption_error', 'yes' );
 
-		if ( apply_filters( 'woocommerce_gzd_shipments_encryption_enable_logging', Package::is_shipping_debug_mode() ) && ( $logger = wc_get_logger() ) ) {
-			foreach ( $error->get_error_messages() as $message ) {
-				$logger->error( $message, array( 'source' => apply_filters( 'woocommerce_gzd_shipments_encryption_log_context', 'wc-gzd-shipments-encryption' ) ) );
-			}
+		foreach ( $error->get_error_messages() as $message ) {
+			Package::log( $message, 'error', 'encryption' );
 		}
 
 		return $error;
 	}
 
 	public static function has_errors() {
-		return 'yes' === get_option( 'woocommerce_gzd_shipments_has_encryption_error', 'no' );
+		return 'yes' === get_option( 'woocommerce_shiptastic_has_encryption_error', 'no' );
 	}
 }

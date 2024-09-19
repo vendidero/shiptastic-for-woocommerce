@@ -1,5 +1,5 @@
-window.shipments = window.shipments || {};
-window.shipments.admin = window.shipments.admin || {};
+window.shiptastic = window.shiptastic || {};
+window.shiptastic.admin = window.shiptastic.admin || {};
 
 ( function( $, shipments ) {
 
@@ -13,22 +13,22 @@ window.shipments.admin = window.shipments.admin || {};
 
         init: function() {
             var self      = shipments.admin.shipping_providers;
-            self.params   = wc_gzd_shipments_admin_shipping_providers_params;
-            self.$wrapper = $( '.wc-gzd-shipping-providers' );
+            self.params   = wc_shiptastic_admin_shipping_providers_params;
+            self.$wrapper = $( '.wc-stc-shipping-providers' );
 
             $( document )
-                .on( 'click', '.wc-gzd-shipping-provider-delete', self.onRemoveProvider )
-                .on( 'change', '.wc-gzd-shipping-providers input.wc-gzd-shipping-provider-activated-checkbox', this.onChangeProviderStatus )
-                .on( 'click', 'a.wc-gzd-shipments-install-extension-btn', this.onInstallExtension );
+                .on( 'click', '.wc-stc-shipping-provider-delete', self.onRemoveProvider )
+                .on( 'change', '.wc-stc-shipping-providers input.wc-stc-shipping-provider-activated-checkbox', this.onChangeProviderStatus )
+                .on( 'click', 'a.wc-shiptastic-install-extension-btn', this.onInstallExtension );
 
 
             // Use load event to prevent firing during initial (after ready) phase
             $( window ).on( "load", function() {
-                $( document ).on( 'updateMoveButtons', 'table.wc-gzd-shipping-providers', self.onChangeSort );
+                $( document ).on( 'updateMoveButtons', 'table.wc-stc-shipping-providers', self.onChangeSort );
             });
 
             // Sorting
-            $( 'table.wc-gzd-shipping-providers tbody' ).sortable({
+            $( 'table.wc-stc-shipping-providers tbody' ).sortable({
                 items: 'tr',
                 cursor: 'move',
                 axis: 'y',
@@ -58,7 +58,7 @@ window.shipments.admin = window.shipments.admin || {};
 
             var self = shipments.admin.shipping_providers,
                 params = {
-                    'action'  : 'woocommerce_gzd_sort_shipping_provider',
+                    'action'  : 'woocommerce_stc_sort_shipping_provider',
                     'order'   : sort,
                     'security': self.getParams().sort_shipping_provider_nonce
                 };
@@ -71,12 +71,12 @@ window.shipments.admin = window.shipments.admin || {};
                 $this = $( this );
 
             var params = {
-                action: 'woocommerce_gzd_install_shipping_provider_extension',
+                action: 'woocommerce_stc_install_shipping_provider_extension',
                 security: self.params.install_extension_nonce,
                 provider_name: $this.parents( 'tr' ).data( 'shipping-provider' )
             };
 
-            $this.addClass( 'wc-gzd-shipments-is-loading' );
+            $this.addClass( 'wc-shiptastic-is-loading' );
             $this.append( '<span class="spinner is-active"></span>' );
 
             self.doAjax( params, self.onInstallExtensionSuccess );
@@ -89,15 +89,15 @@ window.shipments.admin = window.shipments.admin || {};
                 $link = self.$wrapper.find( 'a[data-extension="' + data['extension'] + '"]' );
 
             $link.find( '.spinner' ).remove();
-            $link.removeClass( 'wc-gzd-is-loading' );
+            $link.removeClass( 'wc-stc-is-loading' );
 
             if ( data.success ) {
                 window.location.href = data.url;
             } else if ( data.hasOwnProperty( 'message' ) ) {
                 var $wrapper = $( '#wpbody-content' ).find( '.wrap' );
 
-                if ( $( '.wc-gzd-shipments-setting-tabs' ).length > 0 ) {
-                    $wrapper = $( '.wc-gzd-shipments-setting-tabs' );
+                if ( $( '.wc-shiptastic-setting-tabs' ).length > 0 ) {
+                    $wrapper = $( '.wc-shiptastic-setting-tabs' );
                 }
 
                 $wrapper.before( '<div class="error inline" id="message"><p>' + data.message + '</p></div>' );
@@ -112,11 +112,11 @@ window.shipments.admin = window.shipments.admin || {};
             var self      = shipments.admin.shipping_providers,
                 $checkbox = $( this ),
                 provider  = self.getProviderName( $checkbox ),
-                $toggle   = $checkbox.parents( 'td' ).find( '.woocommerce-gzd-input-toggle' ),
+                $toggle   = $checkbox.parents( 'td' ).find( '.woocommerce-stc-input-toggle' ),
                 isEnabled = $checkbox.is( ':checked' ) ? 'yes' : 'no';
 
             var params = {
-                action     : 'woocommerce_gzd_edit_shipping_provider_status',
+                action     : 'woocommerce_stc_edit_shipping_provider_status',
                 enable     : isEnabled,
                 provider   : provider
             };
@@ -132,7 +132,7 @@ window.shipments.admin = window.shipments.admin || {};
         onChangeProviderStatusSucess: function( data ) {
             var self      = shipments.admin.shipping_providers,
                 $provider = self.$wrapper.find( 'tr[data-shipping-provider="' + data['provider'] + '"]' ),
-                $toggle   = $provider.find( '.woocommerce-gzd-input-toggle' );
+                $toggle   = $provider.find( '.woocommerce-stc-input-toggle' );
 
             $toggle.removeClass( 'woocommerce-input-toggle--loading' );
             $toggle.removeClass( 'woocommerce-input-toggle--enabled, woocommerce-input-toggle--disabled' );
@@ -174,7 +174,7 @@ window.shipments.admin = window.shipments.admin || {};
         removeProvider: function( id ) {
             var self = shipments.admin.shipping_providers,
                 params = {
-                    'action'  : 'woocommerce_gzd_remove_shipping_provider',
+                    'action'  : 'woocommerce_stc_remove_shipping_provider',
                     'provider': id,
                     'security': self.getParams().remove_shipping_provider_nonce
                 };
@@ -261,4 +261,4 @@ window.shipments.admin = window.shipments.admin || {};
         shipments.admin.shipping_providers.init();
     });
 
-})( jQuery, window.shipments );
+})( jQuery, window.shiptastic );

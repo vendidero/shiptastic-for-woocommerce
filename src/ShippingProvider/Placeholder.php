@@ -1,9 +1,9 @@
 <?php
 
-namespace Vendidero\Germanized\Shipments\ShippingProvider;
+namespace Vendidero\Shiptastic\ShippingProvider;
 
-use Vendidero\Germanized\Shipments\Extensions;
-use Vendidero\Germanized\Shipments\Package;
+use Vendidero\Shiptastic\Extensions;
+use Vendidero\Shiptastic\Package;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -59,7 +59,7 @@ class Placeholder extends Simple {
 		$title = $this->placeholder_args['title'];
 
 		if ( $this->is_pro() ) {
-			$title .= '<span class="wc-gzd-shipments-pro wc-gzd-shipments-pro-outlined">' . _x( 'pro', 'shipments', 'woocommerce-germanized-shipments' ) . '</span>';
+			$title .= '<span class="wc-shiptastic-pro wc-shiptastic-pro-outlined">' . _x( 'pro', 'shipments', 'shiptastic-for-woocommerce' ) . '</span>';
 		}
 
 		return $title;
@@ -82,7 +82,7 @@ class Placeholder extends Simple {
 	}
 
 	public function get_help_link() {
-		return 'https://vendidero.de/woocommerce-germanized/features';
+		return '';
 	}
 
 	public function save() {

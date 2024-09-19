@@ -1,9 +1,9 @@
 <?php
 
-namespace Vendidero\Germanized\Shipments;
+namespace Vendidero\Shiptastic;
 
 use Exception;
-use Vendidero\Germanized\Shipments\Interfaces\ShippingProvider;
+use Vendidero\Shiptastic\Interfaces\ShippingProvider;
 use WC_Order;
 use WC_Order_Item;
 
@@ -94,9 +94,9 @@ class Validation {
 		add_action( 'woocommerce_order_refund_object_updated_props', array( __CLASS__, 'refresh_refund_order' ), 10, 1 );
 
 		// Check if order is shipped
-		add_action( 'woocommerce_gzd_shipment_before_status_change', array( __CLASS__, 'maybe_update_order_date_shipped' ), 5, 2 );
+		add_action( 'woocommerce_shiptastic_shipment_before_status_change', array( __CLASS__, 'maybe_update_order_date_shipped' ), 5, 2 );
 
-		add_action( 'woocommerce_gzd_shipping_provider_deactivated', array( __CLASS__, 'maybe_disable_default_shipping_provider' ), 10 );
+		add_action( 'woocommerce_shiptastic_shipping_provider_deactivated', array( __CLASS__, 'maybe_disable_default_shipping_provider' ), 10 );
 	}
 
 	/**
@@ -106,10 +106,10 @@ class Validation {
 	 * @param ShippingProvider $provider
 	 */
 	public static function maybe_disable_default_shipping_provider( $provider ) {
-		$default_provider = wc_gzd_get_default_shipping_provider();
+		$default_provider = wc_stc_get_default_shipping_provider();
 
 		if ( $default_provider === $provider->get_name() ) {
-			update_option( 'woocommerce_gzd_shipments_default_shipping_provider', '' );
+			update_option( 'woocommerce_shiptastic_default_shipping_provider', '' );
 		}
 	}
 
@@ -124,7 +124,7 @@ class Validation {
 	}
 
 	public static function check_order_shipped( $order ) {
-		if ( $shipment_order = wc_gzd_get_shipment_order( $order ) ) {
+		if ( $shipment_order = wc_stc_get_shipment_order( $order ) ) {
 			if ( $shipment_order->is_shipped() ) {
 				$order_id = $shipment_order->get_order()->get_id();
 
@@ -134,13 +134,12 @@ class Validation {
 				 *
 				 * @param string  $order_id The order id.
 				 *
-				 * @since 3.1.0
-				 * @package Vendidero/Germanized/Shipments
+				 * @package Vendidero/Shiptastic
 				 */
-				do_action( 'woocommerce_gzd_shipments_order_shipped', $order_id );
+				do_action( 'woocommerce_shiptastic_order_shipped', $order_id );
 
 				/**
-				 * Make sure to instantiate a new order instance as the woocommerce_gzd_shipments_order_shipped hook
+				 * Make sure to instantiate a new order instance as the woocommerce_shiptastic_order_shipped hook
 				 * might trigger the order save event. We must prevent old order data to be updated again after the
 				 * potential update within the hook. This issue seems to only occur related to the HPOS post sync feature.
 				 */
@@ -162,7 +161,7 @@ class Validation {
 	 * @param WC_Order $order
 	 */
 	public static function maybe_cancel_shipments( $order_id, $order ) {
-		$shipments = wc_gzd_get_shipments_by_order( $order );
+		$shipments = wc_stc_get_shipments_by_order( $order );
 
 		foreach ( $shipments as $shipment ) {
 			if ( $shipment->is_editable() ) {
@@ -181,7 +180,7 @@ class Validation {
 
 	public static function delete_refund_order( $refund_id ) {
 		if ( false !== self::$current_refund_parent_order ) {
-			if ( $order_shipment = wc_gzd_get_shipment_order( self::$current_refund_parent_order ) ) {
+			if ( $order_shipment = wc_stc_get_shipment_order( self::$current_refund_parent_order ) ) {
 				$order_shipment->validate_shipments();
 			}
 
@@ -194,13 +193,13 @@ class Validation {
 			return;
 		}
 
-		if ( $order_shipment = wc_gzd_get_shipment_order( $refund->get_parent_id() ) ) {
+		if ( $order_shipment = wc_stc_get_shipment_order( $refund->get_parent_id() ) ) {
 			$order_shipment->validate_shipments();
 		}
 	}
 
 	public static function delete_order( $order_id ) {
-		if ( $order_shipment = wc_gzd_get_shipment_order( $order_id ) ) {
+		if ( $order_shipment = wc_stc_get_shipment_order( $order_id ) ) {
 			foreach ( $order_shipment->get_shipments() as $shipment ) {
 				if ( $shipment->is_editable() ) {
 					$order_shipment->remove_shipment( $shipment->get_id() );
@@ -212,13 +211,13 @@ class Validation {
 	}
 
 	public static function new_order( $order ) {
-		if ( $order_shipment = wc_gzd_get_shipment_order( $order ) ) {
+		if ( $order_shipment = wc_stc_get_shipment_order( $order ) ) {
 			$order_shipment->validate_shipments();
 		}
 	}
 
 	public static function update_order( $order_id ) {
-		if ( $order_shipment = wc_gzd_get_shipment_order( $order_id ) ) {
+		if ( $order_shipment = wc_stc_get_shipment_order( $order_id ) ) {
 			$order_shipment->validate_shipments();
 		}
 	}
@@ -226,7 +225,7 @@ class Validation {
 	public static function delete_order_item( $order_item_id ) {
 		try {
 			if ( $order_id = wc_get_order_id_by_order_item_id( $order_item_id ) ) {
-				if ( $order_shipment = wc_gzd_get_shipment_order( $order_id ) ) {
+				if ( $order_shipment = wc_stc_get_shipment_order( $order_id ) ) {
 					foreach ( $order_shipment->get_shipments() as $shipment ) {
 
 						if ( $shipment->is_editable() ) {
@@ -244,7 +243,7 @@ class Validation {
 	}
 
 	public static function create_order_item( $order_item_id, $order_item, $order_id ) {
-		if ( $order_shipment = wc_gzd_get_shipment_order( $order_id ) ) {
+		if ( $order_shipment = wc_stc_get_shipment_order( $order_id ) ) {
 			$order_shipment->validate_shipments();
 		}
 	}
@@ -271,7 +270,7 @@ class Validation {
 	public static function update_order_item( $order_item_id, $order_item ) {
 		if ( ! self::is_admin_save_order_request() ) {
 			if ( is_a( $order_item, 'WC_Order_Item' ) ) {
-				if ( $order_shipment = wc_gzd_get_shipment_order( $order_item->get_order_id() ) ) {
+				if ( $order_shipment = wc_stc_get_shipment_order( $order_item->get_order_id() ) ) {
 					$order_shipment->validate_shipments();
 				}
 			}

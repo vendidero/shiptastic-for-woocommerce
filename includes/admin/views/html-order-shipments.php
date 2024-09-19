@@ -1,23 +1,20 @@
 <?php
 /**
  * Order shipments HTML for meta box.
- *
- * @package WooCommerce_Germanized/DHL/Admin
  */
-
-use Vendidero\Germanized\Shipments\Order;
+use Vendidero\Shiptastic\Order;
 
 defined( 'ABSPATH' ) || exit;
 
 $active_shipment = isset( $active_shipment ) ? $active_shipment : false;
 ?>
 
-<div id="order-shipments" class="germanized-shipments">
+<div id="order-shipments" class="shiptastic-shipments">
 	<div id="panel-order-shipments" class="<?php echo ( $order_shipment->needs_shipping() ? 'needs-shipments' : '' ); ?> <?php echo ( $order_shipment->needs_return() ? 'needs-returns' : '' ); ?>">
 
 		<div class="panel-title title-spread panel-inner">
-			<h2 class="order-shipments-title"><?php echo esc_html_x( 'Shipments', 'shipments', 'woocommerce-germanized-shipments' ); ?></h2>
-			<span class="order-shipping-status status-<?php echo esc_attr( $order_shipment->get_shipping_status() ); ?>"><?php echo esc_html( wc_gzd_get_shipment_order_shipping_status_name( $order_shipment->get_shipping_status() ) ); ?></span>
+			<h2 class="order-shipments-title"><?php echo esc_html_x( 'Shipments', 'shipments', 'shiptastic-for-woocommerce' ); ?></h2>
+			<span class="order-shipping-status status-<?php echo esc_attr( $order_shipment->get_shipping_status() ); ?>"><?php echo esc_html( wc_stc_get_shipment_order_shipping_status_name( $order_shipment->get_shipping_status() ) ); ?></span>
 		</div>
 
 		<div class="notice-wrapper panel-inner"></div>
@@ -28,18 +25,18 @@ $active_shipment = isset( $active_shipment ) ? $active_shipment : false;
 			<div class="order-shipments-actions">
 				<div class="shipment-actions-left">
 					<div class="order-shipment-add">
-						<a class="button button-secondary add-shipment" id="order-shipment-add" href="#"><?php echo esc_html_x( 'Create shipment(s)', 'shipments', 'woocommerce-germanized-shipments' ); ?></a>
+						<a class="button button-secondary add-shipment" id="order-shipment-add" href="#"><?php echo esc_html_x( 'Create shipment(s)', 'shipments', 'shiptastic-for-woocommerce' ); ?></a>
 					</div>
 
 					<div class="order-return-shipment-add">
-						<a class="button button-secondary add-return-shipment" data-load-async="true" data-id="wc-gzd-modal-add-return-shipment" data-reference="<?php echo esc_attr( $order_shipment->get_id() ); ?>" id="order-return-shipment-add" href="#"><?php echo esc_html_x( 'Add return', 'shipments', 'woocommerce-germanized-shipments' ); ?></a>
+						<a class="button button-secondary add-return-shipment" data-load-async="true" data-id="wc-stc-modal-add-return-shipment" data-reference="<?php echo esc_attr( $order_shipment->get_id() ); ?>" id="order-return-shipment-add" href="#"><?php echo esc_html_x( 'Add return', 'shipments', 'shiptastic-for-woocommerce' ); ?></a>
 
-						<script type="text/template" id="tmpl-wc-gzd-modal-add-return-shipment-<?php echo esc_attr( $order_shipment->get_id() ); ?>">
-							<div class="wc-backbone-modal wc-gzd-admin-shipment-modal wc-gzd-modal-add-return-shipment">
+						<script type="text/template" id="tmpl-wc-stc-modal-add-return-shipment-<?php echo esc_attr( $order_shipment->get_id() ); ?>">
+							<div class="wc-backbone-modal wc-stc-admin-shipment-modal wc-stc-modal-add-return-shipment">
 								<div class="wc-backbone-modal-content">
 									<section class="wc-backbone-modal-main" role="main">
 										<header class="wc-backbone-modal-header">
-											<h1><?php echo esc_html_x( 'Add Return', 'shipments', 'woocommerce-germanized-shipments' ); ?></h1>
+											<h1><?php echo esc_html_x( 'Add Return', 'shipments', 'shiptastic-for-woocommerce' ); ?></h1>
 											<button class="modal-close modal-close-link dashicons dashicons-no-alt">
 												<span class="screen-reader-text">Close modal panel</span>
 											</button>
@@ -49,17 +46,17 @@ $active_shipment = isset( $active_shipment ) ? $active_shipment : false;
 												<table class="widefat">
 													<thead>
 													<tr>
-														<th><?php echo esc_html_x( 'Item', 'shipments', 'woocommerce-germanized-shipments' ); ?></th>
-														<th><?php echo esc_html_x( 'Quantity', 'shipments', 'woocommerce-germanized-shipments' ); ?></th>
+														<th><?php echo esc_html_x( 'Item', 'shipments', 'shiptastic-for-woocommerce' ); ?></th>
+														<th><?php echo esc_html_x( 'Quantity', 'shipments', 'shiptastic-for-woocommerce' ); ?></th>
 													</tr>
 													</thead>
-													<tbody id="wc-gzd-return-shipment-items" data-row=""></tbody>
+													<tbody id="wc-stc-return-shipment-items" data-row=""></tbody>
 												</table>
 											</form>
 										</article>
 										<footer>
 											<div class="inner">
-												<button id="btn-ok" class="button button-primary button-large"><?php echo esc_html_x( 'Add', 'shipments', 'woocommerce-germanized-shipments' ); ?></button>
+												<button id="btn-ok" class="button button-primary button-large"><?php echo esc_html_x( 'Add', 'shipments', 'shiptastic-for-woocommerce' ); ?></button>
 											</div>
 										</footer>
 									</section>
@@ -72,7 +69,7 @@ $active_shipment = isset( $active_shipment ) ? $active_shipment : false;
 
 				<div class="shipment-actions-right">
 					<div class="order-shipment-save">
-						<button id="order-shipments-save" class="button button-primary" type="submit"><?php echo esc_html_x( 'Save', 'shipments', 'woocommerce-germanized-shipments' ); ?></button>
+						<button id="order-shipments-save" class="button button-primary" type="submit"><?php echo esc_html_x( 'Save', 'shipments', 'shiptastic-for-woocommerce' ); ?></button>
 					</div>
 				</div>
 
@@ -82,10 +79,9 @@ $active_shipment = isset( $active_shipment ) ? $active_shipment : false;
 				 *
 				 * @param Order $order_shipment The shipment order object.
 				 *
-				 * @since 3.0.0
-				 * @package Vendidero/Germanized/Shipments
+				 * @package Vendidero/Shiptastic
 				 */
-				do_action( 'woocommerce_gzd_shipments_meta_box_actions', $order_shipment );
+				do_action( 'woocommerce_shiptastic_meta_box_actions', $order_shipment );
 				?>
 			</div>
 		</div>

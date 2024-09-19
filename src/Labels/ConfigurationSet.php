@@ -1,9 +1,9 @@
 <?php
 
-namespace Vendidero\Germanized\Shipments\Labels;
+namespace Vendidero\Shiptastic\Labels;
 
-use Vendidero\Germanized\Shipments\Interfaces\LabelConfigurationSet;
-use Vendidero\Germanized\Shipments\Package;
+use Vendidero\Shiptastic\Interfaces\LabelConfigurationSet;
+use Vendidero\Shiptastic\Package;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -52,7 +52,7 @@ class ConfigurationSet {
 			)
 		);
 
-		$this->handler       = is_a( $handler, '\Vendidero\Germanized\Shipments\Interfaces\LabelConfigurationSet' ) ? $handler : null;
+		$this->handler       = is_a( $handler, '\Vendidero\Shiptastic\Interfaces\LabelConfigurationSet' ) ? $handler : null;
 		$this->shipment_type = $args['shipment_type'];
 		$this->setting_type  = $args['setting_type'];
 		$this->zone          = $args['zone'];
@@ -61,7 +61,7 @@ class ConfigurationSet {
 		$this->services   = $args['services'];
 		$this->additional = $args['additional'];
 
-		if ( is_a( $args['shipping_provider_name'], '\Vendidero\Germanized\Shipments\Interfaces\ShippingProvider' ) ) {
+		if ( is_a( $args['shipping_provider_name'], '\Vendidero\Shiptastic\Interfaces\ShippingProvider' ) ) {
 			$this->shipping_provider      = $args['shipping_provider_name'];
 			$this->shipping_provider_name = $this->shipping_provider->get_name();
 		} else {
@@ -102,7 +102,7 @@ class ConfigurationSet {
 
 	public function get_shipping_provider() {
 		if ( is_null( $this->shipping_provider ) ) {
-			$this->shipping_provider = wc_gzd_get_shipping_provider( $this->get_shipping_provider_name() );
+			$this->shipping_provider = wc_stc_get_shipping_provider( $this->get_shipping_provider_name() );
 		}
 
 		return $this->shipping_provider;

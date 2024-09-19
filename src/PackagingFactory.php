@@ -5,12 +5,12 @@
  * The packaging factory creates the right packaging objects.
  *
  * @version 1.0.0
- * @package Vendidero/Germanized/Shipments
+ * @package Vendidero/Shiptastic
  */
-namespace Vendidero\Germanized\Shipments;
+namespace Vendidero\Shiptastic;
 
 use \Exception;
-use Vendidero\Germanized\Shipments\Caches\Helper;
+use Vendidero\Shiptastic\Caches\Helper;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -27,7 +27,7 @@ class PackagingFactory {
 	 */
 	public static function get_packaging( $packaging_id = false ) {
 		$packaging_id = self::get_packaging_id( $packaging_id );
-		$classname    = '\Vendidero\Germanized\Shipments\Packaging';
+		$classname    = '\Vendidero\Shiptastic\Packaging';
 
 		if ( $packaging_id ) {
 			if ( $cache = Helper::get_cache_object( 'packagings' ) ) {
@@ -45,10 +45,9 @@ class PackagingFactory {
 		 * @param string  $classname The classname to be used.
 		 * @param integer $packaging_id The packaging id.
 		 *
-		 * @since 3.3.0
-		 * @package Vendidero/Germanized/Shipments
+		 * @package Vendidero/Shiptastic
 		 */
-		$classname = apply_filters( 'woocommerce_gzd_packaging_class', $classname, $packaging_id );
+		$classname = apply_filters( 'woocommerce_shiptastic_packaging_class', $classname, $packaging_id );
 
 		if ( ! class_exists( $classname ) ) {
 			return false;

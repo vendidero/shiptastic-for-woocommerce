@@ -1,5 +1,5 @@
 <?php
-namespace Vendidero\Germanized\Shipments;
+namespace Vendidero\Shiptastic;
 
 use Exception;
 use setasign\Fpdi\Fpdi;

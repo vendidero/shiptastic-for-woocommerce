@@ -1,5 +1,5 @@
-.wc-block-components-form .wc-gzd-shipments-components-combobox,
-.wc-gzd-shipments-components-combobox {
+.wc-block-components-form .wc-shiptastic-components-combobox,
+.wc-shiptastic-components-combobox {
   .wc-block-components-combobox-control {
     @include reset-typography();
     @include reset-box();
@@ -181,7 +181,7 @@
   }
 }
 
-.wc-gzd-shipments-components-combobox.has-reset {
+.wc-shiptastic-components-combobox.has-reset {
   .components-combobox-control__suggestions-container {
     > .components-flex {
       .components-combobox-control__input {

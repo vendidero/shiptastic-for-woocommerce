@@ -1,9 +1,9 @@
 <?php
 
-namespace Vendidero\Germanized\Shipments\DataStores;
+namespace Vendidero\Shiptastic\DataStores;
 
-use Vendidero\Germanized\Shipments\Caches\Helper;
-use Vendidero\Germanized\Shipments\Package;
+use Vendidero\Shiptastic\Caches\Helper;
+use Vendidero\Shiptastic\Package;
 use WC_Data_Store_WP;
 use WC_Object_Data_Store_Interface;
 use Exception;
@@ -18,13 +18,6 @@ defined( 'ABSPATH' ) || exit;
  */
 class Label extends WC_Data_Store_WP implements WC_Object_Data_Store_Interface {
 
-	/**
-	 * Internal meta type used to store order data.
-	 *
-	 * @var string
-	 */
-	protected $meta_type = 'gzd_shipment_label';
-
 	protected $core_props = array(
 		'shipment_id',
 		'parent_id',
@@ -37,10 +30,11 @@ class Label extends WC_Data_Store_WP implements WC_Object_Data_Store_Interface {
 		'date_created_gmt',
 	);
 
+	protected $meta_type = 'stc_shipment_label';
+
 	/**
 	 * Data stored in meta keys, but not considered "meta" for an order.
 	 *
-	 * @since 3.0.0
 	 * @var array
 	 */
 	protected $internal_meta_keys = array(
@@ -65,7 +59,7 @@ class Label extends WC_Data_Store_WP implements WC_Object_Data_Store_Interface {
 	/**
 	 * Method to create a new shipment in the database.
 	 *
-	 * @param \Vendidero\Germanized\Shipments\Labels\Label $label Label object.
+	 * @param \Vendidero\Shiptastic\Labels\Label $label Label object.
 	 */
 	public function create( &$label ) {
 		global $wpdb;
@@ -85,7 +79,7 @@ class Label extends WC_Data_Store_WP implements WC_Object_Data_Store_Interface {
 		);
 
 		$wpdb->insert(
-			$wpdb->gzd_shipment_labels,
+			$wpdb->stc_shipment_labels,
 			$data
 		);
 
@@ -112,15 +106,13 @@ class Label extends WC_Data_Store_WP implements WC_Object_Data_Store_Interface {
 			 * @param integer $label_id The label id.
 			 * @param Label   $label The label instance.
 			 *
-			 * @since 3.0.0
-			 * @package Vendidero/Germanized/DHL
 			 */
-			do_action( "woocommerce_gzd_shipment_{$hook_postfix}label_created", $label_id, $label );
+			do_action( "woocommerce_shiptastic_shipment_{$hook_postfix}label_created", $label_id, $label );
 		}
 	}
 
 	/**
-	 * @param \Vendidero\Germanized\Shipments\Labels\Label $label
+	 * @param \Vendidero\Shiptastic\Labels\Label $label
 	 *
 	 * @return string
 	 */
@@ -137,7 +129,7 @@ class Label extends WC_Data_Store_WP implements WC_Object_Data_Store_Interface {
 	/**
 	 * Method to update a label in the database.
 	 *
-	 * @param \Vendidero\Germanized\Shipments\Labels\Label $label Label object.
+	 * @param \Vendidero\Shiptastic\Labels\Label $label Label object.
 	 */
 	public function update( &$label ) {
 		global $wpdb;
@@ -148,7 +140,6 @@ class Label extends WC_Data_Store_WP implements WC_Object_Data_Store_Interface {
 		$label_data    = array();
 
 		foreach ( $changed_props as $prop ) {
-
 			if ( ! in_array( $prop, $core_props, true ) ) {
 				continue;
 			}
@@ -168,7 +159,7 @@ class Label extends WC_Data_Store_WP implements WC_Object_Data_Store_Interface {
 
 		if ( ! empty( $label_data ) ) {
 			$wpdb->update(
-				$wpdb->gzd_shipment_labels,
+				$wpdb->stc_shipment_labels,
 				$label_data,
 				array( 'label_id' => $label->get_id() )
 			);
@@ -192,17 +183,14 @@ class Label extends WC_Data_Store_WP implements WC_Object_Data_Store_Interface {
 		 * @param Label   $label The label instance.
 		 * @param array   $changed_props Properties that have been changed.
 		 *
-		 * @since 3.0.0
-		 * @package Vendidero/Germanized/DHL
 		 */
-		do_action( "woocommerce_gzd_shipment_{$hook_postfix}label_updated", $label->get_id(), $label, $changed_props );
+		do_action( "woocommerce_shiptastic_shipment_{$hook_postfix}label_updated", $label->get_id(), $label, $changed_props );
 	}
 
 	/**
 	 * Remove a shipment from the database.
 	 *
-	 * @since 3.0.0
-	 * @param \Vendidero\Germanized\Shipments\Labels\Label $label Label object.
+	 * @param \Vendidero\Shiptastic\Labels\Label $label Label object.
 	 * @param bool                $force_delete Unused param.
 	 */
 	public function delete( &$label, $force_delete = false ) {
@@ -221,8 +209,8 @@ class Label extends WC_Data_Store_WP implements WC_Object_Data_Store_Interface {
 			}
 		}
 
-		$wpdb->delete( $wpdb->gzd_shipment_labels, array( 'label_id' => $label->get_id() ), array( '%d' ) );
-		$wpdb->delete( $wpdb->gzd_shipment_labelmeta, array( 'gzd_shipment_label_id' => $label->get_id() ), array( '%d' ) );
+		$wpdb->delete( $wpdb->stc_shipment_labels, array( 'label_id' => $label->get_id() ), array( '%d' ) );
+		$wpdb->delete( $wpdb->stc_shipment_labelmeta, array( 'stc_shipment_label_id' => $label->get_id() ), array( '%d' ) );
 
 		$this->clear_caches( $label );
 
@@ -240,21 +228,18 @@ class Label extends WC_Data_Store_WP implements WC_Object_Data_Store_Interface {
 		 * The dynamic portion of this hook, `$hook_postfix` refers to the
 		 * label type e.g. return in case it is not a simple label.
 		 *
-		 * @param integer                         $label_id The label id.
-		 * @param \Vendidero\Germanized\DHL\Label $label The label object.
+		 * @param integer                            $label_id The label id.
+		 * @param \Vendidero\Shiptastic\Labels\Label $label The label object.
 		 *
-		 * @since 3.0.0
-		 * @package Vendidero/Germanized/DHL
 		 */
-		do_action( "woocommerce_gzd_shipment_{$hook_postfix}label_deleted", $label->get_id(), $label );
+		do_action( "woocommerce_shiptastic_shipment_{$hook_postfix}label_deleted", $label->get_id(), $label );
 	}
 
 	/**
 	 * Read a shipment from the database.
 	 *
-	 * @since 3.0.0
 	 *
-	 * @param \Vendidero\Germanized\Shipments\Labels\Label $label Label object.
+	 * @param \Vendidero\Shiptastic\Labels\Label $label Label object.
 	 *
 	 * @throws Exception Throw exception if invalid shipment.
 	 */
@@ -263,7 +248,7 @@ class Label extends WC_Data_Store_WP implements WC_Object_Data_Store_Interface {
 
 		$data = $wpdb->get_row(
 			$wpdb->prepare(
-				"SELECT * FROM {$wpdb->gzd_shipment_labels} WHERE label_id = %d LIMIT 1",
+				"SELECT * FROM {$wpdb->stc_shipment_labels} WHERE label_id = %d LIMIT 1",
 				$label->get_id()
 			)
 		);
@@ -293,22 +278,19 @@ class Label extends WC_Data_Store_WP implements WC_Object_Data_Store_Interface {
 			 * The dynamic portion of this hook, `$hook_postfix` refers to the
 			 * label type e.g. return in case it is not a simple label.
 			 *
-			 * @param \Vendidero\Germanized\Shipments\Labels\Label $label The label object.
+			 * @param \Vendidero\Shiptastic\Labels\Label $label The label object.
 			 *
-			 * @since 3.0.0
-			 * @package Vendidero/Germanized/DHL
 			 */
-			do_action( "woocommerce_gzd_shipment_{$hook_postfix}label_loaded", $label );
+			do_action( "woocommerce_shiptastic_shipment_{$hook_postfix}label_loaded", $label );
 		} else {
-			throw new Exception( _x( 'Invalid label.', 'shipments', 'woocommerce-germanized-shipments' ) );
+			throw new Exception( esc_html_x( 'Invalid label.', 'shipments', 'shiptastic-for-woocommerce' ) );
 		}
 	}
 
 	/**
 	 * Clear any caches.
 	 *
-	 * @param \Vendidero\Germanized\Shipments\Labels\Label $label Label object.
-	 * @since 3.0.0
+	 * @param \Vendidero\Shiptastic\Labels\Label $label Label object.
 	 */
 	protected function clear_caches( &$label ) {
 		wp_cache_delete( $label->get_id(), $this->meta_type . '_meta' );
@@ -335,7 +317,7 @@ class Label extends WC_Data_Store_WP implements WC_Object_Data_Store_Interface {
 
 		$data = $wpdb->get_row(
 			$wpdb->prepare(
-				"SELECT label_type, label_shipping_provider FROM {$wpdb->gzd_shipment_labels} WHERE label_id = %d LIMIT 1",
+				"SELECT label_type, label_shipping_provider FROM {$wpdb->stc_shipment_labels} WHERE label_id = %d LIMIT 1",
 				$label_id
 			)
 		);
@@ -353,8 +335,7 @@ class Label extends WC_Data_Store_WP implements WC_Object_Data_Store_Interface {
 	/**
 	 * Read extra data associated with the shipment.
 	 *
-	 * @param \Vendidero\Germanized\Shipments\Labels\Label $label Label object.
-	 * @since 3.0.0
+	 * @param \Vendidero\Shiptastic\Labels\Label $label Label object.
 	 */
 	protected function read_label_data( &$label ) {
 		$props     = array();
@@ -372,7 +353,7 @@ class Label extends WC_Data_Store_WP implements WC_Object_Data_Store_Interface {
 	}
 
 	/**
-	 * @param \Vendidero\Germanized\Shipments\Labels\Label $label
+	 * @param \Vendidero\Shiptastic\Labels\Label $label
 	 */
 	protected function save_label_data( &$label ) {
 		$updated_props     = array();
@@ -420,13 +401,11 @@ class Label extends WC_Data_Store_WP implements WC_Object_Data_Store_Interface {
 		/**
 		 * Action fires after DHL label meta properties have been updated.
 		 *
-		 * @param \Vendidero\Germanized\Shipments\Labels\Label $label The label object.
+		 * @param \Vendidero\Shiptastic\Labels\Label $label The label object.
 		 * @param array                           $updated_props The updated properties.
 		 *
-		 * @since 3.0.0
-		 * @package Vendidero/Germanized/DHL
 		 */
-		do_action( 'woocommerce_gzd_shipment_label_object_updated_props', $label, $updated_props );
+		do_action( 'woocommerce_shiptastic_shipment_label_object_updated_props', $label, $updated_props );
 	}
 
 	/**
@@ -442,7 +421,6 @@ class Label extends WC_Data_Store_WP implements WC_Object_Data_Store_Interface {
 	 * @param string  $meta_key Meta key to update.
 	 * @param mixed   $meta_value Value to save.
 	 *
-	 * @since 3.6.0 Added to prevent empty meta being stored unless required.
 	 *
 	 * @return bool True if updated/deleted.
 	 */
@@ -459,7 +437,6 @@ class Label extends WC_Data_Store_WP implements WC_Object_Data_Store_Interface {
 	/**
 	 * Get valid WP_Query args from a WC_Order_Query's query variables.
 	 *
-	 * @since 3.0.6
 	 * @param array $query_vars query vars from a WC_Order_Query.
 	 * @return array
 	 */
@@ -508,7 +485,7 @@ class Label extends WC_Data_Store_WP implements WC_Object_Data_Store_Interface {
 		if ( isset( $wp_query_args['date_query'] ) ) {
 			foreach ( $wp_query_args['date_query'] as $key => $date_query ) {
 				if ( isset( $date_query['column'] ) && in_array( $date_query['column'], $date_queries, true ) ) {
-					$wp_query_args['date_query'][ $key ]['column'] = $wpdb->gzd_shipment_labels . '.label_' . array_search( $date_query['column'], $date_queries, true );
+					$wp_query_args['date_query'][ $key ]['column'] = $wpdb->stc_shipment_labels . '.label_' . array_search( $date_query['column'], $date_queries, true );
 				}
 			}
 		}
@@ -524,10 +501,8 @@ class Label extends WC_Data_Store_WP implements WC_Object_Data_Store_Interface {
 		 * @param array                                      $query_vars    Original query arguments.
 		 * @param Label $data_store The label data store.
 		 *
-		 * @since 3.0.0
-		 * @package Vendidero/Germanized/DHL
 		 */
-		return apply_filters( 'woocommerce_gzd_shipment_label_data_store_get_labels_query', $wp_query_args, $query_vars, $this );
+		return apply_filters( 'woocommerce_shiptastic_shipment_label_data_store_get_labels_query', $wp_query_args, $query_vars, $this );
 	}
 
 	public function get_query_args( $query_vars ) {
@@ -537,14 +512,13 @@ class Label extends WC_Data_Store_WP implements WC_Object_Data_Store_Interface {
 	/**
 	 * Table structure is slightly different between meta types, this function will return what we need to know.
 	 *
-	 * @since  3.0.0
 	 * @return array Array elements: table, object_id_field, meta_id_field
 	 */
 	protected function get_db_info() {
 		global $wpdb;
 
 		$meta_id_field   = 'meta_id'; // for some reason users calls this umeta_id so we need to track this as well.
-		$table           = $wpdb->gzd_shipment_labelmeta;
+		$table           = $wpdb->stc_shipment_labelmeta;
 		$object_id_field = $this->meta_type . '_id';
 
 		if ( ! empty( $this->object_id_field_for_meta ) ) {
@@ -561,6 +535,6 @@ class Label extends WC_Data_Store_WP implements WC_Object_Data_Store_Interface {
 	public function get_label_count() {
 		global $wpdb;
 
-		return absint( $wpdb->get_var( "SELECT COUNT( * ) FROM {$wpdb->gzd_shipment_labels}" ) );
+		return absint( $wpdb->get_var( "SELECT COUNT( * ) FROM {$wpdb->stc_shipment_labels}" ) );
 	}
 }

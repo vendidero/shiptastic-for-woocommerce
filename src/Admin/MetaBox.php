@@ -1,10 +1,10 @@
 <?php
 
-namespace Vendidero\Germanized\Shipments\Admin;
+namespace Vendidero\Shiptastic\Admin;
 
-use Vendidero\Germanized\Shipments\Package;
-use Vendidero\Germanized\Shipments\Ajax;
-use Vendidero\Germanized\Shipments\Order;
+use Vendidero\Shiptastic\Package;
+use Vendidero\Shiptastic\Ajax;
+use Vendidero\Shiptastic\Order;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -55,17 +55,17 @@ class MetaBox {
 
 			if ( isset( $_POST['shipment_shipping_provider'][ $id ] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Missing
 				$provider  = wc_clean( wp_unslash( $_POST['shipment_shipping_provider'][ $id ] ) ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
-				$providers = wc_gzd_get_shipping_providers();
+				$providers = wc_stc_get_shipping_providers();
 
 				if ( empty( $provider ) || array_key_exists( $provider, $providers ) ) {
 					$props['shipping_provider'] = $provider;
 				}
 			}
 
-			$new_status = isset( $_POST['shipment_status'][ $id ] ) ? str_replace( 'gzd-', '', wc_clean( wp_unslash( $_POST['shipment_status'][ $id ] ) ) ) : 'draft'; // phpcs:ignore WordPress.Security.NonceVerification.Missing
+			$new_status = isset( $_POST['shipment_status'][ $id ] ) ? wc_clean( wp_unslash( $_POST['shipment_status'][ $id ] ) ) : 'draft'; // phpcs:ignore WordPress.Security.NonceVerification.Missing
 
 			// Sync the shipment - make sure gets refresh on status switch (e.g. from shipped to processing)
-			if ( $shipment->is_editable() || in_array( $new_status, wc_gzd_get_shipment_editable_statuses(), true ) ) {
+			if ( $shipment->is_editable() || in_array( $new_status, wc_stc_get_shipment_editable_statuses(), true ) ) {
 				$shipment->sync( $props );
 			}
 		}
@@ -116,7 +116,7 @@ class MetaBox {
 			$id     = $shipment->get_id();
 			$status = isset( $_POST['shipment_status'][ $id ] ) ? wc_clean( wp_unslash( $_POST['shipment_status'][ $id ] ) ) : 'draft'; // phpcs:ignore WordPress.Security.NonceVerification.Missing
 
-			if ( ! wc_gzd_is_shipment_status( $status ) ) {
+			if ( ! wc_stc_is_shipment_status( $status ) ) {
 				$status = 'draft';
 			}
 
@@ -151,7 +151,7 @@ class MetaBox {
 		self::init_order_object( $post );
 
 		$order           = $theorder;
-		$order_shipment  = wc_gzd_get_shipment_order( $order );
+		$order_shipment  = wc_stc_get_shipment_order( $order );
 		$active_shipment = isset( $_GET['shipment_id'] ) ? absint( $_GET['shipment_id'] ) : 0; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 
 		include Package::get_path() . '/includes/admin/views/html-order-shipments.php';
@@ -164,7 +164,7 @@ class MetaBox {
 	 */
 	public static function save( $order_id ) {
 		// Get order object.
-		$order_shipment = wc_gzd_get_shipment_order( $order_id );
+		$order_shipment = wc_stc_get_shipment_order( $order_id );
 
 		self::refresh_shipments( $order_shipment );
 

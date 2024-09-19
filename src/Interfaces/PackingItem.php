@@ -1,5 +1,5 @@
 <?php
-namespace Vendidero\Germanized\Shipments\Interfaces;
+namespace Vendidero\Shiptastic\Interfaces;
 
 use DVDoug\BoxPacker\ConstrainedPlacementItem;
 use DVDoug\BoxPacker\Item;

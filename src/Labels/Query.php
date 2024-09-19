@@ -1,6 +1,6 @@
 <?php
 
-namespace Vendidero\Germanized\Shipments\Labels;
+namespace Vendidero\Shiptastic\Labels;
 
 use WC_Object_Query;
 use WC_Data_Store;
@@ -51,7 +51,7 @@ class Query extends WC_Object_Query {
 			'product_id'        => '',
 			'shipping_provider' => '',
 			'parent_id'         => '',
-			'type'              => wc_gzd_get_shipment_label_types(),
+			'type'              => wc_stc_get_shipment_label_types(),
 			'number'            => '',
 			'order'             => 'DESC',
 			'orderby'           => 'date_created',
@@ -77,10 +77,8 @@ class Query extends WC_Object_Query {
 		 *
 		 * @param array $query_vars The query arguments.
 		 *
-		 * @since 3.0.0
-		 * @package Vendidero/Germanized/DHL
 		 */
-		$args = apply_filters( 'woocommerce_gzd_shipment_label_query_args', $this->get_query_vars() );
+		$args = apply_filters( 'woocommerce_shiptastic_shipment_label_query_args', $this->get_query_vars() );
 		$args = WC_Data_Store::load( 'shipment-label' )->get_query_args( $args );
 
 		$this->query( $args );
@@ -91,10 +89,8 @@ class Query extends WC_Object_Query {
 		 * @param Label[] $results The results.
 		 * @param array   $args The query arguments.
 		 *
-		 * @since 3.0.0
-		 * @package Vendidero/Germanized/DHL
 		 */
-		return apply_filters( 'woocommerce_gzd_shipment_label_query', $this->results, $args );
+		return apply_filters( 'woocommerce_shiptastic_shipment_label_query', $this->results, $args );
 	}
 
 	public function get_total() {
@@ -138,7 +134,7 @@ class Query extends WC_Object_Query {
 
 		if ( 'objects' === $qv['fields'] ) {
 			foreach ( $this->results as $key => $label ) {
-				$this->results[ $key ] = wc_gzd_get_shipment_label( $label );
+				$this->results[ $key ] = wc_stc_get_shipment_label( $label );
 			}
 		}
 	}
@@ -195,22 +191,22 @@ class Query extends WC_Object_Query {
 
 			foreach ( $this->args['fields'] as $field ) {
 				$field                = 'ID' === $field ? 'label_id' : sanitize_key( $field );
-				$this->query_fields[] = "$wpdb->gzd_shipment_labels.$field";
+				$this->query_fields[] = "$wpdb->stc_shipment_labels.$field";
 			}
 
 			$this->query_fields = implode( ',', $this->query_fields );
 
 		} elseif ( 'objects' === $this->args['fields'] ) {
-			$this->query_fields = "$wpdb->gzd_shipment_labels.*";
+			$this->query_fields = "$wpdb->stc_shipment_labels.*";
 		} else {
-			$this->query_fields = "$wpdb->gzd_shipment_labels.label_id";
+			$this->query_fields = "$wpdb->stc_shipment_labels.label_id";
 		}
 
 		if ( isset( $this->args['count_total'] ) && $this->args['count_total'] ) {
 			$this->query_fields = 'SQL_CALC_FOUND_ROWS ' . $this->query_fields;
 		}
 
-		$this->query_from  = "FROM $wpdb->gzd_shipment_labels";
+		$this->query_from  = "FROM $wpdb->stc_shipment_labels";
 		$this->query_where = 'WHERE 1=1';
 
 		// order id
@@ -299,15 +295,12 @@ class Query extends WC_Object_Query {
 			 * The default columns depend on the search term, and include 'label_id',
 			 * 'label_shipment_id', 'label_path' and 'label_number'.
 			 *
-			 * @since 3.0.0
 			 *
 			 * @param string[]   $search_columns Array of column names to be searched.
 			 * @param string     $search         Text being searched.
-			 * @param LabelQuery $this  The current LabelQuery instance.
-			 *
-			 * @package Vendidero/Germanized/DHL
+			 * @param Query      $this  The current LabelQuery instance.
 			 */
-			$search_columns = apply_filters( 'woocommerce_gzd_shipment_label_search_columns', $search_columns, $search, $this );
+			$search_columns = apply_filters( 'woocommerce_shiptastic_shipment_label_search_columns', $search_columns, $search, $this );
 
 			$this->query_where .= $this->get_search_sql( $search, $search_columns, $wild );
 		}
@@ -324,7 +317,7 @@ class Query extends WC_Object_Query {
 		$this->meta_query->parse_query_vars( $this->args );
 
 		if ( ! empty( $this->meta_query->queries ) ) {
-			$clauses            = $this->meta_query->get_sql( 'gzd_shipment_label', $wpdb->gzd_shipment_labels, 'label_id', $this );
+			$clauses            = $this->meta_query->get_sql( 'stc_shipment_label', $wpdb->stc_shipment_labels, 'label_id', $this );
 			$this->query_from  .= $clauses['join'];
 			$this->query_where .= $clauses['where'];
 
@@ -392,10 +385,10 @@ class Query extends WC_Object_Query {
 		if ( ! empty( $include ) ) {
 			// Sanitized earlier.
 			$ids                = implode( ',', $include );
-			$this->query_where .= " AND $wpdb->gzd_shipment_labels.label_id IN ($ids)";
+			$this->query_where .= " AND $wpdb->stc_shipment_labels.label_id IN ($ids)";
 		} elseif ( ! empty( $this->args['exclude'] ) ) {
 			$ids                = implode( ',', wp_parse_id_list( $this->args['exclude'] ) );
-			$this->query_where .= " AND $wpdb->gzd_shipment_labels.label_id NOT IN ($ids)";
+			$this->query_where .= " AND $wpdb->stc_shipment_labels.label_id NOT IN ($ids)";
 		}
 
 		// Date queries are allowed for the user_registered field.
@@ -408,7 +401,6 @@ class Query extends WC_Object_Query {
 	/**
 	 * Used internally to generate an SQL string for searching across multiple columns
 	 *
-	 * @since 3.0.6
 	 *
 	 * @global \wpdb $wpdb WordPress database abstraction object.
 	 *
@@ -455,13 +447,13 @@ class Query extends WC_Object_Query {
 		} elseif ( 'ID' === $orderby || 'id' === $orderby ) {
 			$_orderby = 'label_id';
 		} elseif ( 'meta_value' === $orderby || $this->get( 'meta_key' ) === $orderby ) {
-			$_orderby = "$wpdb->gzd_shipment_labelmeta.meta_value";
+			$_orderby = "$wpdb->stc_shipment_labelmeta.meta_value";
 		} elseif ( 'meta_value_num' === $orderby ) {
-			$_orderby = "$wpdb->gzd_shipment_labelmeta.meta_value+0";
+			$_orderby = "$wpdb->stc_shipment_labelmeta.meta_value+0";
 		} elseif ( 'include' === $orderby && ! empty( $this->args['include'] ) ) {
 			$include     = wp_parse_id_list( $this->args['include'] );
 			$include_sql = implode( ',', $include );
-			$_orderby    = "FIELD( $wpdb->gzd_shipment_labels.label_id, $include_sql )";
+			$_orderby    = "FIELD( $wpdb->stc_shipment_labels.label_id, $include_sql )";
 		} elseif ( isset( $meta_query_clauses[ $orderby ] ) ) {
 			$meta_clause = $meta_query_clauses[ $orderby ];
 			$_orderby    = sprintf( 'CAST(%s.meta_value AS %s)', esc_sql( $meta_clause['alias'] ), esc_sql( $meta_clause['cast'] ) );

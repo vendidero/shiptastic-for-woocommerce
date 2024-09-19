@@ -1,5 +1,5 @@
-window.shipments = window.shipments || {};
-window.shipments.admin = window.shipments.admin || {};
+window.shiptastic = window.shiptastic || {};
+window.shiptastic.admin = window.shiptastic.admin || {};
 
 ( function( $, shipments ) {
     shipments.admin.packaging = {
@@ -9,13 +9,13 @@ window.shipments.admin = window.shipments.admin || {};
             var self = shipments.admin.packaging;
 
             $( document )
-                .on( 'change', 'input.gzd-override-toggle', self.onChangeOverride );
+                .on( 'change', 'input.wc-stc-override-toggle', self.onChangeOverride );
         },
 
         onChangeOverride: function() {
             var $checkbox = $( this ),
-                $wrapper = $checkbox.parents( '.wc-gzd-shipping-provider-override-title-wrapper' ),
-                $next = $wrapper.next( '.wc-gzd-packaging-zone-wrapper' );
+                $wrapper = $checkbox.parents( '.wc-stc-shipping-provider-override-title-wrapper' ),
+                $next = $wrapper.next( '.wc-stc-packaging-zone-wrapper' );
 
             $next.removeClass( 'zone-wrapper-has-override' );
 
@@ -29,4 +29,4 @@ window.shipments.admin = window.shipments.admin || {};
         shipments.admin.packaging.init();
     });
 
-})( jQuery, window.shipments );
+})( jQuery, window.shiptastic );

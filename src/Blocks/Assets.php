@@ -1,7 +1,7 @@
 <?php
-namespace Vendidero\Germanized\Shipments\Blocks;
+namespace Vendidero\Shiptastic\Blocks;
 
-use Vendidero\Germanized\Shipments\Package;
+use Vendidero\Shiptastic\Package;
 
 final class Assets {
 
@@ -14,8 +14,8 @@ final class Assets {
 	}
 
 	public function register_assets() {
-		$this->register_script( 'wc-gzd-shipments-blocks', $this->get_block_asset_build_path( 'wc-gzd-shipments-blocks' ), array(), false );
-		$this->register_script( 'wc-gzd-shipments-blocks-checkout', $this->get_block_asset_build_path( 'blocks-checkout' ), array(), false );
+		$this->register_script( 'wc-shiptastic-blocks', $this->get_block_asset_build_path( 'wc-shiptastic-blocks' ), array(), false );
+		$this->register_script( 'wc-shiptastic-blocks-checkout', $this->get_block_asset_build_path( 'blocks-checkout' ), array(), false );
 	}
 
 	/**
@@ -136,8 +136,6 @@ final class Assets {
 	/**
 	 * Registers a style according to `wp_register_style`.
 	 *
-	 * @since 2.5.0
-	 * @since 2.6.0 Change src to be relative source.
 	 *
 	 * @param string  $handle       Name of the stylesheet. Should be unique.
 	 * @param string  $relative_src Relative source of the stylesheet to the plugin path.

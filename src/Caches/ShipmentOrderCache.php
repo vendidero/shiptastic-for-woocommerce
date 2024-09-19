@@ -1,9 +1,9 @@
 <?php
 
-namespace Vendidero\Germanized\Shipments\Caches;
+namespace Vendidero\Shiptastic\Caches;
 
 use Automattic\WooCommerce\Caching\ObjectCache;
-use Vendidero\Germanized\Shipments\Order;
+use Vendidero\Shiptastic\Order;
 
 /**
  * A class to cache order objects.
@@ -16,7 +16,7 @@ class ShipmentOrderCache extends ObjectCache {
 	 * @return string
 	 */
 	public function get_object_type(): string {
-		return 'shipment-orders';
+		return 'stc-shipment-orders';
 	}
 
 	/**

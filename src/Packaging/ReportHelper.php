@@ -1,8 +1,8 @@
 <?php
 
-namespace Vendidero\Germanized\Shipments\Packaging;
+namespace Vendidero\Shiptastic\Packaging;
 
-use Vendidero\Germanized\Shipments\Admin\Settings;
+use Vendidero\Shiptastic\Admin\Settings;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -28,18 +28,18 @@ class ReportHelper {
 
 		// Setup or cancel recurring tasks
 		add_action( 'init', array( __CLASS__, 'setup_recurring_actions' ), 10 );
-		add_action( 'woocommerce_gzd_shipments_daily_cleanup', array( __CLASS__, 'cleanup' ), 10 );
+		add_action( 'woocommerce_shiptastic_daily_cleanup', array( __CLASS__, 'cleanup' ), 10 );
 
 		add_action( 'admin_menu', array( __CLASS__, 'add_page' ), 25 );
 		add_action( 'admin_head', array( __CLASS__, 'hide_page_from_menu' ) );
 
 		foreach ( array( 'delete', 'refresh', 'cancel' ) as $action ) {
-			add_action( 'admin_post_wc_gzd_shipments_packaging_' . $action . '_report', array( __CLASS__, $action . '_report' ) );
+			add_action( 'admin_post_wc_shiptastic_packaging_' . $action . '_report', array( __CLASS__, $action . '_report' ) );
 		}
 	}
 
 	public static function add_page() {
-		add_submenu_page( 'woocommerce', _x( 'Packaging Report', 'shipments', 'woocommerce-germanized-shipments' ), _x( 'Packaging Report', 'shipments', 'woocommerce-germanized-shipments' ), 'manage_woocommerce', 'shipment-packaging-report', array( __CLASS__, 'render_report' ) );
+		add_submenu_page( 'woocommerce', _x( 'Packaging Report', 'shipments', 'shiptastic-for-woocommerce' ), _x( 'Packaging Report', 'shipments', 'shiptastic-for-woocommerce' ), 'manage_woocommerce', 'shipment-packaging-report', array( __CLASS__, 'render_report' ) );
 	}
 
 	public static function hide_page_from_menu() {
@@ -55,21 +55,21 @@ class ReportHelper {
 		$actions = array(
 			'view'    => array(
 				'url'   => $report->get_url(),
-				'title' => _x( 'View', 'shipments-packaging-report', 'woocommerce-germanized-shipments' ),
+				'title' => _x( 'View', 'shipments-packaging-report', 'shiptastic-for-woocommerce' ),
 			),
 			'refresh' => array(
 				'url'   => $report->get_refresh_link(),
-				'title' => _x( 'Refresh', 'shipments-packaging-report', 'woocommerce-germanized-shipments' ),
+				'title' => _x( 'Refresh', 'shipments-packaging-report', 'shiptastic-for-woocommerce' ),
 			),
 			'delete'  => array(
 				'url'   => $report->get_delete_link(),
-				'title' => _x( 'Delete', 'shipments-packaging-report', 'woocommerce-germanized-shipments' ),
+				'title' => _x( 'Delete', 'shipments-packaging-report', 'shiptastic-for-woocommerce' ),
 			),
 		);
 
 		if ( 'completed' !== $report->get_status() ) {
 			$actions['cancel']          = $actions['delete'];
-			$actions['cancel']['title'] = _x( 'Cancel', 'shipments-packaging-report', 'woocommerce-germanized-shipments' );
+			$actions['cancel']['title'] = _x( 'Cancel', 'shipments-packaging-report', 'shiptastic-for-woocommerce' );
 
 			unset( $actions['view'] );
 			unset( $actions['refresh'] );
@@ -92,16 +92,16 @@ class ReportHelper {
 			}
 
 			$columns = array(
-				'packaging' => _x( 'Packaging', 'shipments', 'woocommerce-germanized-shipments' ),
-				'weight'    => _x( 'Weight', 'shipments', 'woocommerce-germanized-shipments' ),
-				'count'     => _x( 'Count', 'shipments', 'woocommerce-germanized-shipments' ),
+				'packaging' => _x( 'Packaging', 'shipments', 'shiptastic-for-woocommerce' ),
+				'weight'    => _x( 'Weight', 'shipments', 'shiptastic-for-woocommerce' ),
+				'count'     => _x( 'Count', 'shipments', 'shiptastic-for-woocommerce' ),
 			);
 
 			$actions       = self::get_report_actions( $report );
 			$countries     = WC()->countries->get_countries();
 			$packaging_ids = $report->get_packaging_ids();
 			?>
-			<div class="wrap wc-gzd-shipments-packaging-report packaging-report-<?php echo esc_attr( $report->get_id() ); ?>">
+			<div class="wrap wc-shiptastic-packaging-report packaging-report-<?php echo esc_attr( $report->get_id() ); ?>">
 				<h1 class="wp-heading-inline"><?php echo esc_html( $report->get_title() ); ?></h1>
 				<?php
 				foreach ( $actions as $action_type => $action ) :
@@ -113,27 +113,27 @@ class ReportHelper {
 				<?php endforeach; ?>
 
 				<?php if ( 'completed' === $report->get_status() ) : ?>
-					<p class="summary"><?php echo esc_html( $report->get_date_start()->date_i18n( wc_date_format() ) ); ?> &ndash; <?php echo esc_html( $report->get_date_end()->date_i18n( wc_date_format() ) ); ?>: <?php echo esc_html( wc_gzd_format_shipment_weight( $report->get_total_weight(), wc_gzd_get_packaging_weight_unit() ) ); ?> (<?php echo esc_html( sprintf( _x( '%d units', 'shipments-packaging-report', 'woocommerce-germanized-shipments' ), $report->get_total_count() ) ); ?>)</p>
+					<p class="summary"><?php echo esc_html( $report->get_date_start()->date_i18n( wc_date_format() ) ); ?> &ndash; <?php echo esc_html( $report->get_date_end()->date_i18n( wc_date_format() ) ); ?>: <?php echo esc_html( wc_stc_format_shipment_weight( $report->get_total_weight(), wc_stc_get_packaging_weight_unit() ) ); ?> (<?php echo esc_html( sprintf( _x( '%d units', 'shipments-packaging-report', 'shiptastic-for-woocommerce' ), $report->get_total_count() ) ); ?>)</p>
 					<hr class="wp-header-end" />
 
 					<?php if ( ! empty( $packaging_ids ) ) : ?>
-						<table class="wp-list-table widefat fixed striped posts wc-gzd-shipments-packaging-report-details" cellspacing="0">
+						<table class="wp-list-table widefat fixed striped posts wc-shiptastic-packaging-report-details" cellspacing="0">
 							<thead>
 							<tr>
 								<?php foreach ( $columns as $key => $column ) : ?>
-									<th class="wc-gzd-shipments-packaging-report-table-<?php echo esc_attr( $key ); ?>"><?php echo esc_html( $column ); ?></th>
+									<th class="wc-shiptastic-packaging-report-table-<?php echo esc_attr( $key ); ?>"><?php echo esc_html( $column ); ?></th>
 								<?php endforeach; ?>
 							</tr>
 							</thead>
 							<tbody>
 							<?php
 							foreach ( $packaging_ids as $packaging_id ) :
-								$packaging = is_numeric( $packaging_id ) ? wc_gzd_get_packaging( $packaging_id ) : false;
+								$packaging = is_numeric( $packaging_id ) ? wc_stc_get_packaging( $packaging_id ) : false;
 								?>
 								<tr>
-									<td class="wc-gzd-shipments-packaging-report-table-packaging"><?php echo esc_html( ( $packaging && $packaging->get_id() > 0 ? $packaging->get_description() : _x( 'Unknown', 'shipments-packaging-title', 'woocommerce-germanized-shipments' ) ) ); ?></td>
-									<td class="wc-gzd-shipments-packaging-report-table-weight"><?php echo esc_html( wc_gzd_format_shipment_weight( $report->get_packaging_weight( $packaging_id ), wc_gzd_get_packaging_weight_unit() ) ); ?></td>
-									<td class="wc-gzd-shipments-packaging-report-table-count"><?php echo esc_html( $report->get_packaging_count( $packaging_id ) ); ?></td>
+									<td class="wc-shiptastic-packaging-report-table-packaging"><?php echo esc_html( ( $packaging && $packaging->get_id() > 0 ? $packaging->get_description() : _x( 'Unknown', 'shipments-packaging-title', 'shiptastic-for-woocommerce' ) ) ); ?></td>
+									<td class="wc-shiptastic-packaging-report-table-weight"><?php echo esc_html( wc_stc_format_shipment_weight( $report->get_packaging_weight( $packaging_id ), wc_stc_get_packaging_weight_unit() ) ); ?></td>
+									<td class="wc-shiptastic-packaging-report-table-count"><?php echo esc_html( $report->get_packaging_count( $packaging_id ) ); ?></td>
 								</tr>
 							<?php endforeach; ?>
 							</tbody>
@@ -144,24 +144,24 @@ class ReportHelper {
 					foreach ( $report->get_countries() as $country ) :
 						?>
 						<h4><?php echo esc_html( isset( $countries[ $country ] ) ? $countries[ $country ] : $country ); ?></h4>
-						<p class="summary"><?php echo esc_html( wc_gzd_format_shipment_weight( $report->get_total_packaging_weight_by_country( $country ), wc_gzd_get_packaging_weight_unit() ) ); ?> (<?php echo esc_html( sprintf( _x( '%d units', 'shipments-packaging-report', 'woocommerce-germanized-shipments' ), $report->get_total_packaging_count_by_country( $country ) ) ); ?>)</p>
-						<table class="wp-list-table widefat fixed striped posts wc-gzd-shipments-packaging-report-details" cellspacing="0">
+						<p class="summary"><?php echo esc_html( wc_stc_format_shipment_weight( $report->get_total_packaging_weight_by_country( $country ), wc_stc_get_packaging_weight_unit() ) ); ?> (<?php echo esc_html( sprintf( _x( '%d units', 'shipments-packaging-report', 'shiptastic-for-woocommerce' ), $report->get_total_packaging_count_by_country( $country ) ) ); ?>)</p>
+						<table class="wp-list-table widefat fixed striped posts wc-shiptastic-packaging-report-details" cellspacing="0">
 							<thead>
 							<tr>
 								<?php foreach ( $columns as $key => $column ) : ?>
-									<th class="wc-gzd-shipments-packaging-report-table-<?php echo esc_attr( $key ); ?>"><?php echo esc_html( $column ); ?></th>
+									<th class="wc-shiptastic-packaging-report-table-<?php echo esc_attr( $key ); ?>"><?php echo esc_html( $column ); ?></th>
 								<?php endforeach; ?>
 							</tr>
 							</thead>
 							<tbody>
 							<?php
 							foreach ( $report->get_packaging_ids_by_country( $country ) as $packaging_id ) :
-								$packaging = is_numeric( $packaging_id ) ? wc_gzd_get_packaging( $packaging_id ) : false;
+								$packaging = is_numeric( $packaging_id ) ? wc_stc_get_packaging( $packaging_id ) : false;
 								?>
 								<tr>
-									<td class="wc-gzd-shipments-packaging-report-table-packaging"><?php echo esc_html( ( $packaging && $packaging->get_id() > 0 ? $packaging->get_description() : _x( 'Unknown', 'shipments-packaging-title', 'woocommerce-germanized-shipments' ) ) ); ?></td>
-									<td class="wc-gzd-shipments-packaging-report-table-weight"><?php echo esc_html( wc_gzd_format_shipment_weight( $report->get_packaging_weight( $packaging_id, $country ), wc_gzd_get_packaging_weight_unit() ) ); ?></td>
-									<td class="wc-gzd-shipments-packaging-report-table-count"><?php echo esc_html( $report->get_packaging_count( $packaging_id, $country ) ); ?></td>
+									<td class="wc-shiptastic-packaging-report-table-packaging"><?php echo esc_html( ( $packaging && $packaging->get_id() > 0 ? $packaging->get_description() : _x( 'Unknown', 'shipments-packaging-title', 'shiptastic-for-woocommerce' ) ) ); ?></td>
+									<td class="wc-shiptastic-packaging-report-table-weight"><?php echo esc_html( wc_stc_format_shipment_weight( $report->get_packaging_weight( $packaging_id, $country ), wc_stc_get_packaging_weight_unit() ) ); ?></td>
+									<td class="wc-shiptastic-packaging-report-table-count"><?php echo esc_html( $report->get_packaging_count( $packaging_id, $country ) ); ?></td>
 								</tr>
 							<?php endforeach; ?>
 							</tbody>
@@ -171,7 +171,7 @@ class ReportHelper {
 				else :
 					$details = ReportQueue::get_queue_details( $report_id );
 					?>
-					<p class="summary"><?php printf( _x( 'Currently processed %1$s shipments. Next iteration is scheduled for %2$s. <a href="%3$s">Find pending actions</a>', 'shipments', 'woocommerce-germanized-shipments' ), esc_html( $details['shipment_count'] ), ( $details['next_date'] ? esc_html( $details['next_date']->date_i18n( wc_date_format() . ' @ ' . wc_time_format() ) ) : esc_html_x( 'Not yet known', 'shipments', 'woocommerce-germanized-shipments' ) ), esc_url( $details['link'] ) ); ?></p>
+					<p class="summary"><?php printf( _x( 'Currently processed %1$s shipments. Next iteration is scheduled for %2$s. <a href="%3$s">Find pending actions</a>', 'shipments', 'shiptastic-for-woocommerce' ), esc_html( $details['shipment_count'] ), ( $details['next_date'] ? esc_html( $details['next_date']->date_i18n( wc_date_format() . ' @ ' . wc_time_format() ) ) : esc_html_x( 'Not yet known', 'shipments', 'shiptastic-for-woocommerce' ) ), esc_url( $details['link'] ) ); ?></p>
 				<?php endif; ?>
 			</div>
 			<?php
@@ -200,29 +200,29 @@ class ReportHelper {
 
 		$running = array_values( $running );
 
-		update_option( 'woocommerce_gzd_shipments_packaging_reports_running', $running, false );
+		update_option( 'woocommerce_shiptastic_packaging_reports_running', $running, false );
 		ReportQueue::clear_cache();
 	}
 
 	public static function setup_recurring_actions() {
 		if ( $queue = ReportQueue::get_queue() ) {
 			// Schedule once per day at 2:00
-			if ( null === $queue->get_next( 'woocommerce_gzd_shipments_daily_cleanup', array(), 'woocommerce_gzd_shipments' ) ) {
+			if ( null === $queue->get_next( 'woocommerce_shiptastic_daily_cleanup', array(), 'woocommerce_shiptastic' ) ) {
 				$timestamp = strtotime( 'tomorrow midnight' );
 				$date      = new \WC_DateTime();
 
 				$date->setTimestamp( $timestamp );
 				$date->modify( '+2 hours' );
 
-				$queue->cancel_all( 'woocommerce_gzd_shipments_daily_cleanup', array(), 'woocommerce_gzd_shipments' );
-				$queue->schedule_recurring( $date->getTimestamp(), DAY_IN_SECONDS, 'woocommerce_gzd_shipments_daily_cleanup', array(), 'woocommerce_gzd_shipments' );
+				$queue->cancel_all( 'woocommerce_shiptastic_daily_cleanup', array(), 'woocommerce_shiptastic' );
+				$queue->schedule_recurring( $date->getTimestamp(), DAY_IN_SECONDS, 'woocommerce_shiptastic_daily_cleanup', array(), 'woocommerce_shiptastic' );
 			}
 		}
 	}
 
 	public static function get_report_title( $id ) {
 		$args  = self::get_report_data( $id );
-		$title = _x( 'Report', 'shipments', 'woocommerce-germanized-shipments' );
+		$title = _x( 'Report', 'shipments', 'shiptastic-for-woocommerce' );
 
 		if ( 'quarterly' === $args['type'] ) {
 			$date_start = $args['date_start'];
@@ -237,21 +237,21 @@ class ReportHelper {
 				$quarter = 4;
 			}
 
-			$title = sprintf( _x( 'Q%1$s/%2$s', 'shipments', 'woocommerce-germanized-shipments' ), $quarter, $date_start->date_i18n( 'Y' ) );
+			$title = sprintf( _x( 'Q%1$s/%2$s', 'shipments', 'shiptastic-for-woocommerce' ), $quarter, $date_start->date_i18n( 'Y' ) );
 		} elseif ( 'monthly' === $args['type'] ) {
 			$date_start = $args['date_start'];
 			$month_num  = $date_start->date_i18n( 'm' );
 
-			$title = sprintf( _x( '%1$s/%2$s', 'shipments', 'woocommerce-germanized-shipments' ), $month_num, $date_start->date_i18n( 'Y' ) );
+			$title = sprintf( _x( '%1$s/%2$s', 'shipments', 'shiptastic-for-woocommerce' ), $month_num, $date_start->date_i18n( 'Y' ) );
 		} elseif ( 'yearly' === $args['type'] ) {
 			$date_start = $args['date_start'];
 
-			$title = sprintf( _x( '%1$s', 'shipments', 'woocommerce-germanized-shipments' ), $date_start->date_i18n( 'Y' ) ); // phpcs:ignore WordPress.WP.I18n.NoEmptyStrings
+			$title = sprintf( _x( '%1$s', 'shipments', 'shiptastic-for-woocommerce' ), $date_start->date_i18n( 'Y' ) ); // phpcs:ignore WordPress.WP.I18n.NoEmptyStrings
 		} elseif ( 'custom' === $args['type'] ) {
 			$date_start = $args['date_start'];
 			$date_end   = $args['date_end'];
 
-			$title = sprintf( _x( '%1$s - %2$s', 'shipments', 'woocommerce-germanized-shipments' ), $date_start->date_i18n( 'Y-m-d' ), $date_end->date_i18n( 'Y-m-d' ) );
+			$title = sprintf( _x( '%1$s - %2$s', 'shipments', 'shiptastic-for-woocommerce' ), $date_start->date_i18n( 'Y-m-d' ), $date_end->date_i18n( 'Y-m-d' ) );
 		}
 
 		return $title;
@@ -275,15 +275,15 @@ class ReportHelper {
 			$parts['date_end'] = $parts['date_end']->format( 'Y-m-d' );
 		}
 
-		return sanitize_key( 'woocommerce_gzd_shipments_packaging_' . $parts['type'] . '_report_' . $parts['date_start'] . '_' . $parts['date_end'] );
+		return sanitize_key( 'woocommerce_shiptastic_packaging_' . $parts['type'] . '_report_' . $parts['date_start'] . '_' . $parts['date_end'] );
 	}
 
 	public static function get_available_report_types() {
 		$types = array(
-			'quarterly' => _x( 'Quarterly', 'shipments', 'woocommerce-germanized-shipments' ),
-			'yearly'    => _x( 'Yearly', 'shipments', 'woocommerce-germanized-shipments' ),
-			'monthly'   => _x( 'Monthly', 'shipments', 'woocommerce-germanized-shipments' ),
-			'custom'    => _x( 'Custom', 'shipments', 'woocommerce-germanized-shipments' ),
+			'quarterly' => _x( 'Quarterly', 'shipments', 'shiptastic-for-woocommerce' ),
+			'yearly'    => _x( 'Yearly', 'shipments', 'shiptastic-for-woocommerce' ),
+			'monthly'   => _x( 'Monthly', 'shipments', 'shiptastic-for-woocommerce' ),
+			'custom'    => _x( 'Custom', 'shipments', 'shiptastic-for-woocommerce' ),
 		);
 
 		return $types;
@@ -291,7 +291,7 @@ class ReportHelper {
 
 	public static function get_report_data( $id ) {
 		$clean_id = str_replace( 'packaging_', '', $id );
-		$clean_id = str_replace( 'woocommerce_gzd_shipments_', '', $clean_id );
+		$clean_id = str_replace( 'woocommerce_shiptastic_', '', $clean_id );
 		$id_parts = explode( '_', $clean_id );
 
 		$data = array(
@@ -323,12 +323,12 @@ class ReportHelper {
 	}
 
 	public static function clear_caches() {
-		delete_transient( 'woocommerce_gzd_shipments_packaging_report_counts' );
-		wp_cache_delete( 'woocommerce_gzd_shipments_packaging_reports', 'options' );
+		delete_transient( 'woocommerce_shiptastic_packaging_report_counts' );
+		wp_cache_delete( 'woocommerce_shiptastic_packaging_reports', 'options' );
 	}
 
 	public static function get_report_ids() {
-		$reports = (array) get_option( 'woocommerce_gzd_shipments_packaging_reports', array() );
+		$reports = (array) get_option( 'woocommerce_shiptastic_packaging_reports', array() );
 
 		foreach ( array_keys( self::get_available_report_types() ) as $type ) {
 			if ( ! array_key_exists( $type, $reports ) ) {
@@ -341,9 +341,9 @@ class ReportHelper {
 
 	public static function get_report_status_title( $status ) {
 		if ( 'completed' === $status ) {
-			return _x( 'Completed', 'shipments-report-status', 'woocommerce-germanized-shipments' );
+			return _x( 'Completed', 'shipments-report-status', 'shiptastic-for-woocommerce' );
 		} else {
-			return _x( 'Pending', 'shipments-report-status', 'woocommerce-germanized-shipments' );
+			return _x( 'Pending', 'shipments-report-status', 'shiptastic-for-woocommerce' );
 		}
 	}
 
@@ -414,12 +414,12 @@ class ReportHelper {
 		if ( in_array( $report->get_id(), $reports_available[ $report->get_type() ], true ) ) {
 			$reports_available[ $report->get_type() ] = array_diff( $reports_available[ $report->get_type() ], array( $report->get_id() ) );
 
-			update_option( 'woocommerce_gzd_shipments_packaging_reports', $reports_available, false );
+			update_option( 'woocommerce_shiptastic_packaging_reports', $reports_available, false );
 
 			/**
 			 * Force non-cached option
 			 */
-			wp_cache_delete( 'woocommerce_gzd_shipments_packaging_reports', 'options' );
+			wp_cache_delete( 'woocommerce_shiptastic_packaging_reports', 'options' );
 		}
 	}
 
@@ -439,7 +439,7 @@ class ReportHelper {
 	}
 
 	public static function delete_report() {
-		if ( ! current_user_can( 'manage_woocommerce' ) || ! wp_verify_nonce( isset( $_GET['_wpnonce'] ) ? wp_unslash( $_GET['_wpnonce'] ) : '', 'wc_gzd_shipments_packaging_delete_report' ) ) { // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+		if ( ! current_user_can( 'manage_woocommerce' ) || ! wp_verify_nonce( isset( $_GET['_wpnonce'] ) ? wp_unslash( $_GET['_wpnonce'] ) : '', 'wc_shiptastic_packaging_delete_report' ) ) { // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
 			wp_die();
 		}
 
@@ -472,7 +472,7 @@ class ReportHelper {
 	}
 
 	public static function refresh_report() {
-		if ( ! current_user_can( 'manage_woocommerce' ) || ! wp_verify_nonce( isset( $_GET['_wpnonce'] ) ? wp_unslash( $_GET['_wpnonce'] ) : '', 'wc_gzd_shipments_packaging_refresh_report' ) ) { // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+		if ( ! current_user_can( 'manage_woocommerce' ) || ! wp_verify_nonce( isset( $_GET['_wpnonce'] ) ? wp_unslash( $_GET['_wpnonce'] ) : '', 'wc_shiptastic_packaging_refresh_report' ) ) { // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
 			wp_die();
 		}
 
@@ -490,7 +490,7 @@ class ReportHelper {
 	}
 
 	public static function cancel_report() {
-		if ( ! current_user_can( 'manage_woocommerce' ) || ! wp_verify_nonce( isset( $_GET['_wpnonce'] ) ? wp_unslash( $_GET['_wpnonce'] ) : '', 'wc_gzd_shipments_packaging_cancel_report' ) ) { // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+		if ( ! current_user_can( 'manage_woocommerce' ) || ! wp_verify_nonce( isset( $_GET['_wpnonce'] ) ? wp_unslash( $_GET['_wpnonce'] ) : '', 'wc_shiptastic_packaging_cancel_report' ) ) { // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
 			wp_die();
 		}
 

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-MAIN_PLUGIN_FILE="woocommerce-germanized-shipments.php"
+MAIN_PLUGIN_FILE="shiptastic-for-woocommerce.php"
 PACKAGE_JSON_FILE=package.json
 PACKAGE_FILE=src/Package.php
 COMPOSER_FILE=composer.json

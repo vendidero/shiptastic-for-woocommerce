@@ -1,10 +1,10 @@
 <?php
 
-namespace Vendidero\Germanized\Shipments\Labels;
+namespace Vendidero\Shiptastic\Labels;
 
 use Exception;
-use Vendidero\Germanized\Shipments\Package;
-use Vendidero\Germanized\Shipments\Shipment;
+use Vendidero\Shiptastic\Package;
+use Vendidero\Shiptastic\Shipment;
 use WC_Order_Item;
 
 defined( 'ABSPATH' ) || exit;
@@ -18,15 +18,15 @@ class Automation {
 	 * Init the package - load the REST API Server class.
 	 */
 	public static function init() {
-		add_action( 'woocommerce_gzd_shipment_before_status_change', array( __CLASS__, 'set_automation' ), 10, 2 );
+		add_action( 'woocommerce_shiptastic_shipment_before_status_change', array( __CLASS__, 'set_automation' ), 10, 2 );
 
 		// Watch shipment creations - e.g. default status is set to shipped - needs to trigger label generation
-		add_action( 'woocommerce_gzd_new_shipment', array( __CLASS__, 'set_after_create_automation' ), 10, 2 );
-		add_action( 'woocommerce_gzd_new_return_shipment', array( __CLASS__, 'set_after_create_automation' ), 10, 2 );
+		add_action( 'woocommerce_shiptastic_new_shipment', array( __CLASS__, 'set_after_create_automation' ), 10, 2 );
+		add_action( 'woocommerce_shiptastic_new_return_shipment', array( __CLASS__, 'set_after_create_automation' ), 10, 2 );
 
 		// After a label has been successfully created - maybe update shipment status
-		add_action( 'woocommerce_gzd_shipment_created_label', array( __CLASS__, 'maybe_adjust_shipment_status' ), 10 );
-		add_action( 'woocommerce_gzd_shipments_label_auto_sync_callback', array( __CLASS__, 'auto_sync_callback' ) );
+		add_action( 'woocommerce_shiptastic_shipment_created_label', array( __CLASS__, 'maybe_adjust_shipment_status' ), 10 );
+		add_action( 'woocommerce_shiptastic_label_auto_sync_callback', array( __CLASS__, 'auto_sync_callback' ) );
 
 		// Make sure the return label is being created before sending the return email to the customer
 		add_filter( 'woocommerce_email_attachments', array( __CLASS__, 'maybe_force_return_email_attachments' ), 10, 4 );
@@ -36,7 +36,7 @@ class Automation {
 	 * @param array $attachments
 	 * @param string $email_id
 	 * @param \WC_Order $order
-	 * @param \WC_GZD_Email_Customer_Return_Shipment $email
+	 * @param \WC_STC_Email_Customer_Return_Shipment $email
 	 *
 	 * @return array
 	 */
@@ -46,7 +46,7 @@ class Automation {
 
 			if ( ! $shipment->has_label() && $shipment->needs_label( false ) ) {
 				if ( $provider = $shipment->get_shipping_provider_instance() ) {
-					$auto_status = str_replace( 'gzd-', '', $provider->get_label_automation_shipment_status( $shipment ) );
+					$auto_status = $provider->get_label_automation_shipment_status( $shipment );
 
 					if ( $provider->automatically_generate_label( $shipment ) && $auto_status === $shipment->get_status() ) {
 						self::cancel_deferred_sync( array( 'shipment_id' => $shipment->get_id() ) );
@@ -86,7 +86,7 @@ class Automation {
 		/**
 		 * Cancel outstanding events and queue new.
 		 */
-		$queue->cancel_all( 'woocommerce_gzd_shipments_label_auto_sync_callback', $args, 'woocommerce-gzd-shipments-label-sync' );
+		$queue->cancel_all( 'woocommerce_shiptastic_label_auto_sync_callback', $args, 'woocommerce-shiptastic-label-sync' );
 	}
 
 	/**
@@ -115,7 +115,7 @@ class Automation {
 			$args,
 			array(
 				'is_hook'             => true,
-				'allow_deferred_sync' => wc_gzd_shipments_allow_deferred_sync( $label_type ),
+				'allow_deferred_sync' => wc_shiptastic_allow_deferred_sync( $label_type ),
 			)
 		);
 
@@ -131,21 +131,19 @@ class Automation {
 		 * @param boolean  $disable True if you want to disable automation.
 		 * @param Shipment $shipment The shipment object.
 		 *
-		 * @since 3.0.0
-		 * @package Vendidero/Germanized/DHL
 		 */
-		$disable = apply_filters( 'woocommerce_gzd_shipments_disable_label_auto_generate', $disable, $shipment );
+		$disable = apply_filters( 'woocommerce_shiptastic_disable_label_auto_generate', $disable, $shipment );
 
 		if ( $disable ) {
 			return;
 		}
 
 		if ( $provider = $shipment->get_shipping_provider_instance() ) {
-			$hook_prefix = 'woocommerce_gzd_' . ( 'return' === $shipment->get_type() ? 'return_' : '' ) . 'shipment_status_';
+			$hook_prefix = 'woocommerce_shiptastic_' . ( 'return' === $shipment->get_type() ? 'return_' : '' ) . 'shipment_status_';
 			$auto_status = $provider->get_label_automation_shipment_status( $shipment );
 
 			if ( $provider->automatically_generate_label( $shipment ) && ! empty( $auto_status ) ) {
-				$status = str_replace( 'gzd-', '', $auto_status );
+				$status = $auto_status;
 
 				if ( $args['is_hook'] ) {
 					add_action(
@@ -173,7 +171,7 @@ class Automation {
 
 	public static function create_label( $shipment_id, $shipment = false ) {
 		if ( ! $shipment ) {
-			$shipment = wc_gzd_get_shipment( $shipment_id );
+			$shipment = wc_stc_get_shipment( $shipment_id );
 
 			if ( ! $shipment ) {
 				return;
@@ -184,7 +182,7 @@ class Automation {
 			$result = $shipment->create_label();
 
 			if ( is_wp_error( $result ) ) {
-				$result = wc_gzd_get_shipment_error( $result );
+				$result = wc_stc_get_shipment_error( $result );
 			}
 
 			if ( is_wp_error( $result ) ) {
@@ -201,7 +199,7 @@ class Automation {
 		$args = wp_parse_args(
 			$args,
 			array(
-				'allow_deferred_sync' => wc_gzd_shipments_allow_deferred_sync( 'label' ),
+				'allow_deferred_sync' => wc_shiptastic_allow_deferred_sync( 'label' ),
 			)
 		);
 
@@ -219,7 +217,7 @@ class Automation {
 		 * and is already marked as shipped (e.g. due to default status set to shipped)
 		 * make sure to prevent a deferred sync as the label would not get attached to the email.
 		 */
-		if ( $the_shipment = wc_gzd_get_shipment( $shipment_id ) ) {
+		if ( $the_shipment = wc_stc_get_shipment( $shipment_id ) ) {
 			if ( $the_shipment->has_status( 'shipped' ) ) {
 				$args['allow_deferred_sync'] = false;
 			}
@@ -231,9 +229,9 @@ class Automation {
 
 			$queue->schedule_single(
 				time() + 50,
-				'woocommerce_gzd_shipments_label_auto_sync_callback',
+				'woocommerce_shiptastic_label_auto_sync_callback',
 				$defer_args,
-				'woocommerce-gzd-shipments-label-sync'
+				'woocommerce-shiptastic-label-sync'
 			);
 		} else {
 			self::create_label( $shipment_id, $shipment );

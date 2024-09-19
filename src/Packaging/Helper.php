@@ -1,6 +1,6 @@
 <?php
 
-namespace Vendidero\Germanized\Shipments\Packaging;
+namespace Vendidero\Shiptastic\Packaging;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -11,7 +11,7 @@ class Helper {
 	protected static $packaging_lookup = null;
 
 	/**
-	 * @return \Vendidero\Germanized\Shipments\Packaging[]
+	 * @return \Vendidero\Shiptastic\Packaging[]
 	 */
 	public static function get_all_packaging() {
 		if ( is_null( self::$packaging ) ) {
@@ -22,7 +22,7 @@ class Helper {
 				$data_store = \WC_Data_Store::load( 'packaging' );
 
 				foreach ( $data_store->get_all_packaging() as $key => $packaging ) {
-					if ( $the_packaging = wc_gzd_get_packaging( $packaging ) ) {
+					if ( $the_packaging = wc_stc_get_packaging( $packaging ) ) {
 						self::$packaging[ $key ]                            = $the_packaging;
 						self::$packaging_lookup[ $the_packaging->get_id() ] = $key;
 					}
@@ -37,11 +37,11 @@ class Helper {
 	/**
 	 * @param $args
 	 *
-	 * @return \Vendidero\Germanized\Shipments\Packaging[]
+	 * @return \Vendidero\Shiptastic\Packaging[]
 	 */
 	public static function get_packaging_list( $args = array() ) {
 		$the_list  = self::get_all_packaging();
-		$all_types = array_keys( wc_gzd_get_packaging_types() );
+		$all_types = array_keys( wc_stc_get_packaging_types() );
 		$args      = wp_parse_args(
 			$args,
 			array(

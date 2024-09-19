@@ -1,13 +1,13 @@
 <?php
-namespace Vendidero\Germanized\Shipments\Interfaces;
+namespace Vendidero\Shiptastic\Interfaces;
 
-use Vendidero\Germanized\Shipments\Labels\ConfigurationSet;
-use Vendidero\Germanized\Shipments\ShippingProvider\PickupLocation;
+use Vendidero\Shiptastic\Labels\ConfigurationSet;
+use Vendidero\Shiptastic\ShippingProvider\PickupLocation;
 
 /**
  * Shipment Label Interface
  *
- * @package  Germanized/Shipments/Interfaces
+ * @package  Shiptastic/Interfaces
  * @version  3.1.0
  */
 if ( ! defined( 'ABSPATH' ) ) {
@@ -22,17 +22,17 @@ interface ShippingProviderAuto extends ShippingProvider, LabelConfigurationSet {
 	public function get_label_classname( $type );
 
 	/**
-	 * @param \Vendidero\Germanized\Shipments\Shipment $shipment
+	 * @param \Vendidero\Shiptastic\Shipment $shipment
 	 */
 	public function get_available_label_products( $shipment );
 
 	/**
-	 * @param \Vendidero\Germanized\Shipments\Shipment $shipment
+	 * @param \Vendidero\Shiptastic\Shipment $shipment
 	 */
 	public function get_default_label_product( $shipment );
 
 	/**
-	 * @param \Vendidero\Germanized\Shipments\Shipment $shipment
+	 * @param \Vendidero\Shiptastic\Shipment $shipment
 	 */
 	public function get_label_fields( $shipment );
 

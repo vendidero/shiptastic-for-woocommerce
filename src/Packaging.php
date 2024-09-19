@@ -2,14 +2,14 @@
 /**
  * Packaging
  *
- * @package Vendidero/Germanized/Shipments
+ * @package Vendidero/Shiptastic
  * @version 1.0.0
  */
-namespace Vendidero\Germanized\Shipments;
+namespace Vendidero\Shiptastic;
 
-use Vendidero\Germanized\Shipments\Interfaces\LabelConfigurationSet;
-use Vendidero\Germanized\Shipments\Labels\ConfigurationSetTrait;
-use Vendidero\Germanized\Shipments\ShippingProvider\Helper;
+use Vendidero\Shiptastic\Interfaces\LabelConfigurationSet;
+use Vendidero\Shiptastic\Labels\ConfigurationSetTrait;
+use Vendidero\Shiptastic\ShippingProvider\Helper;
 use WC_Data;
 use WC_Data_Store;
 use Exception;
@@ -27,7 +27,6 @@ class Packaging extends WC_Data implements LabelConfigurationSet {
 	/**
 	 * This is the name of this object type.
 	 *
-	 * @since 1.0.0
 	 * @var string
 	 */
 	protected $object_type = 'packaging';
@@ -35,7 +34,6 @@ class Packaging extends WC_Data implements LabelConfigurationSet {
 	/**
 	 * Contains a reference to the data store for this class.
 	 *
-	 * @since 1.0.0
 	 * @var object
 	 */
 	protected $data_store_name = 'packaging';
@@ -44,7 +42,6 @@ class Packaging extends WC_Data implements LabelConfigurationSet {
 	 * Stores meta in cache for future reads.
 	 * A group must be set to to enable caching.
 	 *
-	 * @since 1.0.0
 	 * @var string
 	 */
 	protected $cache_group = 'packaging';
@@ -76,7 +73,7 @@ class Packaging extends WC_Data implements LabelConfigurationSet {
 
 	/**
 	 * Get the packaging if ID is passed, otherwise the packaging is new and empty.
-	 * This class should NOT be instantiated, but the `wc_gzd_get_packaging` function should be used.
+	 * This class should NOT be instantiated, but the `wc_stc_get_packaging` function should be used.
 	 *
 	 * @param int|object|Packaging $packaging packaging to read.
 	 */
@@ -102,8 +99,8 @@ class Packaging extends WC_Data implements LabelConfigurationSet {
 		} else {
 			$this->set_object_read( true );
 
-			$this->set_weight_unit( wc_gzd_get_packaging_weight_unit() );
-			$this->set_dimension_unit( wc_gzd_get_packaging_dimension_unit() );
+			$this->set_weight_unit( wc_stc_get_packaging_weight_unit() );
+			$this->set_dimension_unit( wc_stc_get_packaging_dimension_unit() );
 		}
 	}
 
@@ -118,7 +115,6 @@ class Packaging extends WC_Data implements LabelConfigurationSet {
 	 * Merge changes with data and clear.
 	 * Overrides WC_Data::apply_changes.
 	 *
-	 * @since 3.2.0
 	 */
 	public function apply_changes() {
 		if ( function_exists( 'array_replace' ) ) {
@@ -146,7 +142,7 @@ class Packaging extends WC_Data implements LabelConfigurationSet {
 	 * @return string
 	 */
 	protected function get_general_hook_prefix() {
-		return 'woocommerce_gzd_packaging_';
+		return 'woocommerce_shiptastic_packaging_';
 	}
 
 	/**
@@ -168,8 +164,8 @@ class Packaging extends WC_Data implements LabelConfigurationSet {
 	public function get_weight( $context = 'view' ) {
 		$weight = $this->get_prop( 'weight', $context );
 
-		if ( 'view' === $context && ! empty( $weight ) && $this->get_weight_unit() !== wc_gzd_get_packaging_weight_unit() ) {
-			$weight = wc_get_weight( (float) $weight, wc_gzd_get_packaging_weight_unit(), $this->get_weight_unit() );
+		if ( 'view' === $context && ! empty( $weight ) && $this->get_weight_unit() !== wc_stc_get_packaging_weight_unit() ) {
+			$weight = wc_get_weight( (float) $weight, wc_stc_get_packaging_weight_unit(), $this->get_weight_unit() );
 		}
 
 		return $weight;
@@ -184,8 +180,8 @@ class Packaging extends WC_Data implements LabelConfigurationSet {
 	public function get_max_content_weight( $context = 'view' ) {
 		$max_content_weight = $this->get_prop( 'max_content_weight', $context );
 
-		if ( 'view' === $context && ! empty( $max_content_weight ) && $this->get_weight_unit() !== wc_gzd_get_packaging_weight_unit() ) {
-			$max_content_weight = wc_get_weight( (float) $max_content_weight, wc_gzd_get_packaging_weight_unit(), $this->get_weight_unit() );
+		if ( 'view' === $context && ! empty( $max_content_weight ) && $this->get_weight_unit() !== wc_stc_get_packaging_weight_unit() ) {
+			$max_content_weight = wc_get_weight( (float) $max_content_weight, wc_stc_get_packaging_weight_unit(), $this->get_weight_unit() );
 		}
 
 		return $max_content_weight;
@@ -230,8 +226,8 @@ class Packaging extends WC_Data implements LabelConfigurationSet {
 	public function get_length( $context = 'view' ) {
 		$length = $this->get_prop( 'length', $context );
 
-		if ( 'view' === $context && ! empty( $length ) && $this->get_dimension_unit() !== wc_gzd_get_packaging_dimension_unit() ) {
-			$length = wc_get_dimension( (float) $length, wc_gzd_get_packaging_dimension_unit(), $this->get_dimension_unit() );
+		if ( 'view' === $context && ! empty( $length ) && $this->get_dimension_unit() !== wc_stc_get_packaging_dimension_unit() ) {
+			$length = wc_get_dimension( (float) $length, wc_stc_get_packaging_dimension_unit(), $this->get_dimension_unit() );
 		}
 
 		return $length;
@@ -246,8 +242,8 @@ class Packaging extends WC_Data implements LabelConfigurationSet {
 	public function get_width( $context = 'view' ) {
 		$width = $this->get_prop( 'width', $context );
 
-		if ( 'view' === $context && ! empty( $width ) && $this->get_dimension_unit() !== wc_gzd_get_packaging_dimension_unit() ) {
-			$width = wc_get_dimension( (float) $width, wc_gzd_get_packaging_dimension_unit(), $this->get_dimension_unit() );
+		if ( 'view' === $context && ! empty( $width ) && $this->get_dimension_unit() !== wc_stc_get_packaging_dimension_unit() ) {
+			$width = wc_get_dimension( (float) $width, wc_stc_get_packaging_dimension_unit(), $this->get_dimension_unit() );
 		}
 
 		return $width;
@@ -262,8 +258,8 @@ class Packaging extends WC_Data implements LabelConfigurationSet {
 	public function get_height( $context = 'view' ) {
 		$height = $this->get_prop( 'height', $context );
 
-		if ( 'view' === $context && ! empty( $height ) && $this->get_dimension_unit() !== wc_gzd_get_packaging_dimension_unit() ) {
-			$height = wc_get_dimension( (float) $height, wc_gzd_get_packaging_dimension_unit(), $this->get_dimension_unit() );
+		if ( 'view' === $context && ! empty( $height ) && $this->get_dimension_unit() !== wc_stc_get_packaging_dimension_unit() ) {
+			$height = wc_get_dimension( (float) $height, wc_stc_get_packaging_dimension_unit(), $this->get_dimension_unit() );
 		}
 
 		return $height;
@@ -281,8 +277,8 @@ class Packaging extends WC_Data implements LabelConfigurationSet {
 		if ( 'view' === $context ) {
 			if ( empty( $inner_length ) ) {
 				$inner_length = $this->get_length( $context );
-			} elseif ( $this->get_dimension_unit() !== wc_gzd_get_packaging_dimension_unit() ) {
-				$inner_length = wc_get_dimension( (float) $inner_length, wc_gzd_get_packaging_dimension_unit(), $this->get_dimension_unit() );
+			} elseif ( $this->get_dimension_unit() !== wc_stc_get_packaging_dimension_unit() ) {
+				$inner_length = wc_get_dimension( (float) $inner_length, wc_stc_get_packaging_dimension_unit(), $this->get_dimension_unit() );
 			}
 		}
 
@@ -301,8 +297,8 @@ class Packaging extends WC_Data implements LabelConfigurationSet {
 		if ( 'view' === $context ) {
 			if ( empty( $inner_width ) ) {
 				$inner_width = $this->get_width( $context );
-			} elseif ( $this->get_dimension_unit() !== wc_gzd_get_packaging_dimension_unit() ) {
-				$inner_width = wc_get_dimension( (float) $inner_width, wc_gzd_get_packaging_dimension_unit(), $this->get_dimension_unit() );
+			} elseif ( $this->get_dimension_unit() !== wc_stc_get_packaging_dimension_unit() ) {
+				$inner_width = wc_get_dimension( (float) $inner_width, wc_stc_get_packaging_dimension_unit(), $this->get_dimension_unit() );
 			}
 		}
 
@@ -321,8 +317,8 @@ class Packaging extends WC_Data implements LabelConfigurationSet {
 		if ( 'view' === $context ) {
 			if ( empty( $inner_height ) ) {
 				$inner_height = $this->get_height( $context );
-			} elseif ( $this->get_dimension_unit() !== wc_gzd_get_packaging_dimension_unit() ) {
-				$inner_height = wc_get_dimension( (float) $inner_height, wc_gzd_get_packaging_dimension_unit(), $this->get_dimension_unit() );
+			} elseif ( $this->get_dimension_unit() !== wc_stc_get_packaging_dimension_unit() ) {
+				$inner_height = wc_get_dimension( (float) $inner_height, wc_stc_get_packaging_dimension_unit(), $this->get_dimension_unit() );
 			}
 		}
 
@@ -423,7 +419,7 @@ class Packaging extends WC_Data implements LabelConfigurationSet {
 	}
 
 	public function supports_shipping_provider( $provider ) {
-		if ( is_a( $provider, 'Vendidero\Germanized\Shipments\Interfaces\ShippingProvider' ) ) {
+		if ( is_a( $provider, 'Vendidero\Shiptastic\Interfaces\ShippingProvider' ) ) {
 			$provider = $provider->get_name();
 		}
 
@@ -465,11 +461,11 @@ class Packaging extends WC_Data implements LabelConfigurationSet {
 	}
 
 	public function get_formatted_dimensions() {
-		return wc_gzd_format_shipment_dimensions( $this->get_dimensions(), wc_gzd_get_packaging_dimension_unit() );
+		return wc_stc_format_shipment_dimensions( $this->get_dimensions(), wc_stc_get_packaging_dimension_unit() );
 	}
 
 	public function get_formatted_inner_dimensions() {
-		return wc_gzd_format_shipment_dimensions( $this->get_inner_dimensions(), wc_gzd_get_packaging_dimension_unit() );
+		return wc_stc_format_shipment_dimensions( $this->get_inner_dimensions(), wc_stc_get_packaging_dimension_unit() );
 	}
 
 	public function get_volume() {
@@ -520,10 +516,10 @@ class Packaging extends WC_Data implements LabelConfigurationSet {
 		$description = $this->get_description();
 
 		return sprintf(
-			_x( '%1$s (%2$s, %3$s)', 'shipments-packaging-title', 'woocommerce-germanized-shipments' ),
+			_x( '%1$s (%2$s, %3$s)', 'shipments-packaging-title', 'shiptastic-for-woocommerce' ),
 			$description,
 			$this->get_formatted_dimensions(),
-			wc_gzd_format_shipment_weight( wc_format_decimal( $this->get_weight(), false, true ), wc_gzd_get_packaging_weight_unit() )
+			wc_stc_format_shipment_weight( wc_format_decimal( $this->get_weight(), false, true ), wc_stc_get_packaging_weight_unit() )
 		);
 	}
 
@@ -655,7 +651,7 @@ class Packaging extends WC_Data implements LabelConfigurationSet {
 
 		$id = parent::save();
 
-		if ( $cache = \Vendidero\Germanized\Shipments\Caches\Helper::get_cache_object( 'packagings' ) ) {
+		if ( $cache = \Vendidero\Shiptastic\Caches\Helper::get_cache_object( 'packagings' ) ) {
 			$cache->remove( $this->get_id() );
 		}
 

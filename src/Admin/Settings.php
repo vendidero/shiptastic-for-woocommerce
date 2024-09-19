@@ -1,13 +1,13 @@
 <?php
 
-namespace Vendidero\Germanized\Shipments\Admin;
+namespace Vendidero\Shiptastic\Admin;
 
-use Vendidero\Germanized\Shipments\Admin\Tabs\Tab;
-use Vendidero\Germanized\Shipments\Admin\Tabs\Tabs;
-use Vendidero\Germanized\Shipments\Package;
-use Vendidero\Germanized\Shipments\Packaging\ReportHelper;
-use Vendidero\Germanized\Shipments\Packaging\ReportQueue;
-use Vendidero\Germanized\Shipments\SecretBox;
+use Vendidero\Shiptastic\Admin\Tabs\Tab;
+use Vendidero\Shiptastic\Admin\Tabs\Tabs;
+use Vendidero\Shiptastic\Package;
+use Vendidero\Shiptastic\Packaging\ReportHelper;
+use Vendidero\Shiptastic\Packaging\ReportQueue;
+use Vendidero\Shiptastic\SecretBox;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -19,12 +19,12 @@ class Settings {
 	public static function get_main_breadcrumb() {
 		$current_tab = isset( $_GET['tab'] ) ? wc_clean( wp_unslash( $_GET['tab'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		$breadcrumb  = apply_filters(
-			'woocommerce_gzd_shipments_settings_main_breadcrumb',
+			'woocommerce_shiptastic_settings_main_breadcrumb',
 			array(
 				array(
 					'class' => 'main',
-					'href'  => 'shipments' === $current_tab ? '' : admin_url( 'admin.php?page=wc-settings&tab=shipments' ),
-					'title' => _x( 'Shipments', 'shipments-settings-page-title', 'woocommerce-germanized-shipments' ),
+					'href'  => 'shiptastic' === $current_tab ? '' : self::get_settings_url(),
+					'title' => _x( 'Shiptastic', 'shipments-settings-page-title', 'shiptastic-for-woocommerce' ),
 				),
 			)
 		);
@@ -42,7 +42,7 @@ class Settings {
 		$setting_page  = false;
 
 		foreach ( $setting_pages as $page ) {
-			if ( is_a( $page, '\Vendidero\Germanized\Shipments\Admin\Tabs\Tabs' ) ) {
+			if ( is_a( $page, '\Vendidero\Shiptastic\Admin\Tabs\Tabs' ) ) {
 				$setting_page = $page;
 				break;
 			}
@@ -56,10 +56,10 @@ class Settings {
 	}
 
 	public static function get_settings_url( $tab = '', $section = '' ) {
-		$url = admin_url( 'admin.php?page=wc-settings&tab=shipments' );
+		$url = admin_url( 'admin.php?page=wc-settings&tab=shiptastic' );
 
 		if ( ! empty( $tab ) ) {
-			$url = add_query_arg( array( 'tab' => 'shipments-' . $tab ), $url );
+			$url = add_query_arg( array( 'tab' => 'shiptastic-' . $tab ), $url );
 		}
 
 		if ( ! empty( $section ) ) {
@@ -143,7 +143,6 @@ class Settings {
 			/**
 			 * Sanitize the value of an option.
 			 *
-			 * @since 2.4.0
 			 */
 			$value = apply_filters( 'woocommerce_admin_settings_sanitize_option', $value, $option, $raw_value );
 
@@ -166,8 +165,8 @@ class Settings {
 				)
 			);
 
-			if ( has_action( "woocommerce_gzd_shipment_label_admin_field_{$setting['id']}" ) ) {
-				do_action( "woocommerce_gzd_shipment_label_admin_field_{$setting['id']}", $setting, $shipment );
+			if ( has_action( "woocommerce_shiptastic_shipment_label_admin_field_{$setting['id']}" ) ) {
+				do_action( "woocommerce_shiptastic_shipment_label_admin_field_{$setting['id']}", $setting, $shipment );
 			} elseif ( 'select' === $setting['type'] ) {
 				woocommerce_wp_select( $setting );
 			} elseif ( 'multiselect' === $setting['type'] ) {
@@ -203,10 +202,10 @@ class Settings {
 				?>
 				<p class="show-services-trigger show-more-trigger">
 					<a href="#" class="show-more show-further-services <?php echo ( ! $hide_default ? 'hide-default' : '' ); ?>">
-						<span class="dashicons dashicons-plus"></span> <?php echo esc_html_x( 'More services', 'shipments', 'woocommerce-germanized-shipments' ); ?>
+						<span class="dashicons dashicons-plus"></span> <?php echo esc_html_x( 'More services', 'shipments', 'shiptastic-for-woocommerce' ); ?>
 					</a>
 					<a class="show-fewer show-fewer-services <?php echo ( $hide_default ? 'hide-default' : '' ); ?>" href="#">
-						<span class="dashicons dashicons-minus"></span> <?php echo esc_html_x( 'Fewer services', 'shipments', 'woocommerce-germanized-shipments' ); ?>
+						<span class="dashicons dashicons-minus"></span> <?php echo esc_html_x( 'Fewer services', 'shipments', 'shiptastic-for-woocommerce' ); ?>
 					</a>
 				</p>
 				<div class="<?php echo ( $hide_default ? 'hide-default' : '' ); ?> show-more-wrapper show-if-further-services" data-trigger=".show-services-trigger">
@@ -219,7 +218,7 @@ class Settings {
 			} elseif ( 'wrapper' === $setting['type'] ) {
 				$missing_div_closes++;
 				?>
-					<div class="wc-gzd-shipment-label-wrapper" id="wc-gzd-shipment-label-wrapper-<?php echo esc_attr( $setting['id'] ); ?>">
+					<div class="wc-stc-shipment-label-wrapper" id="wc-stc-shipment-label-wrapper-<?php echo esc_attr( $setting['id'] ); ?>">
 				<?php
 			} elseif ( in_array( $setting['type'], array( 'columns_end', 'services_end', 'wrapper_end' ), true ) ) {
 				$missing_div_closes--;
@@ -227,7 +226,7 @@ class Settings {
 					</div>
 				<?php
 			} else {
-				do_action( "woocommerce_gzd_shipment_label_admin_field_{$setting['type']}", $setting, $shipment );
+				do_action( "woocommerce_shiptastic_shipment_label_admin_field_{$setting['type']}", $setting, $shipment );
 			}
 		}
 

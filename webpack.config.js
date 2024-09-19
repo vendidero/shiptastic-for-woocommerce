@@ -80,7 +80,7 @@ const staticEntry = { ...staticCss, ...staticJs }
 const entries = {
     styling: {
         // Shared blocks code
-        'wc-gzd-shipments-blocks': './assets/js/index.js',
+        'wc-shiptastic-blocks': './assets/js/index.js',
         ...getBlockEntries( '{index,block,frontend}.{t,j}s{,x}' ),
     },
     core: {
@@ -88,7 +88,7 @@ const entries = {
     },
     main: {
         // Shared blocks code
-        'wc-gzd-shipments-blocks': './assets/js/index.js',
+        'wc-shiptastic-blocks': './assets/js/index.js',
         // Blocks
         ...getBlockEntries( 'index.{t,j}s{,x}' )
     },
@@ -116,7 +116,7 @@ const wcDepMap = {
     '@woocommerce/price-format': [ 'wc', 'priceFormat' ],
     '@woocommerce/blocks-checkout': [ 'wc', 'blocksCheckout' ],
     '@woocommerce/interactivity': [ 'wc', '__experimentalInteractivity' ],
-    '@woocommerceGzdShipments/blocks-checkout': [ 'wcGzdShipments', 'blocksCheckout' ],
+    '@woocommerceShiptastic/blocks-checkout': [ 'wcShiptastic', 'blocksCheckout' ],
 };
 
 const wcHandleMap = {
@@ -129,7 +129,7 @@ const wcHandleMap = {
     '@woocommerce/price-format': 'wc-price-format',
     '@woocommerce/blocks-checkout': 'wc-blocks-checkout',
     '@woocommerce/interactivity': 'wc-interactivity',
-    '@woocommerceGzdShipments/blocks-checkout': 'wc-gzd-shipments-blocks-checkout',
+    '@woocommerceShiptastic/blocks-checkout': 'wc-shiptastic-blocks-checkout',
 };
 
 const requestToExternal = ( request ) => {
@@ -153,12 +153,12 @@ const getBaseConfig = ( entry ) => {
                 return `${ paramCase( chunkData.chunk.name ) }.js`;
             },
             path: path.resolve( __dirname, 'build/' ),
-            library: [ 'wcGzdShipments', '[name]' ],
+            library: [ 'wcShiptastic', '[name]' ],
             libraryTarget: 'window',
             // This fixes an issue with multiple webpack projects using chunking
             // overwriting each other's chunk loader function.
             // See https://webpack.js.org/configuration/output/#outputjsonpfunction
-            chunkLoadingGlobal: 'webpackWcShipmentsBlocksJsonp',
+            chunkLoadingGlobal: 'webpackWcShiptasticBlocksJsonp',
         },
         module: {
             ...defaultConfig.module,
@@ -241,8 +241,8 @@ const StaticConfig = {
     output: {
         path: path.resolve( __dirname, './build/static/' ),
         filename: "[name].js",
-        devtoolNamespace: 'wcGzdShipments',
-        library: [ 'wcGzdShipments', 'static', '[name]' ],
+        devtoolNamespace: 'wcShiptastic',
+        library: [ 'wcShiptastic', 'static', '[name]' ],
         libraryTarget: 'window',
     }
 };
@@ -250,7 +250,7 @@ const StaticConfig = {
 const FrontendConfig = {
     ...getBaseConfig( 'frontend' ),
     output: {
-        devtoolNamespace: 'wcGzdShipments',
+        devtoolNamespace: 'wcShiptastic',
         path: path.resolve( __dirname, 'build/' ),
         // This is a cache busting mechanism which ensures that the script is loaded via the browser with a ?ver=hash
         // string. The hash is based on the built file contents.
@@ -266,7 +266,7 @@ const FrontendConfig = {
         // See https://webpack.js.org/configuration/output/#outputjsonpfunction
         // This can be removed when moving to webpack 5:
         // https://webpack.js.org/blog/2020-10-10-webpack-5-release/#automatic-unique-naming
-        chunkLoadingGlobal: 'webpackWcShipmentsBlocksJsonp',
+        chunkLoadingGlobal: 'webpackWcShiptasticBlocksJsonp',
     }
 };
 
@@ -300,7 +300,7 @@ const StylingConfig = {
                                 module,
                                 /[\\/]assets[\\/]js[\\/]editor-components[\\/]/
                             ) ),
-                    name: 'wc-shipments-blocks-editor-style',
+                    name: 'wc-shiptastic-blocks-editor-style',
                     chunks: 'all',
                     priority: 10,
                 },
@@ -308,17 +308,17 @@ const StylingConfig = {
         },
     },
     output: {
-        devtoolNamespace: 'wcGzdPro',
+        devtoolNamespace: 'wcShiptastic',
         path: path.resolve( __dirname, 'build/' ),
         filename: `[name]-style.js`,
-        library: [ 'wcShipments', 'blocks', '[name]' ],
+        library: [ 'wcShiptastic', 'blocks', '[name]' ],
         libraryTarget: 'window',
         // This fixes an issue with multiple webpack projects using chunking
         // overwriting each other's chunk loader function.
         // See https://webpack.js.org/configuration/output/#outputjsonpfunction
         // This can be removed when moving to webpack 5:
         // https://webpack.js.org/blog/2020-10-10-webpack-5-release/#automatic-unique-naming
-        chunkLoadingGlobal: 'webpackWcShipmentsBlocksJsonp'
+        chunkLoadingGlobal: 'webpackWcShiptasticBlocksJsonp'
     },
     resolve: {
         alias: getAlias(),

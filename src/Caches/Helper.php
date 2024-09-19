@@ -1,6 +1,6 @@
 <?php
 
-namespace Vendidero\Germanized\Shipments\Caches;
+namespace Vendidero\Shiptastic\Caches;
 
 use Automattic\WooCommerce\Caching\ObjectCache;
 use Automattic\WooCommerce\Utilities\OrderUtil;
@@ -60,7 +60,7 @@ class Helper {
 			}
 		}
 
-		return apply_filters( "woocommerce_gzd_shipments_enable_{$type}_cache", $is_enabled, $type );
+		return apply_filters( "woocommerce_shiptastic_enable_{$type}_cache", $is_enabled, $type );
 	}
 
 	public static function disable( $type ) {
@@ -73,11 +73,11 @@ class Helper {
 
 	protected static function get_types() {
 		return array(
-			'shipments'          => '\Vendidero\Germanized\Shipments\Caches\ShipmentCache',
-			'packagings'         => '\Vendidero\Germanized\Shipments\Caches\PackagingCache',
-			'shipment-labels'    => '\Vendidero\Germanized\Shipments\Caches\ShipmentLabelCache',
-			'shipping-providers' => '\Vendidero\Germanized\Shipments\Caches\ShippingProviderCache',
-			'shipment-orders'    => '\Vendidero\Germanized\Shipments\Caches\ShipmentOrderCache',
+			'shipments'          => '\Vendidero\Shiptastic\Caches\ShipmentCache',
+			'packagings'         => '\Vendidero\Shiptastic\Caches\PackagingCache',
+			'shipment-labels'    => '\Vendidero\Shiptastic\Caches\ShipmentLabelCache',
+			'shipping-providers' => '\Vendidero\Shiptastic\Caches\ShippingProviderCache',
+			'shipment-orders'    => '\Vendidero\Shiptastic\Caches\ShipmentOrderCache',
 		);
 	}
 

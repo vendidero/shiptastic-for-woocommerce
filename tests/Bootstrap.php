@@ -4,9 +4,9 @@
  *
  * @package Automattic/WooCommerce/RestApi
  */
-namespace Vendidero\Germanized\Shipments\Tests;
+namespace Vendidero\Shiptastic\Tests;
 
-use Vendidero\Germanized\Shipments\Package;
+use Vendidero\Shiptastic\Package;
 use WC_Install;
 use function esc_html;
 use function tests_add_filter;
@@ -151,7 +151,7 @@ class Bootstrap {
 
 		tests_add_filter( 'muplugins_loaded', function() {
 			require_once $this->get_woo_dir()  . '/woocommerce.php';
-			require_once $this->plugin_dir . '/woocommerce-germanized-shipments.php';
+			require_once $this->plugin_dir . '/shiptastic-for-woocommerce.php';
 		} );
 
 		tests_add_filter( 'setup_theme', function() {

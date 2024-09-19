@@ -2,8 +2,8 @@
 
 namespace Rest;
 
-use Vendidero\Germanized\Shipments\Rest\ShipmentsController;
-use Vendidero\Germanized\Shipments\Tests\Helpers\ShipmentHelper;
+use Vendidero\Shiptastic\Rest\ShipmentsController;
+use Vendidero\Shiptastic\Tests\Helpers\ShipmentHelper;
 use WP_REST_Request;
 
 /**
@@ -13,7 +13,7 @@ use WP_REST_Request;
  *
  * @package Rest
  */
-class ShipmentsControllerTest extends \Vendidero\Germanized\Shipments\Tests\Framework\UnitRestTestCase {
+class ShipmentsControllerTest extends \Vendidero\Shiptastic\Tests\Framework\UnitRestTestCase {
 
 	/**
 	 * Endpoint to test
@@ -128,7 +128,7 @@ class ShipmentsControllerTest extends \Vendidero\Germanized\Shipments\Tests\Fram
 		$order_id = $shipment_initial->get_order_id();
 		$shipment_initial->delete( true );
 
-		$order = wc_gzd_get_shipment_order( $order_id );
+		$order = wc_stc_get_shipment_order( $order_id );
 		$shipment_items = $order->get_available_items_for_shipment();
 		$order_item_id = array_keys( $shipment_items )[0];
 

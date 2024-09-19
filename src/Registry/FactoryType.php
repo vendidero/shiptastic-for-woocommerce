@@ -1,10 +1,9 @@
 <?php
-namespace Vendidero\Germanized\Shipments\Registry;
+namespace Vendidero\Shiptastic\Registry;
 
 /**
  * Definition for the FactoryType dependency type.
  *
- * @since 2.5.0
  */
 class FactoryType extends AbstractDependencyType {
 	/**
