@@ -46,7 +46,7 @@ class Package {
 		add_action( 'after_setup_theme', array( __CLASS__, 'include_template_functions' ), 11 );
 		add_action( 'before_woocommerce_init', array( __CLASS__, 'declare_feature_compatibility' ) );
 
-		add_filter( 'woocommerce_locate_template', array( __CLASS__, 'filter_templates' ), 10, 3 );
+		add_filter( 'woocommerce_locate_template', array( __CLASS__, 'filter_templates' ), 50, 3 );
 		add_filter( 'woocommerce_get_query_vars', array( __CLASS__, 'register_endpoints' ), 10, 1 );
 
 		if ( ! did_action( 'woocommerce_loaded' ) ) {
