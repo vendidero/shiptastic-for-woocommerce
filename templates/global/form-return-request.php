@@ -16,13 +16,11 @@
 if ( ! defined( 'ABSPATH' ) ) {
 	exit; // Exit if accessed directly.
 }
-
 ?>
 <form class="woocommerce-form woocommerce-form-return-request return-request" method="post" <?php echo ( $hidden ) ? 'style="display:none;"' : ''; ?>>
-
 	<?php do_action( 'woocommerce_shiptastic_return_request_form_start' ); ?>
 
-	<?php echo ( $message ) ? wpautop( wptexturize( $message ) ) : ''; // @codingStandardsIgnoreLine ?>
+	<?php echo ( $message ) ? wp_kses_post( wpautop( wptexturize( $message ) ) ) : ''; ?>
 
 	<p class="form-row form-row-first">
 		<label for="return-request-email"><?php echo esc_html_x( 'Order email', 'shipments', 'shiptastic-for-woocommerce' ); ?>&nbsp;<span class="required">*</span></label>

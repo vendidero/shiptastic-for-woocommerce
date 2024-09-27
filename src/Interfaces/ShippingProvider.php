@@ -1,18 +1,10 @@
 <?php
 namespace Vendidero\Shiptastic\Interfaces;
 
-/**
- * Shipment Label Interface
- *
- * @version  3.1.0
- */
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-/**
- * ShipmentLabel class.
- */
 interface ShippingProvider {
 
 	/**
@@ -73,7 +65,7 @@ interface ShippingProvider {
 
 	public function get_tracking_placeholders( $shipment = false );
 
-	public function get_setting( $key, $default = null );
+	public function get_setting( $key, $default_value = null );
 
 	public function update_settings( $section = '', $data = null, $save = true );
 

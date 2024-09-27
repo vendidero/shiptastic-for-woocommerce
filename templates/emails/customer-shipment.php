@@ -23,16 +23,16 @@ if ( ! defined( 'ABSPATH' ) ) {
 do_action( 'woocommerce_email_header', $email_heading, $email ); ?>
 
 <?php /* translators: %s: Customer first name */ ?>
-	<p><?php printf( esc_html__( 'Hi %s,', 'woocommerce' ), esc_html( $order->get_billing_first_name() ) ); // phpcs:ignore WordPress.WP.I18n.TextDomainMismatch ?></p>
+	<p><?php printf( esc_html_x( 'Hi %s,', 'shipments', 'shiptastic-for-woocommerce' ), esc_html( $order->get_billing_first_name() ) ); ?></p>
 
 	<p>
 		<?php
 		if ( $partial_shipment ) {
 			/* translators: %s: Site title */
-			printf( esc_html_x( 'Your order on %1$s has been partially shipped via %2$s. Find details below for your reference:', 'shipments', 'shiptastic-for-woocommerce' ), wp_specialchars_decode( get_option( 'blogname' ), ENT_QUOTES ), esc_html( wc_stc_get_shipment_shipping_provider_title( $shipment ) ) ); // phpcs:ignore WordPress.XSS.EscapeOutput.OutputNotEscaped
+			printf( esc_html_x( 'Your order on %1$s has been partially shipped via %2$s. Find details below for your reference:', 'shipments', 'shiptastic-for-woocommerce' ), esc_html( wp_specialchars_decode( get_option( 'blogname' ), ENT_QUOTES ) ), esc_html( wc_stc_get_shipment_shipping_provider_title( $shipment ) ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 		} else {
 			/* translators: %s: Site title */
-			printf( esc_html_x( 'Your order on %1$s has been shipped via %2$s. Find details below for your reference:', 'shipments', 'shiptastic-for-woocommerce' ), wp_specialchars_decode( get_option( 'blogname' ), ENT_QUOTES ), esc_html( wc_stc_get_shipment_shipping_provider_title( $shipment ) ) ); // phpcs:ignore WordPress.XSS.EscapeOutput.OutputNotEscaped
+			printf( esc_html_x( 'Your order on %1$s has been shipped via %2$s. Find details below for your reference:', 'shipments', 'shiptastic-for-woocommerce' ), esc_html( wp_specialchars_decode( get_option( 'blogname' ), ENT_QUOTES ) ), esc_html( wc_stc_get_shipment_shipping_provider_title( $shipment ) ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 		}
 		?>
 	</p>

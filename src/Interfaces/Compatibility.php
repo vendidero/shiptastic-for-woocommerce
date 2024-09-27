@@ -2,11 +2,6 @@
 
 namespace Vendidero\Shiptastic\Interfaces;
 
-/**
- * Compatibility
- *
- * @version  1.0.0
- */
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }

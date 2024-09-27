@@ -599,6 +599,56 @@ table.wc-shiptastic-shipping-rules {
   }
 }
 
+.wc-shiptastic-create-packaging-report {
+  margin-bottom: 15px;
+  padding: 0;
+
+  select {
+    width: auto !important;
+    min-width: 120px;
+  }
+
+  button.button {
+    height: 34px;
+    margin-left: 10px;
+  }
+}
+
+table.packaging_reports_table {
+  thead {
+    th {
+      padding: 10px;
+    }
+    td {
+      padding: 15px 10px;
+
+      .packaging-report-status {
+        margin-left: 5px;
+      }
+    }
+  }
+}
+
+tbody.packaging_list {
+  tr td {
+    padding: .5em;
+  }
+
+  select {
+    width: 100% !important;
+  }
+
+  .input-inner-wrap {
+    clear: both;
+
+    input.wc_input_decimal {
+      width: 33% !important;
+      min-width: auto !important;
+      float: left !important;
+    }
+  }
+}
+
 .packaging-report-status {
   background: #f8dda7;
   color: #94660c;

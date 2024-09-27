@@ -522,25 +522,26 @@ class ShipmentQuery extends WC_Object_Query {
 	 * Used internally to generate an SQL string for searching across multiple columns
 	 *
 	 *
-	 * @global wpdb $wpdb WordPress database abstraction object.
-	 *
-	 * @param string $string
+	 * @param string $search_query
 	 * @param array  $cols
 	 * @param bool   $wild   Whether to allow wildcard searches. Default is false for Network Admin, true for single site.
 	 *                       Single site allows leading and trailing wildcards, Network Admin only trailing.
+	 *
 	 * @return string
+	 *@global wpdb $wpdb WordPress database abstraction object.
+	 *
 	 */
-	protected function get_search_sql( $string, $cols, $wild = false ) {
+	protected function get_search_sql( $search_query, $cols, $wild = false ) {
 		global $wpdb;
 
 		$searches      = array();
 		$leading_wild  = ( 'leading' === $wild || 'both' === $wild ) ? '%' : '';
 		$trailing_wild = ( 'trailing' === $wild || 'both' === $wild ) ? '%' : '';
-		$like          = $leading_wild . $wpdb->esc_like( $string ) . $trailing_wild;
+		$like          = $leading_wild . $wpdb->esc_like( $search_query ) . $trailing_wild;
 
 		foreach ( $cols as $col ) {
 			if ( 'ID' === $col ) {
-				$searches[] = $wpdb->prepare( "$wpdb->stc_shipments.$col = %s", $string ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+				$searches[] = $wpdb->prepare( "$wpdb->stc_shipments.$col = %s", $search_query ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 			} else {
 				$searches[] = $wpdb->prepare( "$wpdb->stc_shipments.$col LIKE %s", $like ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 			}

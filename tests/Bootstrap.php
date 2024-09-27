@@ -155,7 +155,7 @@ class Bootstrap {
 		} );
 
 		tests_add_filter( 'setup_theme', function() {
-			echo esc_html( 'Installing WooCommerce and Shipments...' . PHP_EOL );
+			echo esc_html( 'Installing WooCommerce and Shiptastic...' . PHP_EOL );
 
 			define( 'WP_UNINSTALL_PLUGIN', true );
 			define( 'WC_REMOVE_ALL_DATA', true );

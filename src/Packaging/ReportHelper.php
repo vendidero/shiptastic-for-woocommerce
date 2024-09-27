@@ -18,7 +18,7 @@ class ReportHelper {
 
 			add_action(
 				ReportQueue::get_hook_name( $id ),
-				function( $args ) use ( $type ) {
+				function ( $args ) use ( $type ) {
 					ReportQueue::next( $type, $args );
 				},
 				10,
@@ -171,7 +171,7 @@ class ReportHelper {
 				else :
 					$details = ReportQueue::get_queue_details( $report_id );
 					?>
-					<p class="summary"><?php printf( _x( 'Currently processed %1$s shipments. Next iteration is scheduled for %2$s. <a href="%3$s">Find pending actions</a>', 'shipments', 'shiptastic-for-woocommerce' ), esc_html( $details['shipment_count'] ), ( $details['next_date'] ? esc_html( $details['next_date']->date_i18n( wc_date_format() . ' @ ' . wc_time_format() ) ) : esc_html_x( 'Not yet known', 'shipments', 'shiptastic-for-woocommerce' ) ), esc_url( $details['link'] ) ); ?></p>
+					<p class="summary"><?php echo wp_kses_post( sprintf( _x( 'Currently processed %1$s shipments. Next iteration is scheduled for %2$s. <a href="%3$s">Find pending actions</a>', 'shipments', 'shiptastic-for-woocommerce' ), esc_html( $details['shipment_count'] ), ( $details['next_date'] ? esc_html( $details['next_date']->date_i18n( wc_date_format() . ' @ ' . wc_time_format() ) ) : esc_html_x( 'Not yet known', 'shipments', 'shiptastic-for-woocommerce' ) ), esc_url( $details['link'] ) ) ); ?></p>
 				<?php endif; ?>
 			</div>
 			<?php
@@ -189,11 +189,9 @@ class ReportHelper {
 
 			if ( $details['has_action'] && ! $details['is_finished'] ) {
 				$running[] = $report_id;
-			} else {
-				if ( $report = self::get_report( $report_id ) ) {
-					if ( 'completed' !== $report->get_status() ) {
-						$report->delete();
-					}
+			} elseif ( $report = self::get_report( $report_id ) ) {
+				if ( 'completed' !== $report->get_status() ) {
+					$report->delete();
 				}
 			}
 		}
@@ -380,7 +378,7 @@ class ReportHelper {
 		if ( array_key_exists( $args['orderby'], array( 'date_start', 'date_end' ) ) ) {
 			usort(
 				$reports_sorted,
-				function( $a, $b ) use ( $args ) {
+				function ( $a, $b ) use ( $args ) {
 					if ( $a[ $args['orderby'] ] === $b[ $args['orderby'] ] ) {
 						return 0;
 					}
@@ -439,7 +437,7 @@ class ReportHelper {
 	}
 
 	public static function delete_report() {
-		if ( ! current_user_can( 'manage_woocommerce' ) || ! wp_verify_nonce( isset( $_GET['_wpnonce'] ) ? wp_unslash( $_GET['_wpnonce'] ) : '', 'wc_shiptastic_packaging_delete_report' ) ) { // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+		if ( ! current_user_can( 'manage_woocommerce' ) || ! wp_verify_nonce( isset( $_GET['_wpnonce'] ) ? wc_clean( wp_unslash( $_GET['_wpnonce'] ) ) : '', 'wc_shiptastic_packaging_delete_report' ) ) {
 			wp_die();
 		}
 
@@ -472,7 +470,7 @@ class ReportHelper {
 	}
 
 	public static function refresh_report() {
-		if ( ! current_user_can( 'manage_woocommerce' ) || ! wp_verify_nonce( isset( $_GET['_wpnonce'] ) ? wp_unslash( $_GET['_wpnonce'] ) : '', 'wc_shiptastic_packaging_refresh_report' ) ) { // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+		if ( ! current_user_can( 'manage_woocommerce' ) || ! wp_verify_nonce( isset( $_GET['_wpnonce'] ) ? wc_clean( wp_unslash( $_GET['_wpnonce'] ) ) : '', 'wc_shiptastic_packaging_refresh_report' ) ) {
 			wp_die();
 		}
 
@@ -490,7 +488,7 @@ class ReportHelper {
 	}
 
 	public static function cancel_report() {
-		if ( ! current_user_can( 'manage_woocommerce' ) || ! wp_verify_nonce( isset( $_GET['_wpnonce'] ) ? wp_unslash( $_GET['_wpnonce'] ) : '', 'wc_shiptastic_packaging_cancel_report' ) ) { // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+		if ( ! current_user_can( 'manage_woocommerce' ) || ! wp_verify_nonce( isset( $_GET['_wpnonce'] ) ? wc_clean( wp_unslash( $_GET['_wpnonce'] ) ) : '', 'wc_shiptastic_packaging_cancel_report' ) ) {
 			wp_die();
 		}
 

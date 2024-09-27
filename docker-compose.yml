@@ -20,7 +20,7 @@ services:
     build:
       context: ./tests/bin
     ports:
-      - 8087:80
+      - 8089:80
     restart: on-failure
     environment:
       WORDPRESS_DB_HOST:

@@ -508,18 +508,18 @@ class Shipment extends WC_Data_Store_WP implements WC_Object_Data_Store_Interfac
 	 *
 	 * Note: WordPress `get_metadata` function returns an empty string when meta data does not exist.
 	 *
-	 * @param WC_Data $object The WP_Data object (WC_Coupon for coupons, etc).
+	 * @param WC_Data $shipment The WP_Data object (WC_Coupon for coupons, etc).
 	 * @param string  $meta_key Meta key to update.
 	 * @param mixed   $meta_value Value to save.
 	 *
 	 *
 	 * @return bool True if updated/deleted.
 	 */
-	protected function update_or_delete_meta( $object, $meta_key, $meta_value ) {
+	protected function update_or_delete_meta( $shipment, $meta_key, $meta_value ) {
 		if ( in_array( $meta_value, array( array(), '' ), true ) && ! in_array( $meta_key, $this->must_exist_meta_keys, true ) ) {
-			$updated = delete_metadata( 'stc_shipment', $object->get_id(), $meta_key );
+			$updated = delete_metadata( 'stc_shipment', $shipment->get_id(), $meta_key );
 		} else {
-			$updated = update_metadata( 'stc_shipment', $object->get_id(), $meta_key, $meta_value );
+			$updated = update_metadata( 'stc_shipment', $shipment->get_id(), $meta_key, $meta_value );
 		}
 
 		return (bool) $updated;
@@ -560,7 +560,7 @@ class Shipment extends WC_Data_Store_WP implements WC_Object_Data_Store_Interfac
 			$shipment_type = $shipment->get_type();
 
 			$items = array_map(
-				function( $item_id ) use ( $shipment_type, $shipment ) {
+				function ( $item_id ) use ( $shipment_type, $shipment ) {
 					$item = wc_stc_get_shipment_item( $item_id, $shipment_type );
 
 					if ( $item ) {

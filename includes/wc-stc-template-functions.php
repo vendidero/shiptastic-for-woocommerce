@@ -141,7 +141,6 @@ if ( ! function_exists( 'woocommerce_shiptastic_template_view_shipment' ) ) {
 if ( ! function_exists( 'woocommerce_shiptastic_template_add_return_shipment' ) ) {
 
 	function woocommerce_shiptastic_template_add_return_shipment( $order_id ) {
-
 		if ( ( ! ( $order = wc_get_order( $order_id ) ) ) || ( ! wc_stc_customer_can_add_return_shipment( $order_id ) ) ) {
 			echo '<div class="woocommerce-error">' . esc_html_x( 'Invalid order.', 'shipments', 'shiptastic-for-woocommerce' ) . ' <a href="' . esc_url( wc_get_page_permalink( 'myaccount' ) ) . '" class="wc-forward">' . esc_html_x( 'My account', 'shipments', 'shiptastic-for-woocommerce' ) . '</a></div>';
 			return;
@@ -156,7 +155,7 @@ if ( ! function_exists( 'woocommerce_shiptastic_template_add_return_shipment' ) 
 
 		// Output notices in case notices have not been outputted yet.
 		if ( ! empty( $notices ) ) {
-			echo '<div class="woocommerce">' . $notices . '</div>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+			echo '<div class="woocommerce">' . wc_kses_notice( $notices ) . '</div>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 		}
 
 		wc_get_template(

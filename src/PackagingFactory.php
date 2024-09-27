@@ -9,7 +9,7 @@
  */
 namespace Vendidero\Shiptastic;
 
-use \Exception;
+use Exception;
 use Vendidero\Shiptastic\Caches\Helper;
 
 defined( 'ABSPATH' ) || exit;

@@ -11,8 +11,8 @@ namespace Vendidero\Shiptastic;
 
 use Vendidero\Shiptastic\Caches\Helper;
 use Vendidero\Shiptastic\Shipment;
-use \WC_Data_Store;
-use \Exception;
+use WC_Data_Store;
+use Exception;
 
 defined( 'ABSPATH' ) || exit;
 

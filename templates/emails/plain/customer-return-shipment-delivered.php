@@ -20,7 +20,7 @@ echo esc_html( wp_strip_all_tags( $email_heading ) );
 echo "\n=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=\n\n";
 
 /* translators: %s: Customer first name */
-echo sprintf( esc_html__( 'Hi %s,', 'woocommerce' ), esc_html( $order->get_billing_first_name() ) ) . "\n\n"; // phpcs:ignore WordPress.WP.I18n.TextDomainMismatch
+echo sprintf( esc_html_x( 'Hi %s,', 'shipments', 'shiptastic-for-woocommerce' ), esc_html( $order->get_billing_first_name() ) ) . "\n\n";
 
 echo esc_html_x( 'Thank you! Your return has been received successfully. There are more details below for your reference:', 'shipments', 'shiptastic-for-woocommerce' );
 

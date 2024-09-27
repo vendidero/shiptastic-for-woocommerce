@@ -85,7 +85,7 @@ class Admin {
 
 		add_action(
 			'admin_init',
-			function() {
+			function () {
 				// Order shipping status
 				add_filter( 'manage_' . ( 'shop_order' === self::get_order_screen_id() ? 'shop_order_posts' : self::get_order_screen_id() ) . '_columns', array( __CLASS__, 'register_order_shipping_status_column' ), 20 );
 				add_action( 'manage_' . ( 'shop_order' === self::get_order_screen_id() ? 'shop_order_posts' : self::get_order_screen_id() ) . '_custom_column', array( __CLASS__, 'render_order_columns' ), 20, 2 );
@@ -603,7 +603,7 @@ class Admin {
 							<?php wp_nonce_field( 'woocommerce-stc-packaging-settings' ); ?>
 						</p>
 					<?php else : ?>
-						<div class="notice notice-warning inline"><p><?php echo sprintf( esc_html_x( 'This provider does not support adjusting settings related to %1$s', 'shipments', 'shiptastic-for-woocommerce' ), esc_html( wc_stc_get_shipment_label_title( $current_section, true ) ) ); ?></p></div>
+						<div class="notice notice-warning inline"><p><?php printf( esc_html_x( 'This provider does not support adjusting settings related to %1$s', 'shipments', 'shiptastic-for-woocommerce' ), esc_html( wc_stc_get_shipment_label_title( $current_section, true ) ) ); ?></p></div>
 					<?php endif; ?>
 				</form>
 			</div>
@@ -616,7 +616,7 @@ class Admin {
 	}
 
 	public static function save_packaging_page() {
-		if ( ! current_user_can( 'manage_woocommerce' ) || ! isset( $_POST['_wpnonce'] ) || ! wp_verify_nonce( wp_unslash( $_POST['_wpnonce'] ), 'woocommerce-stc-packaging-settings' ) ) { // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+		if ( ! current_user_can( 'manage_woocommerce' ) || ! isset( $_POST['_wpnonce'] ) || ! wp_verify_nonce( wc_clean( wp_unslash( $_POST['_wpnonce'] ) ), 'woocommerce-stc-packaging-settings' ) ) {
 			wp_die( '', 400 );
 		}
 
@@ -913,7 +913,7 @@ class Admin {
 		$key = self::get_setting_key_by_id( $settings, $id, $type );
 
 		if ( is_numeric( $key ) ) {
-			$key ++;
+			++$key;
 			$settings = array_merge( array_merge( array_slice( $settings, 0, $key, true ), $insert ), array_slice( $settings, $key, count( $settings ) - 1, true ) );
 		} else {
 			$settings += $insert;
@@ -1151,41 +1151,31 @@ class Admin {
 						</thead>
 						<tbody class="shipment_return_reasons">
 						<?php
-						$i = -1;
-						foreach ( wc_stc_get_return_shipment_reasons() as $reason ) {
-							$i++;
-
-							echo '<tr class="reason">
-                                    <td class="sort"></td>
-                                    <td style="width: 10ch;"><input type="text" value="' . esc_attr( wp_unslash( $reason->get_code() ) ) . '" name="shipment_return_reason[' . esc_attr( $i ) . '][code]" /></td>
-                                    <td><input type="text" value="' . esc_attr( wp_unslash( $reason->get_reason() ) ) . '" name="shipment_return_reason[' . esc_attr( $i ) . '][reason]" /></td>
-                                </tr>';
-						}
+						$count = 0;
+						foreach ( wc_stc_get_return_shipment_reasons() as $reason ) :
+							?>
+							<tr class="item reason">
+								<td class="sort"></td>
+								<td style="width: 10ch;"><input type="text" value="<?php echo esc_attr( wp_unslash( $reason->get_code() ) ); ?>" name="shipment_return_reason[<?php echo esc_attr( $count ); ?>][code]" /></td>
+								<td><input type="text" value="<?php echo esc_attr( wp_unslash( $reason->get_reason() ) ); ?>" name="shipment_return_reason[<?php echo esc_attr( $count ); ?>][reason]" /></td>
+							</tr>
+							<?php
+							++$count;
+						endforeach;
 						?>
 						</tbody>
 						<tfoot>
 						<tr>
 							<th colspan="7"><a href="#" class="add button"><?php echo esc_html_x( '+ Add reason', 'shipments', 'shiptastic-for-woocommerce' ); ?></a> <a href="#" class="remove_rows button"><?php echo esc_html_x( 'Remove selected reason(s)', 'shipments', 'shiptastic-for-woocommerce' ); ?></a></th>
 						</tr>
+						<tr class="item template" style="display: none">
+							<td class="sort"></td>
+							<td style="width: 10ch;"><input type="text" value="" name="shipment_return_reason[size][code]" /></td>
+							<td><input type="text" value="" name="shipment_return_reason[size][reason]" /></td>
+						</tr>
 						</tfoot>
 					</table>
 				</div>
-				<script type="text/javascript">
-					jQuery(function() {
-						jQuery('#shipment_return_reasons').on( 'click', 'a.add', function(){
-
-							var size = jQuery('#shipment_return_reasons').find('tbody .reason').length;
-
-							jQuery('<tr class="reason">\
-									<td class="sort"></td>\
-									<td style="width: 10ch;"><input type="text" name="shipment_return_reason[' + size + '][code]" /></td>\
-									<td><input type="text" name="shipment_return_reason[' + size + '][reason]" /></td>\
-								</tr>').appendTo('#shipment_return_reasons table tbody');
-
-							return false;
-						});
-					});
-				</script>
 			</td>
 		</tr>
 		<?php
@@ -1248,30 +1238,6 @@ class Admin {
 		<tr valign="top">
 			<th scope="row" class="titledesc"><label for="wc_shiptastic_create_packaging_report_year"><?php echo esc_html_x( 'Packaging Reports', 'shipments', 'shiptastic-for-woocommerce' ); ?> <?php echo wc_help_tip( _x( 'Generate summary reports which contain information about the amount of packaging material used for your shipments.', 'shipments', 'shiptastic-for-woocommerce' ) ); ?></label></th>
 			<td class="forminp" id="packaging_reports_wrapper">
-				<style>
-					.wc-shiptastic-create-packaging-report {
-						margin-bottom: 15px;
-						padding: 0;
-					}
-					.wc-shiptastic-create-packaging-report select {
-						width: auto !important;
-						min-width: 120px;
-					}
-					.wc-shiptastic-create-packaging-report button.button {
-						height: 34px;
-						margin-left: 10px;
-					}
-					table.packaging_reports_table thead th {
-						padding: 10px;
-					}
-					table.packaging_reports_table tbody td {
-						padding: 15px 10px;
-					}
-
-					table.packaging_reports_table tbody td .packaging-report-status {
-						margin-left: 5px;
-					}
-				</style>
 				<div class="wc-shiptastic-create-packaging-report submit">
 					<select name="report_year" id="wc_shiptastic_create_packaging_report_year">
 						<?php
@@ -1350,31 +1316,15 @@ class Admin {
 			<th scope="row" class="titledesc"><?php echo esc_html_x( 'Available packaging', 'shipments', 'shiptastic-for-woocommerce' ); ?></th>
 			<td class="forminp" id="packaging_list_wrapper">
 				<div class="wc_input_table_wrapper">
-					<style>
-						tbody.packaging_list tr td {
-							padding: .5em;
-						}
-						tbody.packaging_list select {
-							width: 100% !important;
-						}
-						tbody.packaging_list .input-inner-wrap {
-							clear: both;
-						}
-						tbody.packaging_list .input-inner-wrap input.wc_input_decimal {
-							width: 33% !important;
-							min-width: auto !important;
-							float: left !important;
-						}
-					</style>
 					<table class="widefat wc_input_table sortable" cellspacing="0">
 						<thead>
 						<tr>
 							<th class="sort">&nbsp;</th>
 							<th style="width: 15ch;"><?php echo esc_html_x( 'Description', 'shipments', 'shiptastic-for-woocommerce' ); ?> <?php echo wc_help_tip( _x( 'A description to help you identify the packaging.', 'shipments', 'shiptastic-for-woocommerce' ) ); ?></th>
 							<th style="width: 10ch;"><?php echo esc_html_x( 'Type', 'shipments', 'shiptastic-for-woocommerce' ); ?></th>
-							<th style="width: 5ch;"><?php echo sprintf( esc_html_x( 'Weight (%s)', 'shipments', 'shiptastic-for-woocommerce' ), esc_html( wc_stc_get_packaging_weight_unit() ) ); ?> <?php echo wc_help_tip( _x( 'The weight of the packaging.', 'shipments', 'shiptastic-for-woocommerce' ) ); ?></th>
-							<th style="width: 15ch;"><?php echo sprintf( esc_html_x( 'Dimensions (LxWxH, %s)', 'shipments', 'shiptastic-for-woocommerce' ), esc_html( wc_stc_get_packaging_dimension_unit() ) ); ?></th>
-							<th style="width: 5ch;"><?php echo sprintf( esc_html_x( 'Load capacity (%s)', 'shipments', 'shiptastic-for-woocommerce' ), esc_html( wc_stc_get_packaging_weight_unit() ) ); ?> <?php echo wc_help_tip( _x( 'The maximum weight this packaging can hold. Leave empty to not restrict maximum weight.', 'shipments', 'shiptastic-for-woocommerce' ) ); ?></th>
+							<th style="width: 5ch;"><?php printf( esc_html_x( 'Weight (%s)', 'shipments', 'shiptastic-for-woocommerce' ), esc_html( wc_stc_get_packaging_weight_unit() ) ); ?> <?php echo wc_help_tip( _x( 'The weight of the packaging.', 'shipments', 'shiptastic-for-woocommerce' ) ); ?></th>
+							<th style="width: 15ch;"><?php printf( esc_html_x( 'Dimensions (LxWxH, %s)', 'shipments', 'shiptastic-for-woocommerce' ), esc_html( wc_stc_get_packaging_dimension_unit() ) ); ?></th>
+							<th style="width: 5ch;"><?php printf( esc_html_x( 'Load capacity (%s)', 'shipments', 'shiptastic-for-woocommerce' ), esc_html( wc_stc_get_packaging_weight_unit() ) ); ?> <?php echo wc_help_tip( _x( 'The maximum weight this packaging can hold. Leave empty to not restrict maximum weight.', 'shipments', 'shiptastic-for-woocommerce' ) ); ?></th>
 							<th style="width: 5ch;"><?php echo esc_html_x( 'Actions', 'shipments', 'shiptastic-for-woocommerce' ); ?></th>
 						</tr>
 						</thead>
@@ -1383,7 +1333,7 @@ class Admin {
 						$count = 0;
 						foreach ( wc_stc_get_packaging_list() as $packaging ) :
 							?>
-							<tr class="packaging">
+							<tr class="item">
 								<td class="sort"></td>
 								<td style="width: 15ch;">
 									<input type="text" name="packaging[<?php echo esc_attr( $count ); ?>][description]" value="<?php echo esc_attr( wp_unslash( $packaging->get_description() ) ); ?>" />
@@ -1414,7 +1364,7 @@ class Admin {
 								</td>
 							</tr>
 							<?php
-							$count++;
+							++$count;
 						endforeach;
 						?>
 						</tbody>
@@ -1422,51 +1372,34 @@ class Admin {
 						<tr>
 							<th colspan="7"><a href="#" class="add button"><?php echo esc_html_x( '+ Add packaging', 'shipments', 'shiptastic-for-woocommerce' ); ?></a> <a href="#" class="remove_rows button"><?php echo esc_html_x( 'Remove selected packaging', 'shipments', 'shiptastic-for-woocommerce' ); ?></a></th>
 						</tr>
+						<tr class="template item" style="display: none">
+							<td class="sort"></td>
+							<td style="width: 15ch;"><input type="text" name="packaging[size][description]" value="" /></td>
+							<td style="width: 10ch;">
+								<select name="packaging[size][type]">
+									<?php foreach ( wc_stc_get_packaging_types() as $type => $type_title ) : ?>
+										<option value="<?php echo esc_attr( $type ); ?>"><?php echo esc_attr( $type_title ); ?></option>
+									<?php endforeach; ?>
+								</select>
+							</td>
+							<td style="width: 5ch;">
+								<input class="wc_input_decimal" type="text" name="packaging[size][weight]" placeholder="0" />
+							</td>
+							<td style="width: 15ch;">
+								<span class="input-inner-wrap">
+									<input class="wc_input_decimal" type="text" name="packaging[size][length]" value="" placeholder="<?php echo esc_attr( _x( 'Length', 'shipments', 'shiptastic-for-woocommerce' ) ); ?>" />
+									<input class="wc_input_decimal" type="text" name="packaging[size][width]" value="" placeholder="<?php echo esc_attr( _x( 'Width', 'shipments', 'shiptastic-for-woocommerce' ) ); ?>" />
+									<input class="wc_input_decimal" type="text" name="packaging[size][height]" value="" placeholder="<?php echo esc_attr( _x( 'Height', 'shipments', 'shiptastic-for-woocommerce' ) ); ?>" />
+								</span>
+							</td>
+							<td style="width: 5ch;">
+								<input class="wc_input_decimal" type="text" name="packaging[size][max_content_weight]" placeholder="0" />
+							</td>
+							<td style="width: 5ch;"></td>
+						</tr>
 						</tfoot>
 					</table>
 				</div>
-				<script type="text/javascript">
-					jQuery(function() {
-						jQuery('#packaging_list_wrapper').on( 'click', 'a.add', function(){
-
-							var size = jQuery('#packaging_list_wrapper').find('tbody .packaging').length;
-
-							jQuery('<tr class="packaging">\
-									<td class="sort"></td>\
-									<td style="width: 15ch;"><input type="text" name="packaging[' + size + '][description]" value="" /></td>\
-									<td style="width: 10ch;">\
-										<select name="packaging[' + size + '][type]">\
-											<?php
-											foreach ( wc_stc_get_packaging_types() as $type => $type_title ) :
-												?>
-												\
-												<option value="<?php echo esc_attr( $type ); ?>"><?php echo esc_attr( $type_title ); ?></option>\
-											<?php endforeach; ?>\
-										</select>\
-									</td>\
-									<td style="width: 5ch;">\
-										<input class="wc_input_decimal" type="text" name="packaging[' + size + '][weight]" placeholder="0" />\
-									</td>\
-									<td style="width: 15ch;">\
-										<span class="input-inner-wrap">\
-											<input class="wc_input_decimal" type="text" name="packaging[' + size + '][length]" value="" placeholder="<?php echo esc_attr( _x( 'Length', 'shipments', 'shiptastic-for-woocommerce' ) ); ?>" />\
-											<input class="wc_input_decimal" type="text" name="packaging[' + size + '][width]" value="" placeholder="<?php echo esc_attr( _x( 'Width', 'shipments', 'shiptastic-for-woocommerce' ) ); ?>" />\
-											<input class="wc_input_decimal" type="text" name="packaging[' + size + '][height]" value="" placeholder="<?php echo esc_attr( _x( 'Height', 'shipments', 'shiptastic-for-woocommerce' ) ); ?>" />\
-										</span>\
-									</td>\
-									<td style="width: 5ch;">\
-										<input class="wc_input_decimal" type="text" name="packaging[' + size + '][max_content_weight]" placeholder="0" />\
-									</td>\
-									<td style="width: 5ch;">\
-									</td>\
-								</tr>').appendTo('#packaging_list_wrapper table tbody');
-
-							jQuery( document.body ).trigger( 'wc-enhanced-select-init' );
-
-							return false;
-						});
-					});
-				</script>
 			</td>
 		</tr>
 		<?php
@@ -1502,7 +1435,7 @@ class Admin {
 
 				if ( $order ) {
 					Automation::create_shipments( $id );
-					$changed++;
+					++$changed;
 				}
 			}
 		}
@@ -1893,7 +1826,9 @@ class Admin {
 	}
 
 	private static function get_admin_settings_params() {
-		$params = array();
+		$params = array(
+			'packaging_types' => wc_stc_get_packaging_types(),
+		);
 
 		if ( self::is_shipping_settings_request() ) {
 			$params['clean_input_callback'] = 'shiptastic.admin.shipping_provider_method.getCleanInputId';

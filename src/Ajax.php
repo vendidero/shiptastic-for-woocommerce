@@ -59,8 +59,11 @@ class Ajax {
 	}
 
 	public static function suppress_errors() {
+		/**
+		 * Turn off display_errors during AJAX events to prevent malformed JSON.
+		 */
 		if ( ! WP_DEBUG || ( WP_DEBUG && ! WP_DEBUG_DISPLAY ) ) {
-			@ini_set( 'display_errors', 0 ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged,WordPress.PHP.IniSet.display_errors_Blacklisted
+			@ini_set( 'display_errors', 0 ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, WordPress.PHP.IniSet.display_errors_Disallowed
 		}
 
 		$GLOBALS['wpdb']->hide_errors();
@@ -92,8 +95,7 @@ class Ajax {
 			if ( isset( $_GET['shipment_id'] ) ) {
 				wp_safe_redirect( wp_get_referer() ? wp_get_referer() : admin_url( 'admin.php?page=wc-stc-return-shipments' ) );
 				exit;
-			} else {
-				if ( $success ) {
+			} elseif ( $success ) {
 					wp_send_json(
 						array(
 							'success'  => true,
@@ -102,16 +104,15 @@ class Ajax {
 							),
 						)
 					);
-				} else {
-					wp_send_json(
-						array(
-							'success'  => false,
-							'messages' => array(
-								_x( 'There was an error while sending the notification.', 'shipments', 'shiptastic-for-woocommerce' ),
-							),
-						)
-					);
-				}
+			} else {
+				wp_send_json(
+					array(
+						'success'  => false,
+						'messages' => array(
+							_x( 'There was an error while sending the notification.', 'shipments', 'shiptastic-for-woocommerce' ),
+						),
+					)
+				);
 			}
 		}
 	}
@@ -143,8 +144,7 @@ class Ajax {
 			if ( isset( $_GET['shipment_id'] ) ) {
 				wp_safe_redirect( wp_get_referer() ? wp_get_referer() : admin_url( 'admin.php?page=wc-stc-return-shipments' ) );
 				exit;
-			} else {
-				if ( $success ) {
+			} elseif ( $success ) {
 					wp_send_json(
 						array(
 							'success'       => true,
@@ -158,16 +158,15 @@ class Ajax {
 							),
 						)
 					);
-				} else {
-					wp_send_json(
-						array(
-							'success'  => false,
-							'messages' => array(
-								_x( 'There was an error while confirming the request.', 'shipments', 'shiptastic-for-woocommerce' ),
-							),
-						)
-					);
-				}
+			} else {
+				wp_send_json(
+					array(
+						'success'  => false,
+						'messages' => array(
+							_x( 'There was an error while confirming the request.', 'shipments', 'shiptastic-for-woocommerce' ),
+						),
+					)
+				);
 			}
 		}
 	}
@@ -638,7 +637,7 @@ class Ajax {
 	private static function get_shipment_ids( $shipments ) {
 		return array_values(
 			array_map(
-				function( $s ) {
+				function ( $s ) {
 					return $s->get_id();
 				},
 				$shipments
@@ -748,7 +747,7 @@ class Ajax {
 		$shipment_count = 0;
 
 		foreach ( $shipments as $id => $shipment ) {
-			$shipment_count++;
+			++$shipment_count;
 			$shipment_type = $shipment->get_type();
 
 			if ( 1 === $shipment_count ) {
@@ -986,19 +985,17 @@ class Ajax {
 
 		if ( Package::is_hpos_enabled() ) {
 			$ids = wc_get_orders( array( 's' => $term ) );
-		} else {
-			if ( ! is_numeric( $term ) ) {
+		} elseif ( ! is_numeric( $term ) ) {
 				$ids = wc_get_orders( array( 's' => $term ) );
-			} else {
-				global $wpdb;
+		} else {
+			global $wpdb;
 
-				$ids = $wpdb->get_col(
-					$wpdb->prepare(
-				        "SELECT DISTINCT p1.ID FROM {$wpdb->posts} p1 WHERE p1.ID LIKE %s AND post_type = 'shop_order'", // @codingStandardsIgnoreLine
-						$wpdb->esc_like( wc_clean( $term ) ) . '%'
-					)
-				);
-			}
+			$ids = $wpdb->get_col(
+				$wpdb->prepare(
+					"SELECT DISTINCT p1.ID FROM {$wpdb->posts} p1 WHERE p1.ID LIKE %s AND post_type = 'shop_order'", // @codingStandardsIgnoreLine
+					$wpdb->esc_like( wc_clean( $term ) ) . '%'
+				)
+			);
 		}
 
 		$excluded = array();

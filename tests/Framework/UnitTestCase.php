@@ -9,6 +9,7 @@ class UnitTestCase extends \WP_UnitTestCase {
 	/**
 	 * Setup test case.
 	 *
+	 * @since 2.2
 	 */
 	public function setUp() : void {
 		parent::setUp();
@@ -24,6 +25,7 @@ class UnitTestCase extends \WP_UnitTestCase {
 	 * the most template-related tests will fail due to indentation/alignment in.
 	 * the template not matching the sample strings set in the tests.
 	 *
+	 * @since 2.2
 	 */
 	public function filter_output( $output ) {
 		$output = preg_replace( '/[\n]+/S', '', $output );
@@ -38,6 +40,7 @@ class UnitTestCase extends \WP_UnitTestCase {
 	 * @param mixed $actual
 	 * @param string $message
 	 *
+	 * @since 2.2
 	 */
 	public function assertNotWPError( $actual, $message = '' ) {
 		$this->assertNotInstanceOf( 'WP_Error', $actual, $message );

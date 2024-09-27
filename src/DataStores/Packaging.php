@@ -368,18 +368,18 @@ class Packaging extends WC_Data_Store_WP implements WC_Object_Data_Store_Interfa
 	 *
 	 * Note: WordPress `get_metadata` function returns an empty string when meta data does not exist.
 	 *
-	 * @param WC_Data $object The WP_Data object (WC_Coupon for coupons, etc).
+	 * @param WC_Data $packaging The WP_Data object (WC_Coupon for coupons, etc).
 	 * @param string  $meta_key Meta key to update.
 	 * @param mixed   $meta_value Value to save.
 	 *
 	 *
 	 * @return bool True if updated/deleted.
 	 */
-	protected function update_or_delete_meta( $object, $meta_key, $meta_value ) {
+	protected function update_or_delete_meta( $packaging, $meta_key, $meta_value ) {
 		if ( in_array( $meta_value, array( array(), '' ), true ) && ! in_array( $meta_key, $this->must_exist_meta_keys, true ) ) {
-			$updated = delete_metadata( $this->meta_type, $object->get_id(), $meta_key );
+			$updated = delete_metadata( $this->meta_type, $packaging->get_id(), $meta_key );
 		} else {
-			$updated = update_metadata( $this->meta_type, $object->get_id(), $meta_key, $meta_value );
+			$updated = update_metadata( $this->meta_type, $packaging->get_id(), $meta_key, $meta_value );
 		}
 
 		return (bool) $updated;

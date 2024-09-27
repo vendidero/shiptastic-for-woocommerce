@@ -86,7 +86,7 @@ class Container {
 			throw new Exception(
 				sprintf(
 					'Cannot construct an instance of %s because it has not been registered.',
-					$id
+					esc_html( $id )
 				)
 			);
 		}

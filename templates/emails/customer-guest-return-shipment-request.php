@@ -23,7 +23,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 do_action( 'woocommerce_email_header', $email_heading, $email ); ?>
 
 <?php /* translators: %s: Customer first name */ ?>
-	<p><?php printf( esc_html__( 'Hi %s,', 'woocommerce' ), esc_html( $order->get_billing_first_name() ) ); // phpcs:ignore WordPress.WP.I18n.TextDomainMismatch ?></p>
+	<p><?php printf( esc_html_x( 'Hi %s,', 'shipments', 'shiptastic-for-woocommerce' ), esc_html( $order->get_billing_first_name() ) ); ?></p>
 
 	<p>
 		<?php printf( esc_html_x( 'You\'ve requested a return to your order %s. Please follow the link to add your return request.', 'shipments', 'shiptastic-for-woocommerce' ), esc_html( $order->get_order_number() ) ); ?>

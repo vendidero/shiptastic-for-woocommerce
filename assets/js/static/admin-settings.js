@@ -11,9 +11,27 @@ window.shiptastic.admin = window.shiptastic.admin || {};
 
             $( document )
                 .on( 'click', 'a.woocommerce-stc-shipment-input-toggle-trigger', self.onInputToggleClick )
-                .on( 'change shiptastic_show_or_hide_fields', 'table.form-table :input[id]', self.onChangeInput );
+                .on( 'change shiptastic_show_or_hide_fields', 'table.form-table :input[id]', self.onChangeInput )
+                .on( 'click', '.wc_input_table a.add', self.onAddInputRow );
 
             $( 'table.form-table :input[id]' ).trigger( 'shiptastic_show_or_hide_fields' );
+        },
+
+        onAddInputRow: function() {
+            var self = shipments.admin.shipment_settings,
+                $wrapper = $( this ).parents( '.wc_input_table' ),
+                size = $wrapper.find( 'tbody tr.item:visible' ).length,
+                $template = $wrapper.find( 'tr.template' ).clone();
+
+            $template.find( ':input' ).each( function() {
+                $( this ).attr('name', $( this ).attr( 'name' ).replace( 'size', size ) );
+            });
+
+            $template.appendTo( $wrapper.find( 'tbody' ) ).removeClass( 'template' ).show();
+
+            $( document.body ).trigger( 'wc-enhanced-select-init' );
+
+            return false;
         },
 
         getCleanInputId: function( $mainInput ) {

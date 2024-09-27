@@ -24,7 +24,7 @@ class DownloadHandler {
 
 	public static function download_bulk_export() {
 		if ( isset( $_GET['action'] ) && 'wc-stc-download-export-shipment-label' === $_GET['action'] && isset( $_REQUEST['_wpnonce'] ) ) {
-			if ( wp_verify_nonce( wp_unslash( $_REQUEST['_wpnonce'] ), 'download-export-shipment-label' ) ) { // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+			if ( wp_verify_nonce( wc_clean( wp_unslash( $_REQUEST['_wpnonce'] ) ), 'download-export-shipment-label' ) ) {
 				$args = array(
 					'force' => isset( $_GET['force'] ) ? wc_clean( wp_unslash( $_GET['force'] ) ) : 'no', // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 				);
@@ -45,7 +45,7 @@ class DownloadHandler {
 	}
 
 	public static function download_label() {
-		if ( 'wc-stc-download-shipment-label' === $_GET['action'] && wp_verify_nonce( wp_unslash( $_REQUEST['_wpnonce'] ), 'download-shipment-label' ) ) { // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotValidated,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+		if ( 'wc-stc-download-shipment-label' === $_GET['action'] && wp_verify_nonce( wc_clean( wp_unslash( $_REQUEST['_wpnonce'] ) ), 'download-shipment-label' ) ) { // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotValidated
 			$shipment_id    = absint( $_GET['shipment_id'] ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotValidated
 			$has_permission = current_user_can( 'edit_shop_orders' );
 
@@ -127,7 +127,7 @@ class DownloadHandler {
 
 		header( 'Content-Length: ' . $file_size );
 
-		@readfile( $file_path ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged,WordPress.WP.AlternativeFunctions.file_system_read_readfile
+		@readfile( $file_path ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, WordPress.WP.AlternativeFunctions.file_system_operations_readfile
 		exit();
 	}
 }

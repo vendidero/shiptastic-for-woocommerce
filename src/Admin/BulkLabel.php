@@ -75,7 +75,6 @@ class BulkLabel extends BulkActionHandler {
 		$download_button = '';
 
 		if ( ( $path = $this->get_file() ) && file_exists( $path ) ) {
-
 			$download_url = add_query_arg(
 				array(
 					'action' => 'wc-stc-download-export-shipment-label',
@@ -94,7 +93,7 @@ class BulkLabel extends BulkActionHandler {
 		$download_button = $this->get_download_button();
 
 		if ( empty( $download_button ) ) {
-			return sprintf( _x( 'The chosen shipments were not suitable for automatic label creation. Please check the shipping provider option of the corresponding shipments.', 'shipments', 'shiptastic-for-woocommerce' ), $download_button );
+			return sprintf( _x( 'The chosen shipments were not suitable for automatic label creation. Please check the shipping provider option of the corresponding shipments.', 'shipments', 'shiptastic-for-woocommerce' ), $download_button ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 		} else {
 			return sprintf( _x( 'Successfully generated labels. %s', 'shipments', 'shiptastic-for-woocommerce' ), $download_button );
 		}

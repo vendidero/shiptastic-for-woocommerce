@@ -351,10 +351,8 @@ class ShipmentsController extends \WC_REST_Controller {
 				if ( ! $order_shipment->needs_return() ) {
 					throw new \WC_REST_Exception( 'woocommerce_stc_rest_invalid_id', esc_html_x( 'This order does need a return.', 'shipments', 'shiptastic-for-woocommerce' ) );
 				}
-			} else {
-				if ( ! $order_shipment->needs_shipping() ) {
+			} elseif ( ! $order_shipment->needs_shipping() ) {
 					throw new \WC_REST_Exception( 'woocommerce_stc_rest_invalid_id', esc_html_x( 'This order does need shipping.', 'shipments', 'shiptastic-for-woocommerce' ) );
-				}
 			}
 
 			$shipment->sync();
@@ -613,40 +611,38 @@ class ShipmentsController extends \WC_REST_Controller {
 			}
 
 			$item->sync( array( 'quantity' => $quantity ) );
-		} else {
-			if ( $order_shipment = $shipment->get_order_shipment() ) {
+		} elseif ( $order_shipment = $shipment->get_order_shipment() ) {
 				$quantity      = isset( $posted['quantity'] ) ? absint( wp_unslash( $posted['quantity'] ) ) : $item->get_quantity();
 				$quantity_left = 0;
 
-				if ( 'return' === $shipment->get_type() ) {
-					$quantity_left = $order_shipment->get_item_quantity_left_for_returning(
-						$item->get_order_item_id(),
-						array(
-							'exclude_current_shipment' => true,
-							'shipment_id'              => $shipment->get_id(),
-						)
-					);
-				} elseif ( $order_item = $item->get_order_item() ) {
-					$quantity_left = $order_shipment->get_item_quantity_left_for_shipping(
-						$order_item,
-						array(
-							'exclude_current_shipment' => true,
-							'shipment_id'              => $shipment->get_id(),
-						)
-					);
-				}
+			if ( 'return' === $shipment->get_type() ) {
+				$quantity_left = $order_shipment->get_item_quantity_left_for_returning(
+					$item->get_order_item_id(),
+					array(
+						'exclude_current_shipment' => true,
+						'shipment_id'              => $shipment->get_id(),
+					)
+				);
+			} elseif ( $order_item = $item->get_order_item() ) {
+				$quantity_left = $order_shipment->get_item_quantity_left_for_shipping(
+					$order_item,
+					array(
+						'exclude_current_shipment' => true,
+						'shipment_id'              => $shipment->get_id(),
+					)
+				);
+			}
 
-				if ( $quantity > $quantity_left ) {
-					$quantity = $quantity_left;
-				}
+			if ( $quantity > $quantity_left ) {
+				$quantity = $quantity_left;
+			}
 
-				if ( $quantity <= 0 ) {
-					$shipment->remove_item( $item->get_id() );
-					return;
-				}
+			if ( $quantity <= 0 ) {
+				$shipment->remove_item( $item->get_id() );
+				return;
+			}
 
 				$shipment->update_item_quantity( $item->get_id(), $quantity );
-			}
 		}
 
 		$props_to_set = array(

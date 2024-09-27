@@ -120,7 +120,7 @@ class Table extends WP_List_Table {
 						 * @package Vendidero/Shiptastic
 						 */
 						do_action( 'woocommerce_shiptastic_shipment_edit_status', $id, $new_status );
-						$changed++;
+						++$changed;
 					}
 				}
 			}
@@ -128,7 +128,7 @@ class Table extends WP_List_Table {
 			foreach ( $ids as $id ) {
 				if ( $shipment = wc_stc_get_shipment( $id ) ) {
 					$shipment->delete( true );
-					$changed++;
+					++$changed;
 				}
 			}
 		} elseif ( 'confirm_requests' === $action ) {
@@ -137,7 +137,7 @@ class Table extends WP_List_Table {
 					if ( 'return' === $shipment->get_type() ) {
 						if ( $shipment->is_customer_requested() && $shipment->has_status( 'requested' ) ) {
 							if ( $shipment->confirm_customer_request() ) {
-								$changed++;
+								++$changed;
 							}
 						}
 					}
@@ -375,7 +375,6 @@ class Table extends WP_List_Table {
 	/**
 	 * Determine if the current view is the "All" view.
 	 *
-	 *
 	 * @return bool Whether the current view is the "All" view.
 	 */
 	protected function is_base_request() {
@@ -434,8 +433,15 @@ class Table extends WP_List_Table {
 				'shipment_status' => $status,
 			);
 
+			$label = array(
+				'singular' => sprintf( '%s <span class="count">(%s)</span>', esc_html( $title ), $num_shipments[ $status ] ),
+				'plural'   => sprintf( '%s <span class="count">(%s)</span>', esc_html( $title ), $num_shipments[ $status ] ),
+				'context'  => '',
+				'domain'   => 'shiptastic-for-woocommerce',
+			);
+
 			$status_label = sprintf(
-				translate_nooped_plural( _nx_noop( ( $title . ' <span class="count">(%s)</span>' ), ( $title . ' <span class="count">(%s)</span>' ), 'shipments', 'shiptastic-for-woocommerce' ), $num_shipments[ $status ] ), // phpcs:ignore WordPress.WP.I18n.NonSingularStringLiteralSingle,WordPress.WP.I18n.NonSingularStringLiteralPlural
+				translate_nooped_plural( $label, $num_shipments[ $status ] ), // phpcs:ignore WordPress.WP.I18n.NonSingularStringLiteralSingular, WordPress.WP.I18n.NonSingularStringLiteralPlural
 				number_format_i18n( $num_shipments[ $status ] )
 			);
 
@@ -451,20 +457,21 @@ class Table extends WP_List_Table {
 	 *
 	 * @param string[] $args  Associative array of URL parameters for the link.
 	 * @param string   $label Link text.
-	 * @param string   $class Optional. Class attribute. Default empty string.
+	 * @param string   $class_name Optional. Class attribute. Default empty string.
+	 *
 	 * @return string The formatted link string.
 	 */
-	protected function get_edit_link( $args, $label, $class = '' ) {
+	protected function get_edit_link( $args, $label, $class_name = '' ) {
 		$url = add_query_arg( $args, $this->get_main_page() );
 
 		$class_html = $aria_current = '';
-		if ( ! empty( $class ) ) {
+		if ( ! empty( $class_name ) ) {
 			$class_html = sprintf(
 				' class="%s"',
-				esc_attr( $class )
+				esc_attr( $class_name )
 			);
 
-			if ( 'current' === $class ) {
+			if ( 'current' === $class_name ) {
 				$aria_current = ' aria-current="page"';
 			}
 		}
@@ -686,7 +693,7 @@ class Table extends WP_List_Table {
 		}
 		?>
 		<select class="wc-stc-order-search" name="order_id" data-placeholder="<?php echo esc_attr_x( 'Filter by order', 'shipments', 'shiptastic-for-woocommerce' ); ?>" data-allow_clear="true">
-			<option value="<?php echo esc_attr( $order_id ); ?>" selected="selected"><?php echo htmlspecialchars( wp_kses_post( $order_string ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?><option>
+			<option value="<?php echo esc_attr( $order_id ); ?>" selected="selected"><?php echo esc_html( htmlspecialchars( wp_kses_post( $order_string ) ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?><option>
 		</select>
 		<?php
 	}
@@ -1193,5 +1200,4 @@ class Table extends WP_List_Table {
 		 */
 		return apply_filters( "{$this->get_hook_prefix()}bulk_actions", $actions );
 	}
-
 }

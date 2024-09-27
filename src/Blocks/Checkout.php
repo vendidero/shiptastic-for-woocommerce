@@ -28,7 +28,7 @@ final class Checkout {
 	private function register_validation_and_storage() {
 		add_action(
 			'woocommerce_store_api_checkout_update_order_from_request',
-			function( $order, $request ) {
+			function ( $order, $request ) {
 				$this->validate_checkout_data( $order, $request );
 			},
 			10,
@@ -161,7 +161,7 @@ final class Checkout {
 	private function register_integrations() {
 		add_action(
 			'woocommerce_blocks_checkout_block_registration',
-			function( $integration_registry ) {
+			function ( $integration_registry ) {
 				$integration_registry->register( Package::container()->get( Integrations\CheckoutPickupLocationSelect::class ) );
 			}
 		);
@@ -179,7 +179,7 @@ final class Checkout {
 			array(
 				'endpoint'        => CartSchema::IDENTIFIER,
 				'namespace'       => 'woocommerce-shiptastic',
-				'data_callback'   => function() {
+				'data_callback'   => function () {
 					return $this->get_cart_data();
 				},
 				'schema_callback' => function () {
@@ -282,7 +282,7 @@ final class Checkout {
 			'default_pickup_location'                 => WC()->customer->get_meta( 'pickup_location_code' ),
 			'default_pickup_location_customer_number' => WC()->customer->get_meta( 'pickup_location_customer_number' ),
 			'pickup_locations'                        => array_map(
-				function( $location ) {
+				function ( $location ) {
 					return $location->get_data();
 				},
 				$locations

@@ -10,8 +10,8 @@ namespace Vendidero\Shiptastic\Labels;
 
 use Vendidero\Shiptastic\Caches\Helper;
 use Vendidero\Shiptastic\Interfaces\ShipmentLabel;
-use \WC_Data_Store;
-use \Exception;
+use WC_Data_Store;
+use Exception;
 
 defined( 'ABSPATH' ) || exit;
 

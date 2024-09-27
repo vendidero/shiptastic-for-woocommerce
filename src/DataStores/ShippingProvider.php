@@ -125,7 +125,7 @@ class ShippingProvider extends WC_Data_Store_WP implements WC_Object_Data_Store_
 			do {
 				$alt_provider_name   = _truncate_post_slug( $slug, 200 - ( strlen( $suffix ) + 1 ) ) . "-$suffix";
 				$provider_name_check = $wpdb->get_var( $wpdb->prepare( $check_sql, $alt_provider_name, $provider->get_id() ) ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-				$suffix++;
+				++$suffix;
 			} while ( $provider_name_check || ( $this->is_manual_creation_request() && $this->is_reserved_name( $alt_provider_name ) ) );
 			$slug = $alt_provider_name;
 		}
@@ -405,18 +405,18 @@ class ShippingProvider extends WC_Data_Store_WP implements WC_Object_Data_Store_
 	 *
 	 * Note: WordPress `get_metadata` function returns an empty string when meta data does not exist.
 	 *
-	 * @param WC_Data $object The WP_Data object (WC_Coupon for coupons, etc).
+	 * @param WC_Data $shipping_provider The WP_Data object (WC_Coupon for coupons, etc).
 	 * @param string  $meta_key Meta key to update.
 	 * @param mixed   $meta_value Value to save.
 	 *
 	 *
 	 * @return bool True if updated/deleted.
 	 */
-	protected function update_or_delete_meta( $object, $meta_key, $meta_value ) {
+	protected function update_or_delete_meta( $shipping_provider, $meta_key, $meta_value ) {
 		if ( in_array( $meta_value, array( array(), '' ), true ) && ! in_array( $meta_key, $this->must_exist_meta_keys, true ) ) {
-			$updated = delete_metadata( 'stc_shipping_provider', $object->get_id(), $meta_key );
+			$updated = delete_metadata( 'stc_shipping_provider', $shipping_provider->get_id(), $meta_key );
 		} else {
-			$updated = update_metadata( 'stc_shipping_provider', $object->get_id(), $meta_key, $meta_value );
+			$updated = update_metadata( 'stc_shipping_provider', $shipping_provider->get_id(), $meta_key, $meta_value );
 		}
 
 		return (bool) $updated;

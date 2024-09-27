@@ -3,11 +3,6 @@ namespace Vendidero\Shiptastic\Interfaces;
 
 use Vendidero\Shiptastic\Labels\ConfigurationSet;
 
-/**
- * Shipment Label Interface
- *
- * @version  3.1.0
- */
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
