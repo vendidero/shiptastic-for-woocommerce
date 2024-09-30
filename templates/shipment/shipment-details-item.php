@@ -80,7 +80,7 @@ $item_class = apply_filters( 'woocommerce_shiptastic_shipment_item_class', 'wooc
 		 *
 		 * @package Vendidero/Shiptastic
 		 */
-		echo apply_filters( 'woocommerce_shiptastic_shipment_item_quantity_html', ' <strong class="product-quantity">' . sprintf( '&times; %s', $qty_display ) . '</strong>', $item ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped 
+		echo wp_kses_post( apply_filters( 'woocommerce_shiptastic_shipment_item_quantity_html', ' <strong class="product-quantity">' . sprintf( '&times; %s', $qty_display ) . '</strong>', $item ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 		?>
 	</td>
 

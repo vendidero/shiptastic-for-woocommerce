@@ -797,7 +797,7 @@ class Table extends WP_List_Table {
 	}
 
 	public function get_main_page() {
-		return 'admin.php?page=wc-shiptastic';
+		return 'admin.php?page=wc-stc-shipments';
 	}
 
 	/**

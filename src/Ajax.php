@@ -630,7 +630,7 @@ class Ajax {
 			}
 		}
 
-		wp_safe_redirect( wp_get_referer() ? wp_get_referer() : admin_url( 'admin.php?page=wc-shiptastic' ) );
+		wp_safe_redirect( wp_get_referer() ? wp_get_referer() : admin_url( 'admin.php?page=wc-stc-shipments' ) );
 		exit;
 	}
 

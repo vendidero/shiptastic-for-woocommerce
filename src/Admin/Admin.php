@@ -30,7 +30,7 @@ class Admin {
 		add_action( 'woocommerce_process_shop_order_meta', 'Vendidero\Shiptastic\Admin\MetaBox::save', 60, 2 );
 
 		add_action( 'admin_menu', array( __CLASS__, 'shipments_menu' ), 15 );
-		add_action( 'load-woocommerce_page_wc-shiptastic', array( __CLASS__, 'setup_shipments_table' ), 0 );
+		add_action( 'load-woocommerce_page_wc-stc-shipments', array( __CLASS__, 'setup_shipments_table' ), 0 );
 		add_action( 'load-woocommerce_page_wc-stc-return-shipments', array( __CLASS__, 'setup_returns_table' ), 0 );
 
 		add_filter( 'set-screen-option', array( __CLASS__, 'set_screen_option' ), 10, 3 );
@@ -460,9 +460,9 @@ class Admin {
 						_x( 'Edit packaging', 'shipments', 'shiptastic-for-woocommerce' ),
 					);
 				} else {
-					$page = isset( $_GET['page'] ) ? wc_clean( wp_unslash( $_GET['page'] ) ) : 'wc-shiptastic'; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+					$page = isset( $_GET['page'] ) ? wc_clean( wp_unslash( $_GET['page'] ) ) : 'wc-stc-shipments'; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 
-					if ( 'wc-shiptastic' === $page ) {
+					if ( 'wc-stc-shipments' === $page ) {
 						$breadcrumbs = array(
 							_x( 'Shipments', 'shipments', 'shiptastic-for-woocommerce' ),
 						);
@@ -630,7 +630,7 @@ class Admin {
 
 		PackagingSettings::save_settings( $packaging, $tab, $section );
 
-		wp_safe_redirect( esc_url_raw( wp_get_referer() ? wp_get_referer() : admin_url( 'admin.php?page=wc-shiptastic' ) ) );
+		wp_safe_redirect( esc_url_raw( wp_get_referer() ? wp_get_referer() : admin_url( 'admin.php?page=wc-stc-shipments' ) ) );
 	}
 
 	/**
@@ -664,7 +664,7 @@ class Admin {
 					if ( $last_shipment = $shipment_order->get_last_shipment_with_tracking() ) {
 						echo '<a target="_blank" href="' . esc_url( $last_shipment->get_tracking_url() ) . '" class="help_tip" data-tip="' . esc_attr( $last_shipment->get_tracking_id() ) . '">' . wp_kses_post( $status_html ) . '</a>';
 					} else {
-						echo '<a target="_blank" href="' . esc_url( add_query_arg( array( 'order_id' => $the_order->get_id() ), admin_url( 'admin.php?page=wc-shiptastic' ) ) ) . '" class="help_tip" data-tip="">' . wp_kses_post( $status_html ) . '</a>';
+						echo '<a target="_blank" href="' . esc_url( add_query_arg( array( 'order_id' => $the_order->get_id() ), admin_url( 'admin.php?page=wc-stc-shipments' ) ) ) . '" class="help_tip" data-tip="">' . wp_kses_post( $status_html ) . '</a>';
 					}
 				} else {
 					echo wp_kses_post( $status_html );
@@ -1479,7 +1479,7 @@ class Admin {
 	}
 
 	public static function shipments_menu() {
-		add_submenu_page( 'woocommerce', _x( 'Shipments', 'shipments', 'shiptastic-for-woocommerce' ), _x( 'Shipments', 'shipments', 'shiptastic-for-woocommerce' ), 'edit_others_shop_orders', 'wc-shiptastic', array( __CLASS__, 'shipments_page' ) );
+		add_submenu_page( 'woocommerce', _x( 'Shipments', 'shipments', 'shiptastic-for-woocommerce' ), _x( 'Shipments', 'shipments', 'shiptastic-for-woocommerce' ), 'edit_others_shop_orders', 'wc-stc-shipments', array( __CLASS__, 'shipments_page' ) );
 		add_submenu_page( 'woocommerce', _x( 'Returns', 'shipments', 'shiptastic-for-woocommerce' ), _x( 'Returns', 'shipments', 'shiptastic-for-woocommerce' ), 'edit_others_shop_orders', 'wc-stc-return-shipments', array( __CLASS__, 'returns_page' ) );
 	}
 
@@ -1572,7 +1572,7 @@ class Admin {
 
 			<?php
 			$wp_list_table->output_notice();
-			$_SERVER['REQUEST_URI'] = remove_query_arg( array( 'updated', 'changed', 'deleted', 'trashed', 'untrashed' ), ( isset( $_SERVER['REQUEST_URI'] ) ? esc_url_raw( wp_unslash( $_SERVER['REQUEST_URI'] ) ) : admin_url( 'admin.php?page=wc-shiptastic' ) ) );
+			$_SERVER['REQUEST_URI'] = remove_query_arg( array( 'updated', 'changed', 'deleted', 'trashed', 'untrashed' ), ( isset( $_SERVER['REQUEST_URI'] ) ? esc_url_raw( wp_unslash( $_SERVER['REQUEST_URI'] ) ) : admin_url( 'admin.php?page=wc-stc-shipments' ) ) );
 			?>
 
 			<?php $wp_list_table->views(); ?>
@@ -1585,7 +1585,7 @@ class Admin {
 				<input type="hidden" name="shipment_type" class="shipment_type" value="simple" />
 
 				<input type="hidden" name="type" class="type_page" value="shipment" />
-				<input type="hidden" name="page" value="wc-shiptastic" />
+				<input type="hidden" name="page" value="wc-stc-shipments" />
 
 				<?php $wp_list_table->display(); ?>
 			</form>
@@ -1606,7 +1606,7 @@ class Admin {
 
 			<?php
 			$wp_list_table->output_notice();
-			$_SERVER['REQUEST_URI'] = remove_query_arg( array( 'updated', 'changed', 'deleted', 'trashed', 'untrashed' ), ( isset( $_SERVER['REQUEST_URI'] ) ? esc_url_raw( wp_unslash( $_SERVER['REQUEST_URI'] ) ) : admin_url( 'admin.php?page=wc-shiptastic' ) ) );
+			$_SERVER['REQUEST_URI'] = remove_query_arg( array( 'updated', 'changed', 'deleted', 'trashed', 'untrashed' ), ( isset( $_SERVER['REQUEST_URI'] ) ? esc_url_raw( wp_unslash( $_SERVER['REQUEST_URI'] ) ) : admin_url( 'admin.php?page=wc-stc-shipments' ) ) );
 			?>
 
 			<?php $wp_list_table->views(); ?>
@@ -1720,7 +1720,7 @@ class Admin {
 		}
 
 		// Table
-		if ( 'woocommerce_page_wc-shiptastic' === $screen_id || 'woocommerce_page_wc-stc-return-shipments' === $screen_id ) {
+		if ( 'woocommerce_page_wc-stc-shipments' === $screen_id || 'woocommerce_page_wc-stc-return-shipments' === $screen_id ) {
 			wp_enqueue_script( 'wc-shiptastic-admin-shipments-table' );
 
 			$bulk_actions = array();
@@ -1906,7 +1906,7 @@ class Admin {
 
 	public static function get_core_screen_ids() {
 		$screen_ids = array(
-			'woocommerce_page_wc-shiptastic',
+			'woocommerce_page_wc-stc-shipments',
 			'woocommerce_page_wc-stc-return-shipments',
 			'woocommerce_page_shipment-packaging',
 			'woocommerce_page_shipment-packaging-report',
