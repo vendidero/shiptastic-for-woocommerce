@@ -1,7 +1,7 @@
 {
   "name": "vendidero/shiptastic-for-woocommerce",
   "description": "Shiptastic for WooCommerce",
-  "homepage": "https://github.com/vendidero/shiptastic-for-woocommerce",
+  "homepage": "https://vendidero.de",
   "license": "GPL-3.0-or-later",
   "type": "wordpress-plugin",
   "prefer-stable": true,
