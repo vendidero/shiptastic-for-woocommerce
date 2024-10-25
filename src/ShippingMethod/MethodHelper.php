@@ -129,20 +129,25 @@ class MethodHelper {
 			do_action( 'woocommerce_shiptastic_after_prepare_cart_contents' );
 
 			/**
-			 * In case prices have already been calculated, use the official
-			 * Woo API for better compatibility with extensions, e.g. Bundles.
+			 * In case prices have already been calculated, maybe prefer the official
+			 * Woo API for improved compatibility with extensions, e.g. unassembled, individually priced bundled items.
+			 *
+			 * This may cause problems with plugins that add additional carts and calculate shipping (e.g. Subscriptions) based on these separate carts
+			 * as Woo does not pass the current $cart object to the filter used here. Within the shipping package data there is unfortunately
+			 * no item total amount (incl taxes) available.
 			 */
-			if ( 0 !== WC()->cart->get_subtotal() ) {
-				$total    = (float) WC()->cart->get_cart_contents_total();
-				$subtotal = (float) WC()->cart->get_subtotal();
+			if ( 0 !== $cart_contents[ $index ]['cart_subtotal'] && apply_filters( 'shiptastic_prefer_cart_totals_over_cart_item_totals', false, $cart_contents ) ) {
+				$cart  = WC()->cart;
+				$total = (float) $cart->get_cart_contents_total();
 
-				if ( wc()->cart->display_prices_including_tax() ) {
-					$total    += (float) WC()->cart->get_cart_contents_tax();
-					$subtotal += (float) WC()->cart->get_subtotal_tax();
+				if ( $cart->display_prices_including_tax() ) {
+					$total += (float) $cart->get_cart_contents_tax();
+				} else {
+					$total = (float) $cart_contents[ $index ]['contents_cost']; // this is excl tax
 				}
 
-				$package_data['total']    = NumberUtil::round_to_precision( $total );
-				$package_data['subtotal'] = NumberUtil::round_to_precision( $subtotal );
+				$package_data['total']    = NumberUtil::round_to_precision( $total ); // item total after discounts
+				$package_data['subtotal'] = NumberUtil::round_to_precision( (float) $cart_contents[ $index ]['cart_subtotal'] ); // item total before discounts
 			}
 
 			$cart_contents[ $index ]['package_data']  = $package_data;
