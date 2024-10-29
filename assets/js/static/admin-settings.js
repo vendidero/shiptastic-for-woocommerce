@@ -152,9 +152,20 @@ window.shiptastic.admin = window.shiptastic.admin || {};
                 }
 
                 if ( meetsConditions ) {
-                    $field.show();
+                    if ( $field.length === 0 ) {
+                        // Use this markup as fallback in case field does not belong to a table, e.g. shipping method settings
+                        $input.parents( 'fieldset' ).show();
+                        $input.parents( 'fieldset' ).prev( 'label' ).show();
+                    } else {
+                        $field.show();
+                    }
                 } else {
-                    $field.hide();
+                    if ( $field.length === 0 ) {
+                        $input.parents( 'fieldset' ).hide();
+                        $input.parents( 'fieldset' ).prev( 'label' ).hide();
+                    } else {
+                        $field.hide();
+                    }
                 }
             } );
         },

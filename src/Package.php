@@ -354,6 +354,18 @@ class Package {
 		return self::country_belongs_to_eu_customs_area( self::get_base_country(), self::get_base_postcode() );
 	}
 
+	public static function get_shipping_zone( $country, $args = array() ) {
+		$zone = 'int';
+
+		if ( self::is_shipping_domestic( $country, $args ) ) {
+			$zone = 'dom';
+		} elseif ( self::is_shipping_inner_eu_country( $country, $args ) ) {
+			$zone = 'eu';
+		}
+
+		return $zone;
+	}
+
 	public static function country_belongs_to_eu_customs_area( $country, $postcode = '' ) {
 		$country            = wc_strtoupper( $country );
 		$eu_countries       = WC()->countries->get_european_union_countries();

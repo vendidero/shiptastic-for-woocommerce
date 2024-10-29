@@ -622,14 +622,23 @@ abstract class Auto extends Simple implements ShippingProviderAuto {
 		return $cache_key;
 	}
 
-	protected function get_pickup_locations_cache_key( $address, $limit = 10 ) {
+	protected function get_pickup_locations_cache_key( $address, $query_args = array() ) {
 		$address          = $this->parse_pickup_location_address_args( $address );
+		$query_args       = $this->parse_pickup_location_query_args( $query_args );
 		$cache_key_values = array(
-			$limit,
+			$query_args['limit'],
 			$address['country'],
 			$address['postcode'],
 			$address['address_1'],
 		);
+
+		if ( ! empty( $query_args['shipping_method'] ) ) {
+			$cache_key_values[] = 's:' . $query_args['shipping_method']->get_id() . '_' . $query_args['shipping_method']->get_instance_id();
+		}
+
+		if ( ! empty( $query_args['payment_method'] ) ) {
+			$cache_key_values[] = 'p:' . $query_args['payment_method'];
+		}
 
 		$cache_key = "woocommerce_shiptastic_{$this->get_name()}_pickup_locations";
 
@@ -678,6 +687,7 @@ abstract class Auto extends Simple implements ShippingProviderAuto {
 				'max_weight'      => 0.0,
 				'limit'           => $this->get_pickup_locations_max_results(),
 				'payment_gateway' => '',
+				'shipping_method' => false,
 			)
 		);
 
@@ -695,7 +705,7 @@ abstract class Auto extends Simple implements ShippingProviderAuto {
 
 	public function get_pickup_locations( $address, $query_args = array() ) {
 		$query_args       = $this->parse_pickup_location_query_args( $query_args );
-		$cache_key        = $this->get_pickup_locations_cache_key( $address, $query_args['limit'] );
+		$cache_key        = $this->get_pickup_locations_cache_key( $address, $query_args );
 		$pickup_locations = get_transient( $cache_key );
 		$address          = $this->parse_pickup_location_address_args( $address );
 
