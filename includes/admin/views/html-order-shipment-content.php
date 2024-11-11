@@ -119,8 +119,13 @@ defined( 'ABSPATH' ) || exit;
 
 						if ( $shipment->supports_label() && ( ( $label = $shipment->get_label() ) || $shipment->needs_label() ) ) :
 							include 'label/html-shipment-label.php';
-						endif;
-						?>
+						elseif ( $shipment->get_tracking_url() ) :
+							?>
+							<div class="wc-stc-shipment-tracking wc-stc-shipment-action-wrapper column col-auto column-spaced show-if show-if-provider show-if-provider-<?php echo esc_attr( $shipment->get_shipping_provider() ); ?>" data-shipment="<?php echo esc_attr( $shipment->get_id() ); ?>">
+								<h4><?php echo esc_html_x( 'Track & Trace', 'shipments', 'shiptastic-for-woocommerce' ); ?></h4>
+								<a class="button button-secondary" aria-label="<?php echo esc_attr( $shipment->get_tracking_id() ); ?>" href="<?php echo esc_url( $shipment->get_tracking_url() ); ?>" target="_blank"><?php echo esc_html( $shipment->get_tracking_id() ); ?></a>
+							</div>
+						<?php endif; ?>
 					</div>
 				</div>
 				<div class="column col-6">

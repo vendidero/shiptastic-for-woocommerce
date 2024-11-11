@@ -372,8 +372,9 @@ class Packaging extends WC_Data_Store_WP implements WC_Object_Data_Store_Interfa
 	 * @param string  $meta_key Meta key to update.
 	 * @param mixed   $meta_value Value to save.
 	 *
-	 *
 	 * @return bool True if updated/deleted.
+	 * @since 3.6.0 Added to prevent empty meta being stored unless required.
+	 *
 	 */
 	protected function update_or_delete_meta( $packaging, $meta_key, $meta_value ) {
 		if ( in_array( $meta_value, array( array(), '' ), true ) && ! in_array( $meta_key, $this->must_exist_meta_keys, true ) ) {

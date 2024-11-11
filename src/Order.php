@@ -96,6 +96,22 @@ class Order {
 	/**
 	 * @return Shipment|false
 	 */
+	public function get_last_shipment_without_tracking() {
+		$last_shipment = false;
+
+		foreach ( array_reverse( $this->get_simple_shipments() ) as $shipment ) {
+			if ( ! $shipment->get_tracking_id() && ! $shipment->is_shipped() ) {
+				$last_shipment = $shipment;
+				break;
+			}
+		}
+
+		return apply_filters( 'woocommerce_shiptastic_shipment_order_last_shipment_without_tracking', $last_shipment, $this );
+	}
+
+	/**
+	 * @return Shipment|false
+	 */
 	public function get_last_shipment_with_tracking() {
 		$last_shipment = false;
 
@@ -836,8 +852,13 @@ class Order {
 		return apply_filters( 'woocommerce_shiptastic_shipment_order_items_to_pack_left_for_shipping', $items_to_be_packed );
 	}
 
+	public function get_selectable_items_for_shipment( $args = array() ) {
+		return apply_filters( 'woocommerce_shiptastic_shipment_order_selectable_items_for_shipment', $this->get_available_items_for_shipment( $args ), $args, $this );
+	}
+
 	/**
-	 * @param bool|Shipment $shipment
+	 * @param array $args
+	 *
 	 * @return array
 	 */
 	public function get_available_items_for_shipment( $args = array() ) {
@@ -915,6 +936,10 @@ class Order {
 		}
 
 		return $items;
+	}
+
+	public function get_selectable_items_for_return( $args = array() ) {
+		return apply_filters( 'woocommerce_shiptastic_shipment_order_selectable_items_for_return', $this->get_available_items_for_return( $args ), $args, $this );
 	}
 
 	/**
@@ -1065,7 +1090,6 @@ class Order {
 		 *
 		 * @package Vendidero/Shiptastic
 		 */
-
 		do_action( 'woocommerce_shiptastic_order_after_get_items', $this->get_order() );
 
 		return apply_filters( 'woocommerce_shiptastic_shipment_order_shippable_items', $items, $this->get_order(), $this );
@@ -1195,15 +1219,15 @@ class Order {
 				continue;
 			}
 			if ( $product = $item->get_product() ) {
-				$s_product = apply_filters( 'woocommerce_gzd_shipments_order_item_product', wc_gzd_shipments_get_product( $product ), $item );
+				$s_product = apply_filters( 'woocommerce_shiptastic_shipment_order_item_product', wc_shiptastic_get_product( $product ), $item );
 				if ( $s_product ) {
 					$width      = empty( $s_product->get_shipping_width() ) ? 0 : (float) wc_format_decimal( $s_product->get_shipping_width() );
 					$length     = empty( $s_product->get_shipping_length() ) ? 0 : (float) wc_format_decimal( $s_product->get_shipping_length() );
 					$height     = empty( $s_product->get_shipping_height() ) ? 0 : (float) wc_format_decimal( $s_product->get_shipping_height() );
 					$dimensions = array(
-						'width'  => (float) wc_get_dimension( $width, wc_gzd_get_packaging_dimension_unit() ),
-						'length' => (float) wc_get_dimension( $length, wc_gzd_get_packaging_dimension_unit() ),
-						'height' => (float) wc_get_dimension( $height, wc_gzd_get_packaging_dimension_unit() ),
+						'width'  => (float) wc_get_dimension( $width, wc_stc_get_packaging_dimension_unit() ),
+						'length' => (float) wc_get_dimension( $length, wc_stc_get_packaging_dimension_unit() ),
+						'height' => (float) wc_get_dimension( $height, wc_stc_get_packaging_dimension_unit() ),
 					);
 					if ( $dimensions['width'] > $args['max_dimensions']['width'] ) {
 						$args['max_dimensions']['width'] = $dimensions['width'];
@@ -1215,7 +1239,7 @@ class Order {
 						$args['max_dimensions']['height'] = $dimensions['height'];
 					}
 					$weight = empty( $product->get_weight() ) ? 0 : (float) wc_format_decimal( $product->get_weight() );
-					$weight = (float) wc_get_weight( $weight, wc_gzd_get_packaging_weight_unit() );
+					$weight = (float) wc_get_weight( $weight, wc_stc_get_packaging_weight_unit() );
 					if ( $weight > $args['max_weight'] ) {
 						$args['max_weight'] = $weight;
 					}

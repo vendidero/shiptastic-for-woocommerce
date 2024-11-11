@@ -454,13 +454,15 @@ class Table extends WP_List_Table {
 	/**
 	 * Helper to create links to edit.php with params.
 	 *
-	 *
 	 * @param string[] $args  Associative array of URL parameters for the link.
 	 * @param string   $label Link text.
 	 * @param string   $class_name Optional. Class attribute. Default empty string.
 	 *
 	 * @return string The formatted link string.
+	 *@since 4.4.0
+	 *
 	 */
+
 	protected function get_edit_link( $args, $label, $class_name = '' ) {
 		$url = add_query_arg( $args, $this->get_main_page() );
 
@@ -1054,7 +1056,7 @@ class Table extends WP_List_Table {
 	 * @param Shipment $shipment The current shipment object.
 	 */
 	public function column_status( $shipment ) {
-		echo '<span class="shipment-status shipment-type-' . esc_attr( $shipment->get_type() ) . '-status status-' . esc_attr( $shipment->get_status() ) . '">' . esc_html( wc_stc_get_shipment_status_name( $shipment->get_status() ) ) . '</span>';
+		echo '<mark class="shipment-status shipment-type-' . esc_attr( $shipment->get_type() ) . '-status status-' . esc_attr( $shipment->get_status() ) . '"><span>' . esc_html( wc_stc_get_shipment_status_name( $shipment->get_status() ) ) . '</span></mark>';
 	}
 
 	/**
@@ -1166,7 +1168,7 @@ class Table extends WP_List_Table {
 	protected function get_hook_prefix() {
 		$suffix = ( 'simple' === $this->shipment_type ? '' : '_' . $this->shipment_type );
 
-		return "woocommerce_gzd{$suffix}_shipments_table_";
+		return "woocommerce_shiptastic{$suffix}_shipments_table_";
 	}
 
 	/**

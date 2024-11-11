@@ -20,7 +20,7 @@ window.shiptastic.admin = window.shiptastic.admin || {};
                 .on( 'change', 'select[id$=shipping_provider]', self.showOrHideAll )
                 .on( 'click', '.wc-stc-shipping-provider-method-tabs .nav-tab-wrapper a.nav-tab', self.onChangeTab )
                 .on( 'change', '.override-checkbox :input', self.onChangeOverride )
-                .on( 'change', '.wc-gzd-shipping-provider-method-tab-content :input[id]', self.onChangeInput );
+                .on( 'change', '.wc-stc-shipping-provider-method-tab-content :input[id]', self.onChangeInput );
 
             $( document.body ).on( 'wc_backbone_modal_loaded', self.onShippingMethodOpen );
 
@@ -65,6 +65,7 @@ window.shiptastic.admin = window.shiptastic.admin || {};
             if ( $tab.length > 0 ) {
                 $navTab.addClass( 'nav-tab-active' );
                 $tab.addClass( 'tab-content-active' );
+
                 $tab.find( ':input:visible' ).trigger( 'change' );
             }
 

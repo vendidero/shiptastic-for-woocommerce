@@ -74,8 +74,8 @@ class RoutesController {
 	/**
 	 * Register defined list of routes with WordPress.
 	 *
-	 * @param string $version API Version being registered..
-	 * @param string $namespace Overrides the default route namespace.
+	 * @param string $version API Version being registered.
+	 * @param string $ns Overrides the default route namespace.
 	 */
 	protected function register_routes( $version = 'v1', $namespace = 'wc/store/v1' ) { // phpcs:ignore Universal.NamingConventions.NoReservedKeywordParameterNames.namespaceFound
 		if ( ! isset( $this->routes[ $version ] ) ) {

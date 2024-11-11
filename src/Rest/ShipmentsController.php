@@ -352,7 +352,9 @@ class ShipmentsController extends \WC_REST_Controller {
 					throw new \WC_REST_Exception( 'woocommerce_stc_rest_invalid_id', esc_html_x( 'This order does need a return.', 'shipments', 'shiptastic-for-woocommerce' ) );
 				}
 			} elseif ( ! $order_shipment->needs_shipping() ) {
-					throw new \WC_REST_Exception( 'woocommerce_stc_rest_invalid_id', esc_html_x( 'This order does need shipping.', 'shipments', 'shiptastic-for-woocommerce' ) );
+				throw new \WC_REST_Exception( 'woocommerce_stc_rest_invalid_id', esc_html_x( 'This order does need shipping.', 'shipments', 'shiptastic-for-woocommerce' ) );
+			} elseif ( ! $order_shipment->needs_shipping() ) {
+				throw new \WC_REST_Exception( 'woocommerce_stc_rest_invalid_id', esc_html_x( 'This order does need shipping.', 'shipments', 'shiptastic-for-woocommerce' ) );
 			}
 
 			$shipment->sync();

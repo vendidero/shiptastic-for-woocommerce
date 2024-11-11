@@ -402,8 +402,6 @@ window.shiptastic.admin = window.shiptastic.admin || {};
         };
 
         this.onAddItemSuccess = function( data ) {
-            this.getShipmentContent().find( '.shipment-item-list' ).append( data.new_item );
-
             this.refreshDom();
             this.unblockItems();
         };

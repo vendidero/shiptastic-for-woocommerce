@@ -61,6 +61,7 @@ class Package {
 		add_action( 'init', array( __CLASS__, 'register_shortcodes' ) );
 		add_action( 'init', array( __CLASS__, 'check_version' ), 10 );
 		add_action( 'init', array( __CLASS__, 'load_plugin_textdomain' ) );
+		add_action( 'init', array( __CLASS__, 'load_fallback_compatibility' ) );
 
 		add_filter( 'woocommerce_shipping_method_add_rate_args', array( __CLASS__, 'manipulate_shipping_rates' ), 1000, 2 );
 	}
@@ -117,6 +118,37 @@ class Package {
 	}
 
 	/**
+	 * Some label-related plugins, e.g. Swiss Post may have a built-in compatibility
+	 * for the WooCommerce Shipment Tracking plugin. Let's mimic/add those basic API functions
+	 * to make sure tracking-related info gets updates within shipments too.
+	 *
+	 * @return void
+	 */
+	public static function load_fallback_compatibility() {
+		if ( ! function_exists( 'wc_st_add_tracking_number' ) ) {
+			function wc_st_add_tracking_number( $order_id, $tracking_number, $provider, $date_shipped = null, $custom_url = false ) {
+				$tracking_item = array(
+					'tracking_provider'    => $provider,
+					'custom_tracking_link' => $custom_url,
+					'tracking_number'      => $tracking_number,
+				);
+
+				Compatibility\ShipmentTracking::transfer_tracking_to_shipment( $tracking_item, $order_id );
+			}
+		}
+
+		if ( ! function_exists( 'wc_st_delete_tracking_number' ) ) {
+			function wc_st_delete_tracking_number( $order_id, $tracking_number, $provider = false ) {
+				$tracking_item = array(
+					'tracking_number' => $tracking_number,
+				);
+
+				Compatibility\ShipmentTracking::remove_tracking_from_shipment( $tracking_item, $order_id );
+			}
+		}
+	}
+
+	/**
 	 * Loads the dependency injection container for woocommerce blocks.
 	 *
 	 * @param boolean $reset Used to reset the container to a fresh instance.
@@ -148,7 +180,8 @@ class Package {
 		$compatibilities = apply_filters(
 			'woocommerce_shiptastic_compatibilities',
 			array(
-				'bundles' => '\Vendidero\Shiptastic\Compatibility\Bundles',
+				'bundles'           => '\Vendidero\Shiptastic\Compatibility\Bundles',
+				'shipment-tracking' => '\Vendidero\Shiptastic\Compatibility\ShipmentTracking',
 			)
 		);
 
@@ -287,6 +320,17 @@ class Package {
 		return \Automattic\WooCommerce\Utilities\OrderUtil::custom_orders_table_usage_is_enabled();
 	}
 
+	public static function get_current_payment_gateway() {
+		$current_gateway    = WC()->session ? WC()->session->get( 'chosen_payment_method' ) : '';
+		$has_block_checkout = has_block( 'woocommerce/checkout' ) || has_block( 'woocommerce/cart' ) || WC()->is_rest_api_request();
+
+		if ( $has_block_checkout ) {
+			$current_gateway = WC()->session ? WC()->session->get( 'wc_shiptastic_blocks_chosen_payment_method', '' ) : '';
+		}
+
+		return $current_gateway;
+	}
+
 	public static function inject_endpoints() {
 		if ( function_exists( 'WC' ) && WC()->query ) {
 			foreach ( self::get_endpoints() as $endpoint ) {
@@ -354,18 +398,6 @@ class Package {
 		return self::country_belongs_to_eu_customs_area( self::get_base_country(), self::get_base_postcode() );
 	}
 
-	public static function get_shipping_zone( $country, $args = array() ) {
-		$zone = 'int';
-
-		if ( self::is_shipping_domestic( $country, $args ) ) {
-			$zone = 'dom';
-		} elseif ( self::is_shipping_inner_eu_country( $country, $args ) ) {
-			$zone = 'eu';
-		}
-
-		return $zone;
-	}
-
 	public static function country_belongs_to_eu_customs_area( $country, $postcode = '' ) {
 		$country            = wc_strtoupper( $country );
 		$eu_countries       = WC()->countries->get_european_union_countries();
@@ -423,6 +455,18 @@ class Package {
 		$base_country = self::get_base_country();
 
 		return apply_filters( 'woocommerce_shiptastic_base_country_supports_export_reference_number', self::country_belongs_to_eu_customs_area( $base_country ) );
+	}
+
+	public static function get_shipping_zone( $country, $args = array() ) {
+		$zone = 'int';
+
+		if ( self::is_shipping_domestic( $country, $args ) ) {
+			$zone = 'dom';
+		} elseif ( self::is_shipping_inner_eu_country( $country, $args ) ) {
+			$zone = 'eu';
+		}
+
+		return $zone;
 	}
 
 	public static function is_shipping_international( $country, $args = array() ) {

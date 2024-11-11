@@ -521,14 +521,13 @@ class ShipmentQuery extends WC_Object_Query {
 	/**
 	 * Used internally to generate an SQL string for searching across multiple columns
 	 *
-	 *
 	 * @param string $search_query
 	 * @param array  $cols
 	 * @param bool   $wild   Whether to allow wildcard searches. Default is false for Network Admin, true for single site.
 	 *                       Single site allows leading and trailing wildcards, Network Admin only trailing.
 	 *
 	 * @return string
-	 *@global wpdb $wpdb WordPress database abstraction object.
+	 * @global \wpdb $wpdb WordPress database abstraction object.
 	 *
 	 */
 	protected function get_search_sql( $search_query, $cols, $wild = false ) {

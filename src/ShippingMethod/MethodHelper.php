@@ -2,6 +2,7 @@
 
 namespace Vendidero\Shiptastic\ShippingMethod;
 
+use Vendidero\Shiptastic\Compatibility\Bundles;
 use Vendidero\Shiptastic\Package;
 use Vendidero\Shiptastic\Packing\CartItem;
 use Vendidero\Shiptastic\Packing\ItemList;

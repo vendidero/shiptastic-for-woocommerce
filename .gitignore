@@ -44,3 +44,4 @@ composer.lock
 /packages/*
 !/packages/README.md
 /composer.lock
+.phpunit.result.cache

@@ -7,9 +7,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-/**
- * ShipmentLabel class.
- */
 interface ShipmentLabel {
 
 	/**

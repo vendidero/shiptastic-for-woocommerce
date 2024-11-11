@@ -521,8 +521,9 @@ class Ajax {
 	}
 
 	public static function shipments_bulk_action_handle() {
-		$action = isset( $_POST['bulk_action'] ) ? wc_clean( wp_unslash( $_POST['bulk_action'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing
-		$type   = isset( $_POST['type'] ) ? wc_clean( wp_unslash( $_POST['type'] ) ) : 'simple'; // phpcs:ignore WordPress.Security.NonceVerification.Missing
+		$action  = isset( $_POST['bulk_action'] ) ? wc_clean( wp_unslash( $_POST['bulk_action'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing
+		$type    = isset( $_POST['type'] ) ? wc_clean( wp_unslash( $_POST['type'] ) ) : 'simple'; // phpcs:ignore WordPress.Security.NonceVerification.Missing
+		$referer = isset( $_POST['referer'] ) ? wp_sanitize_redirect( wp_unslash( $_POST['referer'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing
 
 		check_ajax_referer( "woocommerce_shiptastic_{$action}", 'security' );
 
@@ -573,7 +574,7 @@ class Ajax {
 				array(
 					'step'       => 'done',
 					'percentage' => 100,
-					'url'        => $handler->get_success_redirect_url(),
+					'url'        => $handler->get_success_redirect_url( $referer ),
 					'type'       => $handler->get_shipment_type(),
 				)
 			);
@@ -1028,7 +1029,7 @@ class Ajax {
 	}
 
 	private static function get_order_status_html( $order_shipment ) {
-		$status_html = '<span class="order-shipping-status status-' . esc_attr( $order_shipment->get_shipping_status() ) . '">' . wc_stc_get_shipment_order_shipping_status_name( $order_shipment->get_shipping_status() ) . '</span>';
+		$status_html = '<mark class="order-shipping-status status-' . esc_attr( $order_shipment->get_shipping_status() ) . '"><span>' . wc_stc_get_shipment_order_shipping_status_name( $order_shipment->get_shipping_status() ) . '</span></mark>';
 
 		return $status_html;
 	}
@@ -1090,7 +1091,7 @@ class Ajax {
 	}
 
 	private static function get_order_return_status_html( $order_shipment ) {
-		$status_html = '<span class="order-return-status status-' . esc_attr( $order_shipment->get_return_status() ) . '">' . wc_stc_get_shipment_order_return_status_name( $order_shipment->get_return_status() ) . '</span>';
+		$status_html = '<mark class="order-return-status status-' . esc_attr( $order_shipment->get_return_status() ) . '"><span>' . wc_stc_get_shipment_order_return_status_name( $order_shipment->get_return_status() ) . '</span></mark>';
 
 		return $status_html;
 	}
@@ -1287,14 +1288,14 @@ class Ajax {
 		$items = array();
 
 		if ( 'return' === $shipment->get_type() ) {
-			$items = $order_shipment->get_available_items_for_return(
+			$items = $order_shipment->get_selectable_items_for_return(
 				array(
 					'shipment_id'        => $shipment->get_id(),
 					'disable_duplicates' => true,
 				)
 			);
 		} else {
-			$items = $order_shipment->get_available_items_for_shipment(
+			$items = $order_shipment->get_selectable_items_for_shipment(
 				array(
 					'shipment_id'        => $shipment_id,
 					'disable_duplicates' => true,
@@ -1322,9 +1323,8 @@ class Ajax {
 		);
 
 		$response = array(
-			'success'  => true,
-			'message'  => '',
-			'new_item' => '',
+			'success' => true,
+			'message' => '',
 		);
 
 		$shipment_id      = absint( $_POST['reference_id'] );
@@ -1367,10 +1367,13 @@ class Ajax {
 		}
 
 		ob_start();
-		include Package::get_path() . '/includes/admin/views/html-order-shipment-item.php';
-		$response['new_item'] = ob_get_clean();
+		foreach ( $shipment->get_items() as $item ) {
+			include Package::get_path() . '/includes/admin/views/html-order-shipment-item.php';
+		}
+		$html = ob_get_clean();
 
 		$response['fragments'] = array(
+			'#shipment-' . $shipment->get_id() . ' .shipment-item-list:first' => '<div class="shipment-item-list">' . $html . '</div>',
 			'#shipment-' . $shipment->get_id() . ' .item-count:first' => self::get_item_count_html( $shipment, $order_shipment ),
 		);
 
