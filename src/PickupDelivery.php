@@ -694,8 +694,8 @@ class PickupDelivery {
 			return;
 		}
 
-		wp_register_script( 'wc-shiptastic-modal', Package::get_assets_url( 'static/modal.js' ), array( 'jquery' ), Package::get_version() ); // phpcs:ignore WordPress.WP.EnqueuedResourceParameters.NotInFooter
-		wp_register_script( 'wc-shiptastic-pickup-locations', Package::get_assets_url( 'static/pickup-locations.js' ), array( 'jquery', 'woocommerce', 'selectWoo', 'wc-shiptastic-modal' ), Package::get_version() ); // phpcs:ignore WordPress.WP.EnqueuedResourceParameters.NotInFooter
+		Package::register_script( 'wc-shiptastic-modal', 'static/modal.js', array( 'jquery' ) );
+		Package::register_script( 'wc-shiptastic-pickup-locations', 'static/pickup-locations.js', array( 'jquery', 'woocommerce', 'selectWoo', 'wc-shiptastic-modal' ) );
 
 		// Register admin styles.
 		wp_register_style( 'woocommerce_shiptastic_pickup_locations', Package::get_assets_url( 'static/pickup-locations-styles.css' ), array(), Package::get_version() );

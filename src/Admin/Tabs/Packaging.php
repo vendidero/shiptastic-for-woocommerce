@@ -274,7 +274,7 @@ class Packaging extends Tab {
 				),
 			);
 
-			if ( strstr( $last_url, 'tab=shipments' ) ) {
+			if ( strstr( $last_url, 'tab=shiptastic' ) ) {
 				$pointers['pointers']['auto']['last_step'] = true;
 			}
 		}
