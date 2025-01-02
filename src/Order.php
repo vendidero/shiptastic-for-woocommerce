@@ -1316,7 +1316,7 @@ class Order {
 		 *
 		 * @package Vendidero/Shiptastic
 		 */
-		$pickup_methods = apply_filters( 'woocommerce_shiptastic_shipment_local_pickup_shipping_methods', array( 'local_pickup' ) );
+		$pickup_methods = apply_filters( 'woocommerce_shiptastic_shipment_local_pickup_shipping_methods', array( 'local_pickup', 'pickup_location' ) );
 
 		foreach ( $shipping_methods as $shipping_method ) {
 			if ( in_array( $shipping_method->get_method_id(), $pickup_methods, true ) ) {

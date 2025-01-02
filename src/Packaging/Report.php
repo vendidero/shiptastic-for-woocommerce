@@ -259,6 +259,10 @@ class Report {
 	}
 
 	public function get_packaging_weight( $packaging_id, $country = '', $round = true, $unit = '' ) {
+		if ( '' === $unit ) {
+			$unit = wc_stc_get_packaging_weight_unit();
+		}
+
 		$weight = 0.0;
 
 		if ( '' === $country ) {
@@ -275,6 +279,10 @@ class Report {
 	}
 
 	public function get_total_packaging_weight_by_country( $country, $round = true, $unit = '' ) {
+		if ( '' === $unit ) {
+			$unit = wc_stc_get_packaging_weight_unit();
+		}
+
 		$weight = 0.0;
 
 		if ( isset( $this->args['countries'][ $country ] ) ) {
