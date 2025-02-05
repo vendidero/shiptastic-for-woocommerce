@@ -6,6 +6,32 @@ if [ $# -lt 3 ]; then
 	exit 1
 fi
 
+# Function to check if a command exists
+command_exists() {
+	command -v "$1" >/dev/null 2>&1
+}
+
+# Check if SVN is installed
+if command_exists svn; then
+	echo "SVN is already installed."
+else
+	echo "SVN is not installed. Installing SVN..."
+
+	# Update the package list
+	sudo apt-get update -y
+
+	# Install SVN
+	sudo apt-get install -y subversion
+
+	# Verify installation
+	if command_exists svn; then
+		echo "SVN was successfully installed."
+	else
+		echo "Failed to install SVN. Please check your system configuration."
+		exit 1
+	fi
+fi
+
 DB_NAME=$1
 DB_USER=$2
 DB_PASS=$3
@@ -143,8 +169,12 @@ install_deps() {
 
     WORKING_DIR="$PWD"
 
-	git clone --branch $BRANCH --depth 1 "https://github.com/woocommerce/woocommerce.git" "$TMPDIR/woocommerce-git"
-	mv "$TMPDIR/woocommerce-git/plugins/woocommerce/tests" "$WP_CORE_DIR/wp-content/plugins/woocommerce"
+	LAST_RELEASE_TAG=$(git -c 'versionsort.suffix=-' ls-remote --tags --sort='v:refname' https://github.com/woocommerce/woocommerce.git [0-9].[0-9].[0-9] | tail -1)
+    LAST_TAG_NAME=$(echo $LAST_RELEASE_TAG | sed 's/.* //')
+    LAST_TAG_VERSION=$(echo $LAST_TAG_NAME | grep -o '[0-9]\.[0-9]\.[0-9]$')
+
+    git clone --branch $LAST_TAG_VERSION --depth 1 "https://github.com/woocommerce/woocommerce.git" "$TMPDIR/woocommerce-git"
+    mv "$TMPDIR/woocommerce-git/plugins/woocommerce/tests" "$WP_CORE_DIR/wp-content/plugins/woocommerce"
 }
 
 install_db() {
