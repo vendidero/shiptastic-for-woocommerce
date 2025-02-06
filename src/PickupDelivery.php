@@ -250,13 +250,9 @@ class PickupDelivery {
 					<a class="wc-stc-modal-close" href="#"><?php echo esc_html_x( 'Close modal', 'shipments', 'shiptastic-for-woocommerce' ); ?></a>
 				</header>
 				<article>
-<<<<<<< HEAD
 					<form id="wc-shiptastic-pickup-location-search-form" method="post">
-=======
-					<form id="wc-gzd-shipments-pickup-location-search-form" method="post">
-						<?php do_action( 'woocommerce_gzd_shipments_pickup_delivery_modal_before_fields' ); ?>
+						<?php do_action( 'woocommerce_shiptastic_pickup_delivery_modal_before_fields' ); ?>
 
->>>>>>> 5ca788317944572e02abe0f7870dcc9034850f23
 						<div class="pickup-location-search-fields-wrapper">
 							<?php
 							woocommerce_form_field(
@@ -310,7 +306,7 @@ class PickupDelivery {
 							<a href="#" class="pickup-location-remove <?php echo esc_attr( $pickup_delivery_data['current_location'] ? '' : 'hidden' ); ?>" aria-label="<?php echo esc_html_x( 'Remove pickup location', 'shipments', 'shiptastic-for-woocommerce' ); ?>" role="button"><?php echo esc_html_x( 'Remove pickup location', 'shipments', 'shiptastic-for-woocommerce' ); ?></a>
 							<a href="#" class="submit-pickup-location <?php echo esc_attr( $pickup_delivery_data['current_location'] ? '' : 'hidden' ); ?> button <?php echo esc_attr( wc_stc_wp_theme_get_element_class_name( 'button' ) ? ' ' . wc_stc_wp_theme_get_element_class_name( 'button' ) : '' ); ?>" aria-label="<?php echo esc_html_x( 'Choose pickup location', 'shipments', 'shiptastic-for-woocommerce' ); ?>" role="button"><?php echo esc_html_x( 'Choose pickup location', 'shipments', 'shiptastic-for-woocommerce' ); ?></a>
 
-							<?php do_action( 'woocommerce_gzd_shipments_pickup_delivery_modal_actions' ); ?>
+							<?php do_action( 'woocommerce_shiptastic_pickup_delivery_modal_actions' ); ?>
 						</div>
 
 						<?php wp_nonce_field( 'wc-shiptastic-search-pickup-location' ); ?>

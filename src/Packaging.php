@@ -514,8 +514,7 @@ class Packaging extends WC_Data implements LabelConfigurationSet {
 
 	public function get_title() {
 		$description = $this->get_description();
-
-		$title = sprintf(
+		$title       = sprintf(
 			_x( '%1$s (%2$s, %3$s)', 'shipments-packaging-title', 'shiptastic-for-woocommerce' ),
 			$description,
 			$this->get_formatted_dimensions(),
