@@ -182,6 +182,7 @@ class Package {
 			array(
 				'bundles'           => '\Vendidero\Shiptastic\Compatibility\Bundles',
 				'shipment-tracking' => '\Vendidero\Shiptastic\Compatibility\ShipmentTracking',
+				'wpml'              => '\Vendidero\Shiptastic\Compatibility\WPML',
 			)
 		);
 
@@ -256,10 +257,6 @@ class Package {
 		$html .= wc_get_template_html( 'global/form-return-request.php', $args );
 
 		return $html;
-	}
-
-	public static function load_wpml_compatibility( $compatibility ) {
-		WPMLHelper::init( $compatibility );
 	}
 
 	public static function get_method_settings( $force_load_all = false ) {

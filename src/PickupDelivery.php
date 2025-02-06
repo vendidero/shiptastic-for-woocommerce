@@ -250,7 +250,13 @@ class PickupDelivery {
 					<a class="wc-stc-modal-close" href="#"><?php echo esc_html_x( 'Close modal', 'shipments', 'shiptastic-for-woocommerce' ); ?></a>
 				</header>
 				<article>
+<<<<<<< HEAD
 					<form id="wc-shiptastic-pickup-location-search-form" method="post">
+=======
+					<form id="wc-gzd-shipments-pickup-location-search-form" method="post">
+						<?php do_action( 'woocommerce_gzd_shipments_pickup_delivery_modal_before_fields' ); ?>
+
+>>>>>>> 5ca788317944572e02abe0f7870dcc9034850f23
 						<div class="pickup-location-search-fields-wrapper">
 							<?php
 							woocommerce_form_field(
@@ -281,7 +287,7 @@ class PickupDelivery {
 							);
 							?>
 
-							<button type="submit" class="button <?php echo esc_attr( wc_stc_wp_theme_get_element_class_name( 'button' ) ? ' ' . wc_stc_wp_theme_get_element_class_name( 'button' ) : '' ); ?>" id="wc-shiptastic-search-pickup-location-submit"><?php echo esc_html_x( 'Search', 'shipments', 'shiptastic-for-woocommerce' ); ?></button>
+							<button type="submit" class="button <?php echo esc_attr( wc_stc_wp_theme_get_element_class_name( 'button' ) ? ' ' . wc_stc_wp_theme_get_element_class_name( 'button' ) : '' ); ?>" id="wc-shiptastic-search-pickup-location-submit" aria-label="<?php echo esc_html_x( 'Search', 'shipments', 'shiptastic-for-woocommerce' ); ?>"><?php echo esc_html_x( 'Search', 'shipments', 'shiptastic-for-woocommerce' ); ?></button>
 						</div>
 
 						<div class="pickup-location-search-results">
@@ -301,8 +307,10 @@ class PickupDelivery {
 						</div>
 
 						<div class="pickup-location-search-actions">
-							<a href="#" class="pickup-location-remove <?php echo esc_attr( $pickup_delivery_data['current_location'] ? '' : 'hidden' ); ?>"><?php echo esc_html_x( 'Remove pickup location', 'shipments', 'shiptastic-for-woocommerce' ); ?></a>
-							<a href="#" class="submit-pickup-location <?php echo esc_attr( $pickup_delivery_data['current_location'] ? '' : 'hidden' ); ?> button <?php echo esc_attr( wc_stc_wp_theme_get_element_class_name( 'button' ) ? ' ' . wc_stc_wp_theme_get_element_class_name( 'button' ) : '' ); ?>"><?php echo esc_html_x( 'Choose pickup location', 'shipments', 'shiptastic-for-woocommerce' ); ?></a>
+							<a href="#" class="pickup-location-remove <?php echo esc_attr( $pickup_delivery_data['current_location'] ? '' : 'hidden' ); ?>" aria-label="<?php echo esc_html_x( 'Remove pickup location', 'shipments', 'shiptastic-for-woocommerce' ); ?>" role="button"><?php echo esc_html_x( 'Remove pickup location', 'shipments', 'shiptastic-for-woocommerce' ); ?></a>
+							<a href="#" class="submit-pickup-location <?php echo esc_attr( $pickup_delivery_data['current_location'] ? '' : 'hidden' ); ?> button <?php echo esc_attr( wc_stc_wp_theme_get_element_class_name( 'button' ) ? ' ' . wc_stc_wp_theme_get_element_class_name( 'button' ) : '' ); ?>" aria-label="<?php echo esc_html_x( 'Choose pickup location', 'shipments', 'shiptastic-for-woocommerce' ); ?>" role="button"><?php echo esc_html_x( 'Choose pickup location', 'shipments', 'shiptastic-for-woocommerce' ); ?></a>
+
+							<?php do_action( 'woocommerce_gzd_shipments_pickup_delivery_modal_actions' ); ?>
 						</div>
 
 						<?php wp_nonce_field( 'wc-shiptastic-search-pickup-location' ); ?>
@@ -364,7 +372,7 @@ class PickupDelivery {
 			<div class="choose-pickup-location" <?php echo ( $args['current_location'] ? 'style="display: none;"' : '' ); ?>>
 				<p>
 					<span class="pickup-location-notice-title"><?php echo esc_html_x( 'Not at home?', 'shipments', 'shiptastic-for-woocommerce' ); ?></span>
-					<a href="#" class="pickup-location-notice-link wc-stc-modal-launcher" data-modal-id="pickup-location"><?php echo esc_html_x( 'Choose a pickup location', 'shipments', 'shiptastic-for-woocommerce' ); ?></a>
+					<a href="#" class="pickup-location-notice-link wc-stc-modal-launcher" data-modal-id="pickup-location" aria-label="<?php echo esc_html_x( 'Choose a pickup location', 'shipments', 'shiptastic-for-woocommerce' ); ?>" role="button"><?php echo esc_html_x( 'Choose a pickup location', 'shipments', 'shiptastic-for-woocommerce' ); ?></a>
 
 					<?php do_action( 'woocommerce_shiptastic_after_pickup_location_choose_notice', $args ); ?>
 				</p>
@@ -372,9 +380,9 @@ class PickupDelivery {
 			<div class="currently-shipping-to" <?php echo ( ! $args['current_location'] ? 'style="display: none;"' : '' ); ?>>
 				<p>
 					<span class="currently-shipping-to-title"><?php printf( esc_html_x( 'Currently shipping to:', 'shipments', 'shiptastic-for-woocommerce' ) ); ?></span>
-					<a href="#" class="pickup-location-notice-link pickup-location-manage-link wc-stc-modal-launcher" data-modal-id="pickup-location"><?php echo wp_kses_post( $args['current_location'] ? $args['current_location']->get_label() : '' ); ?></a>
+					<a href="#" class="pickup-location-notice-link pickup-location-manage-link wc-stc-modal-launcher" data-modal-id="pickup-location" role="button"><?php echo wp_kses_post( $args['current_location'] ? $args['current_location']->get_label() : '' ); ?></a>
 				</p>
-				<a href="#" class="pickup-location-remove"><?php echo esc_html_x( 'Remove pickup location', 'shipments', 'shiptastic-for-woocommerce' ); ?></a>
+				<a href="#" class="pickup-location-remove" aria-label="<?php echo esc_html_x( 'Remove pickup location', 'shipments', 'shiptastic-for-woocommerce' ); ?>" role="button"><?php echo esc_html_x( 'Remove pickup location', 'shipments', 'shiptastic-for-woocommerce' ); ?></a>
 			</div>
 		</div>
 		<?php

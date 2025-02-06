@@ -270,7 +270,7 @@ class Report {
 				$weight = $this->args['packaging'][ "$packaging_id" ]['weight_in_kg'];
 			}
 		} elseif ( isset( $this->args['countries'][ $country ], $this->args['countries'][ $country ]['packaging'][ "$packaging_id" ] ) ) {
-				$weight = $this->args['countries'][ $country ]['packaging'][ "$packaging_id" ]['weight_in_kg'];
+			$weight = $this->args['countries'][ $country ]['packaging'][ "$packaging_id" ]['weight_in_kg'];
 		}
 
 		$weight = wc_get_weight( $weight, $unit, 'kg' );

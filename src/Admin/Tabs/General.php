@@ -89,7 +89,7 @@ class General extends Tab {
 						'next_url'     => $next_url,
 						'next_trigger' => array(),
 						'options'      => array(
-							'content'  => '<h3>' . esc_html_x( 'Returns', 'shipments', 'shiptastic-for-woocommerce' ) . '</h3><p>' . sprintf( _x( 'Minimize manual work while handling customer returns. Learn more about returns within our %s.', 'shipments', 'shiptastic-for-woocommerce' ), '<a href="https://vendidero.de/dokument/retouren-konfigurieren-und-verwalten" target="_blank">' . _x( 'documentation', 'shipments', 'shiptastic-for-woocommerce' ) . '</a>' ) . '</p>',
+							'content'  => '<h3>' . esc_html_x( 'Returns', 'shipments', 'shiptastic-for-woocommerce' ) . '</h3><p>' . sprintf( _x( 'Minimize manual work while handling customer returns. Learn more about returns within our %s.', 'shipments', 'shiptastic-for-woocommerce' ), '<a href="https://vendidero.de/doc/woocommerce-germanized/retouren-konfigurieren-und-verwalten" target="_blank">' . _x( 'documentation', 'shipments', 'shiptastic-for-woocommerce' ) . '</a>' ) . '</p>',
 							'position' => array(
 								'edge'  => 'top',
 								'align' => 'top',

@@ -44,7 +44,7 @@ class ShippingMethod extends \WC_Shipping_Method {
 		$this->id                 = 'shipping_provider_' . $this->shipping_provider->get_name();
 		$this->instance_id        = absint( $instance_id );
 		$this->method_title       = $this->shipping_provider->get_title();
-		$this->method_description = sprintf( _x( 'Apply rule-based shipping costs for shipments handled by %1$s based on your available packaging options. Learn <a href="%2$s">how to configure →</a>', 'shipments', 'shiptastic-for-woocommerce' ), $this->shipping_provider->get_title(), 'https://vendidero.de/dokument/versandregeln-erstellen' );
+		$this->method_description = sprintf( _x( 'Apply rule-based shipping costs for shipments handled by %1$s based on your available packaging options. Learn <a href="%2$s">how to configure →</a>', 'shipments', 'shiptastic-for-woocommerce' ), $this->shipping_provider->get_title(), 'https://vendidero.de/doc/woocommerce-germanized/versandregeln-erstellen' );
 		$this->title              = $this->method_title;
 		$this->supports           = array(
 			'shipping-zones',
@@ -954,7 +954,7 @@ class ShippingMethod extends \WC_Shipping_Method {
 						}
 					}
 				} elseif ( 'shipping_classes' === $condition_type_name || 'package_shipping_classes' === $condition_type_name ) {
-					$classes = isset( $condition['classes'] ) && ! empty( $condition['classes'] ) ? array_map( 'absint', (array) $condition['classes'] ) : array();
+					$classes = isset( $condition['classes'] ) && ! empty( $condition['classes'] ) ? apply_filters( 'woocommerce_shiptastic_shipping_method_shipping_classes', array_map( 'absint', (array) $condition['classes'] ) ) : array();
 
 					if ( 'exactly' === $operator_name ) {
 						$has_missing_shipping_classes = 'package_shipping_classes' === $condition_type_name ? $package_data['package_has_missing_shipping_classes'] : $package_data['has_missing_shipping_classes'];

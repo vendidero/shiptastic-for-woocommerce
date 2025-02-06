@@ -1,21 +1,26 @@
 <?php
 
-namespace Vendidero\Shiptastic;
+namespace Vendidero\Shiptastic\Compatibility;
 
+use Vendidero\Shiptastic\Interfaces\Compatibility;
 use Vendidero\Shiptastic\ShippingProvider\Helper;
 use Vendidero\Shiptastic\ShippingProvider\Simple;
 
 defined( 'ABSPATH' ) || exit;
 
-class WPMLHelper {
+class WPML implements Compatibility {
+
+	public static function is_active() {
+		return defined( 'ICL_SITEPRESS_VERSION' );
+	}
 
 	public static function init() {
 		/**
 		 * Register custom strings (e.g. tracking description placeholder) via WPML. These strings might be translated through
 		 * the translation dashboard (admin.php?page=wpml-translation-management). Use "Shipping Provider" as a filter/kind for translating.
 		 */
-		add_action( 'woocommerce_shiptastic_new_shipping_provider', array( __CLASS__, 'register_shipping_provider_strings' ), 10, 2 );
-		add_action( 'woocommerce_shiptastic_shipping_provider_updated', array( __CLASS__, 'register_shipping_provider_strings' ), 10, 2 );
+		add_action( 'woocommerce_gzd_new_shipping_provider', array( __CLASS__, 'register_shipping_provider_strings' ), 10, 2 );
+		add_action( 'woocommerce_gzd_shipping_provider_updated', array( __CLASS__, 'register_shipping_provider_strings' ), 10, 2 );
 
 		/**
 		 * The shipping provider filter name depends on the instance name - register filters while loading providers.
@@ -30,6 +35,20 @@ class WPMLHelper {
 		 * Translate shipment item name
 		 */
 		add_filter( 'woocommerce_shiptastic_email_shipment_items_args', array( __CLASS__, 'translate_email_shipment_items' ), 10 );
+
+		add_filter(
+			'woocommerce_shiptastic_shipping_method_shipping_classes',
+			function ( $shipping_classes ) {
+				$shipping_classes = array_map(
+					function ( $class_id ) {
+						return apply_filters( 'wpml_object_id', $class_id, 'category' );
+					},
+					$shipping_classes
+				);
+
+				return $shipping_classes;
+			}
+		);
 	}
 
 	public static function translate_email_shipment_items( $args ) {
