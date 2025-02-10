@@ -230,7 +230,7 @@ abstract class REST {
 			array(
 				'Content-Type' => $this->get_content_type(),
 				'Accept'       => 'application/json',
-				'User-Agent'   => 'Germanized/' . Package::get_version(),
+				'User-Agent'   => 'Shiptastic/' . Package::get_version(),
 			)
 		);
 
