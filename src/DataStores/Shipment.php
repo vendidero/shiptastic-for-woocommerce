@@ -160,6 +160,10 @@ class Shipment extends WC_Data_Store_WP implements WC_Object_Data_Store_Interfac
 		return $shipment_status;
 	}
 
+	protected function parse_status( $status ) {
+		return apply_filters( "woocommerce_shiptastic_parse_shipment_status", $status );
+	}
+
 	/**
 	 * Method to update a shipment in the database.
 	 *
@@ -316,7 +320,7 @@ class Shipment extends WC_Data_Store_WP implements WC_Object_Data_Store_Interfac
 					'date_created'      => Package::is_valid_mysql_date( $data->shipment_date_created_gmt ) ? wc_string_to_timestamp( $data->shipment_date_created_gmt ) : null,
 					'date_sent'         => Package::is_valid_mysql_date( $data->shipment_date_sent_gmt ) ? wc_string_to_timestamp( $data->shipment_date_sent_gmt ) : null,
 					'est_delivery_date' => Package::is_valid_mysql_date( $data->shipment_est_delivery_date_gmt ) ? wc_string_to_timestamp( $data->shipment_est_delivery_date_gmt ) : null,
-					'status'            => $data->shipment_status,
+					'status'            => $this->parse_status( $data->shipment_status ),
 					'version'           => $data->shipment_version,
 				)
 			);

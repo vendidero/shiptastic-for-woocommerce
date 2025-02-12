@@ -58,7 +58,7 @@ window.shiptastic.admin = window.shiptastic.admin || {};
                 type: 'POST',
                 url: self.params.ajax_url,
                 data: {
-                    action           : 'woocommerce_shiptastic_bulk_action_handle',
+                    action           : 'woocommerce_stc_shipments_bulk_action_handle',
                     bulk_action      : action,
                     step             : step,
                     type             : type,

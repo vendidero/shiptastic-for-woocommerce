@@ -817,7 +817,7 @@ class Table extends WP_List_Table {
 			echo wp_kses_post( $title ) . ' ';
 		}
 
-		echo '<a href="#" class="shipment-preview has-shipment-modal" data-id="wc-stc-modal-preview-shipment" data-load-async="1" data-reference="' . esc_attr( $shipment->get_id() ) . '" data-nonce-params="wc_stc_admin_shipments_table_params">' . esc_html_x( 'Preview', 'shipments', 'shiptastic-for-woocommerce' ) . '</a>';
+		echo '<a href="#" class="shipment-preview has-shipment-modal" data-id="wc-stc-modal-preview-shipment" data-load-async="1" data-reference="' . esc_attr( $shipment->get_id() ) . '" data-nonce-params="wc_shiptastic_admin_shipments_table_params">' . esc_html_x( 'Preview', 'shipments', 'shiptastic-for-woocommerce' ) . '</a>';
 
 		?>
 		<script type="text/template" id="tmpl-wc-stc-modal-preview-shipment-<?php echo esc_attr( $shipment->get_id() ); ?>" class="wc-stc-shipment-preview-<?php echo esc_attr( $shipment->get_type() ); ?>">
@@ -934,7 +934,7 @@ class Table extends WP_List_Table {
 						'data-id'           => 'wc-stc-modal-create-shipment-label',
 						'data-load-async'   => true,
 						'data-reference'    => $shipment->get_id(),
-						'data-nonce-params' => 'wc_stc_admin_shipments_table_params',
+						'data-nonce-params' => 'wc_shiptastic_admin_shipments_table_params',
 					),
 				);
 

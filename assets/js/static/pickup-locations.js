@@ -173,11 +173,11 @@ window.shiptastic.shipments_pickup_locations = window.shiptastic.shipments_picku
                 }
             });
 
-            params += '&action=woocommerce_shiptastic_search_pickup_locations&context=' + self.params.context;
+            params += '&action=woocommerce_stc_search_pickup_locations&context=' + self.params.context;
 
             $.ajax({
                 type: "POST",
-                url:  self.params.wc_ajax_url.toString().replace('%%endpoint%%', 'woocommerce_shiptastic_search_pickup_locations'),
+                url:  self.params.wc_ajax_url.toString().replace('%%endpoint%%', 'woocommerce_stc_search_pickup_locations'),
                 data: params,
                 success: function( data ) {
                     if ( data.success ) {

@@ -281,7 +281,7 @@ class Package {
 	}
 
 	public static function is_integration() {
-		return false;
+		return class_exists( 'WooCommerce_Germanized' );
 	}
 
 	public static function is_pro() {
