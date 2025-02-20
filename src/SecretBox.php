@@ -130,6 +130,22 @@ class SecretBox {
 	}
 
 	/**
+	 * @param $message
+	 * @param string $encryption_type
+	 *
+	 * @return string
+	 */
+	public static function maybe_encrypt( $message, $encryption_type = '' ) {
+		$encoded = self::encrypt( $message, $encryption_type );
+
+		if ( ! is_wp_error( $encoded ) ) {
+			$message = $encoded;
+		}
+
+		return $message;
+	}
+
+	/**
 	 * Decrypts a message of a certain type.
 	 *
 	 * @param $cipher
@@ -200,6 +216,22 @@ class SecretBox {
 			$error->add( 'decrypt-error', sprintf( 'Error while decrypting data: %s', wc_print_r( $e, true ) ) );
 			return self::log_error( $error );
 		}
+	}
+
+	/**
+	 * @param $message
+	 * @param string $encryption_type
+	 *
+	 * @return string
+	 */
+	public static function maybe_decrypt( $cipher, $encryption_type = '' ) {
+		$decrypted = self::decrypt( $cipher, $encryption_type );
+
+		if ( ! is_wp_error( $decrypted ) ) {
+			$cipher = $decrypted;
+		}
+
+		return $cipher;
 	}
 
 	/**

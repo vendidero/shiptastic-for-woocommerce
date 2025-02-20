@@ -161,7 +161,7 @@ class Shipment extends WC_Data_Store_WP implements WC_Object_Data_Store_Interfac
 	}
 
 	protected function parse_status( $status ) {
-		return apply_filters( "woocommerce_shiptastic_parse_shipment_status", $status );
+		return apply_filters( 'woocommerce_shiptastic_parse_shipment_status', $status );
 	}
 
 	/**

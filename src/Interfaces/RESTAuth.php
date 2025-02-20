@@ -21,6 +21,8 @@ interface RESTAuth {
 	 */
 	public function has_auth();
 
+	public function is_connected();
+
 	public function get_url();
 
 	public function is_unauthenticated_response( $code );

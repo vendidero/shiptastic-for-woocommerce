@@ -2,8 +2,10 @@
 
 namespace Vendidero\Shiptastic\Admin;
 
+use Vendidero\Shiptastic\API\Helper;
 use Vendidero\Shiptastic\Package;
 use Vendidero\Shiptastic\Packaging;
+use Vendidero\Shiptastic\SecretBox;
 use Vendidero\Shiptastic\ShippingMethod\MethodHelper;
 use Vendidero\Shiptastic\Labels\ConfigurationSet;
 use Vendidero\Shiptastic\Packaging\ReportHelper;
@@ -98,10 +100,104 @@ class Admin {
 		add_action( 'woocommerce_admin_field_shiptastic_toggle', array( __CLASS__, 'toggle_input_field' ), 30 );
 		add_filter( 'woocommerce_admin_settings_sanitize_option', array( __CLASS__, 'sanitize_toggle_field' ), 10, 3 );
 
+		add_action( 'woocommerce_admin_field_shiptastic_oauth', array( __CLASS__, 'oauth_field' ), 30 );
+
 		add_action( 'woocommerce_admin_field_dimensions', array( __CLASS__, 'register_dimensions_field' ), 30 );
 		add_filter( 'woocommerce_admin_settings_sanitize_option', array( __CLASS__, 'sanitize_dimensions_field' ), 10, 3 );
 
 		add_action( 'woocommerce_system_status_report', array( __CLASS__, 'status_report' ) );
+
+		add_action( 'admin_post_woocommerce_stc_oauth', array( __CLASS__, 'oauth' ) );
+		add_action( 'admin_post_woocommerce_stc_oauth_init', array( __CLASS__, 'oauth_init' ) );
+		add_action( 'admin_post_woocommerce_stc_oauth_revoke', array( __CLASS__, 'oauth_revoke' ) );
+	}
+
+	public static function oauth_init() {
+		if ( ! current_user_can( 'manage_woocommerce' ) ) {
+			wp_die( -1 );
+		}
+
+		if ( ! check_ajax_referer( 'stc_oauth_init' ) ) {
+			wp_die( -1 );
+		}
+
+		$auth_type = isset( $_GET['auth_type'] ) ? wc_clean( wp_unslash( $_GET['auth_type'] ) ) : '';
+		$referer   = wp_get_referer();
+
+		if ( $api = Helper::get_api( $auth_type ) ) {
+			if ( $auth = $api->get_auth_api() ) {
+				if ( is_a( $auth, '\Vendidero\Shiptastic\API\Auth\OAuthGateway' ) ) {
+					$auth->authorize( $referer );
+				}
+			}
+		}
+
+		wp_safe_redirect( esc_url_raw( add_query_arg( array( 'has_error' => 'yes' ), $referer ) ) );
+		exit();
+	}
+
+	public static function oauth_revoke() {
+		if ( ! current_user_can( 'manage_woocommerce' ) ) {
+			wp_die( -1 );
+		}
+
+		if ( ! check_ajax_referer( 'stc_oauth_revoke' ) ) {
+			wp_die( -1 );
+		}
+
+		$auth_type = isset( $_GET['auth_type'] ) ? wc_clean( wp_unslash( $_GET['auth_type'] ) ) : '';
+		$referer   = wp_get_referer();
+
+		if ( $api = Helper::get_api( $auth_type ) ) {
+			if ( $auth = $api->get_auth_api() ) {
+				if ( is_a( $auth, '\Vendidero\Shiptastic\API\Auth\OAuthGateway' ) ) {
+					$auth->revoke();
+				}
+			}
+		}
+
+		wp_safe_redirect( esc_url_raw( $referer ) );
+		exit();
+	}
+
+	public static function oauth() {
+		if ( ! current_user_can( 'manage_woocommerce' ) ) {
+			wp_die( -1 );
+		}
+
+		$auth_type = isset( $_GET['auth_type'] ) ? wc_clean( wp_unslash( $_GET['auth_type'] ) ) : '';
+
+		if ( ! check_ajax_referer( "stc_oauth_{$auth_type}" ) ) {
+			wp_die( -1 );
+		}
+
+		$nonce = isset( $_GET['request_nonce'] ) ? wp_unslash( $_GET['request_nonce'] ) : ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+
+		if ( ! wp_verify_nonce( $nonce, "stc_oauth_init_{$auth_type}" ) ) {
+			wp_die( -1 );
+		}
+
+		$code     = isset( $_GET['code'] ) ? wc_clean( wp_unslash( $_GET['code'] ) ) : '';
+		$request  = isset( $_GET['request'] ) ? wc_clean( wp_unslash( $_GET['request'] ) ) : '';
+		$referer  = wp_get_referer();
+		$is_error = true;
+
+		if ( ! empty( $code ) && ! empty( $request ) ) {
+			if ( $api = Helper::get_api( $auth_type ) ) {
+				if ( $auth = $api->get_auth_api() ) {
+					if ( is_a( $auth, '\Vendidero\Shiptastic\API\Auth\OAuthGateway' ) ) {
+						$response = $auth->get_token( $code, $request );
+
+						if ( ! $response->is_error() ) {
+							$is_error = false;
+						}
+					}
+				}
+			}
+		}
+
+		wp_safe_redirect( esc_url_raw( add_query_arg( array( 'has_error' => wc_bool_to_string( $is_error ) ), $referer ) ) );
+		exit();
 	}
 
 	public static function get_template_info() {
@@ -346,6 +442,61 @@ class Admin {
 		}
 
 		return $value;
+	}
+
+	public static function oauth_field( $value ) {
+		$value = wp_parse_args(
+			$value,
+			array(
+				'api_type' => '',
+			)
+		);
+
+		// Description handling.
+		$field_description_data = \WC_Admin_Settings::get_field_description( $value );
+		$api                    = Helper::get_api( $value['api_type'] );
+
+		if ( ! $api ) {
+			return '';
+		}
+
+		$revoke_url = wp_nonce_url(
+			add_query_arg(
+				array(
+					'action'    => 'woocommerce_stc_oauth_revoke',
+					'auth_type' => $api->get_setting_name(),
+				),
+				admin_url( 'admin-post.php' )
+			),
+			'stc_oauth_revoke'
+		);
+
+		$connect_url = wp_nonce_url(
+			add_query_arg(
+				array(
+					'action'    => 'woocommerce_stc_oauth_init',
+					'auth_type' => $api->get_setting_name(),
+				),
+				admin_url( 'admin-post.php' )
+			),
+			'stc_oauth_init'
+		);
+		?>
+		<tr valign="top">
+			<th scope="row" class="titledesc">
+				<span class="wc-shiptastic-label-wrap"><?php echo esc_html( $value['title'] ); ?><?php echo wp_kses_post( $field_description_data['tooltip_html'] ); ?></span>
+			</th>
+			<td class="forminp forminp-<?php echo esc_attr( sanitize_title( $value['type'] ) ); ?>">
+				<fieldset>
+					<?php if ( $api->get_auth_api()->is_connected() ) : ?>
+						<a class="button button-primary" href="<?php echo esc_url( $revoke_url ); ?>"><?php echo esc_html_x( 'Revoke', 'shiptastic', 'shiptastic-for-woocommerce' ); ?></a>
+					<?php else : ?>
+						<a class="button button-primary" href="<?php echo esc_url( $connect_url ); ?>"><?php printf( esc_html_x( 'Connect to %s', 'shiptastic', 'shiptastic-for-woocommerce' ), esc_html( $api->get_title() ) ); ?></a>
+					<?php endif; ?>
+				</fieldset>
+			</td>
+		</tr>
+		<?php
 	}
 
 	public static function toggle_input_field( $value ) {

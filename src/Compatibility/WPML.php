@@ -19,8 +19,8 @@ class WPML implements Compatibility {
 		 * Register custom strings (e.g. tracking description placeholder) via WPML. These strings might be translated through
 		 * the translation dashboard (admin.php?page=wpml-translation-management). Use "Shipping Provider" as a filter/kind for translating.
 		 */
-		add_action( 'woocommerce_gzd_new_shipping_provider', array( __CLASS__, 'register_shipping_provider_strings' ), 10, 2 );
-		add_action( 'woocommerce_gzd_shipping_provider_updated', array( __CLASS__, 'register_shipping_provider_strings' ), 10, 2 );
+		add_action( 'woocommerce_shiptastic_new_shipping_provider', array( __CLASS__, 'register_shipping_provider_strings' ), 10, 2 );
+		add_action( 'woocommerce_shiptastic_shipping_provider_updated', array( __CLASS__, 'register_shipping_provider_strings' ), 10, 2 );
 
 		/**
 		 * The shipping provider filter name depends on the instance name - register filters while loading providers.

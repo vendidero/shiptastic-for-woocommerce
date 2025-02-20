@@ -2,27 +2,44 @@
 
 namespace Vendidero\Shiptastic\API;
 
+use Vendidero\Shiptastic\Interfaces\Api;
 use Vendidero\Shiptastic\Interfaces\RESTAuth;
 use Vendidero\Shiptastic\Package;
 use Vendidero\Shiptastic\ShipmentError;
 
 defined( 'ABSPATH' ) || exit;
 
-abstract class REST {
+abstract class REST implements Api {
 
 	protected $auth = null;
 
+	protected $is_sandbox = false;
+
 	abstract public function get_url();
+
+	abstract public function get_name();
+
+	public function is_sandbox() {
+		return $this->is_sandbox;
+	}
+
+	public function set_is_sandbox( $is_sandbox ) {
+		$this->is_sandbox = $is_sandbox;
+	}
 
 	/**
 	 * @return RESTAuth
 	 */
 	abstract protected function get_auth_instance();
 
+	public function get_setting_name() {
+		return $this->get_name() . ( $this->is_sandbox() ? '_sandbox' : '' );
+	}
+
 	/**
 	 * @return RESTAuth
 	 */
-	protected function get_auth() {
+	public function get_auth_api() {
 		if ( is_null( $this->auth ) ) {
 			$this->auth = $this->get_auth_instance();
 		}
@@ -34,7 +51,7 @@ abstract class REST {
 	 * @return bool
 	 */
 	protected function is_auth_request( $url ) {
-		$auth_url = $this->get_auth()->get_url();
+		$auth_url = $this->get_auth_api()->get_url();
 
 		if ( empty( $auth_url ) ) {
 			return false;
@@ -79,8 +96,8 @@ abstract class REST {
 
 		if ( $this->is_auth_request( $url ) ) {
 			$is_auth_request = true;
-		} elseif ( ! $this->get_auth()->has_auth() ) {
-			$auth_response = $this->get_auth()->auth();
+		} elseif ( $this->get_auth_api()->is_connected() && ! $this->get_auth_api()->has_auth() ) {
+			$auth_response = $this->get_auth_api()->auth();
 		}
 
 		/**
@@ -139,8 +156,8 @@ abstract class REST {
 			$response_obj     = new Response( $response_code, $response_body, $response_headers );
 
 			if ( $response_obj->get_code() >= 300 ) {
-				if ( ! $is_auth_request && ! isset( $body_args['is_retry'] ) && $this->get_auth()->is_unauthenticated_response( $response_obj->get_code() ) ) {
-					$this->get_auth()->revoke();
+				if ( ! $is_auth_request && ! isset( $body_args['is_retry'] ) && $this->get_auth_api()->is_unauthenticated_response( $response_obj->get_code() ) ) {
+					$this->get_auth_api()->revoke();
 					$body_args['is_retry'] = true;
 
 					return $this->get_response( $url, $type, $body_args, $headers );
@@ -234,7 +251,7 @@ abstract class REST {
 			)
 		);
 
-		$headers = array_replace_recursive( $headers, $this->get_auth()->get_headers() );
+		$headers = array_replace_recursive( $headers, $this->get_auth_api()->get_headers() );
 
 		return $headers;
 	}

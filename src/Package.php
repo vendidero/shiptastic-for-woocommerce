@@ -281,7 +281,7 @@ class Package {
 	}
 
 	public static function is_integration() {
-		return class_exists( 'WooCommerce_Germanized' );
+		return apply_filters( 'woocommerce_shiptastic_is_integration', false );
 	}
 
 	public static function is_pro() {
