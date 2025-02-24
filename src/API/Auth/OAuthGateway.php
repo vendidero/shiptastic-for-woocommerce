@@ -2,7 +2,6 @@
 
 namespace Vendidero\Shiptastic\API\Auth;
 
-use Vendidero\Shiptastic\SecretBox;
 use Vendidero\Shiptastic\ShipmentError;
 
 class OAuthGateway extends OAuth {
@@ -12,7 +11,7 @@ class OAuthGateway extends OAuth {
 	}
 
 	public function get_url() {
-		return 'https://vendidero.com/wp-json/vd/v1/oauth-gateway';
+		return 'https://oauth.vendidero.com';
 	}
 
 	public function is_connected() {
@@ -46,7 +45,7 @@ class OAuthGateway extends OAuth {
 		add_filter(
 			'allowed_redirect_hosts',
 			function ( $hosts ) {
-				$hosts[] = 'vendidero.com';
+				$hosts[] = 'oauth.vendidero.com';
 				return $hosts;
 			}
 		);
@@ -55,12 +54,12 @@ class OAuthGateway extends OAuth {
 		exit();
 	}
 
-	public function get_token( $auth_code, $request ) {
+	public function get_token( $auth_code ) {
 		$response = $this->get_api()->post(
 			$this->get_request_url( 'token' ),
 			array(
-				'code'    => $auth_code,
-				'request' => $request,
+				'code' => $auth_code,
+				'type' => $this->get_api()->get_setting_name(),
 			),
 			array(
 				'Content-Type' => 'application/x-www-form-urlencoded',

@@ -178,15 +178,14 @@ class Admin {
 		}
 
 		$code     = isset( $_GET['code'] ) ? wc_clean( wp_unslash( $_GET['code'] ) ) : '';
-		$request  = isset( $_GET['request'] ) ? wc_clean( wp_unslash( $_GET['request'] ) ) : '';
 		$referer  = wp_get_referer();
 		$is_error = true;
 
-		if ( ! empty( $code ) && ! empty( $request ) ) {
+		if ( ! empty( $code ) ) {
 			if ( $api = Helper::get_api( $auth_type ) ) {
 				if ( $auth = $api->get_auth_api() ) {
 					if ( is_a( $auth, '\Vendidero\Shiptastic\API\Auth\OAuthGateway' ) ) {
-						$response = $auth->get_token( $code, $request );
+						$response = $auth->get_token( $code );
 
 						if ( ! $response->is_error() ) {
 							$is_error = false;

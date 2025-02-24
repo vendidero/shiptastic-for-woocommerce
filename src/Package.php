@@ -4,6 +4,7 @@ namespace Vendidero\Shiptastic;
 
 use Automattic\WooCommerce\Utilities\I18nUtil;
 use Exception;
+use Vendidero\Shiptastic\API\Helper;
 use Vendidero\Shiptastic\Registry\Container;
 use Vendidero\Shiptastic\ShippingMethod\MethodHelper;
 
