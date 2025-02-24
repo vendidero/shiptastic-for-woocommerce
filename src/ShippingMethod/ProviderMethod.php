@@ -99,7 +99,7 @@ class ProviderMethod implements LabelConfigurationSet {
 	}
 
 	public function is_builtin_method() {
-		if ( is_a( $this->method, '\Vendidero\Germanized\Shipments\ShippingMethod\ShippingMethod' ) ) {
+		if ( is_a( $this->method, '\Vendidero\Shiptastic\ShippingMethod\ShippingMethod' ) ) {
 			return true;
 		}
 
