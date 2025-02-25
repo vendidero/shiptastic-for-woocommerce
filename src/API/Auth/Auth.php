@@ -26,10 +26,6 @@ abstract class Auth implements RESTAuth {
 		return $this->api;
 	}
 
-	public function is_connected() {
-		return $this->has_auth();
-	}
-
 	public function is_unauthenticated_response( $code ) {
 		return in_array( (int) $code, array( 401, 403 ), true );
 	}

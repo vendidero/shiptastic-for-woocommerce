@@ -47,8 +47,8 @@ class Response {
 		return $this->body;
 	}
 
-	public function get_body() {
-		return json_decode( $this->get_body_raw(), true );
+	public function get_body( $as_associative = true ) {
+		return json_decode( $this->get_body_raw(), $as_associative );
 	}
 
 	public function get_headers() {

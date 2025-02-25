@@ -20,6 +20,10 @@ abstract class Basic extends Auth {
 
 	abstract protected function get_password();
 
+	public function is_connected() {
+		return ! empty( $this->get_username() );
+	}
+
 	public function get_headers() {
 		$headers = array();
 
