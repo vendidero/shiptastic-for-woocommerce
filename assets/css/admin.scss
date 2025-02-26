@@ -194,6 +194,49 @@ span.woocommerce-shiptastic-input-toggle {
   }
 }
 
+.wc-metaboxes-wrapper .wc-metabox.woocommerce_variation {
+  p.wc-stc-product-settings-subtitle {
+    float: left;
+    clear: both;
+    width: 100%;
+    margin-left: -2em;
+    padding: 10px 2em;
+    font-weight: bold;
+    font-size: 1em;
+    background: #eee;
+
+    .page-title-action {
+      top: -1px;
+    }
+
+    .wc-stc-product-settings-action {
+      float: right;
+      text-decoration: underline;
+      font-weight: normal;
+      margin-left: 1em;
+    }
+  }
+}
+
+p.wc-stc-product-settings-subtitle {
+  padding: 10px 20px 10px 10px;
+  font-weight: bold;
+  font-size: 1em;
+  background: #eee;
+  margin-top: -1px;
+
+  .page-title-action {
+    top: -1px;
+  }
+
+  .wc-stc-product-settings-action {
+    float: right;
+    text-decoration: underline;
+    font-weight: normal;
+    margin-left: 1em;
+  }
+}
+
 .wc-stc-modal-preview-shipment {
   .wc-backbone-modal-header {
     display: flex;

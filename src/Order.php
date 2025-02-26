@@ -188,6 +188,20 @@ class Order {
 		return apply_filters( 'woocommerce_shiptastic_shipment_order_supports_email_transmission', $supports_email_transmission, $this );
 	}
 
+	public function get_min_age() {
+		$min_age = '';
+
+		/**
+		 * Filter to adjust the minimum age needed for this order.
+		 *
+		 * @param string $min_age The minimum age.
+		 * @param Order  $order The order instance.
+		 *
+		 * @package Vendidero/Shiptastic
+		 */
+		return apply_filters( 'woocommerce_shiptastic_shipment_order_min_age', $min_age, $this );
+	}
+
 	public function has_shipped_shipments() {
 		$shipments = $this->get_simple_shipments();
 

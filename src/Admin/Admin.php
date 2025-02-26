@@ -4,10 +4,7 @@ namespace Vendidero\Shiptastic\Admin;
 
 use Vendidero\Shiptastic\API\Helper;
 use Vendidero\Shiptastic\Package;
-use Vendidero\Shiptastic\Packaging;
-use Vendidero\Shiptastic\SecretBox;
 use Vendidero\Shiptastic\ShippingMethod\MethodHelper;
-use Vendidero\Shiptastic\Labels\ConfigurationSet;
 use Vendidero\Shiptastic\Packaging\ReportHelper;
 use Vendidero\Shiptastic\Shipment;
 use Vendidero\Shiptastic\Automation;
@@ -2067,8 +2064,11 @@ class Admin {
 	}
 
 	public static function get_screen_ids() {
-		$setting_screen_ids = array( 'woocommerce_page_wc-settings' );
+		$other_screen_ids = array(
+			'woocommerce_page_wc-settings',
+			'product',
+		);
 
-		return array_merge( self::get_core_screen_ids(), self::get_order_screen_ids(), $setting_screen_ids );
+		return array_merge( self::get_core_screen_ids(), self::get_order_screen_ids(), $other_screen_ids );
 	}
 }
