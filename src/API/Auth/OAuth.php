@@ -4,7 +4,7 @@ namespace Vendidero\Shiptastic\API\Auth;
 
 use Vendidero\Shiptastic\SecretBox;
 
-abstract class OAuth extends Auth {
+abstract class OAuth extends RESTAuth {
 
 	public function get_type() {
 		return 'oauth';

@@ -23,4 +23,6 @@ interface Api {
 	 * @return false|Auth
 	 */
 	public function get_auth_api();
+
+	public function get_url();
 }

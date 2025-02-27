@@ -2,25 +2,25 @@
 
 namespace Vendidero\Shiptastic\API\Auth;
 
-use Vendidero\Shiptastic\API\REST;
-use Vendidero\Shiptastic\Interfaces\RESTAuth;
+use Vendidero\Shiptastic\API\Api;
+use Vendidero\Shiptastic\Interfaces\ApiAuth;
 
-abstract class Auth implements RESTAuth {
+abstract class Auth implements ApiAuth {
 
 	/**
-	 * @var REST
+	 * @var Api
 	 */
 	protected $api = null;
 
 	/**
-	 * @param $api REST
+	 * @param $api Api
 	 */
 	public function __construct( $api ) {
 		$this->api = $api;
 	}
 
 	/**
-	 * @return REST
+	 * @return Api
 	 */
 	public function get_api() {
 		return $this->api;

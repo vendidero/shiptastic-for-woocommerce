@@ -2,7 +2,7 @@
 
 namespace Vendidero\Shiptastic\API\Auth;
 
-abstract class Basic extends Auth {
+abstract class Basic extends RESTAuth {
 
 	public function get_type() {
 		return 'basic';

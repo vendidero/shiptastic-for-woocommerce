@@ -9,56 +9,12 @@ use Vendidero\Shiptastic\ShipmentError;
 
 defined( 'ABSPATH' ) || exit;
 
-abstract class REST implements Api {
-
-	protected $auth = null;
-
-	protected $is_sandbox = false;
-
-	abstract public function get_url();
-
-	abstract public function get_name();
-
-	public function is_sandbox() {
-		return $this->is_sandbox;
-	}
-
-	public function set_is_sandbox( $is_sandbox ) {
-		$this->is_sandbox = $is_sandbox;
-	}
+abstract class REST extends \Vendidero\Shiptastic\API\Api {
 
 	/**
 	 * @return RESTAuth
 	 */
 	abstract protected function get_auth_instance();
-
-	public function get_setting_name() {
-		return $this->get_name() . ( $this->is_sandbox() ? '_sandbox' : '' );
-	}
-
-	/**
-	 * @return RESTAuth
-	 */
-	public function get_auth_api() {
-		if ( is_null( $this->auth ) ) {
-			$this->auth = $this->get_auth_instance();
-		}
-
-		return $this->auth;
-	}
-
-	/**
-	 * @return bool
-	 */
-	protected function is_auth_request( $url ) {
-		$auth_url = $this->get_auth_api()->get_url();
-
-		if ( empty( $auth_url ) ) {
-			return false;
-		}
-
-		return strstr( $url, $auth_url );
-	}
 
 	protected function get_timeout( $request_type = 'GET' ) {
 		return 'GET' === $request_type ? 30 : 100;
@@ -153,7 +109,7 @@ abstract class REST implements Api {
 			$response_code    = wp_remote_retrieve_response_code( $response );
 			$response_body    = wp_remote_retrieve_body( $response );
 			$response_headers = wp_remote_retrieve_headers( $response );
-			$response_obj     = new Response( $response_code, $response_body, $response_headers );
+			$response_obj     = $this->parse_response( $response_code, $response_body, $response_headers );
 
 			if ( $response_obj->get_code() >= 300 ) {
 				if ( ! $is_auth_request && ! isset( $body_args['is_retry'] ) && $this->get_auth_api()->is_unauthenticated_response( $response_obj->get_code() ) ) {
@@ -172,6 +128,17 @@ abstract class REST implements Api {
 		}
 
 		return new Response( 500, array(), array(), new ShipmentError( 'rest-error', sprintf( _x( 'Error while trying to perform REST request to %s', 'shipments', 'shiptastic-for-woocommerce' ), $url ) ) );
+	}
+
+	/**
+	 * @param $response_code
+	 * @param $response_body
+	 * @param $response_headers
+	 *
+	 * @return Response
+	 */
+	protected function parse_response( $response_code, $response_body, $response_headers ) {
+		return new Response( $response_code, $response_body, $response_headers );
 	}
 
 	/**
@@ -254,5 +221,9 @@ abstract class REST implements Api {
 		$headers = array_replace_recursive( $headers, $this->get_auth_api()->get_headers() );
 
 		return $headers;
+	}
+
+	protected function decode( $str ) {
+		return function_exists( 'mb_convert_encoding' ) ? mb_convert_encoding( $str, 'UTF-8', mb_detect_encoding( $str ) ) : $str;
 	}
 }

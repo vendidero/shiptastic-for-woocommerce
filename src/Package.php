@@ -790,7 +790,9 @@ class Package {
 	 * @return string
 	 */
 	public static function filter_templates( $template, $template_name, $template_path ) {
-		if ( file_exists( self::get_path() . '/templates/' . $template_name ) ) {
+		$default_template_path = apply_filters( 'shiptastic_default_template_path', self::get_path() . '/templates/' . $template_name, $template_name );
+
+		if ( file_exists( $default_template_path ) ) {
 			$template_path = self::get_template_path();
 
 			// Check for Theme overrides
@@ -805,7 +807,7 @@ class Package {
 			);
 
 			if ( ! $theme_template ) {
-				$template = self::get_path() . '/templates/' . $template_name;
+				$template = $default_template_path;
 			} else {
 				$template = $theme_template;
 			}

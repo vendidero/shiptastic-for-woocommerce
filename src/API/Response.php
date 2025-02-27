@@ -51,6 +51,10 @@ class Response {
 		return json_decode( $this->get_body_raw(), $as_associative );
 	}
 
+	public function set_body( $body ) {
+		$this->body = $body;
+	}
+
 	public function get_headers() {
 		return $this->headers;
 	}
@@ -63,6 +67,10 @@ class Response {
 
 	public function get_code() {
 		return $this->code;
+	}
+
+	public function set_code( $code ) {
+		$this->code = absint( $code );
 	}
 
 	public function is_error() {
