@@ -24,6 +24,7 @@ class Install {
 		self::maybe_create_return_reasons();
 		self::maybe_insert_encryption_key();
 		self::maybe_create_packaging();
+		self::update_providers();
 
 		update_option( 'woocommerce_shiptastic_version', Package::get_version() );
 		update_option( 'woocommerce_shiptastic_db_version', Package::get_version() );
@@ -40,6 +41,19 @@ class Install {
 			foreach ( $hooks as $hook ) {
 				as_unschedule_all_actions( $hook );
 			}
+		}
+	}
+
+	private static function update_providers() {
+		$providers = Helper::instance()->get_shipping_providers();
+
+		foreach ( $providers as $provider ) {
+			if ( ! $provider->is_activated() ) {
+				continue;
+			}
+
+			$provider->update_settings_with_defaults();
+			$provider->save();
 		}
 	}
 

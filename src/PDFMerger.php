@@ -3,6 +3,7 @@
 namespace Vendidero\Shiptastic;
 
 use setasign\Fpdi\Fpdi;
+use setasign\Fpdi\PdfReader\PageBoundaries;
 use setasign\Fpdi\PdfReader\PdfReaderException;
 
 class PDFMerger {
@@ -81,7 +82,7 @@ class PDFMerger {
 	 * @throws PdfReaderException
 	 */
 	private function _addPage( $page_number, $width = 210 ) { // phpcs:ignore PSR2.Methods.MethodDeclaration.Underscore,WordPress.NamingConventions.ValidFunctionName.MethodNameInvalid
-		$page_id = $this->_pdf->importPage( $page_number );
+		$page_id = $this->_pdf->importPage( $page_number, PageBoundaries::CROP_BOX, false );
 		$size    = $this->_pdf->getTemplateSize( $page_id );
 
 		$orientation = isset( $size['orientation'] ) ? $size['orientation'] : '';
