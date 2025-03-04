@@ -1,21 +1,22 @@
 === Shiptastic for WooCommerce ===
 Contributors: vendidero, vdwoocommercesupport
-Tags: shipping, woocommerce, shipments, rules
+Tags: shipping, woocommerce, shipments, rules, woo
 Requires at least: 5.4
-Tested up to: 6.6
-Stable tag: 1.0.0
+Tested up to: 6.7
+Stable tag: 4.3.0
 Requires PHP: 5.6
 License: GPLv3
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
 
-Shiptastic for WooCommerce enables you to create and manage (partial) shipments and returns for orders. Configure your packaging options and let Shiptastic determine which packaging fits your cart/order.
+Shiptastic for WooCommerce is your all-in-one shipping solution for WooCommerce. Seamlessly create and manage (partial) shipments and returns to orders and let Shiptastic do the heavy-lifting.
 
 == Description ==
 
 * *Shipments* - Create (partial) shipments for orders - either automatically or by hand.
-* *Returns* - Allow your customers to submit return requests for orders. Review and process requests within the admin panel.
-* *Packaging* - Store your packaging options to allow Shiptastic to pack your customer's cart/order based on the available options.
-* *Shipping Rules* - Create complex shipping scenarios and calculate shipping costs based on your packaging options
+* *Returns* - Allow your customers to submit return requests for orders. Review and process requests from within your admin panel.
+* *Packaging* - Store your packaging options to allow Shiptastic to pack your customer's cart/order based on your available options.
+* *Shipping Rules* - Create complex shipping scenarios and calculate shipping costs based on your packaging options.
+* *Shipping Service Providers* - Either use one of our available provider integrations or manually add you shipping service provider.
 
 == Installation ==
 
@@ -27,8 +28,8 @@ Shiptastic for WooCommerce enables you to create and manage (partial) shipments 
 
 = Automatic Installation =
 
-We recommend installing Shiptastic for WooCommerce through the WordPress Backend. Please install WooCommerce before installing our plugin.
+We recommend installing Shiptastic for WooCommerce through the WordPress Backend. Please install WooCommerce before installing Shiptastic.
 
 == Changelog ==
-= 1.0.0 =
+= 4.3.0 =
 * Initial version release

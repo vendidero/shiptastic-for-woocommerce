@@ -1,16 +1,16 @@
 <?php
 /**
  * Plugin Name: Shiptastic for WooCommerce
- * Plugin URI: https://vendidero.de/shiptastic
+ * Plugin URI: https://vendidero.com/shiptastic
  * Description: Create and manage shipments for orders and use shipping rules to build extensive shipping scenarios.
  * Author: vendidero
- * Author URI: https://vendidero.de
+ * Author URI: https://vendidero.com
  * Version: 4.3.0
  * Requires PHP: 5.6
  * License: GPLv3
  * Requires Plugins: woocommerce
  * WC requires at least: 3.9.0
- * WC tested up to: 9.2.3
+ * WC tested up to: 9.7.0
  */
 defined( 'ABSPATH' ) || exit;
 

@@ -79,7 +79,7 @@ class Install {
 					'id'           => '',
 					'default'      => null,
 					'skip_install' => false,
-					'autoload'     => true,
+					'autoload'     => false,
 				)
 			);
 

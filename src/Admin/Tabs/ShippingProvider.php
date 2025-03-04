@@ -203,7 +203,7 @@ class ShippingProvider extends Tab {
 		if ( $provider = $this->get_current_provider() ) {
 			return $provider->get_help_link();
 		} else {
-			return 'https://vendidero.de/doc/woocommerce-germanized/versanddienstleister-verwalten';
+			return _x( 'https://vendidero.com/doc/shiptastic/manage-shipping-service-providers', 'shipments-help-url', 'shiptastic-for-woocommerce' );
 		}
 	}
 

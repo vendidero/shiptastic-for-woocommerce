@@ -32,6 +32,17 @@ class Settings {
 		return $breadcrumb;
 	}
 
+	public static function get_help_url( $url, $translations = array() ) {
+		$translations = (array) $translations;
+		$locale       = strtolower( substr( get_locale(), 0, 2 ) );
+
+		if ( array_key_exists( $locale, $translations ) ) {
+			$url = $translations[ $locale ];
+		}
+
+		return $url;
+	}
+
 	/**
 	* @param string $name
 	*

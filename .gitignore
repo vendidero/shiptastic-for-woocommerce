@@ -6,15 +6,11 @@ project.properties
 .project
 .settings*
 .idea
-.vscode
-*.sublime-project
-*.sublime-workspace
-.sublimelinterrc
+.phpunit.result.cache
+none
 
 # Grunt
 /node_modules/
-/build/
-none
 
 # Sass
 .sass-cache/
@@ -25,23 +21,35 @@ none
 # Windows junk
 Thumbs.db
 
+# ApiGen
+/wc-gzd-apidocs/
+
 # Unit tests
 /tmp
 /tests/bin/tmp
+/tests/e2e-tests/config/local-*.json
+
+/build
+/release
+
+# i18n json files
+/i18n/languages/*.json
 
 # Logs
 /logs
 
 # Composer
 /vendor/
-/vendor/*
-/vendor/composer/*
+composer.phar
+auth.json
 
-composer.lock
-.phpunit.result.cache
-
-# Packages
-/packages/*
-!/packages/README.md
-/composer.lock
-.phpunit.result.cache
+# OS generated files #
+######################
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+*.idea
+ehthumbs.db
+Thumbs.db

@@ -2,6 +2,7 @@
 
 namespace Vendidero\Shiptastic\Admin\Tabs;
 
+use Vendidero\Shiptastic\Admin\Settings;
 use Vendidero\Shiptastic\Admin\Tutorial;
 use Vendidero\Shiptastic\Package;
 use Vendidero\Shiptastic\Packaging\ReportHelper;
@@ -48,7 +49,7 @@ class Packaging extends Tab {
 
 			array(
 				'title'   => _x( 'Enable', 'shipments', 'shiptastic-for-woocommerce' ),
-				'desc'    => _x( 'Automatically pack orders based on available packaging options', 'shipments', 'shiptastic-for-woocommerce' ) . '<div class="wc-shiptastic-additional-desc">' . sprintf( _x( 'By enabling this option, shipments will be packed based on your available packaging options. For that purpose a knapsack algorithm is used to best fit available order items within your packaging. <a href="%s" target="_blank">Learn more</a> about the feature.', 'shipments', 'shiptastic-for-woocommerce' ), 'https://vendidero.de/doc/woocommerce-germanized/sendungen-automatisiert-packen' ) . '</div>',
+				'desc'    => _x( 'Automatically pack orders based on available packaging options', 'shipments', 'shiptastic-for-woocommerce' ) . '<div class="wc-shiptastic-additional-desc">' . _x( 'By enabling this option, shipments will be packed based on your available packaging options. For that purpose a knapsack algorithm is used to best fit available order items within your packaging. <a href="https://vendidero.com/doc/shiptastic/pack-shipments-automatically" target="_blank">Learn more</a> about the feature.', 'shipments', 'shiptastic-for-woocommerce' ) . '</div>',
 				'id'      => 'woocommerce_shiptastic_enable_auto_packing',
 				'default' => 'yes',
 				'type'    => 'shiptastic_toggle',
