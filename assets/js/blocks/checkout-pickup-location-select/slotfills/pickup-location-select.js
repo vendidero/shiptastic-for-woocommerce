@@ -520,12 +520,18 @@ const render = () => {
     useEffect(() => {
         if ( isAvailable && pickupLocationSearchAddress['postcode'] ) {
             setIsSearchingPickupLocation( true );
-            const searchAddress = { ...pickupLocationSearchAddress, 'country': shippingAddress['country'] }
+            const searchAddress = {
+                ...pickupLocationSearchAddress,
+                'country': shippingAddress['country'],
+                'city': shippingAddress['city'],
+                'state': shippingAddress['state'],
+            }
 
             onSearchPickupLocations( searchAddress );
         }
     }, [
         isAvailable,
+        shippingAddress,
         pickupLocationSearchAddress,
         setIsSearchingPickupLocation
     ] );

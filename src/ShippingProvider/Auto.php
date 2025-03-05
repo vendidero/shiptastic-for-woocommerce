@@ -674,6 +674,7 @@ abstract class Auto extends Simple implements ShippingProviderAuto {
 				'city'      => '',
 				'postcode'  => '',
 				'country'   => '',
+				'state'     => '',
 				'address_1' => '',
 			)
 		);

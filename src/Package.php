@@ -25,6 +25,8 @@ class Package {
 
 	protected static $iso = null;
 
+	protected static $locale = array();
+
 	/**
 	 * Init the package - load the REST API Server class.
 	 */
@@ -116,6 +118,33 @@ class Package {
 		}
 
 		return $locale;
+	}
+
+	public static function get_locale_info( $country = '' ) {
+		if ( function_exists( 'WC' ) && empty( self::$locale ) ) {
+			self::$locale = include WC()->plugin_path() . '/i18n/locale-info.php';
+		}
+
+		if ( empty( $country ) ) {
+			if ( function_exists( 'WC' ) && WC()->customer ) {
+				$country = WC()->customer->get_shipping_country() ? WC()->customer->get_shipping_country() : WC()->customer->get_billing_country();
+			} else {
+				$country = self::get_base_country();
+			}
+		}
+
+		$locale_info = array_key_exists( $country, self::$locale ) ? self::$locale[ $country ] : array();
+		$locale_info = wp_parse_args(
+			$locale_info,
+			array(
+				'weight_unit'    => '',
+				'dimension_unit' => '',
+				'direction'      => '',
+				'default_locale' => '',
+			)
+		);
+
+		return $locale_info;
 	}
 
 	/**

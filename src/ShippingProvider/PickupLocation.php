@@ -62,6 +62,7 @@ class PickupLocation {
 				'city',
 				'postcode',
 				'country',
+				'state',
 			)
 		);
 
@@ -98,6 +99,14 @@ class PickupLocation {
 
 	public function get_city() {
 		return $this->address['city'];
+	}
+
+	public function get_state() {
+		return $this->address['state'];
+	}
+
+	public function get_address_1() {
+		return $this->address['address_1'];
 	}
 
 	public function supports_customer_number() {

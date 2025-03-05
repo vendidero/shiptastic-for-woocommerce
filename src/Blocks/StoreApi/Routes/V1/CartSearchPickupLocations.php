@@ -59,8 +59,18 @@ class CartSearchPickupLocations extends AbstractCartRoute {
 								'type'        => 'string',
 								'context'     => array( 'view', 'edit' ),
 							),
+							'city'      => array(
+								'description' => _x( 'The city.', 'shipments', 'shiptastic-for-woocommerce' ),
+								'type'        => 'string',
+								'context'     => array( 'view', 'edit' ),
+							),
 							'country'   => array(
 								'description' => _x( 'The country code.', 'shipments', 'shiptastic-for-woocommerce' ),
+								'type'        => 'string',
+								'context'     => array( 'view', 'edit' ),
+							),
+							'state'     => array(
+								'description' => _x( 'The state code.', 'shipments', 'shiptastic-for-woocommerce' ),
 								'type'        => 'string',
 								'context'     => array( 'view', 'edit' ),
 							),
@@ -90,8 +100,10 @@ class CartSearchPickupLocations extends AbstractCartRoute {
 			(array) wc_clean( wp_unslash( $request['address'] ) ),
 			array(
 				'country'   => '',
+				'state'     => '',
 				'address_1' => '',
 				'postcode'  => '',
+				'city'      => '',
 			)
 		);
 

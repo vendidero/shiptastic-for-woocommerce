@@ -174,7 +174,11 @@ class Order {
 	}
 
 	public function supports_third_party_email_transmission() {
-		$supports_email_transmission = 'yes' === $this->get_order()->get_meta( '_parcel_delivery_opted_in' );
+		$supports_email_transmission = Package::base_country_belongs_to_eu_customs_area() ? false : true;
+
+		if ( 'yes' === $this->get_order()->get_meta( '_parcel_delivery_opted_in' ) ) {
+			$supports_email_transmission = true;
+		}
 
 		/**
 		 * Filter to adjust whether the email address may be transmitted to third-parties, e.g.

@@ -32,9 +32,9 @@ class PickupDelivery {
 		add_action( 'woocommerce_after_checkout_validation', array( __CLASS__, 'register_classic_checkout_validation' ), 10, 2 );
 		add_action( 'woocommerce_checkout_create_order', array( __CLASS__, 'register_classic_checkout_order_data' ), 10, 2 );
 
-		add_action( 'wp_ajax_woocommerce_shiptastic_search_pickup_locations', array( __CLASS__, 'search_pickup_locations' ) );
-		add_action( 'wp_ajax_nopriv_woocommerce_shiptastic_search_pickup_locations', array( __CLASS__, 'search_pickup_locations' ) );
-		add_action( 'wc_ajax_woocommerce_shiptastic_search_pickup_locations', array( __CLASS__, 'search_pickup_locations' ) );
+		add_action( 'wp_ajax_woocommerce_stc_search_pickup_locations', array( __CLASS__, 'search_pickup_locations' ) );
+		add_action( 'wp_ajax_nopriv_woocommerce_stc_search_pickup_locations', array( __CLASS__, 'search_pickup_locations' ) );
+		add_action( 'wc_ajax_woocommerce_stc_search_pickup_locations', array( __CLASS__, 'search_pickup_locations' ) );
 
 		add_filter( 'woocommerce_form_field_wc_shiptastic_current_pickup_location', array( __CLASS__, 'register_current_pickup_location_field' ), 10, 4 );
 		add_filter( 'woocommerce_form_field_wc_shiptastic_pickup_location', array( __CLASS__, 'register_pickup_location_field' ), 10, 4 );
@@ -163,11 +163,7 @@ class PickupDelivery {
 		$query_args = array();
 		$provider   = false;
 		$result     = array(
-			'address'                          => array(
-				'country'   => '',
-				'postcode'  => '',
-				'address_1' => '',
-			),
+			'address'                          => array(),
 			'provider'                         => '',
 			'supports_pickup_delivery'         => false,
 			'current_location_code'            => '',
@@ -193,14 +189,29 @@ class PickupDelivery {
 		}
 
 		if ( $customer ) {
-			$result['address'] = array(
-				'country'   => $customer->get_shipping_country() ? $customer->get_shipping_country() : $customer->get_billing_country(),
-				'postcode'  => $customer->get_shipping_postcode() ? $customer->get_shipping_postcode() : $customer->get_billing_postcode(),
-				'address_1' => $customer->get_shipping_address_1() ? $customer->get_shipping_address_1() : $customer->get_billing_address_1(),
+			$result['address'] = wp_parse_args(
+				$address_args,
+				array(
+					'country'   => $customer->get_shipping_country() ? $customer->get_shipping_country() : $customer->get_billing_country(),
+					'state'     => $customer->get_shipping_state() ? $customer->get_shipping_state() : $customer->get_billing_state(),
+					'city'      => $customer->get_shipping_city() ? $customer->get_shipping_city() : $customer->get_billing_city(),
+					'postcode'  => $customer->get_shipping_postcode() ? $customer->get_shipping_postcode() : $customer->get_billing_postcode(),
+					'address_1' => $customer->get_shipping_address_1() ? $customer->get_shipping_address_1() : $customer->get_billing_address_1(),
+				)
+			);
+		} else {
+			$result['address'] = wp_parse_args(
+				$address_args,
+				array(
+					'country'   => '',
+					'state'     => '',
+					'city'      => '',
+					'postcode'  => '',
+					'address_1' => '',
+				)
 			);
 		}
 
-		$result['address']  = array_replace_recursive( $result['address'], $address_args );
 		$result['provider'] = $provider ? $provider->get_name() : '';
 
 		if ( is_a( $provider, 'Vendidero\Shiptastic\Interfaces\ShippingProviderAuto' ) ) {
