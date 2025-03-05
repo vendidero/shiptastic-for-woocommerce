@@ -67,7 +67,7 @@ class CartSearchPickupLocations extends AbstractCartRoute {
 						),
 					),
 					'provider' => array(
-						'description' => _x( 'The shipping provider.', 'shipments', 'shiptastic-for-woocommerce' ),
+						'description' => _x( 'The shipping service provider.', 'shipments', 'shiptastic-for-woocommerce' ),
 						'type'        => 'string',
 						'context'     => array( 'view', 'edit' ),
 					),

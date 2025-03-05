@@ -184,6 +184,7 @@ class Package {
 				'bundles'           => '\Vendidero\Shiptastic\Compatibility\Bundles',
 				'shipment-tracking' => '\Vendidero\Shiptastic\Compatibility\ShipmentTracking',
 				'wpml'              => '\Vendidero\Shiptastic\Compatibility\WPML',
+				'translatepress'    => '\Vendidero\Shiptastic\Compatibility\TranslatePress',
 			)
 		);
 

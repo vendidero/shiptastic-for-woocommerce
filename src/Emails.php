@@ -61,27 +61,28 @@ class Emails {
 		add_action( 'woocommerce_shiptastic_email_shipment_details', array( __CLASS__, 'email_details' ), 30, 4 );
 	}
 
-	public static function register_email_notifications( $actions ) {
-		$actions = array_merge(
-			$actions,
-			array(
-				'woocommerce_shiptastic_shipment_status_draft_to_processing',
-				'woocommerce_shiptastic_shipment_status_draft_to_shipped',
-				'woocommerce_shiptastic_shipment_status_draft_to_delivered',
-				'woocommerce_shiptastic_shipment_status_processing_to_shipped',
-				'woocommerce_shiptastic_shipment_status_processing_to_delivered',
-				'woocommerce_shiptastic_shipment_status_shipped_to_delivered',
-				'woocommerce_shiptastic_return_shipment_status_draft_to_processing',
-				'woocommerce_shiptastic_return_shipment_status_draft_to_shipped',
-				'woocommerce_shiptastic_return_shipment_status_draft_to_delivered',
-				'woocommerce_shiptastic_return_shipment_status_draft_to_requested',
-				'woocommerce_shiptastic_return_shipment_status_processing_to_shipped',
-				'woocommerce_shiptastic_return_shipment_status_processing_to_delivered',
-				'woocommerce_shiptastic_return_shipment_status_shipped_to_delivered',
-				'woocommerce_shiptastic_return_shipment_status_requested_to_processing',
-				'woocommerce_shiptastic_return_shipment_status_requested_to_shipped',
-			)
+	public static function get_email_notification_hooks() {
+		return array(
+			'woocommerce_shiptastic_shipment_status_draft_to_processing',
+			'woocommerce_shiptastic_shipment_status_draft_to_shipped',
+			'woocommerce_shiptastic_shipment_status_draft_to_delivered',
+			'woocommerce_shiptastic_shipment_status_processing_to_shipped',
+			'woocommerce_shiptastic_shipment_status_processing_to_delivered',
+			'woocommerce_shiptastic_shipment_status_shipped_to_delivered',
+			'woocommerce_shiptastic_return_shipment_status_draft_to_processing',
+			'woocommerce_shiptastic_return_shipment_status_draft_to_shipped',
+			'woocommerce_shiptastic_return_shipment_status_draft_to_delivered',
+			'woocommerce_shiptastic_return_shipment_status_draft_to_requested',
+			'woocommerce_shiptastic_return_shipment_status_processing_to_shipped',
+			'woocommerce_shiptastic_return_shipment_status_processing_to_delivered',
+			'woocommerce_shiptastic_return_shipment_status_shipped_to_delivered',
+			'woocommerce_shiptastic_return_shipment_status_requested_to_processing',
+			'woocommerce_shiptastic_return_shipment_status_requested_to_shipped',
 		);
+	}
+
+	public static function register_email_notifications( $actions ) {
+		$actions = array_merge( $actions, self::get_email_notification_hooks() );
 
 		return $actions;
 	}

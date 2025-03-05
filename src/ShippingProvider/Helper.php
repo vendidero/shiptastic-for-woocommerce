@@ -77,6 +77,19 @@ class Helper {
 		 * @package Vendidero/Shiptastic
 		 */
 		do_action( 'woocommerce_shiptastic_shipping_providers_init' );
+
+		/**
+		 * Upon plugin installation, make sure to force reloading shipping providers as
+		 * the activate_plugin hook may be fired lately, e.g. after plugins_loaded hooks.
+		 * In this case newly introduced shipping providers might not be available while installing plugins.
+		 */
+		add_action(
+			'activate_plugin',
+			function () {
+				$this->shipping_providers = null;
+				\Vendidero\Shiptastic\Caches\Helper::get_cache_object( 'shipping-providers' )->flush();
+			}
+		);
 	}
 
 	/**
@@ -202,7 +215,7 @@ class Helper {
 	 */
 	public function load_shipping_providers() {
 		if ( ! did_action( 'plugins_loaded' ) || doing_action( 'plugins_loaded' ) ) {
-			wc_doing_it_wrong( __FUNCTION__, _x( 'Loading shipping providers should only be triggered after the plugins_loaded action has fully been executed', 'shipments', 'shiptastic-for-woocommerce' ), '2.2.3' );
+			wc_doing_it_wrong( __FUNCTION__, _x( 'Loading shipping service providers should only be triggered after the plugins_loaded action has fully been executed', 'shipments', 'shiptastic-for-woocommerce' ), '2.2.3' );
 			return array();
 		}
 

@@ -33,10 +33,6 @@ class Tabs extends \WC_Settings_Page {
 		return $breadcrumb;
 	}
 
-	public function get_description() {
-		return _x( 'Adjust settings related to packaging, packing and available shipping provider.', 'shipments', 'shiptastic-for-woocommerce' );
-	}
-
 	public function header() {
 		$breadcrumb = $this->get_breadcrumb();
 		$count      = 0;
@@ -48,9 +44,12 @@ class Tabs extends \WC_Settings_Page {
 				?>
 				<li class="breadcrumb-item breadcrumb-item-<?php echo esc_attr( $breadcrumb_item['class'] ) . ' ' . ( count( $breadcrumb ) === $count ? 'breadcrumb-item-active' : '' ); ?>"><?php echo ( ! empty( $breadcrumb_item['href'] ) ? '<a class="breadcrumb-link" href="' . esc_attr( $breadcrumb_item['href'] ) . '">' . wp_kses_post( $breadcrumb_item['title'] ) . '</a>' : wp_kses_post( $breadcrumb_item['title'] ) ); ?></li>
 			<?php endforeach; ?>
-		</ul>
 
-		<p class="tab-description"><?php echo wp_kses_post( $this->get_description() ); ?></p>
+            <li class="title-action">
+                <a class="page-title-action" href="https://vendidero.com/doc/shiptastic/home-shiptastic" target="_blank"><?php echo esc_html_x( 'Documentation', 'shipments', 'shiptastic-for-woocommerce' ); ?></a>
+            </li>
+        </ul>
+
 		<?php
 	}
 

@@ -326,7 +326,7 @@ class General extends Tab {
 				'title' => '',
 				'type'  => 'title',
 				'id'    => 'shipments_return_options',
-				'desc'  => sprintf( _x( 'Returns can be added manually by the shop manager or by the customer. Decide what suits you best by turning customer-added returns on or off in your %s.', 'shipments', 'shiptastic-for-woocommerce' ), '<a href="' . esc_url( Settings::get_settings_url( 'shipping_provider' ) ) . '">' . _x( 'shipping provider settings', 'shipments', 'shiptastic-for-woocommerce' ) . '</a>' ),
+				'desc'  => sprintf( _x( 'Returns can be added manually by the shop manager or by the customer. Choose what suits you best by adjusting your <a href="%s">shipping service provider settings</a>.', 'shipments', 'shiptastic-for-woocommerce' ), esc_url( Settings::get_settings_url( 'shipping_provider' ) ) ),
 			),
 
 			array(
@@ -335,7 +335,7 @@ class General extends Tab {
 
 			array(
 				'title'   => _x( 'Days to return', 'shipments', 'shiptastic-for-woocommerce' ),
-				'desc'    => '<div class="wc-shiptastic-additional-desc">' . sprintf( _x( 'In case one of your %s supports returns added by customers you might want to limit the number of days a customer is allowed to add returns to an order. The days are counted starting with the date the order was shipped, completed or created (by checking for existance in this order).', 'shipments', 'shiptastic-for-woocommerce' ), '<a href="' . esc_url( Settings::get_settings_url( 'shipping_provider' ) ) . '">' . _x( 'shipping providers', 'shipments', 'shiptastic-for-woocommerce' ) . '</a>' ) . '</div>',
+				'desc'    => '<div class="wc-shiptastic-additional-desc">' . sprintf( _x( 'In case one of your <a href="%s">shipping service providers</a> supports returns added by customers you might want to limit the number of days a customer is allowed to add returns to an order. The days are counted starting with the date the order was shipped, completed or created (by checking for existance in this order).', 'shipments', 'shiptastic-for-woocommerce' ), esc_url( Settings::get_settings_url( 'shipping_provider' ) ) ) . '</div>',
 				'css'     => 'max-width: 60px;',
 				'type'    => 'number',
 				'id'      => 'woocommerce_shiptastic_customer_return_open_days',
@@ -369,7 +369,7 @@ class General extends Tab {
 
 			array(
 				'title'    => _x( 'Default provider', 'shipments', 'shiptastic-for-woocommerce' ),
-				'desc_tip' => _x( 'Select a default shipping provider which will be selected by default in case no provider could be determined automatically.', 'shipments', 'shiptastic-for-woocommerce' ),
+				'desc_tip' => _x( 'Select a default shipping service provider which will be selected by default in case no provider could be determined automatically.', 'shipments', 'shiptastic-for-woocommerce' ),
 				'id'       => 'woocommerce_shiptastic_default_shipping_provider',
 				'default'  => '',
 				'type'     => 'select',

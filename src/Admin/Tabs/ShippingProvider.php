@@ -11,7 +11,7 @@ use Vendidero\Shiptastic\ShippingProvider\Simple;
 class ShippingProvider extends Tab {
 
 	public function get_label() {
-		return _x( 'Shipping Provider', 'shipments', 'shiptastic-for-woocommerce' );
+		return _x( 'Shipping Service Providers', 'shipments', 'shiptastic-for-woocommerce' );
 	}
 
 	public function get_name() {
@@ -25,7 +25,7 @@ class ShippingProvider extends Tab {
 			$desc = $provider->get_description( 'edit' );
 		} elseif ( empty( $_GET['provider'] ) ) { /* phpcs:disable WordPress.Security.NonceVerification */
 			$provider_available = Helper::instance()->get_available_shipping_provider_integrations();
-			$desc               = _x( 'Manage your shipping provider integrations.', 'shipments', 'shiptastic-for-woocommerce' );
+			$desc               = _x( 'Manage your shipping service provider integrations.', 'shipments', 'shiptastic-for-woocommerce' );
 
 			if ( ! empty( $provider_available ) ) {
 				$provider_name_list = array();
@@ -41,7 +41,7 @@ class ShippingProvider extends Tab {
 					$provider_list = substr_replace( $provider_list, ' & ', $pos, strlen( ', ' ) );
 				}
 
-				$desc = sprintf( _x( 'Manage your shipping provider integrations, e.g. for %s.', 'shipments', 'shiptastic-for-woocommerce' ), trim( $provider_list ) );
+				$desc = sprintf( _x( 'Manage your shipping service provider integrations, e.g. for %s.', 'shipments', 'shiptastic-for-woocommerce' ), trim( $provider_list ) );
 			}
 		}
 
@@ -55,7 +55,7 @@ class ShippingProvider extends Tab {
 		$breadcrumb[] = array(
 			'class' => 'tab',
 			'href'  => $provider ? $this->get_url() : '',
-			'title' => ! $provider ? $this->get_breadcrumb_label( _x( 'Shipping Provider', 'shipments', 'shiptastic-for-woocommerce' ) ) : _x( 'Shipping Provider', 'shipments', 'shiptastic-for-woocommerce' ),
+			'title' => ! $provider ? $this->get_breadcrumb_label( _x( 'Shipping Service Providers', 'shipments', 'shiptastic-for-woocommerce' ) ) : _x( 'Shipping Service Providers', 'shipments', 'shiptastic-for-woocommerce' ),
 		);
 
 		if ( $provider ) {
@@ -129,7 +129,7 @@ class ShippingProvider extends Tab {
 						'next_url'     => '',
 						'next_trigger' => array(),
 						'options'      => array(
-							'content'  => '<h3>' . esc_html_x( 'Shipping Provider', 'shipments', 'shiptastic-for-woocommerce' ) . '</h3><p>' . esc_html_x( 'You may find all the available shipping providers as a list here. Click on the link to edit the provider-specific settings.', 'shipments', 'shiptastic-for-woocommerce' ) . '</p>',
+							'content'  => '<h3>' . esc_html_x( 'Shipping Service Providers', 'shipments', 'shiptastic-for-woocommerce' ) . '</h3><p>' . esc_html_x( 'You may find all the available shipping service providers as a list here. Click on the link to edit the provider-specific settings.', 'shipments', 'shiptastic-for-woocommerce' ) . '</p>',
 							'position' => array(
 								'edge'  => 'left',
 								'align' => 'left',
@@ -142,7 +142,7 @@ class ShippingProvider extends Tab {
 						'next_url'     => '',
 						'next_trigger' => array(),
 						'options'      => array(
-							'content'  => '<h3>' . esc_html_x( 'Activate', 'shipments', 'shiptastic-for-woocommerce' ) . '</h3><p>' . esc_html_x( 'Activate or deactivate a shipping provider by toggling this button.', 'shipments', 'shiptastic-for-woocommerce' ) . '</p>',
+							'content'  => '<h3>' . esc_html_x( 'Activate', 'shipments', 'shiptastic-for-woocommerce' ) . '</h3><p>' . esc_html_x( 'Activate or deactivate a shipping service provider by toggling this button.', 'shipments', 'shiptastic-for-woocommerce' ) . '</p>',
 							'position' => array(
 								'edge'  => 'right',
 								'align' => 'left',
@@ -155,7 +155,7 @@ class ShippingProvider extends Tab {
 						'next_url'     => $this->get_next_pointers_link(),
 						'next_trigger' => array(),
 						'options'      => array(
-							'content'  => '<h3>' . esc_html_x( 'Add new', 'shipments', 'shiptastic-for-woocommerce' ) . '</h3><p>' . esc_html_x( 'You may want to manually add a new shipping provider in case a built-in integration is not available.', 'shipments', 'shiptastic-for-woocommerce' ) . '</p>',
+							'content'  => '<h3>' . esc_html_x( 'Add new', 'shipments', 'shiptastic-for-woocommerce' ) . '</h3><p>' . esc_html_x( 'You may want to manually add a new shipping service provider in case a built-in integration is not available.', 'shipments', 'shiptastic-for-woocommerce' ) . '</p>',
 							'position' => array(
 								'edge'  => 'top',
 								'align' => 'top',
@@ -250,6 +250,8 @@ class ShippingProvider extends Tab {
 				if ( empty( $provider->get_tracking_url_placeholder( 'edit' ) ) ) {
 					$provider->set_tracking_url_placeholder( $provider->get_default_tracking_url_placeholder() );
 				}
+
+				$provider->activate();
 			}
 
 			if ( isset( $_GET['provider'] ) && 'new' === $_GET['provider'] ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended

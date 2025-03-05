@@ -275,7 +275,7 @@ class ShippingProvider extends WC_Data_Store_WP implements WC_Object_Data_Store_
 			 */
 			do_action( 'woocommerce_shiptastic_shipping_provider_loaded', $provider );
 		} else {
-			throw new Exception( esc_html_x( 'Invalid shipping provider.', 'shipments', 'shiptastic-for-woocommerce' ) );
+			throw new Exception( esc_html_x( 'Invalid shipping service provider.', 'shipments', 'shiptastic-for-woocommerce' ) );
 		}
 	}
 

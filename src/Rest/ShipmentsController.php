@@ -1415,7 +1415,7 @@ class ShipmentsController extends \WC_REST_Controller {
 					'readonly'    => true,
 				),
 				'shipping_provider'     => array(
-					'description' => _x( 'Shipment shipping provider.', 'shipments', 'shiptastic-for-woocommerce' ),
+					'description' => _x( 'Shipment shipping service provider.', 'shipments', 'shiptastic-for-woocommerce' ),
 					'type'        => 'string',
 					'context'     => array( 'view', 'edit' ),
 				),
@@ -1948,7 +1948,7 @@ class ShipmentsController extends \WC_REST_Controller {
 					'context'     => array( 'view', 'edit' ),
 				),
 				'shipping_provider'                       => array(
-					'description' => _x( 'Shipping provider.', 'shipments', 'shiptastic-for-woocommerce' ),
+					'description' => _x( 'Shipping service provider.', 'shipments', 'shiptastic-for-woocommerce' ),
 					'type'        => 'string',
 					'context'     => array( 'view', 'edit' ),
 					'readonly'    => true,

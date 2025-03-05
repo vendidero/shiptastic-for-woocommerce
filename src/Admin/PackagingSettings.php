@@ -134,16 +134,16 @@ class PackagingSettings {
 				'value'   => $packaging->get_type(),
 			),
 			array(
-				'title'             => _x( 'Shipping Provider', 'shipments', 'shiptastic-for-woocommerce' ),
+				'title'             => _x( 'Shipping Service Provider', 'shipments', 'shiptastic-for-woocommerce' ),
 				'type'              => 'multiselect',
 				'id'                => 'available_shipping_provider',
-				'desc_tip'          => _x( 'Choose which shipping provider support the packaging.', 'shipments', 'shiptastic-for-woocommerce' ),
+				'desc_tip'          => _x( 'Choose which shipping service providers support the packaging.', 'shipments', 'shiptastic-for-woocommerce' ),
 				'class'             => 'wc-enhanced-select',
 				'default'           => array(),
 				'options'           => wc_stc_get_shipping_provider_select( false ),
 				'value'             => $packaging->get_available_shipping_provider( 'edit' ),
 				'custom_attributes' => array(
-					'data-placeholder' => _x( 'All shipping provider', 'shipments', 'shiptastic-for-woocommerce' ),
+					'data-placeholder' => _x( 'All shipping service providers', 'shipments', 'shiptastic-for-woocommerce' ),
 				),
 			),
 			array(

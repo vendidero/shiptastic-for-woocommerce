@@ -39,7 +39,7 @@ class ShippingProviderCache extends ObjectCache {
 	 */
 	protected function validate( $cache_object ): ?array {
 		if ( ! $cache_object instanceof ShippingProvider ) {
-			return array( 'The supplied shipping provider is not an instance of ShippingProvider, ' . gettype( $cache_object ) );
+			return array( 'The supplied shipping service provider is not an instance of ShippingProvider, ' . gettype( $cache_object ) );
 		}
 
 		return null;

@@ -75,7 +75,7 @@ defined( 'ABSPATH' ) || exit;
 			<?php endif; ?>
 
 			<p class="form-row">
-				<label for="shipment-shipping-provider-<?php echo esc_attr( $shipment->get_id() ); ?>"><?php echo esc_html_x( 'Shipping provider', 'shipments', 'shiptastic-for-woocommerce' ); ?></label>
+				<label for="shipment-shipping-provider-<?php echo esc_attr( $shipment->get_id() ); ?>"><?php echo esc_html_x( 'Shipping Service Provider', 'shipments', 'shiptastic-for-woocommerce' ); ?></label>
 				<select class="shipment-shipping-provider-select" id="shipment-shipping-provider-<?php echo esc_attr( $shipment->get_id() ); ?>" name="shipment_shipping_provider[<?php echo esc_attr( $shipment->get_id() ); ?>]">
 					<?php
 					foreach ( wc_stc_get_shipping_provider_select() as $provider => $title ) :  // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited

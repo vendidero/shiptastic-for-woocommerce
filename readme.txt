@@ -8,7 +8,7 @@ Requires PHP: 5.6
 License: GPLv3
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
 
-Shiptastic for WooCommerce is your all-in-one shipping solution for WooCommerce. Seamlessly create and manage (partial) shipments and returns to orders and let Shiptastic do the heavy-lifting.
+Shiptastic for WooCommerce is your all-in-one shipping solution for WooCommerce. From partial shipments to shipping rules, Shiptastic got you covered.
 
 == Description ==
 
@@ -29,6 +29,12 @@ Shiptastic for WooCommerce is your all-in-one shipping solution for WooCommerce.
 = Automatic Installation =
 
 We recommend installing Shiptastic for WooCommerce through the WordPress Backend. Please install WooCommerce before installing Shiptastic.
+
+== Screenshots ==
+
+1. Manage shipments
+2. Create shipping scenarios
+3. Manage returns
 
 == Changelog ==
 = 4.3.0 =

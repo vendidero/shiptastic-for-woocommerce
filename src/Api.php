@@ -304,7 +304,7 @@ class Api {
 		);
 
 		$schema_properties['shipping_provider'] = array(
-			'description' => _x( 'Shipping provider', 'shipments', 'shiptastic-for-woocommerce' ),
+			'description' => _x( 'Shipping service provider', 'shipments', 'shiptastic-for-woocommerce' ),
 			'type'        => 'string',
 			'context'     => array( 'view', 'edit' ),
 			'readonly'    => true,

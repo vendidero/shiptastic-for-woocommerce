@@ -676,7 +676,7 @@ class Table extends WP_List_Table {
 			}
 		}
 		?>
-		<select class="wc-stc-shipping-provider-search" name="shipping_provider" data-placeholder="<?php echo esc_attr_x( 'Filter by shipping provider', 'shipments', 'shiptastic-for-woocommerce' ); ?>" data-allow_clear="true">
+		<select class="wc-stc-shipping-provider-search" name="shipping_provider" data-placeholder="<?php echo esc_attr_x( 'Filter by shipping service provider', 'shipments', 'shiptastic-for-woocommerce' ); ?>" data-allow_clear="true">
 			<option value="<?php echo esc_attr( $shipping_provider ); ?>" selected="selected"><?php echo htmlspecialchars( wp_kses_post( $provider_string ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?><option>
 		</select>
 		<?php

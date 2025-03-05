@@ -2052,6 +2052,14 @@ a.button.wc-stc-shipment-action-button {
     align-items: center;
     margin-bottom: .5em;
 
+    li.title-action {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      margin-left: .5rem;
+      margin-bottom: 0;
+    }
+
     li.breadcrumb-item {
       display: flex;
       flex-wrap: wrap;

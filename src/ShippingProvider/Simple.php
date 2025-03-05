@@ -63,7 +63,7 @@ class Simple extends WC_Data implements ShippingProvider {
 	 * @var array
 	 */
 	protected $data = array(
-		'activated'                  => true,
+		'activated'                  => false,
 		'title'                      => '',
 		'name'                       => '',
 		'description'                => '',

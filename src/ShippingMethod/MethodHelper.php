@@ -439,14 +439,14 @@ class MethodHelper {
 		$load_all_settings = $force_load_all ? true : self::load_all_method_settings();
 		$method_settings   = array(
 			'label_configuration_set_shipping_provider_title' => array(
-				'title'       => _x( 'Shipping Provider Settings', 'shipments', 'shiptastic-for-woocommerce' ),
+				'title'       => _x( 'Service Provider Settings', 'shipments', 'shiptastic-for-woocommerce' ),
 				'type'        => 'title',
 				'id'          => 'label_configuration_set_shipping_provider_title',
 				'default'     => '',
-				'description' => _x( 'Adjust shipping provider settings used for managing shipments.', 'shipments', 'shiptastic-for-woocommerce' ),
+				'description' => _x( 'Adjust shipping service provider settings used for managing shipments.', 'shipments', 'shiptastic-for-woocommerce' ),
 			),
 			'shipping_provider'  => array(
-				'title'       => _x( 'Shipping Provider', 'shipments', 'shiptastic-for-woocommerce' ),
+				'title'       => _x( 'Shipping Service Provider', 'shipments', 'shiptastic-for-woocommerce' ),
 				'type'        => 'select',
 				/**
 				 * Filter to adjust default shipping provider pre-selected within shipping provider method settings.
@@ -457,7 +457,7 @@ class MethodHelper {
 				 */
 				'default'     => apply_filters( 'woocommerce_shiptastic_shipping_provider_method_default_provider', '' ),
 				'options'     => wc_stc_get_shipping_provider_select(),
-				'description' => _x( 'Choose a shipping provider which will be selected by default for an eligible shipment.', 'shipments', 'shiptastic-for-woocommerce' ),
+				'description' => _x( 'Choose a shipping service provider which will be selected by default for an eligible shipment.', 'shipments', 'shiptastic-for-woocommerce' ),
 			),
 			'configuration_sets' => array(
 				'title'   => '',

@@ -398,7 +398,7 @@ class Ajax {
 
 		$response_error = array(
 			'success' => false,
-			'message' => _x( 'There was an error while trying to save the shipping provider status.', 'shipments', 'shiptastic-for-woocommerce' ),
+			'message' => _x( 'There was an error while trying to save the shipping service provider status.', 'shipments', 'shiptastic-for-woocommerce' ),
 		);
 
 		$provider = sanitize_key( wc_clean( wp_unslash( $_POST['provider'] ) ) );
@@ -436,7 +436,7 @@ class Ajax {
 
 		$response_error = array(
 			'success' => false,
-			'message' => _x( 'There was an error while trying to delete the shipping provider.', 'shipments', 'shiptastic-for-woocommerce' ),
+			'message' => _x( 'There was an error while trying to delete the shipping service provider.', 'shipments', 'shiptastic-for-woocommerce' ),
 		);
 
 		$provider = sanitize_key( wc_clean( wp_unslash( $_POST['provider'] ) ) );
