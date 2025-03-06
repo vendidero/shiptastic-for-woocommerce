@@ -19,6 +19,7 @@ class PickupDelivery {
 		add_filter( 'woocommerce_my_account_my_address_formatted_address', array( __CLASS__, 'set_formatted_customer_shipping_address' ), 10, 3 );
 		add_filter( 'woocommerce_formatted_address_replacements', array( __CLASS__, 'formatted_shipping_replacements' ), 20, 2 );
 		add_filter( 'woocommerce_get_order_address', array( __CLASS__, 'register_order_address_customer_number' ), 20, 3 );
+		add_filter( 'woocommerce_order_get_shipping_address_2', array( __CLASS__, 'register_order_address_customer_number_fallback' ), 20, 2 );
 		add_filter( 'woocommerce_order_get_formatted_shipping_address', array( __CLASS__, 'indicate_order_pickup_location_delivery' ), 10, 3 );
 
 		add_action( 'wp_enqueue_scripts', array( __CLASS__, 'register_assets' ), 100 );
@@ -329,6 +330,34 @@ class PickupDelivery {
 		<?php
 	}
 
+	/**
+	 * @param string $field_id
+	 * @param string $code
+	 * @param WC_Order $order
+	 *
+	 * @return string
+	 */
+	public static function update_order_pickup_location_code( $field_id, $code, $order ) {
+		$code = wc_clean( $code );
+
+		if ( $shipment_order = wc_stc_get_shipment_order( $order ) ) {
+			$order->delete_meta_data( '_pickup_location_address' );
+
+			if ( $provider = $shipment_order->get_shipping_provider() ) {
+				if ( is_a( $provider, 'Vendidero\Shiptastic\Interfaces\ShippingProviderAuto' ) ) {
+					if ( $location = $provider->get_pickup_location_by_code( $code, $order->get_address( 'shipping' ) ) ) {
+						$code = $location->get_code();
+						$order->update_meta_data( '_pickup_location_address', $location->get_address() );
+					}
+				}
+			}
+		}
+
+		$order->update_meta_data( '_pickup_location_code', $code );
+
+		return $code;
+	}
+
 	public static function register_pickup_location_admin_fields( $fields, $order = null, $context = 'edit' ) {
 		if ( is_null( $order ) && version_compare( wc()->version, '8.6.0', '<' ) ) {
 			global $theorder;
@@ -345,11 +374,12 @@ class PickupDelivery {
 		if ( $shipment_order = wc_stc_get_shipment_order( $order ) ) {
 			if ( $shipment_order->supports_pickup_location() ) {
 				$fields['pickup_location_code'] = array(
-					'label' => _x( 'Pickup location', 'shipments', 'shiptastic-for-woocommerce' ),
-					'type'  => 'text',
-					'id'    => '_pickup_location_code',
-					'show'  => false,
-					'value' => $shipment_order->get_pickup_location_code(),
+					'label'           => _x( 'Pickup location', 'shipments', 'shiptastic-for-woocommerce' ),
+					'type'            => 'text',
+					'id'              => '_pickup_location_code',
+					'show'            => false,
+					'value'           => $shipment_order->get_pickup_location_code(),
+					'update_callback' => array( __CLASS__, 'update_order_pickup_location_code' ),
 				);
 
 				$fields['pickup_location_customer_number'] = array(
@@ -554,7 +584,7 @@ class PickupDelivery {
 
 						if ( $pickup_location ) {
 							$order->update_meta_data( '_pickup_location_code', $pickup_location_code );
-							$order->update_meta_data( '_pickup_location_address', $pickup_location->get_ad() );
+							$order->update_meta_data( '_pickup_location_address', $pickup_location->get_address() );
 
 							if ( $pickup_location->supports_customer_number() ) {
 								$order->update_meta_data( '_pickup_location_customer_number', $pickup_location_customer_number );
@@ -1064,6 +1094,28 @@ class PickupDelivery {
 	}
 
 	/**
+	 * @param string $address_2
+	 * @param WC_Order $order
+	 *
+	 * @return string
+	 */
+	public static function register_order_address_customer_number_fallback( $address_2, $order ) {
+		if ( ! self::is_enabled() ) {
+			return $address_2;
+		}
+
+		if ( empty( $address_2 ) ) {
+			if ( $shipment_order = wc_stc_get_shipment_order( $order ) ) {
+				if ( $customer_number = $shipment_order->get_pickup_location_customer_number() ) {
+					$address_2 = $customer_number;
+				}
+			}
+		}
+
+		return $address_2;
+	}
+
+	/**
 	 * @param array $address
 	 * @param $address_type
 	 * @param WC_Order $order
@@ -1079,6 +1131,14 @@ class PickupDelivery {
 			if ( $shipment_order = wc_stc_get_shipment_order( $order ) ) {
 				if ( $customer_number = $shipment_order->get_pickup_location_customer_number() ) {
 					$address['pickup_location_customer_number'] = $customer_number;
+
+					/**
+					 * For compatibility (e.g. third-party plugins) register the customer number
+					 * as address_2 field too.
+					 */
+					if ( empty( $address['address_2'] ) ) {
+						$address['address_2'] = $customer_number;
+					}
 				}
 			}
 		}
@@ -1093,6 +1153,10 @@ class PickupDelivery {
 
 		if ( isset( $args['pickup_location_customer_number'] ) && ! empty( $args['pickup_location_customer_number'] ) ) {
 			$fields['{name}'] = $fields['{name}'] . "\n" . $args['pickup_location_customer_number'];
+
+			if ( isset( $fields['{address_2}'] ) && isset( $args['address_2'] ) && $args['address_2'] === $args['pickup_location_customer_number'] ) {
+				$fields['{address_2}'] = '';
+			}
 		}
 
 		return $fields;

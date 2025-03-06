@@ -41,7 +41,9 @@ const PickupLocationDomWatcher = ({
         }
 
         if ( currentPickupLocation ) {
-            if ( blockElement ) {
+            const hasReplacements = Object.keys( currentPickupLocation.address_replacements ).length > 0;
+
+            if ( blockElement && hasReplacements ) {
                 const hasNotice = blockElement.getElementsByClassName( 'managed-by-pickup-location-notice' )[0];
 
                 if ( ! hasNotice ) {

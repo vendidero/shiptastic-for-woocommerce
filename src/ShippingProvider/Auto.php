@@ -586,7 +586,7 @@ abstract class Auto extends Simple implements ShippingProviderAuto {
 
 	protected function get_address_by_pickup_location_code( $location_code, $address = array() ) {
 		$address    = $this->parse_pickup_location_address_args( $address );
-		$code_parts = explode( '_x_', $location_code );
+		$code_parts = explode( '_', $location_code );
 
 		if ( count( $code_parts ) === 3 ) {
 			$address['country']  = $code_parts[1];

@@ -1201,26 +1201,23 @@ class Simple extends WC_Data implements ShippingProvider {
 	protected function register_products() {
 	}
 
-	protected function register_product( $id, $args = array() ) {
+	protected function register_product( $maybe_product, $args = array() ) {
 		if ( is_null( $this->products ) ) {
 			$this->products = new ProductList();
 		}
 
-		if ( is_a( $id, 'Vendidero\Shiptastic\ShippingProvider\Product' ) ) {
-			$this->products->add( $id );
-
-			return true;
-		} else {
-			$args['id'] = $id;
-
+		if ( ! is_a( $maybe_product, 'Vendidero\Shiptastic\ShippingProvider\Product' ) ) {
 			try {
-				$this->products->add( new Product( $this, $args ) );
-
-				return true;
+				$args['id']    = $maybe_product;
+				$maybe_product = new Product( $this, $args );
 			} catch ( Exception $e ) {
 				return new \WP_Error( 'register-product', $e->getMessage() );
 			}
 		}
+
+		$this->products->add( $maybe_product );
+
+		return true;
 	}
 
 	/**

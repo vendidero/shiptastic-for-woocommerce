@@ -48,7 +48,7 @@ class PickupLocation {
 			throw new \Exception( esc_html( 'A pickup location needs a code.' ), 500 );
 		}
 
-		$code_parts      = explode( '_x_', $args['code'] );
+		$code_parts      = explode( '_', $args['code'] );
 		$default_address = array(
 			'address_1' => '',
 			'city'      => '',
@@ -86,7 +86,7 @@ class PickupLocation {
 
 	public function get_code( $context = 'view' ) {
 		if ( 'view' === $context ) {
-			return sanitize_key( "{$this->code}_x_{$this->get_country()}_x_{$this->get_postcode()}" );
+			return sanitize_key( "{$this->code}_{$this->get_country()}_{$this->get_postcode()}" );
 		} else {
 			return $this->code;
 		}

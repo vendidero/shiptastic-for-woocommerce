@@ -906,7 +906,13 @@ abstract class Shipment extends WC_Data {
 	 * @return string
 	 */
 	public function get_pickup_location_code( $context = 'view' ) {
-		return $this->get_prop( 'pickup_location_code', $context );
+		$code = $this->get_prop( 'pickup_location_code', $context );
+
+		if ( 'view' === $context ) {
+			$code = wc_stc_parse_pickup_location_code( $code );
+		}
+
+		return $code;
 	}
 
 	/**
@@ -935,7 +941,7 @@ abstract class Shipment extends WC_Data {
 			if ( $this->has_pickup_location() ) {
 				if ( $provider = $this->get_shipping_provider_instance() ) {
 					if ( is_a( $provider, 'Vendidero\Shiptastic\Interfaces\ShippingProviderAuto' ) ) {
-						$this->pickup_location = $provider->get_pickup_location_by_code( $this->get_pickup_location_code(), $this->get_address() );
+						$this->pickup_location = $provider->get_pickup_location_by_code( $this->get_pickup_location_code( 'edit' ), $this->get_address() );
 					}
 				}
 			}

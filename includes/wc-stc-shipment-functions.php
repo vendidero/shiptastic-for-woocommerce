@@ -32,7 +32,7 @@ function wc_stc_get_formatted_state( $country = '', $state = '' ) {
 }
 
 function wc_stc_parse_pickup_location_code( $location_code ) {
-	$code_parts = explode( '_x_', $location_code );
+	$code_parts = explode( '_', $location_code );
 
 	if ( count( $code_parts ) === 3 ) {
 		$location_code = $code_parts[0];
