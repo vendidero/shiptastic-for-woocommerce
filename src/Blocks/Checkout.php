@@ -93,8 +93,8 @@ final class Checkout {
 					$query_args['payment_gateway'] = $order->get_payment_method();
 
 					if ( $provider->supports_pickup_location_delivery( $address_data, $query_args ) ) {
-						$pickup_location              = $provider->get_pickup_location_by_code( $pickup_location_code, $address_data );
-						$is_valid                     = $provider->is_valid_pickup_location( $pickup_location_code, $address_data );
+						$pickup_location              = $provider->get_pickup_location_by_code( $pickup_location_code );
+						$is_valid                     = $provider->is_valid_pickup_location( $pickup_location_code );
 						$supports_customer_number     = $pickup_location ? $pickup_location->supports_customer_number() : false;
 						$customer_number_is_mandatory = $pickup_location ? $pickup_location->customer_number_is_mandatory() : false;
 					}
@@ -117,6 +117,7 @@ final class Checkout {
 			$pickup_location->replace_address( $order );
 
 			$order->update_meta_data( '_pickup_location_code', $pickup_location_code );
+			$order->update_meta_data( '_pickup_location_address', $pickup_location->get_address() );
 
 			if ( $supports_customer_number ) {
 				$order->update_meta_data( '_pickup_location_customer_number', $pickup_location_customer_number );

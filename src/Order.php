@@ -1322,6 +1322,12 @@ class Order {
 		return apply_filters( 'woocommerce_shiptastic_shipment_order_pickup_location_code', $pickup_location_code, $this->get_order(), $this );
 	}
 
+	public function get_pickup_location_address() {
+		$pickup_location_address = array_filter( (array) $this->get_order()->get_meta( '_pickup_location_address', true ) );
+
+		return apply_filters( 'woocommerce_shiptastic_shipment_order_pickup_location_address', $pickup_location_address, $this->get_order(), $this );
+	}
+
 	protected function has_local_pickup() {
 		$shipping_methods = $this->get_order()->get_shipping_methods();
 		$has_pickup       = false;

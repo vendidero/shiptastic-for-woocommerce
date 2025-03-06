@@ -580,8 +580,20 @@ abstract class Auto extends Simple implements ShippingProviderAuto {
 	 *
 	 * @return PickupLocation|null
 	 */
-	protected function fetch_pickup_location( $location_code, $address ) {
+	protected function fetch_pickup_location( $location_code, $address = array() ) {
 		return null;
+	}
+
+	protected function get_address_by_pickup_location_code( $location_code, $address = array() ) {
+		$address    = $this->parse_pickup_location_address_args( $address );
+		$code_parts = explode( '_x_', $location_code );
+
+		if ( count( $code_parts ) === 3 ) {
+			$address['country']  = $code_parts[1];
+			$address['postcode'] = $code_parts[2];
+		}
+
+		return $address;
 	}
 
 	/**
@@ -590,8 +602,8 @@ abstract class Auto extends Simple implements ShippingProviderAuto {
 	 *
 	 * @return false|PickupLocation
 	 */
-	public function get_pickup_location_by_code( $location_code, $address ) {
-		$address         = $this->parse_pickup_location_address_args( $address );
+	public function get_pickup_location_by_code( $location_code, $address = array() ) {
+		$address         = $this->get_address_by_pickup_location_code( $location_code, $address );
 		$cache_key       = $this->get_pickup_location_cache_key( $location_code, $address );
 		$pickup_location = get_transient( $cache_key );
 
@@ -611,11 +623,11 @@ abstract class Auto extends Simple implements ShippingProviderAuto {
 	}
 
 	protected function parse_pickup_location_code( $location_code ) {
-		return $location_code;
+		return wc_stc_parse_pickup_location_code( $location_code );
 	}
 
-	protected function get_pickup_location_cache_key( $location_code, $address ) {
-		$address       = $this->parse_pickup_location_address_args( $address );
+	protected function get_pickup_location_cache_key( $location_code, $address = array() ) {
+		$address       = $this->get_address_by_pickup_location_code( $location_code, $address );
 		$location_code = $this->parse_pickup_location_code( $location_code );
 		$cache_key     = "woocommerce_shiptastic_{$this->get_name()}_pickup_location_" . sanitize_key( $location_code ) . '_' . sanitize_key( $address['country'] ) . '_' . $address['postcode'];
 
@@ -649,7 +661,7 @@ abstract class Auto extends Simple implements ShippingProviderAuto {
 		return $cache_key;
 	}
 
-	public function is_valid_pickup_location( $location_code, $address ) {
+	public function is_valid_pickup_location( $location_code, $address = array() ) {
 		if ( $this->get_pickup_location_by_code( $location_code, $address ) ) {
 			return true;
 		}
@@ -704,6 +716,10 @@ abstract class Auto extends Simple implements ShippingProviderAuto {
 		return $query_args;
 	}
 
+	public function replace_shipping_address_by_pickup_location() {
+		return true;
+	}
+
 	public function get_pickup_locations( $address, $query_args = array() ) {
 		$query_args       = $this->parse_pickup_location_query_args( $query_args );
 		$address          = $this->parse_pickup_location_address_args( $address );
@@ -729,7 +745,7 @@ abstract class Auto extends Simple implements ShippingProviderAuto {
 		 */
 		if ( ! empty( $pickup_locations ) ) {
 			foreach ( $pickup_locations as $k => $pickup_location ) {
-				$cache_key                     = $this->get_pickup_location_cache_key( $pickup_location->get_id(), $pickup_location->get_address() );
+				$cache_key                     = $this->get_pickup_location_cache_key( $pickup_location->get_id() );
 				$single_cached_pickup_location = get_transient( $cache_key );
 
 				if ( false === $single_cached_pickup_location || '' === $single_cached_pickup_location ) {

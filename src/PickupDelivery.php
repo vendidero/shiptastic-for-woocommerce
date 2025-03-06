@@ -19,6 +19,7 @@ class PickupDelivery {
 		add_filter( 'woocommerce_my_account_my_address_formatted_address', array( __CLASS__, 'set_formatted_customer_shipping_address' ), 10, 3 );
 		add_filter( 'woocommerce_formatted_address_replacements', array( __CLASS__, 'formatted_shipping_replacements' ), 20, 2 );
 		add_filter( 'woocommerce_get_order_address', array( __CLASS__, 'register_order_address_customer_number' ), 20, 3 );
+		add_filter( 'woocommerce_order_get_formatted_shipping_address', array( __CLASS__, 'indicate_order_pickup_location_delivery' ), 10, 3 );
 
 		add_action( 'wp_enqueue_scripts', array( __CLASS__, 'register_assets' ), 100 );
 
@@ -553,6 +554,7 @@ class PickupDelivery {
 
 						if ( $pickup_location ) {
 							$order->update_meta_data( '_pickup_location_code', $pickup_location_code );
+							$order->update_meta_data( '_pickup_location_address', $pickup_location->get_ad() );
 
 							if ( $pickup_location->supports_customer_number() ) {
 								$order->update_meta_data( '_pickup_location_customer_number', $pickup_location_customer_number );
@@ -617,8 +619,8 @@ class PickupDelivery {
 			if ( $method = wc_stc_get_current_shipping_provider_method() ) {
 				if ( $provider = $method->get_shipping_provider_instance() ) {
 					if ( is_a( $provider, 'Vendidero\Shiptastic\Interfaces\ShippingProviderAuto' ) ) {
-						$pickup_location = $provider->get_pickup_location_by_code( $pickup_location_code, $address_data );
-						$is_valid        = $provider->is_valid_pickup_location( $pickup_location_code, $address_data );
+						$pickup_location = $provider->get_pickup_location_by_code( $pickup_location_code );
+						$is_valid        = $provider->is_valid_pickup_location( $pickup_location_code );
 
 						$supports_customer_number     = $pickup_location ? $pickup_location->supports_customer_number() : false;
 						$customer_number_is_mandatory = $pickup_location ? $pickup_location->customer_number_is_mandatory() : false;
@@ -1028,6 +1030,37 @@ class PickupDelivery {
 
 	public static function get_pickup_location_code_by_user( $customer_id = false ) {
 		return self::get_pickup_location_code_by_customer( $customer_id );
+	}
+
+	/**
+	 * @param string $address
+	 * @param array $raw_address
+	 * @param WC_Order $order
+	 *
+	 * @return string
+	 */
+	public static function indicate_order_pickup_location_delivery( $address, $raw_address, $order ) {
+		if ( ! empty( $address ) && ( $shipment_order = wc_stc_get_shipment_order( $order ) ) ) {
+			if ( $shipment_order->has_pickup_location() ) {
+				if ( $provider = $shipment_order->get_shipping_provider() ) {
+					if ( is_a( $provider, 'Vendidero\Shiptastic\Interfaces\ShippingProviderAuto' ) ) {
+						if ( ! $provider->replace_shipping_address_by_pickup_location() ) {
+							$pickup_location_address = $shipment_order->get_pickup_location_address();
+
+							if ( ! empty( $pickup_location_address ) ) {
+								$pickup_location_address['first_name'] = $raw_address['first_name'];
+								$pickup_location_address['last_name']  = $raw_address['last_name'];
+
+								$formatted_address = WC()->countries->get_formatted_address( $pickup_location_address );
+								$address           = $formatted_address;
+							}
+						}
+					}
+				}
+			}
+		}
+
+		return $address;
 	}
 
 	/**

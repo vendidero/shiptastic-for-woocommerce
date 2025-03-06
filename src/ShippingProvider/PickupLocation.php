@@ -48,6 +48,22 @@ class PickupLocation {
 			throw new \Exception( esc_html( 'A pickup location needs a code.' ), 500 );
 		}
 
+		$code_parts      = explode( '_x_', $args['code'] );
+		$default_address = array(
+			'address_1' => '',
+			'city'      => '',
+			'postcode'  => '',
+			'country'   => '',
+			'state'     => '',
+			'company'   => '',
+		);
+
+		if ( count( $code_parts ) === 3 ) {
+			$args['code']                = $code_parts[0];
+			$default_address['country']  = $code_parts[1];
+			$default_address['postcode'] = $code_parts[2];
+		}
+
 		$this->code                         = $args['code'];
 		$this->type                         = $args['type'];
 		$this->label                        = $args['label'];
@@ -55,16 +71,11 @@ class PickupLocation {
 		$this->longitude                    = $args['longitude'];
 		$this->supports_customer_number     = wc_string_to_bool( $args['supports_customer_number'] );
 		$this->customer_number_is_mandatory = wc_string_to_bool( $args['customer_number_is_mandatory'] );
-		$this->address                      = wp_parse_args(
-			(array) $args['address'],
-			array(
-				'address_1',
-				'city',
-				'postcode',
-				'country',
-				'state',
-			)
-		);
+		$this->address                      = wp_parse_args( (array) $args['address'], $default_address );
+
+		if ( empty( $this->address['company'] ) ) {
+			$this->address['company'] = $this->get_label();
+		}
 
 		$this->address_replacement_map = (array) $args['address_replacement_map'];
 	}
@@ -73,8 +84,12 @@ class PickupLocation {
 		return $this->get_code();
 	}
 
-	public function get_code() {
-		return $this->code;
+	public function get_code( $context = 'view' ) {
+		if ( 'view' === $context ) {
+			return sanitize_key( "{$this->code}_x_{$this->get_country()}_x_{$this->get_postcode()}" );
+		} else {
+			return $this->code;
+		}
 	}
 
 	public function get_label() {
@@ -171,13 +186,7 @@ class PickupLocation {
 	}
 
 	public function get_formatted_address( $separator = ', ' ) {
-		$address = $this->get_address();
-
-		if ( empty( $address['company'] ) ) {
-			$address['company'] = $this->get_label();
-		}
-
-		return WC()->countries->get_formatted_address( $address, $separator );
+		return WC()->countries->get_formatted_address( $this->get_address(), $separator );
 	}
 
 	public function get_address_replacement_map() {
@@ -188,7 +197,7 @@ class PickupLocation {
 		$replacements              = array();
 		$location_address          = $this->get_address();
 		$location_address['label'] = $this->get_label();
-		$location_address['code']  = $this->get_code();
+		$location_address['code']  = $this->get_code( 'edit' );
 
 		foreach ( $this->get_address_replacement_map() as $address_key => $location_address_key ) {
 			if ( isset( $location_address[ $location_address_key ] ) ) {
