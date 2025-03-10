@@ -7,10 +7,8 @@ use Vendidero\Shiptastic\Admin\Settings;
 use Vendidero\Shiptastic\Packing\Helper;
 use Vendidero\Shiptastic\Packing\ItemList;
 use Vendidero\Shiptastic\Packing\OrderItem;
-use Vendidero\Shiptastic\Packing\PackagingList;
 use Vendidero\Shiptastic\ShippingMethod\MethodHelper;
 use Vendidero\Shiptastic\ShippingMethod\ProviderMethod;
-use Vendidero\Shiptastic\ShippingMethod\ShippingMethod;
 use WC_DateTime;
 use DateTimeZone;
 use WC_Order;
@@ -267,9 +265,13 @@ class Order {
 		return apply_filters( 'woocommerce_shiptastic_order_item_product', $s_product, $order_item );
 	}
 
+	public function get_available_items_for_packing() {
+		return apply_filters( 'woocommerce_shiptastic_shipment_order_available_items_for_packing', $this->get_available_items_for_shipment(), $this );
+	}
+
 	protected function get_package_data() {
 		if ( is_null( $this->package_data ) ) {
-			$items        = $this->get_available_items_for_shipment();
+			$items        = $this->get_available_items_for_packing();
 			$package_data = array(
 				'total'                        => 0.0,
 				'subtotal'                     => 0.0,
@@ -328,7 +330,7 @@ class Order {
 			$this->package_data = $package_data;
 		}
 
-		return $this->package_data;
+		return apply_filters( 'woocommerce_shiptastic_shipment_order_package_data', $this->package_data, $this );
 	}
 
 	/**
@@ -839,33 +841,7 @@ class Order {
 	 * @return ItemList|OrderItem[]
 	 */
 	public function get_items_to_pack_left_for_shipping( $legacy_group_by_product_group = null ) {
-		$items_to_be_packed = ! is_null( $legacy_group_by_product_group ) ? array() : $this->get_package_data()['items'];
-
-		if ( ! is_null( $legacy_group_by_product_group ) ) {
-			foreach ( $this->get_available_items_for_shipment() as $order_item_id => $item ) {
-				if ( ! $order_item = $this->get_order()->get_item( $order_item_id ) ) {
-					continue;
-				}
-
-				$box_item = new Packing\OrderItem( $order_item );
-
-				$product_group = '';
-
-				if ( $product = $this->get_order_item_product( $order_item ) ) {
-					$product_group = '';
-
-					if ( 'yes' === get_option( 'woocommerce_shiptastic_packing_group_by_shipping_class' ) ) {
-						$product_group = $product->get_shipping_class();
-					}
-				}
-
-				if ( ! array_key_exists( $product_group, $items_to_be_packed ) ) {
-					$items_to_be_packed[ $product_group ] = new ItemList();
-				}
-
-				$items_to_be_packed[ $product_group ]->insert( $box_item, $item['max_quantity'] );
-			}
-		}
+		$items_to_be_packed = $this->get_package_data()['items'];
 
 		return apply_filters( 'woocommerce_shiptastic_shipment_order_items_to_pack_left_for_shipping', $items_to_be_packed );
 	}

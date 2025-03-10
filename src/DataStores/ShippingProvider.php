@@ -145,7 +145,16 @@ class ShippingProvider extends WC_Data_Store_WP implements WC_Object_Data_Store_
 			'gls',
 			'ups',
 			'hermes',
+			'tnt',
 			'fedex',
+			'passport',
+			'usps',
+			'aramex',
+			'blue_dart',
+			'delhivery',
+			'parcelforce',
+			'postnl',
+			'royal_mail',
 		);
 
 		return apply_filters( 'woocommerce_shiptastic_shipping_provider_is_reserved_name', in_array( $name, $reserved_names, true ) );

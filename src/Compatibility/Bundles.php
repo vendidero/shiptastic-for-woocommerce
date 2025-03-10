@@ -3,6 +3,9 @@
 namespace Vendidero\Shiptastic\Compatibility;
 
 use Vendidero\Shiptastic\Interfaces\Compatibility;
+use Vendidero\Shiptastic\Order;
+use Vendidero\Shiptastic\Packaging;
+use Vendidero\Shiptastic\Packing\Item;
 use Vendidero\Shiptastic\Product;
 use Vendidero\Shiptastic\Shipment;
 use Vendidero\Shiptastic\ShipmentItem;
@@ -25,11 +28,36 @@ class Bundles implements Compatibility {
 			}
 		);
 
+		add_filter( 'woocommerce_shiptastic_shipment_order_available_items_for_packing', array( __CLASS__, 'items_for_packing' ), 10, 2 );
 		add_filter( 'woocommerce_shiptastic_shipment_order_item_product', array( __CLASS__, 'get_product_from_item' ), 10, 2 );
 		add_filter( 'woocommerce_shiptastic_cart_item', array( __CLASS__, 'adjust_cart_item' ), 10, 2 );
 		add_filter( 'woocommerce_shiptastic_shipment_order_selectable_items_for_shipment', array( __CLASS__, 'filter_bundle_children' ), 10, 3 );
 		add_action( 'woocommerce_shiptastic_shipment_added_item', array( __CLASS__, 'on_added_shipment_item' ), 10, 2 );
 		add_filter( 'woocommerce_shiptastic_shipment_order_item_quantity_left_for_shipping', array( __CLASS__, 'maybe_remove_children' ), 10, 2 );
+	}
+
+	/**
+	 * @param array $items
+	 * @param Order $shipment_order
+	 *
+	 * @return array
+	 */
+	public static function items_for_packing( $items, $shipment_order ) {
+		foreach ( $items as $order_item_id => $item ) {
+			if ( ! $order_item = $shipment_order->get_order()->get_item( $order_item_id ) ) {
+				continue;
+			}
+
+			if ( wc_pb_is_bundled_order_item( $order_item ) && ! self::order_item_is_shipped_individually( $order_item ) ) {
+				if ( $container = wc_pb_get_bundled_order_item_container( $order_item, $shipment_order->get_order(), false ) ) {
+					if ( self::order_item_is_assembled_bundle( $container, $shipment_order ) ) {
+						unset( $items[ $order_item_id ] );
+					}
+				}
+			}
+		}
+
+		return $items;
 	}
 
 	/**
@@ -58,14 +86,16 @@ class Bundles implements Compatibility {
 							continue;
 						}
 
-						if ( wc_pb_is_bundled_order_item( $child_order_item ) ) {
+						if ( wc_pb_is_bundled_order_item( $child_order_item ) && ! self::order_item_is_shipped_individually( $child_order_item ) ) {
 							$container_id = wc_pb_get_bundled_order_item_container( $child_order_item, $order, true );
 
 							if ( $container_id === $order_item->get_id() ) {
-								$children_to_add[ $item_id ] = $item_data['max_quantity'];
+								$quantity_per_bundle         = absint( $child_order_item->get_quantity() / $order_item->get_quantity() );
+								$child_quantity              = min( $item_data['max_quantity'], $quantity_per_bundle * $item->get_quantity() );
+								$children_to_add[ $item_id ] = $child_quantity;
 
 								$props = array(
-									'quantity' => $item_data['max_quantity'],
+									'quantity' => $child_quantity,
 									'parent'   => $item,
 								);
 
@@ -91,10 +121,20 @@ class Bundles implements Compatibility {
 
 		if ( wc_pb_is_bundle_container_order_item( $order_item ) ) {
 			if ( $product = $shipment_order->get_order_item_product( $order_item ) ) {
-				if ( ! $product->is_virtual() && apply_filters( 'woocommerce_shiptastic_force_bundle_item_container', true, $order_item, $shipment_order ) ) {
+				if ( self::is_assembled_bundle( $product ) ) {
 					$is_assembled = true;
 				}
 			}
+		}
+
+		return $is_assembled;
+	}
+
+	protected static function is_assembled_bundle( $product ) {
+		$is_assembled = false;
+
+		if ( $product->is_type( 'bundle' ) && apply_filters( 'woocommerce_shiptastic_is_assembled_bundle', ! $product->is_virtual(), $product ) ) {
+			$is_assembled = true;
 		}
 
 		return $is_assembled;
@@ -131,7 +171,7 @@ class Bundles implements Compatibility {
 				continue;
 			}
 
-			if ( wc_pb_is_bundled_order_item( $order_item ) ) {
+			if ( wc_pb_is_bundled_order_item( $order_item ) && ! self::order_item_is_shipped_individually( $order_item ) ) {
 				if ( $container = wc_pb_get_bundled_order_item_container( $order_item, $order, false ) ) {
 					if ( self::order_item_is_assembled_bundle( $container, $shipment_order ) ) {
 						unset( $items[ $order_item_id ] );
@@ -141,6 +181,19 @@ class Bundles implements Compatibility {
 		}
 
 		return $items;
+	}
+
+	/**
+	 * @param \WC_Order_Item $order_item
+	 *
+	 * @return bool
+	 */
+	protected static function order_item_is_shipped_individually( $order_item ) {
+		if ( 'yes' === $order_item->get_meta( '_bundled_item_needs_shipping' ) ) {
+			return true;
+		}
+
+		return false;
 	}
 
 	/**
