@@ -86,10 +86,28 @@ class Helper {
 		add_action(
 			'activate_plugin',
 			function () {
-				$this->shipping_providers = null;
-				\Vendidero\Shiptastic\Caches\Helper::get_cache_object( 'shipping-providers' )->flush();
+				$this->reset_providers();
 			}
 		);
+
+		add_action(
+			'update_option_woocommerce_shiptastic_shipper_address_country',
+			function () {
+				$this->reset_providers();
+			}
+		);
+
+		add_action(
+			'update_option_woocommerce_default_country',
+			function () {
+				$this->reset_providers();
+			}
+		);
+	}
+
+	protected function reset_providers() {
+		$this->shipping_providers = null;
+		\Vendidero\Shiptastic\Caches\Helper::get_cache_object( 'shipping-providers' )->flush();
 	}
 
 	/**
