@@ -30,18 +30,13 @@ class ShippingProvider extends Tab {
 			if ( ! empty( $provider_available ) ) {
 				$provider_name_list = array();
 
-				foreach ( $provider_available as $provider ) {
+				foreach ( array_slice( $provider_available, 0, 4 ) as $provider ) {
 					$provider_name_list[] = $provider->get_title();
 				}
 
 				$provider_list = implode( ', ', $provider_name_list );
-				$pos           = strrpos( $provider_list, ', ' );
 
-				if ( false !== $pos ) {
-					$provider_list = substr_replace( $provider_list, ' & ', $pos, strlen( ', ' ) );
-				}
-
-				$desc = sprintf( _x( 'Manage your shipping service provider integrations, e.g. for %s.', 'shipments', 'shiptastic-for-woocommerce' ), trim( $provider_list ) );
+				$desc = sprintf( _x( 'Manage your shipping service provider integrations, e.g. for %s & more.', 'shipments', 'shiptastic-for-woocommerce' ), trim( $provider_list ) );
 			}
 		}
 

@@ -34,7 +34,7 @@ defined( 'ABSPATH' ) || exit;
 							<span class="sep">|</span>
 							<a class="wc-stc-shipping-provider-delete" href="#"><?php echo esc_html_x( 'Delete', 'shipments', 'shiptastic-for-woocommerce' ); ?></a>
 						<?php endif; ?>
-					<?php elseif ( is_a( $provider, '\Vendidero\Shiptastic\ShippingProvider\Placeholder' ) && $provider->is_pro() ) : ?>
+					<?php elseif ( is_a( $provider, '\Vendidero\Shiptastic\ShippingProvider\Placeholder' ) && $provider->is_pro() && '' !== $provider->get_help_link() ) : ?>
 						<a href="<?php echo esc_url( $provider->get_help_link() ); ?>"><?php echo wp_kses_post( sprintf( esc_html_x( 'Upgrade to %1$s', 'shipments', 'shiptastic-for-woocommerce' ), '<span class="wc-shiptastic-pro wc-shiptastic-pro-outlined">' . _x( 'pro', 'shipments', 'shiptastic-for-woocommerce' ) . '</span>' ) ); ?></a>
 					<?php endif; ?>
 				</div>

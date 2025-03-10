@@ -21,6 +21,7 @@ class Placeholder extends Simple {
 				'countries_supported' => array(),
 				'is_pro'              => false,
 				'extension_name'      => '',
+				'help_url'            => '',
 			)
 		);
 
@@ -82,7 +83,7 @@ class Placeholder extends Simple {
 	}
 
 	public function get_help_link() {
-		return '';
+		return apply_filters( "{$this->get_general_hook_prefix()}help_link", $this->placeholder_args['help_url'] ? esc_url_raw( $this->placeholder_args['help_url'] ) : '', $this );
 	}
 
 	public function save() {

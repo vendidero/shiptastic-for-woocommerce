@@ -33,6 +33,12 @@ a.wc-shiptastic-pro:not(.wc-shiptastic-pro-outlined) {
   }
 }
 
+a .wc-shiptastic-pro-outlined {
+  border: 1px solid #0073aa;
+  color: #0073aa;
+  text-decoration: none;
+}
+
 .wc-shiptastic-pro-outlined {
   margin-left: 5px;
   margin-top: 3px;
