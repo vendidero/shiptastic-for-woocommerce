@@ -485,9 +485,9 @@ class Admin {
 			<td class="forminp forminp-<?php echo esc_attr( sanitize_title( $value['type'] ) ); ?>">
 				<fieldset>
 					<?php if ( $api->get_auth_api()->is_connected() ) : ?>
-						<a class="button button-secondary" href="<?php echo esc_url( $revoke_url ); ?>"><?php echo esc_html_x( 'Revoke', 'shiptastic', 'shiptastic-for-woocommerce' ); ?></a>
+						<a class="button button-secondary" href="<?php echo esc_url( $revoke_url ); ?>"><?php echo esc_html_x( 'Revoke', 'shipments', 'shiptastic-for-woocommerce' ); ?></a>
 					<?php else : ?>
-						<a class="button button-primary" href="<?php echo esc_url( $connect_url ); ?>"><?php printf( esc_html_x( 'Connect to %s', 'shiptastic', 'shiptastic-for-woocommerce' ), esc_html( $api->get_title() ) ); ?></a>
+						<a class="button button-primary" href="<?php echo esc_url( $connect_url ); ?>"><?php printf( esc_html_x( 'Connect to %s', 'shipments', 'shiptastic-for-woocommerce' ), esc_html( $api->get_title() ) ); ?></a>
 					<?php endif; ?>
 				</fieldset>
 			</td>

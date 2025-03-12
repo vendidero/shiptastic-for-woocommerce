@@ -580,7 +580,7 @@ abstract class Auto extends Simple implements ShippingProviderAuto {
 	 *
 	 * @return PickupLocation|null
 	 */
-	protected function fetch_pickup_location( $location_code, $address = array() ) {
+	protected function fetch_single_pickup_location( $location_code, $address = array() ) {
 		return null;
 	}
 
@@ -608,7 +608,7 @@ abstract class Auto extends Simple implements ShippingProviderAuto {
 		$pickup_location = get_transient( $cache_key );
 
 		if ( false === $pickup_location ) {
-			$pickup_location = $this->fetch_pickup_location( $location_code, $address );
+			$pickup_location = $this->fetch_single_pickup_location( $location_code, $address );
 
 			if ( ! is_null( $pickup_location ) ) {
 				set_transient( $cache_key, $pickup_location, DAY_IN_SECONDS );
