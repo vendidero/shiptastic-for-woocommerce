@@ -63,7 +63,8 @@ class ShippingMethod extends \WC_Shipping_Method {
 		$this->init_settings();
 
 		// Define user set variables.
-		$this->title = $this->get_option( 'title' );
+		$this->title      = $this->get_option( 'title' );
+		$this->tax_status = $this->get_option( 'tax_status' );
 
 		// Actions.
 		add_action( 'woocommerce_update_options_shipping_' . $this->id, array( $this, 'process_admin_options' ) );
@@ -197,6 +198,16 @@ class ShippingMethod extends \WC_Shipping_Method {
 				'description' => _x( 'This controls the title which the user sees during checkout in case a free shipping option is available.', 'shipments', 'shiptastic-for-woocommerce' ),
 				'default'     => sprintf( _x( 'Free shipping (via %1$s)', 'shipments', 'shiptastic-for-woocommerce' ), $this->method_title ),
 				'desc_tip'    => true,
+			),
+			'tax_status'                               => array(
+				'title'   => _x( 'Tax status', 'shipments', 'shiptastic-for-woocommerce' ),
+				'type'    => 'select',
+				'class'   => 'wc-enhanced-select',
+				'default' => 'taxable',
+				'options' => array(
+					'taxable' => _x( 'Taxable', 'shipments', 'shiptastic-for-woocommerce' ),
+					'none'    => _x( 'None', 'shipments-tax-status', 'shiptastic-for-woocommerce' ),
+				),
 			),
 			'shipping_rules_title'                     => array(
 				'title'       => _x( 'Shipping Rules', 'shipments', 'shiptastic-for-woocommerce' ),
