@@ -2,7 +2,7 @@
 Contributors: vendidero, vdwoocommercesupport
 Tags: shipping, woocommerce, shipments, rules, woo
 Requires at least: 5.4
-Tested up to: 6.7
+Tested up to: 6.8
 Stable tag: 4.3.0
 Requires PHP: 5.6
 License: GPLv3
