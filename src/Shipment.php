@@ -2223,6 +2223,10 @@ abstract class Shipment extends WC_Data {
 	public function remove_item( $item_id ) {
 		$item = $this->get_item( $item_id );
 
+		if ( ! $item ) {
+			return;
+		}
+
 		// Unset and remove later.
 		$this->items_to_delete[] = $item;
 
