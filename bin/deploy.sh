@@ -229,6 +229,8 @@ fi
 # Create build from GH
 cd "$GIT_PATH" || exit
 output 2 "Installing autoload packages..."
+# Bump version
+output 2 "Bump the (composer.json) version"
 # Install composer packages
 composer install --no-dev || exit "$?"
 # Run JS build
@@ -239,6 +241,7 @@ output 2 "Cleaning up PHP dependencies..."
 composer install --no-dev || exit "$?"
 output 2 "Generate i18n JSON files from PO..."
 wp i18n make-json --no-purge i18n/languages
+bin/bump-version.sh -s -c -v $VERSION
 
 # Create GH branch with build and commit before doing a GH release
 if ! $SKIP_GH_BUILD; then
@@ -256,6 +259,9 @@ if ! $SKIP_GH_BUILD; then
   git add i18n/languages/. --force
   git add .
   git commit -m "Adding i18n json files to release" --no-verify
+
+  git add composer.json composer.lock --force
+  git commit -m "Adding composer.json to release" --no-verify
 
   # Force vendor directory to be part of release branch
   git add vendor/. --force
