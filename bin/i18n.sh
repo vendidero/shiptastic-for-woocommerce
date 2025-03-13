@@ -19,9 +19,3 @@ wp i18n make-pot ./ ./i18n/languages/shiptastic-for-woocommerce.pot --ignore-dom
 
 # Run composer update to make sure POT file paths are being updated
 composer update
-
-# Refresh po from pot
-msgmerge -U --suffix=off --backup=none ./i18n/languages/shiptastic-for-woocommerce-de_DE.po ./i18n/languages/shiptastic-for-woocommerce.pot
-msgmerge -U --suffix=off --backup=none ./i18n/languages/shiptastic-for-woocommerce-de_DE_formal.po ./i18n/languages/shiptastic-for-woocommerce.pot
-
-output 2 "Done! You may now edit the merged po files"

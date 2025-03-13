@@ -27,10 +27,10 @@ fi
 
 output 3 "Clean vendor dirs to save space..."
 
-rm -rf ./vendor/dvdoug/boxpacker/visualiser/*
-rm -rf ./vendor/dvdoug/boxpacker/docs/*
-rm -rf ./vendor/dvdoug/boxpacker/features/*
-rm -rf ./vendor/dvdoug/boxpacker/tests/*
+rm -rf ./vendor/dvdoug/boxpacker/visualiser
+rm -rf ./vendor/dvdoug/boxpacker/docs
+rm -rf ./vendor/dvdoug/boxpacker/features
+rm -rf ./vendor/dvdoug/boxpacker/tests
 rm -f ./vendor/dvdoug/boxpacker/*
 rm -rf ./vendor/dvdoug/boxpacker/.*
 rm -rf ./vendor/dvdoug/boxpacker/.github/*
