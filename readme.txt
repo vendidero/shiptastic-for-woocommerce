@@ -12,6 +12,8 @@ Shiptastic for WooCommerce is your all-in-one shipping solution for WooCommerce.
 
 == Description ==
 
+Shiptastic for WooCommerce is your all-in-one shipping solution for WooCommerce. From partial shipments to shipping rules, Shiptastic got you covered.
+
 * *Shipments* - Create (partial) shipments for orders - either automatically or by hand.
 * *Returns* - Allow your customers to submit return requests for orders. Review and process requests from within your admin panel.
 * *Packaging* - Store your packaging options to allow Shiptastic to pack your customer's cart/order based on your available options.

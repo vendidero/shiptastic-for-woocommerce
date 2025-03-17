@@ -448,6 +448,8 @@ class Order {
 			)
 		);
 
+		do_action( 'woocommerce_shiptastic_before_validate_shipments', $this );
+
 		foreach ( $this->get_simple_shipments() as $shipment ) {
 			if ( $shipment->is_editable() ) {
 
@@ -462,6 +464,8 @@ class Order {
 		if ( $args['save'] ) {
 			$this->save();
 		}
+
+		do_action( 'woocommerce_shiptastic_after_validate_shipments', $this );
 	}
 
 	/**

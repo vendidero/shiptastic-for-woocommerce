@@ -23,6 +23,24 @@ class WPML implements Compatibility {
 		add_action( 'woocommerce_shiptastic_shipping_provider_updated', array( __CLASS__, 'register_shipping_provider_strings' ), 10, 2 );
 
 		/**
+		 * Prevent infinite loop as WPML, by default, saves order items when retrieving items via WC_Order::get_items() which
+		 * will trigger a new shipment validation.
+		 */
+		add_action(
+			'woocommerce_shiptastic_before_validate_shipments',
+			function () {
+				add_filter( 'wcml_should_save_adjusted_order_item_in_language', array( __CLASS__, 'prevent_order_item_translation' ), 99 );
+			}
+		);
+
+		add_action(
+			'woocommerce_shiptastic_after_validate_shipments',
+			function () {
+				remove_filter( 'wcml_should_save_adjusted_order_item_in_language', array( __CLASS__, 'prevent_order_item_translation' ), 99 );
+			}
+		);
+
+		/**
 		 * The shipping provider filter name depends on the instance name - register filters while loading providers.
 		 */
 		if ( did_action( 'woocommerce_shiptastic_load_shipping_providers' ) ) {
@@ -49,6 +67,10 @@ class WPML implements Compatibility {
 				return $shipping_classes;
 			}
 		);
+	}
+
+	public static function prevent_order_item_translation() {
+		return false;
 	}
 
 	public static function translate_email_shipment_items( $args ) {

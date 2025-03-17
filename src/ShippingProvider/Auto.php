@@ -603,6 +603,12 @@ abstract class Auto extends Simple implements ShippingProviderAuto {
 	 * @return false|PickupLocation
 	 */
 	public function get_pickup_location_by_code( $location_code, $address = array() ) {
+		$code = $this->parse_pickup_location_code( $location_code );
+
+		if ( empty( $code ) ) {
+			return false;
+		}
+
 		$address         = $this->get_address_by_pickup_location_code( $location_code, $address );
 		$cache_key       = $this->get_pickup_location_cache_key( $location_code, $address );
 		$pickup_location = get_transient( $cache_key );

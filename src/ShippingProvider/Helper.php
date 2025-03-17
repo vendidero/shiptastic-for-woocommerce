@@ -105,7 +105,7 @@ class Helper {
 		);
 	}
 
-	protected function reset_providers() {
+	public function reset_providers() {
 		$this->shipping_providers = null;
 		\Vendidero\Shiptastic\Caches\Helper::get_cache_object( 'shipping-providers' )->flush();
 	}
@@ -251,9 +251,11 @@ class Helper {
 		foreach ( $shipping_providers as $provider_name => $provider_class ) {
 			if ( $cache = \Vendidero\Shiptastic\Caches\Helper::get_cache_object( 'shipping-providers' ) ) {
 				if ( $provider = $cache->get( $provider_name ) ) {
-					$this->shipping_providers[ $provider_name ] = $provider;
+					if ( is_a( $provider, '\Vendidero\Shiptastic\Interfaces\ShippingProvider' ) ) {
+						$this->shipping_providers[ $provider_name ] = $provider;
 
-					continue;
+						continue;
+					}
 				}
 			}
 
