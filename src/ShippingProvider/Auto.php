@@ -1295,14 +1295,14 @@ abstract class Auto extends Simple implements ShippingProviderAuto {
 			$props = wp_parse_args( $props, $default_props );
 		}
 
-		$props = wp_parse_args(
+		$props = apply_filters( "{$this->get_general_hook_prefix()}create_label_props", wp_parse_args(
 			$props,
 			array(
 				'services'     => array(),
 				'print_format' => '',
 				'product_id'   => '',
 			)
-		);
+		), $shipment );
 
 		/**
 		 * Neither allow invalid service configuration from automatic nor manual requests.

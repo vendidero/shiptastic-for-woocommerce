@@ -107,6 +107,10 @@ class Service {
 		$this->zones = array_filter( (array) $args['zones'] );
 	}
 
+	protected function get_general_hook_prefix() {
+		return "woocommerce_shiptastic_{$this->shipping_provider_name}_label_service_{$this->get_id()}_";
+	}
+
 	public function get_id() {
 		return $this->id;
 	}
@@ -440,7 +444,7 @@ class Service {
 			$value = 'yes';
 		}
 
-		return $value;
+		return apply_filters( "{$this->get_general_hook_prefix()}get_value", $value, $suffix, $shipment );
 	}
 
 	/**
@@ -456,7 +460,7 @@ class Service {
 			$book_as_default = true;
 		}
 
-		return $book_as_default;
+		return apply_filters( "{$this->get_general_hook_prefix()}book_as_default", $book_as_default, $shipment );
 	}
 
 	public function get_label_fields( $shipment, $location = '' ) {
