@@ -240,7 +240,7 @@ class Table extends WP_List_Table {
 	}
 
 	public function get_page_option() {
-		return 'woocommerce_page_wc_shiptastic_per_page';
+		return 'woocommerce_page_wc_stc_shipments_per_page';
 	}
 
 	/**

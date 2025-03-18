@@ -33,6 +33,10 @@ class ReturnTable extends Table {
 		return $columns;
 	}
 
+	public function get_page_option() {
+		return 'woocommerce_page_wc_stc_return_shipments_per_page';
+	}
+
 	/**
 	 * @param ReturnShipment $shipment
 	 * @param $actions
@@ -40,7 +44,6 @@ class ReturnTable extends Table {
 	 * @return mixed
 	 */
 	protected function get_custom_actions( $shipment, $actions ) {
-
 		if ( isset( $actions['shipped'] ) ) {
 			unset( $actions['shipped'] );
 		}

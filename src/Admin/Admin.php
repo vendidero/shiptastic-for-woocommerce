@@ -33,7 +33,7 @@ class Admin {
 		add_action( 'load-woocommerce_page_wc-stc-return-shipments', array( __CLASS__, 'setup_returns_table' ), 0 );
 
 		add_filter( 'set-screen-option', array( __CLASS__, 'set_screen_option' ), 10, 3 );
-		add_filter( 'set_screen_option_woocommerce_page_wc_shiptastic_per_page', array( __CLASS__, 'set_screen_option' ), 10, 3 );
+		add_filter( 'set_screen_option_woocommerce_page_wc_stc_shipments_per_page', array( __CLASS__, 'set_screen_option' ), 10, 3 );
 		add_filter( 'set_screen_option_woocommerce_page_wc_stc_return_shipments_per_page', array( __CLASS__, 'set_screen_option' ), 10, 3 );
 
 		add_filter( 'woocommerce_navigation_get_breadcrumbs', array( __CLASS__, 'register_admin_breadcrumbs' ), 20, 2 );
@@ -1618,7 +1618,7 @@ class Admin {
 	}
 
 	public static function set_screen_option( $new_value, $option, $value ) {
-		if ( in_array( $option, array( 'woocommerce_page_wc_shiptastic_per_page', 'woocommerce_page_wc_stc_return_shipments_per_page' ), true ) ) {
+		if ( in_array( $option, array( 'woocommerce_page_wc_stc_shipments_per_page', 'woocommerce_page_wc_stc_return_shipments_per_page' ), true ) ) {
 			return absint( $value );
 		}
 
