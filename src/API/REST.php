@@ -162,6 +162,10 @@ abstract class REST extends \Vendidero\Shiptastic\API\Api {
 
 	protected function get_request_url( $endpoint = '', $query_args = array() ) {
 		if ( ! strstr( $endpoint, 'http://' ) && ! strstr( $endpoint, 'https://' ) ) {
+			if ( '/' === substr( $endpoint, 0, 1 ) ) {
+				$endpoint = substr( $endpoint, 1 );
+			}
+
 			$endpoint = trailingslashit( $this->get_url() ) . $endpoint;
 		}
 
