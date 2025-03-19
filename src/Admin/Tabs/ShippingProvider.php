@@ -87,14 +87,16 @@ class ShippingProvider extends Tab {
 			}
 
 			if ( is_a( $provider, 'Vendidero\Shiptastic\ShippingProvider\Auto' ) ) {
-				$connection_test_result = $provider->test_connection();
+				if ( $provider->is_activated() ) {
+					$connection_test_result = $provider->test_connection();
 
-				if ( $provider->is_activated() && null !== $connection_test_result ) {
-					$is_error      = is_wp_error( $connection_test_result ) || false === $connection_test_result;
-					$error_message = is_wp_error( $connection_test_result ) ? $connection_test_result->get_error_message() : '';
-					$error_message = empty( $error_message ) ? _x( 'Not connected', 'shipments', 'shiptastic-for-woocommerce' ) : $error_message;
+					if ( null !== $connection_test_result ) {
+						$is_error      = is_wp_error( $connection_test_result ) || false === $connection_test_result;
+						$error_message = is_wp_error( $connection_test_result ) ? $connection_test_result->get_error_message() : '';
+						$error_message = empty( $error_message ) ? _x( 'Not connected', 'shipments', 'shiptastic-for-woocommerce' ) : $error_message;
 
-					$label = $label . '<span class="page-title-action wc-stc-shipment-api-connection-status ' . ( $is_error ? 'connection-status-error help_tip' : 'connection-status-success' ) . '" data-tip="' . esc_html( $is_error ? $error_message : '' ) . '">' . esc_html( $is_error ? _x( 'Status: Not Connected', 'shipments', 'shiptastic-for-woocommerce' ) : _x( 'Status: Connected', 'shipments', 'shiptastic-for-woocommerce' ) ) . '</span>';
+						$label = $label . '<span class="page-title-action wc-stc-shipment-api-connection-status ' . ( $is_error ? 'connection-status-error help_tip' : 'connection-status-success' ) . '" data-tip="' . esc_html( $is_error ? $error_message : '' ) . '">' . esc_html( $is_error ? _x( 'Status: Not Connected', 'shipments', 'shiptastic-for-woocommerce' ) : _x( 'Status: Connected', 'shipments', 'shiptastic-for-woocommerce' ) ) . '</span>';
+					}
 				}
 			}
 		} elseif ( ! $provider ) {
