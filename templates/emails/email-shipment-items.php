@@ -11,7 +11,7 @@
  * the readme will list any important changes.
  *
  * @package Shiptastic/Templates/Emails
- * @version 1.0.1
+ * @version 4.3.4
  */
 use Vendidero\Shiptastic\ShipmentItem;
 

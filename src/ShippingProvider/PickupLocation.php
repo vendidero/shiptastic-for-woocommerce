@@ -200,6 +200,8 @@ class PickupLocation {
 		$location_address['code']  = $this->get_code( 'edit' );
 
 		foreach ( $this->get_address_replacement_map() as $address_key => $location_address_key ) {
+			$replacements[ $address_key ] = '';
+
 			if ( isset( $location_address[ $location_address_key ] ) ) {
 				$replacements[ $address_key ] = $location_address[ $location_address_key ];
 			}

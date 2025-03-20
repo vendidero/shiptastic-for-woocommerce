@@ -13,6 +13,7 @@ window.shiptastic.shipments_pickup_locations = window.shiptastic.shipments_picku
         pickupLocations: {},
         available: false,
         currentProvider: '',
+        hasPickupLocation: false,
 
         init: function () {
             var self  = shipments.shipments_pickup_locations;
@@ -137,6 +138,8 @@ window.shiptastic.shipments_pickup_locations = window.shiptastic.shipments_picku
                 $notice.find( '.choose-pickup-location' ).hide();
 
                 $( '#wc-shiptastic-pickup-location-search-form .pickup-location-remove' ).removeClass( 'hidden' ).show();
+
+                $( document.body ).trigger( 'shiptastic_current_pickup_location', currentPickupLocation );
             } else {
                 $current.attr( 'data-current-location', '' );
                 $current.val( '' );
@@ -154,6 +157,8 @@ window.shiptastic.shipments_pickup_locations = window.shiptastic.shipments_picku
 
                 $notice.find( '.currently-shipping-to' ).hide();
                 $notice.find( '.choose-pickup-location' ).show();
+
+                $( document.body ).trigger( 'shiptastic_current_pickup_location', currentPickupLocation );
             }
         },
 
@@ -416,30 +421,28 @@ window.shiptastic.shipments_pickup_locations = window.shiptastic.shipments_picku
             Object.keys( replacements ).forEach( addressField => {
                 var value = replacements[ addressField ];
 
-                if ( value ) {
-                    if ( $( '#shipping_' + addressField ).length > 0 ) {
-                        if ( $( '#shipping_' + addressField ).val() !== value ) {
-                            hasChanged.push( addressField );
+                if ( $( '#shipping_' + addressField ).length > 0 ) {
+                    if ( $( '#shipping_' + addressField ).val() !== value ) {
+                        hasChanged.push( addressField );
+                    }
+
+                    $( '#shipping_' + addressField ).val( value );
+                    $( '#shipping_' + addressField ).prop( 'readonly', true );
+
+                    if ( 'country' === addressField ) {
+                        $( '#shipping_' + addressField ).trigger( 'change' ); // select2 needs a change event
+                    }
+
+                    var $row = $( '#shipping_' + addressField + '_field' );
+
+                    if ( $row.length > 0 ) {
+                        $row.addClass( 'wc-shiptastic-managed-by-pickup-location' );
+
+                        if ( $row.find( '.wc-shiptastic-managed-by-pickup-location-notice' ).length <= 0 ) {
+                            $row.find( 'label' ).after( '<span class="wc-shiptastic-managed-by-pickup-location-notice">' + self.params.i18n_managed_by_pickup_location + '</span>' );
                         }
-
-                        $( '#shipping_' + addressField ).val( value );
-                        $( '#shipping_' + addressField ).prop( 'readonly', true );
-
-                        if ( 'country' === addressField ) {
-                            $( '#shipping_' + addressField ).trigger( 'change' ); // select2 needs a change event
-                        }
-
-                        var $row = $( '#shipping_' + addressField + '_field' );
-
-                        if ( $row.length > 0 ) {
-                            $row.addClass( 'wc-shiptastic-managed-by-pickup-location' );
-
-                            if ( $row.find( '.wc-shiptastic-managed-by-pickup-location-notice' ).length <= 0 ) {
-                                $row.find( 'label' ).after( '<span class="wc-shiptastic-managed-by-pickup-location-notice">' + self.params.i18n_managed_by_pickup_location + '</span>' );
-                            }
-                        } else {
-                            $( '#shipping_' + addressField ).addClass( 'wc-shiptastic-managed-by-pickup-location' );
-                        }
+                    } else {
+                        $( '#shipping_' + addressField ).addClass( 'wc-shiptastic-managed-by-pickup-location' );
                     }
                 }
             });

@@ -1744,6 +1744,7 @@ abstract class Shipment extends WC_Data {
 	 */
 	public function set_status( $new_status, $manual_update = false ) {
 		$old_status = $this->get_status();
+		$new_status = apply_filters( "{$this->get_general_hook_prefix()}valid_status_slug", $new_status, $old_status, $this );
 
 		$this->set_prop( 'status', $new_status );
 

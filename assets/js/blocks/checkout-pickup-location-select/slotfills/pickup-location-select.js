@@ -58,18 +58,16 @@ const PickupLocationDomWatcher = ({
             Object.keys( currentPickupLocation.address_replacements ).forEach( addressField => {
                 const value = currentPickupLocation.address_replacements[ addressField ];
 
-                if ( value ) {
-                    if ( addressFormWrapper ) {
-                        const fieldWrapper = addressFormWrapper.getElementsByClassName( 'wc-block-components-address-form__' + addressField )[0];
+                if ( addressFormWrapper ) {
+                    const fieldWrapper = addressFormWrapper.getElementsByClassName( 'wc-block-components-address-form__' + addressField )[0];
 
-                        if ( fieldWrapper ) {
-                            fieldWrapper.classList.add( 'managed-by-pickup-location' );
+                    if ( fieldWrapper ) {
+                        fieldWrapper.classList.add( 'managed-by-pickup-location' );
 
-                            let input = fieldWrapper.getElementsByTagName( 'input' );
+                        let input = fieldWrapper.getElementsByTagName( 'input' );
 
-                            if ( input.length > 0 ) {
-                                input[0].readOnly = true;
-                            }
+                        if ( input.length > 0 ) {
+                            input[0].readOnly = true;
                         }
                     }
                 }

@@ -11,7 +11,7 @@
  * the readme will list any important changes.
  *
  * @package Vendidero/Shiptastic/Templates
- * @version 1.0.2
+ * @version 4.3.4
  */
 defined( 'ABSPATH' ) || exit;
 ?>
