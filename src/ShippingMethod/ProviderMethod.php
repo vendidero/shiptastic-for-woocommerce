@@ -153,6 +153,10 @@ class ProviderMethod implements LabelConfigurationSet {
 			$value = $default;
 		}
 
+		if ( is_array( $default ) ) {
+			$value = array_filter( (array) $value );
+		}
+
 		return $value;
 	}
 
