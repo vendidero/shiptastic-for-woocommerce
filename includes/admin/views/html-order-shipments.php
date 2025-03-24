@@ -10,6 +10,7 @@ $active_shipment = isset( $active_shipment ) ? $active_shipment : false;
 ?>
 
 <div id="order-shipments" class="shiptastic-shipments">
+	<div class="shiptastic-shipments-sortable-header hndle ui-sortable-handle"></div>
 	<div id="panel-order-shipments" class="<?php echo ( $order_shipment->needs_shipping() ? 'needs-shipments' : '' ); ?> <?php echo ( $order_shipment->needs_return() ? 'needs-returns' : '' ); ?>">
 
 		<div class="panel-title title-spread panel-inner">

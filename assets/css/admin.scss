@@ -1151,7 +1151,7 @@ a.button.wc-stc-shipment-action-button {
     display: block !important;
   }
 
-  .hndle, .handlediv, .postbox-header {
+  .postbox-header {
     display: none;
   }
 
@@ -1165,8 +1165,12 @@ a.button.wc-stc-shipment-action-button {
     box-sizing: border-box;
   }
 
+  .shiptastic-shipments-sortable-header {
+    padding-top: 23px;
+  }
+
   #panel-order-shipments {
-    padding: 23px 0 0;
+    padding: 0;
 
     .panel-inner {
       padding: 0 24px;
