@@ -11,7 +11,7 @@
  * the readme will list any important changes.
  *
  * @package Shiptastic/Templates/Emails
- * @version 4.3.4
+ * @version 4.3.0
  */
 defined( 'ABSPATH' ) || exit;
 
