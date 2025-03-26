@@ -56,7 +56,7 @@ class MethodHelper {
 			return $methods;
 		}
 
-		foreach ( Helper::instance()->get_shipping_providers() as $provider ) {
+		foreach ( Helper::instance()->get_available_shipping_providers() as $provider ) {
 			$methods[ "shipping_provider_{$provider->get_name()}" ] = new ShippingMethod( 0, $provider );
 		}
 
@@ -470,11 +470,7 @@ class MethodHelper {
 			if ( is_null( self::$provider_method_settings ) ) {
 				self::$provider_method_settings = array();
 
-				foreach ( wc_stc_get_shipping_providers() as $provider ) {
-					if ( ! $provider->is_activated() ) {
-						continue;
-					}
-
+				foreach ( Helper::instance()->get_available_shipping_providers() as $provider ) {
 					self::$provider_method_settings[ $provider->get_name() ] = $provider->get_shipping_method_settings();
 				}
 			}

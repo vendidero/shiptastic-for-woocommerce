@@ -44,6 +44,7 @@ We recommend installing Shiptastic for WooCommerce through the WordPress Backend
 * Improvement: Prevent errors when deserializing shipping method data
 * Improvement: Allow overriding pickup location replacement fields with empty values
 * Improvement: Bump template versions
+* Improvement: Do only register shipping methods for enabled providers
 
 = 4.3.4 =
 * Improvement: Added new filters to allow adjusting default label services
