@@ -127,6 +127,8 @@ class MethodHelper {
 				$items->insert( $cart_item, $quantity );
 			}
 
+			$package_data['shipping_classes'] = array_unique( $package_data['shipping_classes'] );
+
 			do_action( 'woocommerce_shiptastic_after_prepare_cart_contents' );
 
 			/**
