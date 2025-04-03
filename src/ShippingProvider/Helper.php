@@ -107,7 +107,9 @@ class Helper {
 
 	public function reset_providers() {
 		$this->shipping_providers = null;
-		\Vendidero\Shiptastic\Caches\Helper::get_cache_object( 'shipping-providers' )->flush();
+		if ( $cache = \Vendidero\Shiptastic\Caches\Helper::get_cache_object( 'shipping-providers' ) ) {
+			$cache->flush();
+		}
 	}
 
 	/**
