@@ -32,9 +32,17 @@ class ReturnShipment extends Shipment {
 	 */
 	private $order = null;
 
+	/**
+	 * The corresponding order object.
+	 *
+	 * @var null|\WC_Order_Refund
+	 */
+	private $refund_order = null;
+
 	protected $extra_data = array(
 		'order_id'              => 0,
 		'is_customer_requested' => false,
+		'refund_order_id'       => 0,
 		'sender_address'        => array(),
 	);
 
@@ -55,6 +63,16 @@ class ReturnShipment extends Shipment {
 	 */
 	public function get_order_id( $context = 'view' ) {
 		return $this->get_prop( 'order_id', $context );
+	}
+
+	/**
+	 * Returns the refund order id belonging to the shipment.
+	 *
+	 * @param  string $context What the value is for. Valid values are 'view' and 'edit'.
+	 * @return integer
+	 */
+	public function get_refund_order_id( $context = 'view' ) {
+		return $this->get_prop( 'refund_order_id', $context );
 	}
 
 	/**
@@ -131,6 +149,18 @@ class ReturnShipment extends Shipment {
 	}
 
 	/**
+	 * Set shipment refund order id.
+	 *
+	 * @param string $order_id The order id.
+	 */
+	public function set_refund_order_id( $order_id ) {
+		// Reset order object
+		$this->refund_order = null;
+
+		$this->set_prop( 'refund_order_id', absint( $order_id ) );
+	}
+
+	/**
 	 * Set if the current return was requested by the customer or not.
 	 *
 	 * @param string $is_requested Whether or not it is requested by the customer.
@@ -186,6 +216,19 @@ class ReturnShipment extends Shipment {
 		}
 
 		return $this->order;
+	}
+
+	/**
+	 * Tries to fetch the refund order for the current shipment.
+	 *
+	 * @return bool|\WC_Order_Refund|null
+	 */
+	public function get_refund_order() {
+		if ( is_null( $this->refund_order ) ) {
+			$this->refund_order = ( $this->get_refund_order_id() > 0 ? wc_get_order( $this->get_refund_order_id() ) : false );
+		}
+
+		return $this->refund_order;
 	}
 
 	/**

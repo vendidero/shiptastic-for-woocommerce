@@ -440,6 +440,131 @@ class Order {
 		return $shipments_created;
 	}
 
+	public function sync_returns_with_refunds() {
+		$refunded_items     = $this->get_refunds_map();
+		$non_linked_returns = array();
+
+		foreach ( $this->get_return_shipments() as $return ) {
+			if ( array_key_exists( $return->get_refund_order_id(), $refunded_items ) ) {
+				$refund_items          = $refunded_items[ $return->get_refund_order_id() ]['items'];
+				$refund_total          = $refunded_items[ $return->get_refund_order_id() ]['total'];
+				$return_items          = $return->get_items();
+				$is_linkable_to_refund = ! empty( $refund_items ) && ! empty( $return_items );
+
+				if ( empty( $refund_items ) ) {
+					if ( $return->get_total() <= $refund_total ) {
+						$refunded_items[ $return->get_refund_order_id() ]['total'] -= $return->get_total();
+						$is_linkable_to_refund                                      = true;
+					} else {
+						$is_linkable_to_refund = false;
+					}
+				} else {
+					foreach ( $return_items as $item ) {
+						if ( ! array_key_exists( $item->get_order_item_id(), $refund_items ) ) {
+							$is_linkable_to_refund = false;
+							break;
+						} else {
+							$refunded_quantity = absint( $refund_items[ $item->get_order_item_id() ] );
+
+							if ( $item->get_quantity() > $refunded_quantity ) {
+								$is_linkable_to_refund = false;
+								break;
+							} else {
+								$refunded_items[ $return->get_refund_order_id() ]['items'][ $item->get_order_item_id() ] -= $item->get_quantity();
+
+								if ( $refunded_items[ $return->get_refund_order_id() ]['items'][ $item->get_order_item_id() ] <= 0 ) {
+									unset( $refunded_items[ $return->get_refund_order_id() ]['items'][ $item->get_order_item_id() ] );
+
+									if ( empty( $refunded_items[ $return->get_refund_order_id() ]['items'] ) ) {
+										unset( $refunded_items[ $return->get_refund_order_id() ] );
+									}
+								}
+							}
+						}
+					}
+				}
+
+				if ( ! $is_linkable_to_refund ) {
+					$return->set_refund_order_id( 0 );
+					$return->save();
+				}
+			} else {
+				$return->set_refund_order_id( 0 );
+				$return->save();
+			}
+
+			if ( ! array_key_exists( $return->get_refund_order_id(), $refunded_items ) ) {
+				foreach ( $refunded_items as $refund_id => $refund_details ) {
+					if ( ! array_key_exists( $refund_id, $refunded_items ) ) {
+						continue;
+					}
+
+					$refund_items          = $refunded_items[ $refund_id ]['items'];
+					$return_items          = $return->get_items();
+					$is_linkable_to_refund = ! empty( $refund_items ) && ! empty( $return_items );
+
+					foreach ( $return_items as $item ) {
+						if ( ! array_key_exists( $item->get_order_item_id(), $refund_items ) ) {
+							$is_linkable_to_refund = false;
+							break;
+						} else {
+							$refunded_quantity = absint( $refund_items[ $item->get_order_item_id() ] );
+
+							if ( $item->get_quantity() > $refunded_quantity ) {
+								$is_linkable_to_refund = false;
+								break;
+							} else {
+								$refunded_items[ $refund_id ]['items'][ $item->get_order_item_id() ] -= $item->get_quantity();
+
+								if ( $refunded_items[ $refund_id ]['items'][ $item->get_order_item_id() ] <= 0 ) {
+									unset( $refunded_items[ $refund_id ]['items'][ $item->get_order_item_id() ] );
+
+									if ( empty( $refunded_items[ $refund_id ]['items'] ) ) {
+										unset( $refunded_items[ $refund_id ] );
+									}
+								}
+							}
+						}
+					}
+
+					if ( $is_linkable_to_refund ) {
+						$return->set_refund_order_id( $refund_id );
+
+						if ( apply_filters( 'woocommerce_shiptastic_set_return_to_delivered_on_refund', true, $return, $refund_id ) ) {
+							$return->update_status( 'delivered' );
+						}
+					} else {
+						$return->set_refund_order_id( 0 );
+
+						$non_linked_returns[ $return->get_id() ] = $return;
+					}
+
+					$return->save();
+				}
+			}
+		}
+
+		if ( ! empty( $non_linked_returns ) && ! empty( $refunded_items ) ) {
+			foreach ( $refunded_items as $refund_id => $refund_details ) {
+				$refund_total = $refund_details['total'] * -1;
+
+				foreach ( $non_linked_returns as $return ) {
+					if ( $return->get_total() <= $refund_total ) {
+						$refund_total -= $return->get_total();
+
+						$return->set_refund_order_id( $refund_id );
+
+						if ( apply_filters( 'woocommerce_shiptastic_set_return_to_delivered_on_refund', true, $return, $refund_id ) ) {
+							$return->update_status( 'delivered' );
+						}
+
+						$return->save();
+					}
+				}
+			}
+		}
+	}
+
 	public function validate_shipments( $args = array() ) {
 		$args = wp_parse_args(
 			$args,
@@ -452,7 +577,6 @@ class Order {
 
 		foreach ( $this->get_simple_shipments() as $shipment ) {
 			if ( $shipment->is_editable() ) {
-
 				// Make sure we are working based on the current instance.
 				$shipment->set_order_shipment( $this );
 				$shipment->sync();
@@ -1131,6 +1255,31 @@ class Order {
 		 * @package Vendidero/Shiptastic
 		 */
 		return apply_filters( 'woocommerce_shiptastic_shipment_order_returnable_items', $items, $this->get_order(), $this );
+	}
+
+	public function get_refunds_map() {
+		$refunds = $this->get_order()->get_refunds();
+		$items   = array();
+
+		foreach ( $refunds as $refund ) {
+			$items[ $refund->get_id() ] = array(
+				'total' => $refund->get_total(),
+				'items' => array(),
+			);
+
+			$refund_items = $refund->get_items( 'line_item' );
+			$refund_items = array_filter( $refund_items );
+
+			foreach ( $refund_items as $refund_item ) {
+				$parent_id = $refund_item->get_meta( '_refunded_item_id', true );
+
+				if ( ! empty( $parent_id ) ) {
+					$items[ $refund->get_id() ]['items'][ $parent_id ] = $refund_item->get_quantity();
+				}
+			}
+		}
+
+		return $items;
 	}
 
 	public function get_shippable_item_quantity( $order_item ) {

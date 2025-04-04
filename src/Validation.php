@@ -11,8 +11,6 @@ defined( 'ABSPATH' ) || exit;
 
 class Validation {
 
-	private static $current_refund_parent_order = false;
-
 	public static function init() {
 		add_action( 'woocommerce_new_order_item', array( __CLASS__, 'create_order_item' ), 10, 3 );
 		add_action( 'woocommerce_before_delete_order_item', array( __CLASS__, 'delete_order_item' ), 10, 1 );
@@ -89,9 +87,16 @@ class Validation {
 			add_action( "woocommerce_order_status_{$cancelled_status}", array( __CLASS__, 'maybe_cancel_shipments' ), 10, 2 );
 		}
 
-		add_action( 'before_delete_post', array( __CLASS__, 'before_delete_refund' ), 10, 1 );
-		add_action( 'woocommerce_delete_order_refund', array( __CLASS__, 'delete_refund_order' ), 10, 1 );
+		add_filter( 'woocommerce_pre_delete_order_refund', array( __CLASS__, 'before_delete_refund' ), 9999, 3 );
+		add_action( 'woocommerce_shiptastic_deleted_refund_order', array( __CLASS__, 'delete_refund_order' ), 10, 2 );
 		add_action( 'woocommerce_order_refund_object_updated_props', array( __CLASS__, 'refresh_refund_order' ), 10, 1 );
+
+		/**
+		 * In case a refund is created - make sure our invoices/cancellations are adjusted accordingly.
+		 * Use a lower priority to allow creating cancellations before the refund notification has been triggered.
+		 */
+		add_action( 'woocommerce_order_partially_refunded', array( __CLASS__, 'on_refund_order' ), 5, 2 );
+		add_action( 'woocommerce_order_fully_refunded', array( __CLASS__, 'on_refund_order' ), 5, 2 );
 
 		// Check if order is shipped
 		add_action( 'woocommerce_shiptastic_shipment_before_status_change', array( __CLASS__, 'maybe_update_order_date_shipped' ), 5, 2 );
@@ -164,27 +169,61 @@ class Validation {
 		$shipments = wc_stc_get_shipments_by_order( $order );
 
 		foreach ( $shipments as $shipment ) {
-			if ( $shipment->is_editable() ) {
+			$is_deletable = $shipment->is_editable();
+
+			/**
+			 * Do not auto-delete returns when refunding an order
+			 */
+			if ( 'refunded' === $order->get_status() && 'return' === $shipment->get_type() ) {
+				$is_deletable = false;
+			}
+
+			if ( $is_deletable ) {
 				$shipment->delete();
 			}
 		}
 	}
 
-	public static function before_delete_refund( $refund_id ) {
-		if ( $refund = wc_get_order( $refund_id ) ) {
-			if ( is_a( $refund, 'WC_Order_Refund' ) ) {
-				self::$current_refund_parent_order = $refund->get_parent_id();
+	/**
+	 * @param $do_delete
+	 * @param \WC_Order_Refund $refund
+	 * @param bool $force_delete
+	 *
+	 * @return mixed
+	 */
+	public static function before_delete_refund( $do_delete, $refund, $force_delete ) {
+		/**
+		 * Use this ugly hack to make sure we are able to hook into the order refund event as
+		 * Woo does not offer hook-support for HPOS refund deletion yet.
+		 */
+		if ( null === $do_delete ) {
+			if ( $data_store = $refund->get_data_store() ) {
+				$refund_id = $refund->get_id();
+
+				$data_store->delete( $refund, array( 'force_delete' => $force_delete ) );
+				$refund->set_id( 0 );
+
+				do_action( 'woocommerce_shiptastic_deleted_refund_order', $refund, $refund_id );
 			}
 		}
+
+		return $do_delete;
 	}
 
-	public static function delete_refund_order( $refund_id ) {
-		if ( false !== self::$current_refund_parent_order ) {
-			if ( $order_shipment = wc_stc_get_shipment_order( self::$current_refund_parent_order ) ) {
-				$order_shipment->validate_shipments();
-			}
+	/**
+	 * @param \WC_Order_Refund $refund
+	 * @param $refund_id
+	 *
+	 * @return void
+	 */
+	public static function delete_refund_order( $refund, $refund_id ) {
+		if ( $refund->get_parent_id() <= 0 ) {
+			return;
+		}
 
-			self::$current_refund_parent_order = false;
+		if ( $order_shipment = wc_stc_get_shipment_order( $refund->get_parent_id() ) ) {
+			$order_shipment->validate_shipments();
+			$order_shipment->sync_returns_with_refunds();
 		}
 	}
 
@@ -195,6 +234,16 @@ class Validation {
 
 		if ( $order_shipment = wc_stc_get_shipment_order( $refund->get_parent_id() ) ) {
 			$order_shipment->validate_shipments();
+		}
+	}
+
+	/**
+	 * @param $order_id
+	 * @param $refund_id
+	 */
+	public static function on_refund_order( $order_id, $refund_id ) {
+		if ( $order_shipment = wc_stc_get_shipment_order( $order_id ) ) {
+			$order_shipment->sync_returns_with_refunds();
 		}
 	}
 
