@@ -546,7 +546,7 @@ class Order {
 
 		if ( ! empty( $non_linked_returns ) && ! empty( $refunded_items ) ) {
 			foreach ( $refunded_items as $refund_id => $refund_details ) {
-				$refund_total = $refund_details['total'] * -1;
+				$refund_total = $refund_details['total'];
 
 				foreach ( $non_linked_returns as $return ) {
 					if ( $return->get_total() <= $refund_total ) {
@@ -1263,7 +1263,7 @@ class Order {
 
 		foreach ( $refunds as $refund ) {
 			$items[ $refund->get_id() ] = array(
-				'total' => $refund->get_total(),
+				'total' => (float) $refund->get_total() * -1,
 				'items' => array(),
 			);
 
