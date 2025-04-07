@@ -1,5 +1,5 @@
 #!/bin/sh
-# Germanized plugin releaser script
+# Shiptastic plugin releaser script
 # based on https://github.com/woocommerce/woocommerce-core-to-wordpress-org
 
 # Variables

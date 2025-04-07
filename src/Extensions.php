@@ -274,12 +274,12 @@ class Extensions {
 		} elseif ( ! self::is_plugin_installed( $plugin ) ) {
 			$result = self::install_plugins( $plugin );
 
-			if ( ! wc_stc_wp_error_has_errors( $result['errors'] ) ) {
+			if ( ! wc_stc_shipment_wp_error_has_errors( $result['errors'] ) ) {
 				$result = self::activate_plugins( $plugin );
 			}
 		}
 
-		return ( ! wc_stc_wp_error_has_errors( $result['errors'] ) ? true : false );
+		return ( ! wc_stc_shipment_wp_error_has_errors( $result['errors'] ) ? true : false );
 	}
 
 	/**
@@ -291,20 +291,6 @@ class Extensions {
 		} else {
 			return false;
 		}
-	}
-
-	/**
-	 * @return bool
-	 */
-	public static function install_or_activate_oss() {
-		return self::install_or_activate_extension( 'one-stop-shop-woocommerce' );
-	}
-
-	/**
-	 * @return bool
-	 */
-	public static function install_or_activate_trusted_shops() {
-		return self::install_or_activate_extension( 'trusted-shops-easy-integration-for-woocommerce' );
 	}
 
 	public static function get_plugin_manual_install_message( $plugin ) {

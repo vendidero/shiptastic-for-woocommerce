@@ -129,7 +129,17 @@ class Helper {
 	public function get_available_shipping_provider_integrations( $inactive_only = false ) {
 		if ( is_null( $this->integrations ) ) {
 			$this->integrations = array();
-			$available          = apply_filters( 'woocommerce_shiptastic_available_shipping_provider_integrations', array() );
+			$available          = apply_filters(
+				'woocommerce_shiptastic_available_shipping_provider_integrations',
+				array(
+					'ups' => array(
+						'title'          => _x( 'UPS', 'shipments', 'shiptastic-for-woocommerce' ),
+						'is_builtin'     => false,
+						'is_pro'         => false,
+						'extension_name' => 'shiptastic-integration-for-ups',
+					),
+				)
+			);
 
 			foreach ( $available as $key => $placeholder_args ) {
 				$this->integrations[ $key ] = new Placeholder( 0, $placeholder_args );
