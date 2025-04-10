@@ -591,7 +591,10 @@ abstract class Auto extends Simple implements ShippingProviderAuto {
 	 */
 	protected function get_pickup_location_instance( $data ) {
 		try {
-			return new PickupLocation( (array) $data );
+			$data                           = (array) $data;
+			$data['shipping_provider_name'] = $this->get_name();
+
+			return new PickupLocation( $data );
 		} catch ( \Exception $e ) {
 			return false;
 		}
@@ -601,8 +604,8 @@ abstract class Auto extends Simple implements ShippingProviderAuto {
 		$address    = $this->parse_pickup_location_address_args( $address );
 		$code_parts = explode( '_', $location_code );
 
-		if ( count( $code_parts ) === 3 ) {
-			$address['country']  = $code_parts[1];
+		if ( count( $code_parts ) >= 3 ) {
+			$address['country']  = strtoupper( $code_parts[1] );
 			$address['postcode'] = $code_parts[2];
 		}
 
@@ -630,7 +633,7 @@ abstract class Auto extends Simple implements ShippingProviderAuto {
 		if ( false === $pickup_location_data || ! is_array( $pickup_location_data ) ) {
 			$pickup_location = $this->fetch_single_pickup_location( $location_code, $address );
 
-			if ( ! is_null( $pickup_location ) ) {
+			if ( $pickup_location && is_a( $pickup_location, '\Vendidero\Shiptastic\ShippingProvider\PickupLocation' ) ) {
 				set_transient( $cache_key, $pickup_location->get_data(), DAY_IN_SECONDS );
 			} else {
 				$pickup_location = false;

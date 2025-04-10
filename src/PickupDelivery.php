@@ -4,6 +4,7 @@ namespace Vendidero\Shiptastic;
 
 use Automattic\WooCommerce\StoreApi\Utilities\CartController;
 use Exception;
+use Vendidero\Shiptastic\Interfaces\ShippingProvider;
 use WC_Order;
 use WP_Query;
 
@@ -226,7 +227,7 @@ class PickupDelivery {
 
 				$current_location_code = self::get_pickup_location_code_by_customer( $customer );
 
-				if ( $current_location_code ) {
+				if ( $current_location_code && self::pickup_location_code_belongs_to_provider( $current_location_code, $provider ) ) {
 					if ( $current_location = $provider->get_pickup_location_by_code( $current_location_code, $result['address'] ) ) {
 						if ( $retrieve_locations ) {
 							$result['locations'][] = $current_location;
@@ -1041,6 +1042,23 @@ class PickupDelivery {
 		}
 
 		return apply_filters( 'woocommerce_shiptastic_shipment_pickup_location_delivery_available_for_customer', $supports_pickup_delivery, $customer_id );
+	}
+
+	/**
+	 * @param $code
+	 * @param ShippingProvider $provider
+	 *
+	 * @return bool
+	 */
+	public static function pickup_location_code_belongs_to_provider( $code, $provider ) {
+		$location_code_parts = wc_stc_get_pickup_location_code_parts( $code );
+		$belongs_to_provider = true;
+
+		if ( ! empty( $location_code_parts['shipping_provider'] ) && $location_code_parts['shipping_provider'] !== $provider->get_name() ) {
+			$belongs_to_provider = false;
+		}
+
+		return $belongs_to_provider;
 	}
 
 	public static function get_pickup_location_code_by_customer( $customer_id = false ) {

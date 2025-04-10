@@ -16,6 +16,8 @@ class PickupLocation {
 
 	protected $longitude = '';
 
+	protected $shipping_provider_name = '';
+
 	protected $supports_customer_number = false;
 
 	protected $customer_number_is_mandatory = false;
@@ -33,6 +35,7 @@ class PickupLocation {
 				'label'                        => '',
 				'latitude'                     => '',
 				'longitude'                    => '',
+				'shipping_provider_name'       => '',
 				'supports_customer_number'     => false,
 				'customer_number_is_mandatory' => false,
 				'address'                      => array(),
@@ -48,20 +51,19 @@ class PickupLocation {
 			throw new \Exception( esc_html( 'A pickup location needs a code.' ), 500 );
 		}
 
-		$code_parts      = explode( '_', $args['code'] );
+		$code_parts      = wc_stc_get_pickup_location_code_parts( $args['code'] );
+		$args['code']    = $code_parts['code'];
 		$default_address = array(
 			'address_1' => '',
 			'city'      => '',
-			'postcode'  => '',
-			'country'   => '',
+			'postcode'  => $code_parts['postcode'],
+			'country'   => $code_parts['country'],
 			'state'     => '',
 			'company'   => '',
 		);
 
-		if ( count( $code_parts ) === 3 ) {
-			$args['code']                = $code_parts[0];
-			$default_address['country']  = $code_parts[1];
-			$default_address['postcode'] = $code_parts[2];
+		if ( ! empty( $code_parts['shipping_provider'] ) ) {
+			$args['shipping_provider_name'] = $code_parts['shipping_provider'];
 		}
 
 		$this->code                         = $args['code'];
@@ -69,6 +71,7 @@ class PickupLocation {
 		$this->label                        = $args['label'];
 		$this->latitude                     = $args['latitude'];
 		$this->longitude                    = $args['longitude'];
+		$this->shipping_provider_name       = is_a( $args['shipping_provider_name'], '\Vendidero\Shiptastic\Interfaces\ShippingProvider' ) ? $args['shipping_provider_name']->get_name() : $args['shipping_provider_name'];
 		$this->supports_customer_number     = wc_string_to_bool( $args['supports_customer_number'] );
 		$this->customer_number_is_mandatory = wc_string_to_bool( $args['customer_number_is_mandatory'] );
 		$this->address                      = wp_parse_args( (array) $args['address'], $default_address );
@@ -86,7 +89,9 @@ class PickupLocation {
 
 	public function get_code( $context = 'view' ) {
 		if ( 'view' === $context ) {
-			return sanitize_key( "{$this->code}_{$this->get_country()}_{$this->get_postcode()}" );
+			$provider_name = str_replace( '_', '#', $this->get_shipping_provider_name() );
+
+			return sanitize_key( "{$this->code}_{$this->get_country()}_{$this->get_postcode()}" . ( ! empty( $provider_name ) ? "_{$provider_name}" : '' ) );
 		} else {
 			return $this->code;
 		}
@@ -94,6 +99,10 @@ class PickupLocation {
 
 	public function get_label() {
 		return $this->label;
+	}
+
+	public function get_shipping_provider_name() {
+		return $this->shipping_provider_name;
 	}
 
 	public function get_type() {
@@ -234,6 +243,7 @@ class PickupLocation {
 			'address_replacement_map'      => $this->get_address_replacement_map(),
 			'address_replacements'         => $this->get_address_replacements(),
 			'formatted_address'            => $this->get_formatted_address(),
+			'shipping_provider_name'       => $this->get_shipping_provider_name(),
 		);
 	}
 }
