@@ -20,6 +20,11 @@ Shiptastic for WooCommerce is your all-in-one shipping solution for WooCommerce.
 * *Shipping Rules* - Create complex shipping scenarios and calculate shipping costs based on your packaging options.
 * *Shipping Service Providers* - Either use one of our available provider integrations or manually add you shipping service provider.
 
+= UPS® integration =
+
+Shiptastic comes with a ready-made [integration for UPS](https://wordpress.org/plugins/shiptastic-integration-for-ups). Navigate to WooCommerce > Settings > Shiptastic > Shipping Service Providers and install UPS to
+create labels for Shipments & Returns right from your dashboard and provide your customers with an easy way to select UPS Access Point™ delivery from within your checkout.
+
 == Installation ==
 
 = Minimal Requirements =

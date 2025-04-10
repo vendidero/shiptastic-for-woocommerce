@@ -322,7 +322,7 @@ class PickupDelivery {
 							<?php do_action( 'woocommerce_shiptastic_pickup_delivery_modal_actions' ); ?>
 						</div>
 
-						<?php wp_nonce_field( 'wc-shiptastic-search-pickup-location' ); ?>
+						<?php wp_nonce_field( 'wc-shiptastic-search-pickup-location', 'wc_stc_search_pickup_location_nonce' ); ?>
 					</form>
 				</article>
 			</div>
@@ -694,7 +694,7 @@ class PickupDelivery {
 	}
 
 	public static function search_pickup_locations() {
-		check_ajax_referer( 'wc-shiptastic-search-pickup-location' );
+		check_ajax_referer( 'wc-shiptastic-search-pickup-location', 'wc_stc_search_pickup_location_nonce' );
 
 		$postcode  = isset( $_POST['pickup_location_postcode'] ) ? wc_clean( wp_unslash( $_POST['pickup_location_postcode'] ) ) : '';
 		$address_1 = isset( $_POST['pickup_location_address'] ) ? wc_clean( wp_unslash( $_POST['pickup_location_address'] ) ) : '';

@@ -16,6 +16,40 @@ class Emails {
 
 		// Attach shipments to order notifications
 		add_action( 'woocommerce_email_order_details', array( __CLASS__, 'attach_shipments_data' ), 30, 4 );
+
+		add_action(
+			'woocommerce_prepare_email_for_preview',
+			function ( $email_instance ) {
+				$returns = array(
+					'WC_STC_Email_Customer_Return_Shipment',
+					'WC_STC_Email_New_Return_Shipment_Request',
+					'WC_STC_Email_Customer_Return_Shipment_Delivered',
+				);
+
+				if ( is_a( $email_instance, 'WC_STC_Email_Customer_Shipment' ) ) {
+					$email_instance->shipment = new \Vendidero\Shiptastic\Admin\Preview\Shipment();
+				} elseif ( in_array( get_class( $email_instance ), $returns, true ) ) {
+					$email_instance->shipment = new \Vendidero\Shiptastic\Admin\Preview\ReturnShipment();
+				}
+
+				return $email_instance;
+			}
+		);
+
+		add_filter(
+			'woocommerce_email_preview_placeholders',
+			function ( $placeholders, $email_type ) {
+				if ( 'WC_STC_Email_Customer_Shipment' === $email_type ) {
+					$placeholders['{shipment_number}']      = '1234';
+					$placeholders['{current_shipment_num}'] = '1';
+					$placeholders['{total_shipments}']      = '1';
+				}
+
+				return $placeholders;
+			},
+			10,
+			2
+		);
 	}
 
 	public static function attach_shipments_data( $order, $sent_to_admin, $plain_text, $email = false ) {
@@ -94,8 +128,7 @@ class Emails {
 	 * @param string $email
 	 */
 	public static function email_return_instructions( $shipment, $sent_to_admin = false, $plain_text = false, $email = '' ) {
-
-		if ( 'return' !== $shipment->get_type() || $shipment->has_status( 'delivered' ) ) {
+		if ( 'return' !== $shipment->get_type() || $shipment->has_status( 'delivered' ) || is_a( $email, 'WC_STC_Email_New_Return_Shipment_Request' ) ) {
 			return;
 		}
 
@@ -129,7 +162,6 @@ class Emails {
 	 * @param string $email
 	 */
 	public static function email_tracking( $shipment, $sent_to_admin = false, $plain_text = false, $email = '' ) {
-
 		// Do only include shipment tracking if estimated delivery date or tracking instruction or tracking url exists
 		// Do not show tracking for returns
 		if ( ! $shipment->has_tracking() || $shipment->has_status( 'delivered' ) || 'return' === $shipment->get_type() ) {
