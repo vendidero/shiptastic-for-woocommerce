@@ -344,11 +344,15 @@ class PickupDelivery {
 		if ( $shipment_order = wc_stc_get_shipment_order( $order ) ) {
 			$order->delete_meta_data( '_pickup_location_address' );
 
-			if ( $provider = $shipment_order->get_shipping_provider() ) {
-				if ( is_a( $provider, 'Vendidero\Shiptastic\Interfaces\ShippingProviderAuto' ) ) {
-					if ( $location = $provider->get_pickup_location_by_code( $code, $order->get_address( 'shipping' ) ) ) {
-						$code = $location->get_code();
-						$order->update_meta_data( '_pickup_location_address', $location->get_address() );
+			if ( ! empty( $code ) ) {
+				if ( $provider = $shipment_order->get_shipping_provider() ) {
+					if ( is_a( $provider, 'Vendidero\Shiptastic\Interfaces\ShippingProviderAuto' ) ) {
+						if ( $provider->supports_pickup_locations() ) {
+							if ( $location = $provider->get_pickup_location_by_code( $code, $order->get_address( 'shipping' ) ) ) {
+								$code = $location->get_code();
+								$order->update_meta_data( '_pickup_location_address', $location->get_address() );
+							}
+						}
 					}
 				}
 			}
