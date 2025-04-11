@@ -214,7 +214,6 @@ if ( ! class_exists( 'WC_STC_Email_Customer_Shipment', false ) ) :
 			$this->partial_shipment = false;
 
 			if ( $this->shipment = wc_stc_get_shipment( $shipment_id ) ) {
-
 				$this->placeholders['{shipment_number}'] = $this->shipment->get_shipment_number();
 
 				if ( $order_shipment = wc_stc_get_shipment_order( $this->shipment->get_order() ) ) {

@@ -636,6 +636,29 @@ function wc_stc_get_shipment_address_addition( $shipment ) {
 	return trim( $addition );
 }
 
+function wc_stc_get_address_from_street_and_number( $street, $number, $country ) {
+	$pad_to         = 'right';
+	$countries_left = array(
+		'CA',
+		'US',
+		'GB',
+		'FR',
+		'AU',
+	);
+
+	if ( in_array( $country, $countries_left, true ) ) {
+		$pad_to = 'left';
+	}
+
+	if ( 'left' === $pad_to ) {
+		$address = ( ! empty( $number ) ? $number . ' ' : '' ) . $street;
+	} else {
+		$address = $street . ( ! empty( $number ) ? ' ' . $number : '' );
+	}
+
+	return $address;
+}
+
 function wc_stc_split_shipment_street( $street_str ) {
 	$return = array(
 		'street'     => $street_str,

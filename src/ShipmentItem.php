@@ -362,10 +362,8 @@ class ShipmentItem extends WC_Data {
 
 		if ( $shipment = $this->get_shipment() ) {
 			if ( 'return' === $shipment->get_type() ) {
-				if ( $shipment = $this->get_shipment() ) {
-					if ( $order_shipment = $shipment->get_order_shipment() ) {
-						$item = $order_shipment->get_simple_shipment_item( $this->get_order_item_id() );
-					}
+				if ( $order_shipment = $shipment->get_order_shipment() ) {
+					$item = $order_shipment->get_simple_shipment_item( $this->get_order_item_id() );
 				}
 			} else {
 				$item = $this->get_order_item();
@@ -378,6 +376,20 @@ class ShipmentItem extends WC_Data {
 			unset( $default_data['id'] );
 			unset( $default_data['shipment_id'] );
 			unset( $default_data['item_parent_id'] );
+
+			if ( $shipment = $this->get_shipment() ) {
+				if ( $parent_shipment = $item->get_shipment() ) {
+					if ( $parent_shipment->get_weight_unit() !== $shipment->get_weight_unit() ) {
+						$default_data['weight'] = ! empty( $default_data['weight'] ) ? wc_get_weight( (float) wc_format_decimal( $default_data['weight'] ), $shipment->get_weight_unit(), $parent_shipment->get_weight_unit() ) : $default_data['weight'];
+					}
+
+					if ( $parent_shipment->get_dimension_unit() !== $shipment->get_dimension_unit() ) {
+						$default_data['width']  = ! empty( $default_data['width'] ) ? wc_get_dimension( (float) wc_format_decimal( $default_data['width'] ), $shipment->get_dimension_unit(), $parent_shipment->get_dimension_unit() ) : $default_data['width'];
+						$default_data['length'] = ! empty( $default_data['length'] ) ? wc_get_dimension( (float) wc_format_decimal( $default_data['length'] ), $shipment->get_dimension_unit(), $parent_shipment->get_dimension_unit() ) : $default_data['length'];
+						$default_data['height'] = ! empty( $default_data['height'] ) ? wc_get_dimension( (float) wc_format_decimal( $default_data['height'] ), $shipment->get_dimension_unit(), $parent_shipment->get_dimension_unit() ) : $default_data['height'];
+					}
+				}
+			}
 
 			$default_data['parent_id'] = $item->get_id();
 			$args                      = wp_parse_args( $args, $default_data );
