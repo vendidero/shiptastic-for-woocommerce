@@ -3,7 +3,7 @@ Contributors: vendidero, vdwoocommercesupport
 Tags: shipping, woocommerce, shipments, rules, woo
 Requires at least: 5.4
 Tested up to: 6.8
-Stable tag: 4.3.8
+Stable tag: 4.3.9
 Requires PHP: 5.6
 License: GPLv3
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
@@ -44,6 +44,12 @@ We recommend installing Shiptastic for WooCommerce through the WordPress Backend
 3. Manage returns
 
 == Changelog ==
+= 4.3.9 =
+* Improvement: Support WC E-Mail previews
+* Improvement: Pass shipping provider to pickup location code
+* Improvement: Recalculate weight/dimensions in case return units differ from shipment
+* Fix: Check if provider supports pickup locations before querying
+
 = 4.3.8 =
 * Improvement: Indicate UPS shipping service provider integration availability
 
