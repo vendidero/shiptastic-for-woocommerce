@@ -25,7 +25,7 @@ class Response {
 	public function __construct( $code, $body, $headers = array(), $error = null ) {
 		$this->code    = absint( $code );
 		$this->body    = $body;
-		$this->headers = (array) $headers;
+		$this->headers = is_a( $headers, '\WpOrg\Requests\Utility\CaseInsensitiveDictionary' ) ? $headers->getAll() : (array) $headers;
 
 		$this->set_error( $error );
 	}
@@ -55,6 +55,9 @@ class Response {
 		$this->body = $body;
 	}
 
+	/**
+	 * @return array
+	 */
 	public function get_headers() {
 		return $this->headers;
 	}

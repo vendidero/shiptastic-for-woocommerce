@@ -373,7 +373,7 @@ class Order {
 						}
 					}
 				} elseif ( 0 === count( $packed_boxes ) ) {
-						$errors->add( 404, sprintf( _x( 'Seems like none of your <a href="%1$s">packaging options</a> is available for this order.', 'shipments', 'shiptastic-for-woocommerce' ), Settings::get_settings_url( 'packaging' ) ) );
+					$errors->add( 404, sprintf( _x( 'Seems like none of your <a href="%1$s">packaging options</a> is available for this order.', 'shipments', 'shiptastic-for-woocommerce' ), Settings::get_settings_url( 'packaging' ) ) );
 				} else {
 					foreach ( $packed_boxes as $box ) {
 						$packaging      = $box->getBox();

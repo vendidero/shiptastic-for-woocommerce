@@ -2003,6 +2003,12 @@ a.button.wc-stc-shipment-action-button {
     }
   }
 
+  .wc-shiptastic-button {
+    &.loading {
+      font-size: 0;
+    }
+  }
+
   .wc-shiptastic-dash-button {
     margin-right: 5px;
     text-indent: 9999px;

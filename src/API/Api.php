@@ -50,7 +50,7 @@ abstract class Api implements \Vendidero\Shiptastic\Interfaces\Api {
 			return false;
 		}
 
-		return strstr( $url, $auth_url );
+		return strstr( $url, $auth_url ) ? true : false;
 	}
 
 	protected function get_request_url( $endpoint = '', $query_args = array() ) {

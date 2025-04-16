@@ -91,14 +91,16 @@ abstract class OAuth extends RESTAuth {
 			$expires_in
 		);
 
-		set_transient(
-			"woocommerce_stc_{$this->get_api()->get_setting_name()}_refresh_token",
-			array(
-				'token'   => SecretBox::maybe_encrypt( wc_clean( $token_data['refresh_token'] ) ),
-				'expires' => time() + $refresh_expires_in,
-			),
-			$refresh_expires_in
-		);
+		if ( ! empty( $token_data['refresh_token'] ) ) {
+			set_transient(
+				"woocommerce_stc_{$this->get_api()->get_setting_name()}_refresh_token",
+				array(
+					'token'   => SecretBox::maybe_encrypt( wc_clean( $token_data['refresh_token'] ) ),
+					'expires' => time() + $refresh_expires_in,
+				),
+				$refresh_expires_in
+			);
+		}
 	}
 
 	public function revoke() {

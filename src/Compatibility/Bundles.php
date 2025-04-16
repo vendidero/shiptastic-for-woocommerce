@@ -34,6 +34,46 @@ class Bundles implements Compatibility {
 		add_filter( 'woocommerce_shiptastic_shipment_order_selectable_items_for_shipment', array( __CLASS__, 'filter_bundle_children' ), 10, 3 );
 		add_action( 'woocommerce_shiptastic_shipment_added_item', array( __CLASS__, 'on_added_shipment_item' ), 10, 2 );
 		add_filter( 'woocommerce_shiptastic_shipment_order_item_quantity_left_for_shipping', array( __CLASS__, 'maybe_remove_children' ), 10, 2 );
+		add_filter( 'woocommerce_shiptastic_order_item_product', array( __CLASS__, 'set_assembled_product_children_dimensions_and_weight' ), 10, 2 );
+	}
+
+	/**
+	 * Force resetting product dimensions/weight for assembled bundle children to make
+	 * that the content weight/dimensions matches the actual bundle data.
+	 *
+	 * @param Product $product
+	 * @param \WC_Order_Item_Product $order_item
+	 *
+	 * @return Product
+	 */
+	public static function set_assembled_product_children_dimensions_and_weight( $product, $order_item ) {
+		if ( wc_pb_is_bundled_order_item( $order_item ) && ! self::order_item_is_shipped_individually( $order_item ) ) {
+			if ( $order = $order_item->get_order() ) {
+				$shipment_order = wc_stc_get_shipment_order( $order );
+
+				if ( $container = wc_pb_get_bundled_order_item_container( $order_item, $order, false ) ) {
+					if ( self::order_item_is_assembled_bundle( $container, $shipment_order ) ) {
+						$aggregate_weight = false;
+
+						if ( $parent_product = $shipment_order->get_order_item_product( $container ) ) {
+							if ( is_a( $parent_product->get_product(), 'WC_Product_Bundle' ) && is_callable( array( $parent_product->get_product(), 'get_aggregate_weight' ) ) ) {
+								$aggregate_weight = $parent_product->get_product()->get_aggregate_weight();
+							}
+						}
+
+						$product->set_shipping_height( 0.0 );
+						$product->set_shipping_width( 0.0 );
+						$product->set_shipping_length( 0.0 );
+
+						if ( ! $aggregate_weight ) {
+							$product->set_weight( 0.0 );
+						}
+					}
+				}
+			}
+		}
+
+		return $product;
 	}
 
 	/**
