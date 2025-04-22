@@ -344,8 +344,43 @@ class ShippingMethod extends \WC_Shipping_Method {
 					),
 					'operators' => array( 'is', 'is_not' ),
 				),
+				'package_subtotal'         => array(
+					'label'     => _x( 'Package subtotal (before discounts)', 'shipments', 'shiptastic-for-woocommerce' ),
+					'fields'    => array(
+						'total_from' => array(
+							'type'      => 'text',
+							'data_type' => 'price',
+							'label'     => _x( 'from', 'shipments', 'shiptastic-for-woocommerce' ),
+						),
+						'total_to'   => array(
+							'type'        => 'text',
+							'data_type'   => 'price',
+							'label'       => _x( 'to', 'shipments', 'shiptastic-for-woocommerce' ),
+							'description' => get_woocommerce_currency_symbol(),
+						),
+					),
+					'operators' => array( 'is', 'is_not' ),
+				),
 				'total'                    => array(
 					'label'     => _x( 'Cart total', 'shipments', 'shiptastic-for-woocommerce' ),
+					'fields'    => array(
+						'total_from' => array(
+							'type'      => 'text',
+							'data_type' => 'price',
+							'label'     => _x( 'from', 'shipments', 'shiptastic-for-woocommerce' ),
+						),
+						'total_to'   => array(
+							'type'        => 'text',
+							'data_type'   => 'price',
+							'label'       => _x( 'to', 'shipments', 'shiptastic-for-woocommerce' ),
+							'description' => get_woocommerce_currency_symbol(),
+						),
+					),
+					'operators' => array( 'is', 'is_not' ),
+					'is_global' => true,
+				),
+				'subtotal'                 => array(
+					'label'     => _x( 'Cart subtotal (before discounts)', 'shipments', 'shiptastic-for-woocommerce' ),
 					'fields'    => array(
 						'total_from' => array(
 							'type'      => 'text',
@@ -953,7 +988,7 @@ class ShippingMethod extends \WC_Shipping_Method {
 							$condition_applies = false;
 						}
 					}
-				} elseif ( 'total' === $condition_type_name || 'package_total' === $condition_type_name ) {
+				} elseif ( in_array( $condition_type_name, array( 'total', 'package_total', 'subtotal', 'package_subtotal' ), true ) ) {
 					$from = isset( $condition['total_from'] ) && ! empty( $condition['total_from'] ) ? (float) wc_format_decimal( $condition['total_from'] ) : 0.0;
 					$to   = isset( $condition['total_to'] ) && ! empty( $condition['total_to'] ) ? (float) wc_format_decimal( $condition['total_to'] ) : 0.0;
 
