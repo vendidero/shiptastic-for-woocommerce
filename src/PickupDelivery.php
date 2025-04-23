@@ -35,6 +35,22 @@ class PickupDelivery {
 		add_action( 'woocommerce_after_checkout_validation', array( __CLASS__, 'register_classic_checkout_validation' ), 10, 2 );
 		add_action( 'woocommerce_checkout_create_order', array( __CLASS__, 'register_classic_checkout_order_data' ), 10, 2 );
 
+		/**
+		 * Some themes/page builder may not fire the woocommerce_after_checkout_form hook. Fallback to wp_footer instead.
+		 */
+		add_action(
+			'wp_footer',
+			function () {
+				if ( ! function_exists( 'is_checkout' ) || ! function_exists( 'is_checkout_pay_page' ) ) {
+					return;
+				}
+
+				if ( is_checkout() && ! is_checkout_pay_page() && ! did_action( 'woocommerce_blocks_enqueue_checkout_block_scripts_after' ) && ! did_action( 'woocommerce_after_checkout_form' ) ) {
+					self::pickup_location_search_modal();
+				}
+			}
+		);
+
 		add_action( 'wp_ajax_woocommerce_stc_search_pickup_locations', array( __CLASS__, 'search_pickup_locations' ) );
 		add_action( 'wp_ajax_nopriv_woocommerce_stc_search_pickup_locations', array( __CLASS__, 'search_pickup_locations' ) );
 		add_action( 'wc_ajax_woocommerce_stc_search_pickup_locations', array( __CLASS__, 'search_pickup_locations' ) );
