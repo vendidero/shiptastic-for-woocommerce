@@ -43,10 +43,11 @@ abstract class REST extends \Vendidero\Shiptastic\API\Api {
 	 * @param $type
 	 * @param $body_args
 	 * @param $headers
+	 * @param bool $is_retry
 	 *
 	 * @return Response
 	 */
-	protected function get_response( $url, $type = 'GET', $body_args = array(), $headers = array() ) {
+	protected function get_response( $url, $type = 'GET', $body_args = array(), $headers = array(), $is_retry = false ) {
 		$response        = false;
 		$is_auth_request = false;
 
@@ -112,11 +113,10 @@ abstract class REST extends \Vendidero\Shiptastic\API\Api {
 			$response_obj     = $this->parse_response( $response_code, $response_body, $response_headers );
 
 			if ( $response_obj->get_code() >= 300 ) {
-				if ( ! $is_auth_request && ! isset( $body_args['is_retry'] ) && $this->get_auth_api()->is_unauthenticated_response( $response_obj->get_code() ) ) {
+				if ( ! $is_auth_request && ! $is_retry && $this->get_auth_api()->is_unauthenticated_response( $response_obj->get_code() ) ) {
 					$this->get_auth_api()->revoke();
-					$body_args['is_retry'] = true;
 
-					return $this->get_response( $url, $type, $body_args, $headers );
+					return $this->get_response( $url, $type, $body_args, $headers, true );
 				}
 
 				$response = $this->parse_error( $response_obj );
