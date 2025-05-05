@@ -103,8 +103,13 @@ abstract class OAuth extends RESTAuth {
 		}
 	}
 
-	public function revoke() {
-		delete_transient( "woocommerce_stc_{$this->get_api()->get_setting_name()}_refresh_token" );
+	public function invalidate() {
 		delete_transient( "woocommerce_stc_{$this->get_api()->get_setting_name()}_access_token" );
+	}
+
+	public function revoke() {
+		$this->invalidate();
+
+		delete_transient( "woocommerce_stc_{$this->get_api()->get_setting_name()}_refresh_token" );
 	}
 }

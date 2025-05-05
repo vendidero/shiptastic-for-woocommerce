@@ -195,8 +195,10 @@ class PackagingBox implements PackingBox {
 
 	/**
 	 * Max weight the packaging can hold in g.
+	 *
+	 * @note Boxpacker seems to expect the max weight to include the empty weight.
 	 */
 	public function getMaxWeight(): int {
-		return $this->max_weight;
+		return $this->max_weight + $this->getEmptyWeight();
 	}
 }

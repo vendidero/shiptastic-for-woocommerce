@@ -104,6 +104,11 @@ abstract class REST extends \Vendidero\Shiptastic\API\Api {
 
 		if ( false !== $response ) {
 			if ( is_wp_error( $response ) ) {
+				if ( Package::is_debug_mode() ) {
+					Package::log( sprintf( '%s error during REST (%s) call to %s:', $response->get_error_code(), $type, $url ), 'info', $this->get_title() );
+					Package::log( wc_print_r( $response->get_error_messages(), true ), 'info', $this->get_title() );
+				}
+
 				return new Response( 500, array(), array(), $response );
 			}
 
@@ -114,12 +119,21 @@ abstract class REST extends \Vendidero\Shiptastic\API\Api {
 
 			if ( $response_obj->get_code() >= 300 ) {
 				if ( ! $is_auth_request && ! $is_retry && $this->get_auth_api()->is_unauthenticated_response( $response_obj->get_code() ) ) {
-					$this->get_auth_api()->revoke();
+					if ( is_callable( array( $this->get_auth_api(), 'invalidate' ) ) ) {
+						$this->get_auth_api()->invalidate();
+					} else {
+						$this->get_auth_api()->revoke();
+					}
 
 					return $this->get_response( $url, $type, $body_args, $headers, true );
 				}
 
 				$response = $this->parse_error( $response_obj );
+
+				if ( $response->is_error() && Package::is_debug_mode() ) {
+					Package::log( sprintf( '%s error during REST (%s) call to %s:', $response->get_code(), $type, $url ), 'info', $this->get_title() );
+					Package::log( wc_print_r( $response->get_error()->get_error_messages(), true ), 'info', $this->get_title() );
+				}
 
 				return $response;
 			}
