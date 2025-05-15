@@ -11,7 +11,7 @@
  * the readme will list any important changes.
  *
  * @package Shiptastic/Templates/Emails
- * @version 4.3.0
+ * @version 4.3.11
  */
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -23,7 +23,7 @@ $text_align = is_rtl() ? 'right' : 'left';
 <table id="addresses" cellspacing="0" cellpadding="0" style="width: 100%; vertical-align: top; margin-bottom: 40px; padding:0;" border="0">
 	<tr>
 		<td style="text-align:<?php echo esc_attr( $text_align ); ?>; font-family: 'Helvetica Neue', Helvetica, Roboto, Arial, sans-serif; border:0; padding:0;" valign="top" width="50%">
-			<h2><?php echo esc_html_x( 'Shipment goes to:', 'shipments', 'shiptastic-for-woocommerce' ); ?></h2>
+			<h2><?php echo ( 'return' === $shipment->get_type() ? esc_html_x( 'Return goes to:', 'shipments', 'shiptastic-for-woocommerce' ) : esc_html_x( 'Shipment goes to:', 'shipments', 'shiptastic-for-woocommerce' ) ); ?></h2>
 
 			<address class="address">
 				<?php echo wp_kses_post( $shipment->get_formatted_address() ); ?>

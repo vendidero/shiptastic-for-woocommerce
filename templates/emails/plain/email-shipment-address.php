@@ -11,9 +11,9 @@
  * the readme will list any important changes.
  *
  * @package Shiptastic/Templates/Emails/Plain
- * @version 4.3.0
+ * @version 4.3.11
  */
 defined( 'ABSPATH' ) || exit;
 
-echo "\n" . esc_html_x( 'Shipment goes to:', 'shipments', 'shiptastic-for-woocommerce' ) . "\n\n";
+echo "\n" . ( 'return' === $shipment->get_type() ? esc_html_x( 'Return goes to:', 'shipments', 'shiptastic-for-woocommerce' ) : esc_html_x( 'Shipment goes to:', 'shipments', 'shiptastic-for-woocommerce' ) ) . "\n\n";
 echo preg_replace( '#<br\s*/?>#i', "\n", $shipment->get_formatted_address() ) . "\n"; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
