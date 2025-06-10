@@ -3,6 +3,7 @@
 namespace Vendidero\Shiptastic\Admin\Tabs;
 
 use Vendidero\Shiptastic\Admin\Settings;
+use Vendidero\Shiptastic\Extensions;
 use Vendidero\Shiptastic\Package;
 
 class Tabs extends \WC_Settings_Page {
@@ -179,6 +180,10 @@ class Tabs extends \WC_Settings_Page {
 	public function add_body_classes( $classes ) {
 		if ( $this->is_active() ) {
 			$classes = $classes . ' wc-shiptastic-settings';
+
+			if ( Extensions::compare_versions( Extensions::get_plugin_version( 'woocommerce' ), '9.9.0', '>=' ) ) {
+				$classes = $classes . ' wc-shiptastic-settings-modern-nav';
+			}
 		}
 
 		return $classes;
