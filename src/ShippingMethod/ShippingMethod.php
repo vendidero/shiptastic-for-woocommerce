@@ -77,6 +77,10 @@ class ShippingMethod extends \WC_Shipping_Method {
 		return $this->shipping_provider;
 	}
 
+	public function get_packaging() {
+		return $this->get_option( 'packaging', array() );
+	}
+
 	public function get_all_shipping_rules() {
 		return array_merge( ...array_values( $this->get_shipping_rules() ) );
 	}
@@ -127,7 +131,8 @@ class ShippingMethod extends \WC_Shipping_Method {
 			'wc-shiptastic-admin-shipping-rules',
 			'wc_shiptastic_admin_shipping_rules_params',
 			array(
-				'rules'                   => $this->get_option( 'shipping_rules', array() ),
+				'rules'                   => $this->get_shipping_rules(),
+				'packaging'               => $this->get_packaging(),
 				'decimal_separator'       => $decimal,
 				'price_decimal_separator' => wc_get_price_decimal_separator(),
 				'default_shipping_rule'   => array(
@@ -184,6 +189,9 @@ class ShippingMethod extends \WC_Shipping_Method {
 	}
 
 	public function init_form_fields() {
+		$provider_options = wc_stc_get_shipping_provider_select( false );
+		unset( $provider_options[ $this->get_shipping_provider()->get_name() ] );
+
 		$this->instance_form_fields = array(
 			'title'                                    => array(
 				'title'       => _x( 'Title', 'shipments', 'shiptastic-for-woocommerce' ),
@@ -208,6 +216,14 @@ class ShippingMethod extends \WC_Shipping_Method {
 					'taxable' => _x( 'Taxable', 'shipments', 'shiptastic-for-woocommerce' ),
 					'none'    => _x( 'None', 'shipments-tax-status', 'shiptastic-for-woocommerce' ),
 				),
+			),
+			'disable_if_providers_available'           => array(
+				'title'    => _x( 'Disable in case available', 'shipments', 'shiptastic-for-woocommerce' ),
+				'type'     => 'multiselect',
+				'class'    => 'wc-enhanced-select',
+				'default'  => array(),
+				'options'  => $provider_options,
+				'desc_tip' => _x( 'You may choose to disable this method in case other shipping providers are available for the current cart.', 'shipments', 'shiptastic-for-woocommerce' ),
 			),
 			'shipping_rules_title'                     => array(
 				'title'       => _x( 'Shipping Rules', 'shipments', 'shiptastic-for-woocommerce' ),
@@ -241,6 +257,11 @@ class ShippingMethod extends \WC_Shipping_Method {
 			'shipping_rules'                           => array(
 				'title'   => _x( 'Rules', 'shipments', 'shiptastic-for-woocommerce' ),
 				'type'    => 'shipping_rules',
+				'default' => array(),
+			),
+			'packaging'                                => array(
+				'title'   => _x( 'Packaging', 'shipments', 'shiptastic-for-woocommerce' ),
+				'type'    => 'packaging',
 				'default' => array(),
 			),
 			'cache'                                    => array(
@@ -474,9 +495,10 @@ class ShippingMethod extends \WC_Shipping_Method {
 		$cache = wp_parse_args(
 			$this->get_option( 'cache', array() ),
 			array(
-				'packaging_ids' => array(),
-				'costs'         => null,
-				'global_rules'  => null,
+				'packaging_ids'                    => array(),
+				'costs'                            => null,
+				'global_rules'                     => null,
+				'global_packaging_single_use_only' => 'no',
 			)
 		);
 
@@ -500,15 +522,20 @@ class ShippingMethod extends \WC_Shipping_Method {
 		return $this->get_instance_option( 'multiple_shipments_cost_calculation_mode', 'sum' );
 	}
 
+	public function get_disable_if_providers_available() {
+		return (array) $this->get_instance_option( 'disable_if_providers_available', array() );
+	}
+
 	public function get_multiple_rules_cost_calculation_mode() {
 		return $this->get_instance_option( 'multiple_rules_cost_calculation_mode', 'max' );
 	}
 
 	public function get_available_packaging_boxes( $package_data = array() ) {
-		$cache         = $this->get_cache();
-		$packaging_ids = $cache['packaging_ids'];
-		$global_rules  = $cache['global_rules'];
-		$costs         = $cache['costs'];
+		$cache          = $this->get_cache();
+		$packaging_meta = $this->get_packaging();
+		$packaging_ids  = $cache['packaging_ids'];
+		$global_rules   = $cache['global_rules'];
+		$costs          = $cache['costs'];
 
 		if ( in_array( 'all', $packaging_ids, true ) || empty( $packaging_ids ) ) {
 			$packaging_boxes = Helper::get_packaging_boxes();
@@ -590,6 +617,23 @@ class ShippingMethod extends \WC_Shipping_Method {
 		foreach ( $costs as $packaging_id => $cost ) {
 			if ( array_key_exists( $packaging_id, $boxes ) ) {
 				$boxes[ $packaging_id ]->set_costs( $cost['avg'] );
+			}
+		}
+
+		/**
+		 * In case single-use is set for the packaging, set its available quantity to 1.
+		 */
+		foreach ( $packaging_ids as $packaging_id ) {
+			$single_packaging_meta = array_key_exists( $packaging_id, $packaging_meta ) ? (array) $packaging_meta[ $packaging_id ] : array();
+			$single_packaging_meta = wp_parse_args(
+				$single_packaging_meta,
+				array(
+					'single_use_only' => $cache['global_packaging_single_use_only'],
+				)
+			);
+
+			if ( wc_string_to_bool( $single_packaging_meta['single_use_only'] ) ) {
+				$boxes[ $packaging_id ]->set_quantity_available( 1 );
 			}
 		}
 
@@ -1062,14 +1106,31 @@ class ShippingMethod extends \WC_Shipping_Method {
 		return '';
 	}
 
+	protected function generate_packaging_html() {
+		return '';
+	}
+
 	protected function validate_cache_field() {
 		return $this->get_updated_cache();
 	}
 
 	protected function get_updated_cache() {
-		$rules        = $this->get_option( 'shipping_rules', array() );
-		$global_rules = array();
-		$costs        = array();
+		$rules                            = $this->get_option( 'shipping_rules', array() );
+		$packaging                        = $this->get_option( 'packaging', array() );
+		$global_rules                     = array();
+		$costs                            = array();
+		$global_packaging_single_use_only = 'no';
+
+		if ( array_key_exists( 'all', $packaging ) ) {
+			$all_packaging = wp_parse_args(
+				(array) $packaging['all'],
+				array(
+					'single_use_only' => 'no',
+				)
+			);
+
+			$global_packaging_single_use_only = $all_packaging['single_use_only'];
+		}
 
 		foreach ( $rules as $packaging_id => $packaging_rules ) {
 			$costs[ $packaging_id ] = array(
@@ -1123,12 +1184,35 @@ class ShippingMethod extends \WC_Shipping_Method {
 		}
 
 		$cache = array(
-			'packaging_ids' => array_keys( $rules ),
-			'global_rules'  => $global_rules,
-			'costs'         => $costs,
+			'packaging_ids'                    => array_keys( $rules ),
+			'global_rules'                     => $global_rules,
+			'global_packaging_single_use_only' => $global_packaging_single_use_only,
+			'costs'                            => $costs,
 		);
 
 		return $cache;
+	}
+
+	protected function validate_packaging_field( $option_name, $option_value ) {
+		$option_value = stripslashes_deep( $option_value );
+
+		if ( is_null( $option_value ) ) {
+			return $option_value;
+		}
+
+		$packaging_ids = array_keys( $option_value );
+		$packaging     = array();
+
+		foreach ( $packaging_ids as $packaging_id ) {
+			$packaging_id   = 'all' === $packaging_id ? 'all' : absint( $packaging_id );
+			$packaging_data = array(
+				'single_use_only' => isset( $option_value[ $packaging_id ]['single_use_only'] ) ? wc_bool_to_string( wc_clean( $option_value[ $packaging_id ]['single_use_only'] ) ) : 'no',
+			);
+
+			$packaging[ $packaging_id ] = $packaging_data;
+		}
+
+		return $packaging;
 	}
 
 	protected function validate_shipping_rules_field( $option_name, $option_value ) {
@@ -1239,8 +1323,9 @@ class ShippingMethod extends \WC_Shipping_Method {
 
 	protected function generate_shipping_rules_html( $option_name, $option ) {
 		ob_start();
-		$field_key       = $this->get_field_key( 'shipping_rules' );
-		$condition_types = $this->get_condition_types();
+		$field_key           = $this->get_field_key( 'shipping_rules' );
+		$packaging_field_key = $this->get_field_key( 'packaging' );
+		$condition_types     = $this->get_condition_types();
 		?>
 		<table class="widefat wc-shiptastic-shipping-rules">
 			<thead>
@@ -1264,7 +1349,13 @@ class ShippingMethod extends \WC_Shipping_Method {
 				</tr>
 			</thead>
 			<?php foreach ( $this->get_packaging_list() as $name => $title ) : ?>
-				<tbody class="wc-shiptastic-shipping-rules-rows" data-edit-url="<?php echo esc_url( $this->get_packaging_edit_url( $name ) ); ?>" data-title="<?php echo esc_html( $title ); ?>" data-help-tip="<?php echo esc_html( $this->get_packaging_help_tip( $name ) ); ?>" data-packaging="<?php echo esc_attr( $name ); ?>" id="wc-shiptastic-shipping-rules-packaging-<?php echo esc_attr( $name ); ?>">
+				<tbody class="wc-shiptastic-shipping-rules-rows"
+						data-edit-url="<?php echo esc_url( $this->get_packaging_edit_url( $name ) ); ?>"
+						data-title="<?php echo esc_html( $title ); ?>"
+						data-help-tip="<?php echo esc_html( $this->get_packaging_help_tip( $name ) ); ?>"
+						data-packaging="<?php echo esc_attr( $name ); ?>"
+						data-allow-multiple="<?php echo esc_attr( 'yes' ); ?>"
+						id="wc-shiptastic-shipping-rules-packaging-<?php echo esc_attr( $name ); ?>">
 				</tbody>
 			<?php endforeach; ?>
 			<tfoot>
@@ -1283,7 +1374,26 @@ class ShippingMethod extends \WC_Shipping_Method {
 		</table>
 		<script type="text/html" id="tmpl-wc-shiptastic-shipping-rules-packaging-info">
 			<tr class="wc-shiptastic-shipping-rules-packaging-info">
-				<td colspan="7"><p class="packaging-info"><a class="packaging-title" href="#" target="_blank"></a><span class="woocommerce-help-tip" tabindex="0" aria-label="" data-tip=""></span></p></td>
+				<td colspan="7">
+					<p class="packaging-info">
+						<a class="packaging-title" href="#" target="_blank"></a>
+						<span class="woocommerce-help-tip" tabindex="0" aria-label="" data-tip=""></span>
+
+						<input type="hidden" name="<?php echo esc_attr( $packaging_field_key ); ?>[{{ data.packaging }}][active]" value="1" />
+						<label class="packaging-info-meta-field" for="<?php echo esc_attr( $packaging_field_key ); ?>_{{ data.packaging }}_single_use_only">
+							<?php echo esc_html_x( 'Single use only?', 'shipments', 'shiptastic-for-woocommerce' ); ?>
+
+							<?php
+							\Vendidero\Shiptastic\Admin\Admin::render_toggle_field(
+								array(
+									'id'   => "{$packaging_field_key}_{{ data.packaging }}_single_use_only",
+									'name' => "{$packaging_field_key}[{{ data.packaging }}][single_use_only]",
+								)
+							);
+							?>
+						</label>
+					</p>
+				</td>
 			</tr>
 		</script>
 		<script type="text/html" id="tmpl-wc-shiptastic-shipping-rules-row">

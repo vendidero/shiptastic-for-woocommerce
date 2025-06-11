@@ -24,6 +24,8 @@ class PackagingBox implements PackingBox {
 
 	protected $costs = 0.0;
 
+	protected $quantity_available = PHP_INT_MAX;
+
 	/**
 	 * Box constructor.
 	 *
@@ -70,6 +72,14 @@ class PackagingBox implements PackingBox {
 
 	public function set_costs( $costs ) {
 		$this->costs = (float) wc_format_decimal( $costs );
+	}
+
+	public function set_quantity_available( $quantity_available ) {
+		$this->quantity_available = absint( $quantity_available );
+	}
+
+	public function get_quantity_available() {
+		return $this->quantity_available;
 	}
 
 	public function get_costs() {
@@ -200,5 +210,12 @@ class PackagingBox implements PackingBox {
 	 */
 	public function getMaxWeight(): int {
 		return $this->max_weight + $this->getEmptyWeight();
+	}
+
+	/**
+	 * Quantity of boxes available.
+	 */
+	public function getQuantityAvailable(): int {
+		return $this->get_quantity_available();
 	}
 }

@@ -45,6 +45,11 @@
 
                     return rules.hasOwnProperty( theRuleId ) ? rules[ theRuleId ] : {};
                 },
+                getPackaging: function( packagingId ) {
+                    var packaging = { ...this.get( 'packaging' ) };
+
+                    return packaging.hasOwnProperty( String( packagingId ) ) ? packaging[ String( packagingId ) ] : {};
+                },
                 getConditionsByRuleId: function( packaging, ruleId ) {
                     const rule = this.getRule( packaging, ruleId );
 
@@ -78,6 +83,13 @@
                 },
                 getRules: function() {
                     return this.model.getRulesByPackaging( this.packaging );
+                },
+                getPackaging: function() {
+                    let packagingData = this.model.getPackaging( this.packaging );
+
+                    packagingData = { 'packaging': this.packaging, 'single_use_only': 'no', ...packagingData };
+
+                    return packagingData;
                 },
                 render: function() {
                     var rules = this.getRules(),
@@ -146,7 +158,8 @@
                 initRow: function( rowData ) {
                     var view = this,
                         $tr = view.$el.find( 'tr[data-id="' + rowData.rule_id + '"]'),
-                        $tbody = $tr.parents( 'tbody' );
+                        $tbody = $tr.parents( 'tbody' ),
+                        packagingData = view.getPackaging();
 
                     view.initFields( $tr, rowData );
 
@@ -154,10 +167,14 @@
                     $tr.find( '.shipping-rule-add' ).on( 'click', { view: this }, this.onAddRow );
 
                     if ( $tbody.find( 'tr.wc-shiptastic-shipping-rules-packaging-info' ).length <= 0 ) {
-                        $tbody.prepend( $packaging_info );
-                        var $packagingTr = $tbody.find( 'tr.wc-shiptastic-shipping-rules-packaging-info' );
+                        $tbody.prepend( $packaging_info( packagingData ) );
 
+                        var $packagingTr = $tbody.find( 'tr.wc-shiptastic-shipping-rules-packaging-info' );
                         $packagingTr.find( '.packaging-title' ).html( $tbody.data( 'title' ) );
+
+                        if ( 'yes' === packagingData['single_use_only'] ) {
+                            $packagingTr.find( '.woocommerce-shiptastic-input-toggle' ).trigger( 'click' );
+                        }
 
                         if ( $tbody.data( 'help-tip' ) ) {
                             $packagingTr.find( '.woocommerce-help-tip' ).attr( 'data-tip', $tbody.data( 'help-tip' ) );
@@ -292,7 +309,8 @@
         ),
 
         shippingRule = new ShippingRule({
-            rules: data.rules
+            rules: data.rules,
+            packaging: data.packaging,
         } ),
 
         // Backbone view

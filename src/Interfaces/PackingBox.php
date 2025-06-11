@@ -1,14 +1,14 @@
 <?php
 namespace Vendidero\Shiptastic\Interfaces;
 
-use DVDoug\BoxPacker\Box;
+use DVDoug\BoxPacker\LimitedSupplyBox;
 use Vendidero\Shiptastic\Packaging;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-interface PackingBox extends Box {
+interface PackingBox extends LimitedSupplyBox {
 
 	/**
 	 * @return Packaging

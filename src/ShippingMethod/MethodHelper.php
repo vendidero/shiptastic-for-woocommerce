@@ -23,6 +23,7 @@ class MethodHelper {
 	public static function init() {
 		// Use a high priority here to make sure we are hooking even after plugins such as flexible shipping
 		add_filter( 'woocommerce_shipping_methods', array( __CLASS__, 'set_method_filters' ), 5000, 1 );
+		add_filter( 'woocommerce_package_rates', array( __CLASS__, 'maybe_disable_provider_combination' ), 300 );
 
 		add_filter( 'woocommerce_generate_shipping_provider_method_tabs_html', array( __CLASS__, 'render_method_tabs' ), 10, 4 );
 		add_filter( 'woocommerce_generate_shipping_provider_method_zone_override_open_html', array( __CLASS__, 'render_zone_override' ), 10, 4 );
@@ -34,6 +35,48 @@ class MethodHelper {
 		add_filter( 'woocommerce_cart_shipping_packages', array( __CLASS__, 'register_cart_items_to_pack' ) );
 		add_filter( 'woocommerce_shipping_methods', array( __CLASS__, 'register_shipping_methods' ) );
 		add_filter( 'woocommerce_hidden_order_itemmeta', array( __CLASS__, 'set_shipping_order_meta_hidden' ) );
+	}
+
+	public static function maybe_disable_provider_combination( $rates ) {
+		$provider_map = array();
+		$excluded_map = array();
+
+		foreach ( $rates as $rate_key => $rate ) {
+			if ( is_a( $rate, 'WC_Shipping_Rate' ) ) {
+				if ( $method = self::get_provider_method( $rate ) ) {
+					if ( ! isset( $provider_map[ $method->get_shipping_provider() ] ) ) {
+						$provider_map[ $method->get_shipping_provider() ] = array();
+					}
+
+					$provider_map[ $method->get_shipping_provider() ][] = $rate_key;
+
+					if ( $method->is_builtin_method() ) {
+						if ( $disable_if = $method->get_method()->get_disable_if_providers_available() ) {
+							$excluded_map[ $rate_key ] = array(
+								'provider'   => $method->get_shipping_provider(),
+								'disable_if' => $disable_if,
+							);
+						}
+					}
+				}
+			}
+		}
+
+		foreach ( $excluded_map as $rate_key => $exclude ) {
+			$has_intersect = array_intersect( $exclude['disable_if'], array_keys( $provider_map ) );
+
+			if ( ! empty( $has_intersect ) && array_key_exists( $rate_key, $rates ) ) {
+				unset( $rates[ $rate_key ] );
+
+				$provider_map[ $exclude['provider'] ] = array_diff( $provider_map[ $exclude['provider'] ], array( $rate_key ) );
+
+				if ( empty( $provider_map[ $exclude['provider'] ] ) ) {
+					unset( $provider_map[ $exclude['provider'] ] );
+				}
+			}
+		}
+
+		return $rates;
 	}
 
 	public static function set_shipping_order_meta_hidden( $meta ) {

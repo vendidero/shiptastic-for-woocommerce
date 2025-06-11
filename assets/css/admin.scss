@@ -480,12 +480,28 @@ table.wc-shiptastic-shipping-rules {
 
         p {
           margin: 0;
+          font-size: 12px;
+          color: #2c3338;
+          display: inline-flex;
+          align-items: baseline;
 
           .packaging-title {
             font-weight: 500;
-            font-size: 11px;
             display: inline;
             color: #2c3338;
+          }
+
+          .packaging-info-meta-field {
+            margin: 0 1em;
+          }
+
+          a.woocommerce-shiptastic-input-toggle-trigger {
+            display: inline-flex;
+            margin-left: 5px;
+
+            .woocommerce-shiptastic-input-toggle {
+              top: 1px;
+            }
           }
 
           .woocommerce-help-tip {
