@@ -14,6 +14,7 @@ window.shiptastic.admin = window.shiptastic.admin || {};
 
             $( document ).on( 'change', '.shipments-create-label #product_id', self.onChangeLabelProductId );
         },
+
         onChangeLabelProductId: function() {
             var self = shipments.admin.shipment_label;
 

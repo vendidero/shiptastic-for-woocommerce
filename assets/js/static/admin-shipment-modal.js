@@ -161,24 +161,32 @@ window.shiptastic.admin = window.shiptastic.admin || {};
             // Make sure to propagate show/if logic by firing a change event on the shown/hidden input.
             $wrapper.find( ':input[data-show-if-' + fieldId + ']' ).trigger( 'change' );
 
-            /**
-             * Hide the show more trigger in case no visible field is found within the wrapper.
-             * Explicitly check for the display style as the wrapper may be in collapsed state.
-             */
-            $wrapper.find( '.show-more-wrapper' ).each( function() {
-                var $showMoreWrapper = $( this ),
-                    hasVisible = $showMoreWrapper.find( 'p.form-field' ).css( 'display' ) !== 'none',
-                    $trigger = $showMoreWrapper.data( 'trigger' ) ? $wrapper.find( $showMoreWrapper.data( 'trigger' ) ) : false;
-
-                if ( $trigger.length > 0 ) {
-                    if ( ! hasVisible ) {
-                        $trigger.hide();
-                    } else {
-                        $trigger.show();
-                    }
-                }
-            } );
+            self.showMoreWrapper();
         }
+    };
+
+    AdminShipmentModal.prototype.showMoreWrapper = function() {
+        var $wrapper = this.$modal;
+
+        /**
+         * Hide the show more trigger in case no visible field is found within the wrapper.
+         * Explicitly check for the display style as the wrapper may be in collapsed state.
+         */
+        $wrapper.find( '.show-more-wrapper' ).each( function() {
+            var $showMoreWrapper = $( this ),
+                hasVisible = $showMoreWrapper.find( 'p.form-field' ).filter( function () {
+                    return this.style.display !== 'none';
+                }),
+                $trigger = $showMoreWrapper.data( 'trigger' ) ? $wrapper.find( $showMoreWrapper.data( 'trigger' ) ) : false;
+
+            if ( $trigger.length > 0 ) {
+                if ( hasVisible.length <= 0 ) {
+                    $trigger.hide();
+                } else {
+                    $trigger.show();
+                }
+            }
+        } );
     };
 
     AdminShipmentModal.prototype.onClose = function( event, target ) {
