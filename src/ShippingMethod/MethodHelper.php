@@ -3,6 +3,7 @@
 namespace Vendidero\Shiptastic\ShippingMethod;
 
 use Vendidero\Shiptastic\Compatibility\Bundles;
+use Vendidero\Shiptastic\Extensions;
 use Vendidero\Shiptastic\Package;
 use Vendidero\Shiptastic\Packing\CartItem;
 use Vendidero\Shiptastic\Packing\ItemList;
@@ -220,9 +221,14 @@ class MethodHelper {
 			 */
 			add_filter( 'woocommerce_shipping_' . $method . '_instance_settings_values', array( __CLASS__, 'filter_method_settings' ), 10, 2 );
 			/**
-			 * Register additional setting fields
+			 * Register additional setting fields by injecting the instance form fields once.
+			 *
+			 * @note: We inject the method settings only once as using the woocommerce_shipping_instance_form_fields_{method_id} has performance
+			 * implications (e.g. the WC_Shipping_Method::get_instance_form_fields() is called on every option retrieval).
 			 */
+			add_filter( 'woocommerce_shipping_' . $method . '_instance_option', array( __CLASS__, 'inject_method_instance_settings' ), 10, 3 );
 			add_filter( 'woocommerce_shipping_instance_form_fields_' . $method, array( __CLASS__, 'add_method_settings' ), 10, 1 );
+
 			/**
 			 * Lazy-load option values
 			 */
@@ -242,41 +248,45 @@ class MethodHelper {
 		 * @see WC_REST_Shipping_Zone_Methods_V2_Controller::get_settings()
 		 */
 		if ( is_callable( array( $wc, 'is_rest_api_request' ) ) && $wc->is_rest_api_request() ) {
-			add_filter(
-				'pre_option',
-				function ( $pre, $option, $default_value ) {
-					if ( strstr( $option, 'woocommerce_' ) && '_settings' === substr( $option, -9 ) ) {
-						$option_clean = explode( '_', substr( $option, 0, -9 ) );
-						$last_part    = $option_clean[ count( $option_clean ) - 1 ];
+			$is_shipping_endpoint = isset( $_SERVER['REQUEST_URI'] ) ? false !== strpos( wp_unslash( $_SERVER['REQUEST_URI'] ), 'shipping/zones' ) : false; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
 
-						/**
-						 * Do only filter settings for shipping methods with an instance
-						 */
-						if ( absint( $last_part ) > 0 ) {
-							add_filter(
-								"option_{$option}",
-								function ( $option_value, $option_name ) {
-									if ( is_array( $option_value ) ) {
-										foreach ( self::get_method_settings() as $setting_id => $setting ) {
-											if ( ! array_key_exists( $setting_id, $option_value ) ) {
-												$option_value[ $setting_id ] = '';
+			if ( $is_shipping_endpoint ) {
+				add_filter(
+					'pre_option',
+					function ( $pre, $option, $default_value ) {
+						if ( strstr( $option, 'woocommerce_' ) && '_settings' === substr( $option, -9 ) ) {
+							$option_clean = explode( '_', substr( $option, 0, -9 ) );
+							$last_part    = $option_clean[ count( $option_clean ) - 1 ];
+
+							/**
+							 * Do only filter settings for shipping methods with an instance
+							 */
+							if ( absint( $last_part ) > 0 && ! strstr( $option, '_shipping_provider_' ) ) {
+								add_filter(
+									"option_{$option}",
+									function ( $option_value, $option_name ) {
+										if ( is_array( $option_value ) ) {
+											foreach ( self::get_method_settings() as $setting_id => $setting ) {
+												if ( ! array_key_exists( $setting_id, $option_value ) ) {
+													$option_value[ $setting_id ] = '';
+												}
 											}
 										}
-									}
 
-									return $option_value;
-								},
-								9999,
-								2
-							);
+										return $option_value;
+									},
+									9999,
+									2
+								);
+							}
 						}
-					}
 
-					return $pre;
-				},
-				9999,
-				3
-			);
+						return $pre;
+					},
+					9999,
+					3
+				);
+			}
 		}
 
 		return $methods;
@@ -457,17 +467,31 @@ class MethodHelper {
 		return $p_settings;
 	}
 
-	public static function add_method_settings( $p_settings ) {
-		$shipping_provider_settings = self::get_method_settings();
+	public static function inject_method_instance_settings( $value, $key, $method ) {
+		if ( ! empty( $method->instance_form_fields ) ) {
+			if ( ! isset( $method->instance_form_fields['shipping_provider'] ) ) {
+				$method->instance_form_fields = array_merge( $method->instance_form_fields, self::get_method_settings() );
+			}
+		}
 
-		return array_merge( $p_settings, $shipping_provider_settings );
+		return $value;
+	}
+
+	public static function add_method_settings( $p_settings ) {
+		if ( ! empty( $p_settings ) && ! isset( $p_settings['shipping_provider'] ) ) {
+			$shipping_provider_settings = self::get_method_settings();
+			$p_settings                 = array_merge( $p_settings, $shipping_provider_settings );
+		}
+
+		return $p_settings;
 	}
 
 	protected static function load_all_method_settings() {
 		$screen                  = function_exists( 'get_current_screen' ) ? get_current_screen() : false;
+		$is_shipping_tab         = isset( $_GET['tab'] ) && 'shipping' === wc_clean( wp_unslash( $_GET['tab'] ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		$load_all_setting_fields = false;
 
-		if ( $screen && isset( $screen->id ) && 'woocommerce_page_wc-settings' === $screen->id ) {
+		if ( $screen && isset( $screen->id ) && 'woocommerce_page_wc-settings' === $screen->id && $is_shipping_tab ) {
 			$load_all_setting_fields = true;
 		}
 
@@ -517,88 +541,87 @@ class MethodHelper {
 			if ( is_null( self::$provider_method_settings ) ) {
 				self::$provider_method_settings = array();
 
-				foreach ( Helper::instance()->get_available_shipping_providers() as $provider ) {
-					self::$provider_method_settings[ $provider->get_name() ] = $provider->get_shipping_method_settings();
-				}
-			}
+				$supported_zones = array_keys( wc_stc_get_shipping_label_zones() );
 
-			$supported_zones = array_keys( wc_stc_get_shipping_label_zones() );
+				foreach ( Helper::instance()->get_available_shipping_providers() as $provider => $provider_instance ) {
+					$zone_settings           = $provider_instance->get_shipping_method_settings();
+					$provider_tabs           = array();
+					$provider_inner_settings = array();
 
-			foreach ( self::$provider_method_settings as $provider => $zone_settings ) {
-				$provider_tabs           = array();
-				$provider_inner_settings = array();
-
-				foreach ( $zone_settings as $zone => $shipment_type_settings ) {
-					if ( ! in_array( $zone, $supported_zones, true ) ) {
-						continue;
-					}
-
-					foreach ( $shipment_type_settings as $shipment_type => $settings ) {
-						if ( ! isset( $provider_inner_settings[ $shipment_type ] ) ) {
-							$provider_inner_settings[ $shipment_type ] = array();
+					foreach ( $zone_settings as $zone => $shipment_type_settings ) {
+						if ( ! in_array( $zone, $supported_zones, true ) ) {
+							continue;
 						}
 
-						$provider_inner_settings[ $shipment_type ]         = array_merge( $provider_inner_settings[ $shipment_type ], $settings );
-						$provider_tabs[ $provider . '_' . $shipment_type ] = wc_stc_get_shipment_label_title( $shipment_type );
+						foreach ( $shipment_type_settings as $shipment_type => $settings ) {
+							if ( ! isset( $provider_inner_settings[ $shipment_type ] ) ) {
+								$provider_inner_settings[ $shipment_type ] = array();
+							}
+
+							$provider_inner_settings[ $shipment_type ]         = array_merge( $provider_inner_settings[ $shipment_type ], $settings );
+							$provider_tabs[ $provider . '_' . $shipment_type ] = wc_stc_get_shipment_label_title( $shipment_type );
+						}
 					}
-				}
 
-				if ( ! empty( $provider_inner_settings ) ) {
-					$tabs_open_id = "label_config_set_tabs_{$provider}";
+					if ( ! empty( $provider_inner_settings ) ) {
+						$tabs_open_id = "label_config_set_tabs_{$provider}";
 
-					$method_settings = array_merge(
-						$method_settings,
-						array(
-							$tabs_open_id => array(
-								'id'           => $tabs_open_id,
-								'tabs'         => $provider_tabs,
-								'type'         => 'shipping_provider_method_tabs',
-								'default'      => '',
-								'display_only' => true,
-								'provider'     => $provider,
-							),
-						)
-					);
-
-					$count = 0;
-
-					foreach ( $provider_inner_settings as $shipment_type => $settings ) {
-						++$count;
-
-						$tabs_open_id  = "label_config_set_tabs_{$provider}_{$shipment_type}_open";
-						$tabs_close_id = "label_config_set_tabs_{$provider}_{$shipment_type}_close";
-
-						$method_settings = array_merge(
-							$method_settings,
+						self::$provider_method_settings = array_merge(
+							self::$provider_method_settings,
 							array(
 								$tabs_open_id => array(
-									'id'       => $tabs_open_id,
-									'type'     => 'shipping_provider_method_tabs_open',
-									'tab'      => $provider . '_' . $shipment_type,
-									'default'  => '',
-									'provider' => $provider,
-									'active'   => 1 === $count ? true : false,
+									'id'           => $tabs_open_id,
+									'tabs'         => $provider_tabs,
+									'type'         => 'shipping_provider_method_tabs',
+									'default'      => '',
+									'display_only' => true,
+									'provider'     => $provider,
 								),
 							)
 						);
 
-						$method_settings = array_merge( $method_settings, $settings );
+						$count = 0;
 
-						$method_settings = array_merge(
-							$method_settings,
-							array(
-								$tabs_close_id => array(
-									'id'       => $tabs_close_id,
-									'type'     => 'shipping_provider_method_tabs_close',
-									'tab'      => $provider . '_' . $shipment_type,
-									'default'  => '',
-									'provider' => $provider,
-								),
-							)
-						);
+						foreach ( $provider_inner_settings as $shipment_type => $settings ) {
+							++$count;
+
+							$tabs_open_id  = "label_config_set_tabs_{$provider}_{$shipment_type}_open";
+							$tabs_close_id = "label_config_set_tabs_{$provider}_{$shipment_type}_close";
+
+							self::$provider_method_settings = array_merge(
+								self::$provider_method_settings,
+								array(
+									$tabs_open_id => array(
+										'id'       => $tabs_open_id,
+										'type'     => 'shipping_provider_method_tabs_open',
+										'tab'      => $provider . '_' . $shipment_type,
+										'default'  => '',
+										'provider' => $provider,
+										'active'   => 1 === $count ? true : false,
+									),
+								)
+							);
+
+							self::$provider_method_settings = array_merge( self::$provider_method_settings, $settings );
+
+							self::$provider_method_settings = array_merge(
+								self::$provider_method_settings,
+								array(
+									$tabs_close_id => array(
+										'id'       => $tabs_close_id,
+										'type'     => 'shipping_provider_method_tabs_close',
+										'tab'      => $provider . '_' . $shipment_type,
+										'default'  => '',
+										'provider' => $provider,
+									),
+								)
+							);
+						}
 					}
 				}
 			}
+
+			$method_settings = array_merge( $method_settings, self::$provider_method_settings );
 		}
 
 		/**
@@ -691,7 +714,7 @@ class MethodHelper {
 		ob_start();
 		?>
 		</table>
-		<div class="wc-stc-shipping-provider-method-tabs" id="<?php echo esc_attr( $setting['id'] ); ?>" data-provider="<?php echo esc_attr( $setting['provider'] ); ?>">
+		<div class="wc-stc-shipping-provider-method-tabs <?php echo esc_attr( Extensions::compare_versions( Extensions::get_plugin_version( 'woocommerce' ), '9.9.0', '>=' ) ? 'provider-method-modern' : '' ); ?>" id="<?php echo esc_attr( $setting['id'] ); ?>" data-provider="<?php echo esc_attr( $setting['provider'] ); ?>">
 			<nav class="nav-tab-wrapper woo-nav-tab-wrapper shipments-nav-tab-wrapper">
 				<?php
 				foreach ( $setting['tabs'] as $tab => $tab_title ) :

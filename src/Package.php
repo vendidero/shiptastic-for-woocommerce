@@ -348,12 +348,7 @@ class Package {
 	}
 
 	public static function get_current_payment_gateway() {
-		$current_gateway    = WC()->session ? WC()->session->get( 'chosen_payment_method' ) : '';
-		$has_block_checkout = has_block( 'woocommerce/checkout' ) || has_block( 'woocommerce/cart' ) || WC()->is_rest_api_request();
-
-		if ( $has_block_checkout ) {
-			$current_gateway = WC()->session ? WC()->session->get( 'wc_shiptastic_blocks_chosen_payment_method', '' ) : '';
-		}
+		$current_gateway = WC()->session ? WC()->session->get( 'chosen_payment_method' ) : '';
 
 		return $current_gateway;
 	}
