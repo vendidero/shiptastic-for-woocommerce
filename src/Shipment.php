@@ -14,6 +14,7 @@ use Vendidero\Shiptastic\Interfaces\ShipmentReturnLabel;
 use Vendidero\Shiptastic\Labels\Label;
 use Vendidero\Shiptastic\ShippingMethod\ProviderMethod;
 use Vendidero\Shiptastic\ShippingProvider\PickupLocation;
+use Vendidero\Shiptastic\Tracking\ShipmentStatus;
 use WC_Data;
 use WC_Data_Store;
 use Exception;
@@ -131,6 +132,11 @@ abstract class Shipment extends WC_Data {
 	protected $shipping_method_instance = null;
 
 	/**
+	 * @var ShipmentStatus[]
+	 */
+	protected $remote_status_events = null;
+
+	/**
 	 * Stores shipment data.
 	 *
 	 * @var array
@@ -154,6 +160,7 @@ abstract class Shipment extends WC_Data {
 		'shipping_method'                 => '',
 		'pickup_location_code'            => '',
 		'pickup_location_customer_number' => '',
+		'remote_status_events'            => array(),
 		'total'                           => 0,
 		'subtotal'                        => 0,
 		'additional_total'                => 0,
@@ -822,6 +829,69 @@ abstract class Shipment extends WC_Data {
 		}
 
 		return $address;
+	}
+
+	/**
+	 * Returns the remote status events.
+	 *
+	 * @param  string $context What the value is for. Valid values are 'view' and 'edit'.
+	 * @return string[]
+	 */
+	public function get_remote_status_events( $context = 'view' ) {
+		return $this->get_prop( 'remote_status_events', $context );
+	}
+
+	/**
+	 * @return ShipmentStatus[]
+	 */
+	public function get_remote_statuses() {
+		if ( is_null( $this->remote_status_events ) ) {
+			$this->remote_status_events = array();
+
+			foreach ( $this->get_remote_status_events() as $status ) {
+				$this->remote_status_events[] = new ShipmentStatus( $this, $status );
+			}
+		}
+
+		return $this->remote_status_events;
+	}
+
+	/**
+	 * @return ShipmentStatus|null
+	 */
+	public function get_last_remote_status() {
+		$remote_statuses = $this->get_remote_statuses();
+
+		return ! empty( $remote_statuses ) ? $remote_statuses[0] : null;
+	}
+
+	/**
+	 * @param ShipmentStatus $status
+	 *
+	 * @return bool
+	 */
+	public function update_remote_status( $status ) {
+		if ( $last_status = $this->get_last_remote_status() ) {
+			if ( $last_status->get_status() === $status->get_status() ) {
+				return false;
+			}
+		}
+
+		if ( $status->is_delivered() ) {
+			$this->set_status( 'delivered' );
+		} elseif ( $status->is_in_transit() ) {
+			$this->set_status( 'shipped' );
+		}
+
+		do_action( "{$this->get_general_hook_prefix()}update_remote_status", $status, $this );
+
+		$all_events = $this->get_remote_status_events();
+		array_unshift( $all_events, $status->get_data() );
+
+		$this->set_remote_status_events( $all_events );
+		$this->save();
+
+		return true;
 	}
 
 	/**
@@ -1917,6 +1987,17 @@ abstract class Shipment extends WC_Data {
 	 */
 	public function set_address( $address ) {
 		$this->set_prop( 'address', empty( $address ) ? array() : (array) $address );
+	}
+
+	/**
+	 * Set remote status events.
+	 *
+	 * @param string[] $status The status events.
+	 */
+	public function set_remote_status_events( $events ) {
+		$this->remote_status_events = null;
+
+		$this->set_prop( 'remote_status_events', empty( $events ) ? array() : array_filter( (array) $events ) );
 	}
 
 	/**

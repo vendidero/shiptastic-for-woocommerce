@@ -43,6 +43,7 @@ class Shipment extends WC_Data_Store_WP implements WC_Object_Data_Store_Interfac
 		'_refund_order_id',
 		'_pickup_location_code',
 		'_pickup_location_customer_number',
+		'_remote_status_events',
 	);
 
 	protected $core_props = array(

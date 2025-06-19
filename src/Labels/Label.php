@@ -687,6 +687,10 @@ class Label extends WC_Data implements ShipmentLabel {
 		return true;
 	}
 
+	public function supports_status_refresh() {
+		return false;
+	}
+
 	public function supports_third_party_email_notification() {
 		$supports_email_notification = false;
 

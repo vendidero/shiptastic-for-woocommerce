@@ -347,11 +347,12 @@ function wc_stc_get_shipment( $the_shipment ) {
  */
 function wc_stc_get_shipment_statuses() {
 	$shipment_statuses = array(
-		'draft'      => _x( 'Draft', 'shipments', 'shiptastic-for-woocommerce' ),
-		'processing' => _x( 'Processing', 'shipments', 'shiptastic-for-woocommerce' ),
-		'shipped'    => _x( 'Shipped', 'shipments', 'shiptastic-for-woocommerce' ),
-		'delivered'  => _x( 'Delivered', 'shipments', 'shiptastic-for-woocommerce' ),
-		'requested'  => _x( 'Requested', 'shipments', 'shiptastic-for-woocommerce' ),
+		'draft'         => _x( 'Draft', 'shipments', 'shiptastic-for-woocommerce' ),
+		'processing'    => _x( 'Processing', 'shipments', 'shiptastic-for-woocommerce' ),
+		'ready-to-ship' => _x( 'Ready to ship', 'shipments', 'shiptastic-for-woocommerce' ),
+		'shipped'       => _x( 'Shipped', 'shipments', 'shiptastic-for-woocommerce' ),
+		'delivered'     => _x( 'Delivered', 'shipments', 'shiptastic-for-woocommerce' ),
+		'requested'     => _x( 'Requested', 'shipments', 'shiptastic-for-woocommerce' ),
 	);
 
 	/**

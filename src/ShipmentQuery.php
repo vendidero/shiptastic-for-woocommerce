@@ -64,6 +64,7 @@ class ShipmentQuery extends WC_Object_Query {
 			'page'              => 1,
 			'offset'            => '',
 			'paginate'          => false,
+			'has_tracking'      => '',
 			'search'            => '',
 			'search_columns'    => array(),
 		);
@@ -182,7 +183,12 @@ class ShipmentQuery extends WC_Object_Query {
 		}
 
 		if ( isset( $this->args['shipping_provider'] ) ) {
-			$this->args['shipping_provider'] = wc_clean( $this->args['shipping_provider'] );
+			$this->args['shipping_provider'] = (array) $this->args['shipping_provider'];
+			$this->args['shipping_provider'] = array_map( 'wc_clean', $this->args['shipping_provider'] );
+		}
+
+		if ( ! empty( $this->args['has_tracking'] ) ) {
+			$this->args['has_tracking'] = wc_string_to_bool( $this->args['has_tracking'] );
 		}
 
 		if ( isset( $this->args['parent_id'] ) ) {
@@ -297,14 +303,18 @@ class ShipmentQuery extends WC_Object_Query {
 			}
 		}
 
-		// order id
-		if ( isset( $this->args['shipping_provider'] ) ) {
-			$this->query_where .= $wpdb->prepare( ' AND shipment_shipping_provider = %s', $this->args['shipping_provider'] );
-		}
-
 		// tracking id
 		if ( isset( $this->args['tracking_id'] ) ) {
 			$this->query_where .= $wpdb->prepare( " AND shipment_tracking_id IN ('%s')", $this->args['tracking_id'] ); // phpcs:ignore WordPress.DB.PreparedSQLPlaceholders.QuotedSimplePlaceholder
+		}
+
+		// tracking id
+		if ( isset( $this->args['has_tracking'] ) ) {
+			if ( true === $this->args['has_tracking'] ) {
+				$this->query_where .= ' AND shipment_tracking_id IS NOT NULL';
+			} else {
+				$this->query_where .= ' AND shipment_tracking_id IS NULL';
+			}
 		}
 
 		// parent id
@@ -363,6 +373,22 @@ class ShipmentQuery extends WC_Object_Query {
 
 			if ( ! empty( $where_status ) ) {
 				$this->query_where .= " AND ($where_status)";
+			}
+		}
+
+		// provider
+		if ( isset( $this->args['shipping_provider'] ) ) {
+			$providers   = $this->args['shipping_provider'];
+			$p_providers = array();
+
+			foreach ( $providers as $provider ) {
+				$p_providers[] = $wpdb->prepare( 'shipment_shipping_provider = %s', $provider );
+			}
+
+			$where_provider = implode( ' OR ', $p_providers );
+
+			if ( ! empty( $where_provider ) ) {
+				$this->query_where .= " AND ($where_provider)";
 			}
 		}
 

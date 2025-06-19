@@ -16,6 +16,7 @@ use Vendidero\Shiptastic\Packaging;
 use Vendidero\Shiptastic\Shipment;
 use Vendidero\Shiptastic\ShipmentError;
 use Vendidero\Shiptastic\SimpleShipment;
+use Vendidero\Shiptastic\Tracking\ShipmentStatus;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -808,6 +809,19 @@ abstract class Auto extends Simple implements ShippingProviderAuto {
 		}
 
 		return $pickup_locations;
+	}
+
+	public function supports_remote_shipment_status() {
+		return false;
+	}
+
+	/**
+	 * @param Shipment[] $shipments
+	 *
+	 * @return ShipmentStatus[]
+	 */
+	public function get_remote_status_for_shipments( $shipments ) {
+		return array();
 	}
 
 	protected function get_label_settings_by_shipment_type( $shipment_type = 'simple' ) {

@@ -6,6 +6,7 @@ use Automattic\WooCommerce\Utilities\I18nUtil;
 use Exception;
 use Vendidero\Shiptastic\Registry\Container;
 use Vendidero\Shiptastic\ShippingMethod\MethodHelper;
+use Vendidero\Shiptastic\Tracking\Helper;
 
 defined( 'ABSPATH' ) || exit;
 

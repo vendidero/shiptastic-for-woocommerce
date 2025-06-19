@@ -49,6 +49,7 @@ class Bootstrap {
 		$this->container->get( FormHandler::class )::init();
 		$this->container->get( PickupDelivery::class )::init();
 		$this->container->get( Packaging\ReportHelper::class )::init();
+		$this->container->get( Tracking\Helper::class )::init();
 		$this->container->get( Caches\Helper::class )::init();
 
 		if ( Package::load_blocks() ) {
@@ -144,6 +145,12 @@ class Bootstrap {
 			Packaging\ReportHelper::class,
 			function ( $container ) {
 				return Packaging\ReportHelper::class;
+			}
+		);
+		$this->container->register(
+			Tracking\Helper::class,
+			function ( $container ) {
+				return Tracking\Helper::class;
 			}
 		);
 		$this->container->register(
