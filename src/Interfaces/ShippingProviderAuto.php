@@ -77,6 +77,11 @@ interface ShippingProviderAuto extends ShippingProvider, LabelConfigurationSet {
 	public function supports_remote_shipment_status();
 
 	/**
+	 * @return bool
+	 */
+	public function enable_remote_shipment_status_update();
+
+	/**
 	 * @param Shipment[] $shipments
 	 *
 	 * @return ShipmentStatus[]

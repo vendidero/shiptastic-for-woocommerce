@@ -815,6 +815,10 @@ abstract class Auto extends Simple implements ShippingProviderAuto {
 		return false;
 	}
 
+	public function enable_remote_shipment_status_update() {
+		return false;
+	}
+
 	/**
 	 * @param Shipment[] $shipments
 	 *

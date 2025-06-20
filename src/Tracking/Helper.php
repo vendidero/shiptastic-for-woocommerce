@@ -28,7 +28,7 @@ class Helper {
 		if ( ! empty( $shipments ) ) {
 			if ( $provider = wc_stc_get_shipping_provider( $shipments_query['shipping_provider'] ) ) {
 				if ( is_a( $provider, 'Vendidero\Shiptastic\Interfaces\ShippingProviderAuto' ) ) {
-					if ( $provider->supports_remote_shipment_status() ) {
+					if ( $provider->enable_remote_shipment_status_update() && $provider->enable_remote_shipment_status_update() ) {
 						$statuses = $provider->get_remote_status_for_shipments( $shipments );
 
 						foreach ( $statuses as $status ) {
@@ -47,7 +47,7 @@ class Helper {
 
 		foreach ( \Vendidero\Shiptastic\ShippingProvider\Helper::instance()->get_available_shipping_providers() as $provider ) {
 			if ( is_a( $provider, 'Vendidero\Shiptastic\Interfaces\ShippingProviderAuto' ) ) {
-				if ( $provider->supports_remote_shipment_status() ) {
+				if ( $provider->enable_remote_shipment_status_update() && $provider->enable_remote_shipment_status_update() ) {
 					$supported_providers[ $provider->get_name() ] = $provider;
 				}
 			}
