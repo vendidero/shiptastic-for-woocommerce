@@ -47,6 +47,10 @@ class Bundles implements Compatibility {
 	 * @return Product
 	 */
 	public static function set_assembled_product_children_dimensions_and_weight( $product, $order_item ) {
+		if ( ! $product ) {
+			return $product;
+		}
+
 		if ( wc_pb_is_bundled_order_item( $order_item ) && ! self::order_item_is_shipped_individually( $order_item ) ) {
 			if ( $order = $order_item->get_order() ) {
 				$shipment_order = wc_stc_get_shipment_order( $order );
