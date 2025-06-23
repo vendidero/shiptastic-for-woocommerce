@@ -883,6 +883,9 @@ abstract class Shipment extends WC_Data {
 			$this->set_status( 'shipped' );
 		}
 
+		Package::log( "Refreshing shipment #{$this->get_id()} remote status:", 'info', 'tracking' );
+		Package::log( wc_print_r( $status->get_data(), true ), 'info', 'tracking' );
+
 		do_action( "{$this->get_general_hook_prefix()}update_remote_status", $status, $this );
 
 		$all_events = $this->get_remote_status_events();
