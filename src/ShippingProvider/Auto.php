@@ -989,7 +989,12 @@ abstract class Auto extends Simple implements ShippingProviderAuto {
 					),
 				)
 			);
+		}
 
+		/**
+		 * It might be that there is no product available but services.
+		 */
+		if ( ! empty( $services ) ) {
 			foreach ( $services as $service ) {
 				$service_setting_fields = $service->get_setting_fields( $configuration_set );
 
