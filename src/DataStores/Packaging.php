@@ -68,23 +68,29 @@ class Packaging extends WC_Data_Store_WP implements WC_Object_Data_Store_Interfa
 		global $wpdb;
 
 		$packaging->set_date_created( time() );
-		$packaging->set_weight_unit( wc_stc_get_packaging_weight_unit() );
-		$packaging->set_dimension_unit( wc_stc_get_packaging_dimension_unit() );
+
+		if ( ! $packaging->get_weight_unit( 'edit' ) ) {
+			$packaging->set_weight_unit( wc_stc_get_packaging_weight_unit() );
+		}
+
+		if ( ! $packaging->get_dimension_unit( 'edit' ) ) {
+			$packaging->set_dimension_unit( wc_stc_get_packaging_dimension_unit() );
+		}
 
 		$data = array(
-			'packaging_type'               => $packaging->get_type(),
-			'packaging_description'        => $packaging->get_description(),
-			'packaging_weight'             => $packaging->get_weight(),
-			'packaging_weight_unit'        => $packaging->get_weight_unit(),
-			'packaging_max_content_weight' => $packaging->get_max_content_weight(),
-			'packaging_dimension_unit'     => $packaging->get_dimension_unit(),
-			'packaging_length'             => $packaging->get_length(),
-			'packaging_width'              => $packaging->get_width(),
-			'packaging_height'             => $packaging->get_height(),
-			'packaging_inner_length'       => $packaging->get_inner_length(),
-			'packaging_inner_width'        => $packaging->get_inner_width(),
-			'packaging_inner_height'       => $packaging->get_inner_height(),
-			'packaging_order'              => $packaging->get_order(),
+			'packaging_type'               => $packaging->get_type( 'edit' ),
+			'packaging_description'        => $packaging->get_description( 'edit' ),
+			'packaging_weight'             => $packaging->get_weight( 'edit' ),
+			'packaging_weight_unit'        => $packaging->get_weight_unit( 'edit' ),
+			'packaging_max_content_weight' => $packaging->get_max_content_weight( 'edit' ),
+			'packaging_dimension_unit'     => $packaging->get_dimension_unit( 'edit' ),
+			'packaging_length'             => $packaging->get_length( 'edit' ),
+			'packaging_width'              => $packaging->get_width( 'edit' ),
+			'packaging_height'             => $packaging->get_height( 'edit' ),
+			'packaging_inner_length'       => $packaging->get_inner_length( 'edit' ),
+			'packaging_inner_width'        => $packaging->get_inner_width( 'edit' ),
+			'packaging_inner_height'       => $packaging->get_inner_height( 'edit' ),
+			'packaging_order'              => $packaging->get_order( 'edit' ),
 			'packaging_date_created'       => $packaging->get_date_created( 'edit' ) ? gmdate( 'Y-m-d H:i:s', $packaging->get_date_created( 'edit' )->getOffsetTimestamp() ) : null,
 			'packaging_date_created_gmt'   => $packaging->get_date_created( 'edit' ) ? gmdate( 'Y-m-d H:i:s', $packaging->get_date_created( 'edit' )->getTimestamp() ) : null,
 		);

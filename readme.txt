@@ -3,7 +3,7 @@ Contributors: vendidero, vdwoocommercesupport
 Tags: shipping, woocommerce, shipments, rules, woo
 Requires at least: 5.4
 Tested up to: 6.8
-Stable tag: 4.3.11
+Stable tag: 4.4.0
 Requires PHP: 5.6
 License: GPLv3
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
@@ -43,6 +43,12 @@ We recommend installing Shiptastic for WooCommerce through the WordPress Backend
 3. Manage returns
 
 == Changelog ==
+= 4.4.0 =
+* New: Allow choosing single-use only option for packaging in shipping rules
+* New: Allow disabling shipping method based on other shipping provider availability
+* Improvement: Backend performance in shipping settings context
+* Fix: Bundles error when order item product is not found
+
 = 4.3.11 =
 * Improvement: Woo 9.9 support
 * Fix: Do not pass retry parameter in body args to prevent API error messages

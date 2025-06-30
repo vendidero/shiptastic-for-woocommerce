@@ -150,6 +150,8 @@ class Install {
 					'weight'             => 0.14,
 					'max_content_weight' => 30,
 					'type'               => 'cardboard',
+					'weight_unit'        => 'kg',
+					'dimension_unit'     => 'cm',
 				),
 				array(
 					'description'        => _x( 'Cardboard M', 'shipments', 'shiptastic-for-woocommerce' ),
@@ -159,6 +161,8 @@ class Install {
 					'weight'             => 0.23,
 					'max_content_weight' => 30,
 					'type'               => 'cardboard',
+					'weight_unit'        => 'kg',
+					'dimension_unit'     => 'cm',
 				),
 				array(
 					'description'        => _x( 'Cardboard L', 'shipments', 'shiptastic-for-woocommerce' ),
@@ -168,6 +172,8 @@ class Install {
 					'weight'             => 0.3,
 					'max_content_weight' => 30,
 					'type'               => 'cardboard',
+					'weight_unit'        => 'kg',
+					'dimension_unit'     => 'cm',
 				),
 				array(
 					'description'        => _x( 'Letter C5/6', 'shipments', 'shiptastic-for-woocommerce' ),
@@ -177,6 +183,8 @@ class Install {
 					'weight'             => 0,
 					'max_content_weight' => 0.05,
 					'type'               => 'letter',
+					'weight_unit'        => 'kg',
+					'dimension_unit'     => 'cm',
 				),
 				array(
 					'description'        => _x( 'Letter C4', 'shipments', 'shiptastic-for-woocommerce' ),
@@ -186,6 +194,8 @@ class Install {
 					'weight'             => 0.01,
 					'max_content_weight' => 1,
 					'type'               => 'letter',
+					'weight_unit'        => 'kg',
+					'dimension_unit'     => 'cm',
 				),
 			);
 
