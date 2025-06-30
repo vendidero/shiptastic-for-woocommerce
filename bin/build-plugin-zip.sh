@@ -41,6 +41,7 @@ copy_dest_files() {
 		--exclude=bin/ \
 		--exclude=node_modules/ \
 		--exclude=tests/ \
+		--exclude=release/ \
 		--exclude=phpcs.xml \
 		--exclude=phpunit.xml.dist \
 		--exclude=renovate.json \
@@ -59,24 +60,6 @@ copy_dest_files() {
 }
 
 status "💃 Time to release Shiptastic 🕺"
-
-if [ -z "$NO_CHECKS" ]; then
-	# Make sure there are no changes in the working tree. Release builds should be
-	# traceable to a particular commit and reliably reproducible. (This is not
-	# totally true at the moment because we download nightly vendor scripts).
-	changed=
-	if ! git diff --exit-code > /dev/null; then
-		changed="file(s) modified"
-	elif ! git diff --cached --exit-code > /dev/null; then
-		changed="file(s) staged"
-	fi
-	if [ ! -z "$changed" ]; then
-		git status
-		error "ERROR: Cannot build plugin zip with dirty working tree. ☝️
-		Commit your changes and try again."
-		exit 1
-	fi
-fi
 
 # Run the build.
 status "Installing dependencies... 📦"
