@@ -110,7 +110,7 @@ class Helper {
 						'orderby'           => 'date_created',
 						'order'             => 'ASC',
 						'status'            => array( 'shipped', 'ready-to-ship' ),
-						'date_created'      => '>= ' . $cutoff_date->getTimestamp(),
+						'date_created'      => '>=' . $cutoff_date->getTimestamp(),
 						'paginate'          => true,
 						'count_total'       => true,
 						'offset'            => 0,

@@ -20,6 +20,8 @@ class ShipmentStatus {
 
 	protected $delivered_at = null;
 
+	protected $ice = '';
+
 	protected $meta = array();
 
 	/**
@@ -41,6 +43,7 @@ class ShipmentStatus {
 				'is_in_transit'      => false,
 				'last_updated'       => null,
 				'delivered_at'       => null,
+				'ice'                => '',
 			)
 		);
 
@@ -76,6 +79,10 @@ class ShipmentStatus {
 
 	public function set_status_description( $status ) {
 		$this->status_description = $status;
+	}
+
+	public function set_ice( $ice ) {
+		$this->ice = $ice;
 	}
 
 	public function set_is_delivered( $is_delivered ) {
@@ -134,6 +141,17 @@ class ShipmentStatus {
 		return $this->status;
 	}
 
+	/**
+	 * International Coded Event
+	 *
+	 * @example see attachment https://developer.dhl.com/api-reference/dhl-paket-de-sendungsverfolgung-post-paket-deutschland#downloads-section
+	 *
+	 * @return string
+	 */
+	public function get_ice() {
+		return $this->ice;
+	}
+
 	public function get_status_description() {
 		return $this->status_description;
 	}
@@ -176,6 +194,7 @@ class ShipmentStatus {
 			'is_in_transit'      => wc_bool_to_string( $this->get_is_in_transit() ),
 			'last_updated'       => $this->get_last_updated() ? $this->get_last_updated()->getTimestamp() : null,
 			'delivered_at'       => $this->get_delivered_at() ? $this->get_is_delivered()->getTimestamp() : null,
+			'ice'                => $this->get_ice(),
 		);
 
 		foreach ( $this->meta as $key => $value ) {
