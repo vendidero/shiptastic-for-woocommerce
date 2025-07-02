@@ -79,6 +79,14 @@ interface ShipmentLabel {
 	 */
 	public function is_trackable();
 
+	/**
+	 * Returns whether the label (product) supports
+	 * updating the shipment status via API
+	 *
+	 * @return bool
+	 */
+	public function supports_status_refresh();
+
 	public function supports_third_party_email_notification();
 
 	public function set_props( $props );

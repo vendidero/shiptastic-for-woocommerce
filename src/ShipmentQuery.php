@@ -57,6 +57,7 @@ class ShipmentQuery extends WC_Object_Query {
 			'type'              => 'simple',
 			'country'           => '',
 			'tracking_id'       => '',
+			'include'           => array(),
 			'order'             => 'DESC',
 			'orderby'           => 'date_created',
 			'shipping_provider' => '',
@@ -64,6 +65,7 @@ class ShipmentQuery extends WC_Object_Query {
 			'page'              => 1,
 			'offset'            => '',
 			'paginate'          => false,
+			'has_tracking'      => '',
 			'search'            => '',
 			'search_columns'    => array(),
 		);
@@ -181,8 +183,18 @@ class ShipmentQuery extends WC_Object_Query {
 			$this->args['order_id'] = array_map( 'absint', $this->args['order_id'] );
 		}
 
+		if ( isset( $this->args['include'] ) ) {
+			$this->args['include'] = (array) $this->args['include'];
+			$this->args['include'] = array_map( 'absint', $this->args['include'] );
+		}
+
 		if ( isset( $this->args['shipping_provider'] ) ) {
-			$this->args['shipping_provider'] = wc_clean( $this->args['shipping_provider'] );
+			$this->args['shipping_provider'] = (array) $this->args['shipping_provider'];
+			$this->args['shipping_provider'] = array_map( 'wc_clean', $this->args['shipping_provider'] );
+		}
+
+		if ( ! empty( $this->args['has_tracking'] ) ) {
+			$this->args['has_tracking'] = wc_string_to_bool( $this->args['has_tracking'] );
 		}
 
 		if ( isset( $this->args['parent_id'] ) ) {
@@ -287,6 +299,16 @@ class ShipmentQuery extends WC_Object_Query {
 		$this->query_from  = "FROM $wpdb->stc_shipments";
 		$this->query_where = 'WHERE 1=1';
 
+		// shipment ids
+		if ( isset( $this->args['include'] ) ) {
+			$shipment_ids = array_map( 'absint', $this->args['include'] );
+
+			if ( ! empty( $shipment_ids ) ) {
+				$placeholders       = implode( ',', array_fill( 0, count( $shipment_ids ), '%d' ) );
+				$this->query_where .= $wpdb->prepare( " AND shipment_id IN ({$placeholders})", ...$shipment_ids ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
+			}
+		}
+
 		// order id
 		if ( isset( $this->args['order_id'] ) ) {
 			$order_ids = array_map( 'absint', $this->args['order_id'] );
@@ -297,14 +319,18 @@ class ShipmentQuery extends WC_Object_Query {
 			}
 		}
 
-		// order id
-		if ( isset( $this->args['shipping_provider'] ) ) {
-			$this->query_where .= $wpdb->prepare( ' AND shipment_shipping_provider = %s', $this->args['shipping_provider'] );
-		}
-
 		// tracking id
 		if ( isset( $this->args['tracking_id'] ) ) {
 			$this->query_where .= $wpdb->prepare( " AND shipment_tracking_id IN ('%s')", $this->args['tracking_id'] ); // phpcs:ignore WordPress.DB.PreparedSQLPlaceholders.QuotedSimplePlaceholder
+		}
+
+		// tracking id
+		if ( isset( $this->args['has_tracking'] ) ) {
+			if ( true === $this->args['has_tracking'] ) {
+				$this->query_where .= ' AND (shipment_tracking_id IS NOT NULL AND shipment_tracking_id != "")';
+			} else {
+				$this->query_where .= ' AND (shipment_tracking_id IS NULL OR shipment_tracking_id = "")';
+			}
 		}
 
 		// parent id
@@ -363,6 +389,22 @@ class ShipmentQuery extends WC_Object_Query {
 
 			if ( ! empty( $where_status ) ) {
 				$this->query_where .= " AND ($where_status)";
+			}
+		}
+
+		// provider
+		if ( isset( $this->args['shipping_provider'] ) ) {
+			$providers   = $this->args['shipping_provider'];
+			$p_providers = array();
+
+			foreach ( $providers as $provider ) {
+				$p_providers[] = $wpdb->prepare( 'shipment_shipping_provider = %s', $provider );
+			}
+
+			$where_provider = implode( ' OR ', $p_providers );
+
+			if ( ! empty( $where_provider ) ) {
+				$this->query_where .= " AND ($where_provider)";
 			}
 		}
 

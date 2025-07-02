@@ -2,7 +2,9 @@
 namespace Vendidero\Shiptastic\Interfaces;
 
 use Vendidero\Shiptastic\Labels\ConfigurationSet;
+use Vendidero\Shiptastic\Shipment;
 use Vendidero\Shiptastic\ShippingProvider\PickupLocation;
+use Vendidero\Shiptastic\Tracking\ShipmentStatus;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -65,4 +67,24 @@ interface ShippingProviderAuto extends ShippingProvider, LabelConfigurationSet {
 	 * @return bool
 	 */
 	public function replace_shipping_address_by_pickup_location();
+
+	/**
+	 * Returns whether the shipping provider supports updating
+	 * shipment status via API
+	 *
+	 * @return bool
+	 */
+	public function supports_remote_shipment_status();
+
+	/**
+	 * @return bool
+	 */
+	public function enable_remote_shipment_status_update();
+
+	/**
+	 * @param Shipment[] $shipments
+	 *
+	 * @return ShipmentStatus[]
+	 */
+	public function get_remote_status_for_shipments( $shipments );
 }

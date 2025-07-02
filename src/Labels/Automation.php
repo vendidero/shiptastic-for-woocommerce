@@ -96,6 +96,8 @@ class Automation {
 		if ( $provider = $shipment->get_shipping_provider_instance() ) {
 			if ( $provider->automatically_set_shipment_status_shipped( $shipment ) ) {
 				$shipment->set_status( 'shipped' );
+			} else {
+				$shipment->set_status( 'ready-for-shipping' );
 			}
 		}
 	}

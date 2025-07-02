@@ -63,26 +63,37 @@ class Order {
 	 * @return WC_DateTime|null
 	 */
 	public function get_date_shipped() {
-		$date_shipped = $this->get_order()->get_meta( '_date_shipped', true );
+		return $this->get_datetime_from_timestamp( $this->get_order()->get_meta( '_date_shipped', true ) );
+	}
 
-		if ( $date_shipped ) {
+	/**
+	 * @return WC_DateTime|null
+	 */
+	public function get_date_delivered() {
+		return $this->get_datetime_from_timestamp( $this->get_order()->get_meta( '_date_delivered', true ) );
+	}
+
+	private function get_datetime_from_timestamp( $timestamp ) {
+		$date = null;
+
+		if ( $timestamp ) {
 			try {
-				$date_shipped = new WC_DateTime( "@{$date_shipped}" );
+				$date = new WC_DateTime( "@{$timestamp}" );
 
 				// Set local timezone or offset.
 				if ( get_option( 'timezone_string' ) ) {
-					$date_shipped->setTimezone( new DateTimeZone( wc_timezone_string() ) );
+					$date->setTimezone( new DateTimeZone( wc_timezone_string() ) );
 				} else {
-					$date_shipped->set_utc_offset( wc_timezone_offset() );
+					$date->set_utc_offset( wc_timezone_offset() );
 				}
 			} catch ( Exception $e ) {
-				$date_shipped = null;
+				$date = null;
 			}
 		} else {
-			$date_shipped = null;
+			$date = null;
 		}
 
-		return $date_shipped;
+		return $date;
 	}
 
 	public function is_shipped() {
@@ -133,15 +144,49 @@ class Order {
 		return apply_filters( 'woocommerce_shiptastic_shipment_order_last_tracking_id', $tracking_id, $this );
 	}
 
-	public function get_shipping_status() {
+	public function set_shipping_status( $new_status ) {
+		if ( in_array( $new_status, array_keys( wc_stc_get_shipment_order_shipping_statuses() ), true ) ) {
+			$this->get_order()->update_meta_data( '_shipping_status', $new_status );
+		}
+	}
+
+	public function update_shipping_status( $new_status ) {
+		if ( $new_status !== $this->get_shipping_status( 'edit' ) && in_array( $new_status, array_keys( wc_stc_get_shipment_order_shipping_statuses() ), true ) ) {
+			$this->get_order()->update_meta_data( '_shipping_status', $new_status );
+
+			if ( 'shipped' === $new_status ) {
+				$this->get_order()->update_meta_data( '_date_shipped', time() );
+			} elseif ( 'delivered' === $new_status ) {
+				$this->get_order()->update_meta_data( '_date_delivered', time() );
+			}
+
+			if ( ! in_array( $new_status, array( 'delivered' ), true ) ) {
+				$this->get_order()->delete_meta_data( '_date_delivered' );
+			}
+
+			if ( ! in_array( $new_status, array( 'delivered', 'partially-delivered', 'shipped' ), true ) ) {
+				$this->get_order()->delete_meta_data( '_date_shipped' );
+			}
+
+			$this->get_order()->save();
+
+			return true;
+		}
+
+		return false;
+	}
+
+	public function get_current_shipping_status() {
 		$status                  = 'not-shipped';
 		$shipments               = $this->get_simple_shipments();
 		$all_shipments_delivered = false;
 		$all_shipments_shipped   = false;
+		$all_shipments_ready     = false;
 
 		if ( ! empty( $shipments ) ) {
 			$all_shipments_delivered = true;
 			$all_shipments_shipped   = true;
+			$all_shipments_ready     = true;
 
 			foreach ( $shipments as $shipment ) {
 				if ( ! $shipment->has_status( 'delivered' ) ) {
@@ -152,23 +197,39 @@ class Order {
 
 				if ( ! $shipment->is_shipped() ) {
 					$all_shipments_shipped = false;
-				} elseif ( 'partially-delivered' !== $status ) {
+				} elseif ( ! in_array( $status, array( 'partially-delivered' ), true ) ) {
 					$status = 'partially-shipped';
+				}
+
+				if ( ! $shipment->has_status( 'ready-for-shipping' ) ) {
+					$all_shipments_ready = false;
 				}
 			}
 		}
 
-		$needs_shipping = $this->needs_shipping( array( 'sent_only' => true ) );
+		$needs_shipping_sent_only = $this->needs_shipping( array( 'sent_only' => true ) );
 
-		if ( $all_shipments_delivered && ! $needs_shipping ) {
+		if ( $all_shipments_delivered && ! $needs_shipping_sent_only ) {
 			$status = 'delivered';
-		} elseif ( 'partially-delivered' !== $status && ( $all_shipments_shipped && ! $needs_shipping ) ) {
+		} elseif ( ! in_array( $status, array( 'partially-delivered' ), true ) && ( $all_shipments_shipped && ! $needs_shipping_sent_only ) ) {
 			$status = 'shipped';
-		} elseif ( ! in_array( $status, array( 'partially-shipped', 'partially-delivered' ), true ) && ! $needs_shipping ) {
+		} elseif ( ! in_array( $status, array( 'partially-delivered', 'partially-shipped' ), true ) && ( $all_shipments_ready && ! $this->needs_shipping() ) ) {
+			$status = 'ready-for-shipping';
+		} elseif ( ! in_array( $status, array( 'partially-shipped', 'partially-ready-for-shipping', 'partially-delivered' ), true ) && ! $needs_shipping_sent_only ) {
 			$status = 'no-shipping-needed';
 		}
 
 		return apply_filters( 'woocommerce_shiptastic_shipment_order_shipping_status', $status, $this );
+	}
+
+	public function get_shipping_status( $context = 'view' ) {
+		$shipping_status = $this->get_order()->get_meta( '_shipping_status', true, $context );
+
+		if ( 'view' === $context && '' === $shipping_status ) {
+			$shipping_status = $this->get_current_shipping_status();
+		}
+
+		return $shipping_status;
 	}
 
 	public function supports_third_party_email_transmission() {

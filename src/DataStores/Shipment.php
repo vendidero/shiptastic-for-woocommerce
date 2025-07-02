@@ -43,6 +43,7 @@ class Shipment extends WC_Data_Store_WP implements WC_Object_Data_Store_Interfac
 		'_refund_order_id',
 		'_pickup_location_code',
 		'_pickup_location_customer_number',
+		'_remote_status_events',
 	);
 
 	protected $core_props = array(
@@ -649,7 +650,9 @@ class Shipment extends WC_Data_Store_WP implements WC_Object_Data_Store_Interfac
 					$date_query = $date_query_args['date_query'][0];
 
 					if ( 'post_date' === $date_query['column'] ) {
-						$date_query['column'] = $wpdb->stc_shipments . '.shipment_' . $db_key;
+						$date_query['column'] = "{$wpdb->stc_shipments}.shipment_{$db_key}";
+					} elseif ( 'post_date_gmt' === $date_query['column'] ) {
+						$date_query['column'] = "{$wpdb->stc_shipments}.shipment_{$db_key}_gmt";
 					}
 
 					$wp_query_args['date_query'][] = $date_query;

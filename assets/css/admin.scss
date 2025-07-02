@@ -779,24 +779,32 @@ tbody.packaging_list {
   white-space: nowrap;
   max-width: 100%;
 
-  &.status-draft, &.status-processing, &.status-requested, &.status-partially-shipped, &.status-partially-delivered, &.status-open, &.status-partially-returned {
+  &.status-draft,
+  &.status-processing,
+  &.status-ready-for-shipping,
+  &.status-requested,
+  &.status-partially-shipped,
+  &.status-partially-ready-for-shipping,
+  &.status-partially-delivered,
+  &.status-open,
+  &.status-partially-returned {
     background: #f8dda7;
-    color: #94660c;
+    color: #573b00;
   }
 
   &.status-not-shipped {
     background: #eba3a3;
-    color: #761919;
+    color: #570000;
   }
 
   &.status-delivered, &.status-shipped, &.status-shipped, &.status-returned, &.status-no-shipping-needed {
     background: #c6e1c6;
-    color: #5b841b;
+    color: #2c4700;
   }
 
   &.shipment-type-return-status.status-shipped {
     background: #f8dda7;
-    color: #94660c;
+    color: #573b00;
   }
 
   > span {

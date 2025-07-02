@@ -16,6 +16,7 @@ use Vendidero\Shiptastic\Packaging;
 use Vendidero\Shiptastic\Shipment;
 use Vendidero\Shiptastic\ShipmentError;
 use Vendidero\Shiptastic\SimpleShipment;
+use Vendidero\Shiptastic\Tracking\ShipmentStatus;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -24,16 +25,17 @@ abstract class Auto extends Simple implements ShippingProviderAuto {
 	use ConfigurationSetTrait;
 
 	protected $extra_data = array(
-		'label_print_format'                 => '',
-		'label_auto_enable'                  => false,
-		'label_auto_shipment_status'         => 'processing',
-		'label_return_auto_enable'           => false,
-		'label_return_auto_shipment_status'  => 'processing',
-		'label_auto_shipment_status_shipped' => false,
-		'label_references'                   => array(),
-		'pickup_locations_enable'            => true,
-		'pickup_locations_max_results'       => 20,
-		'configuration_sets'                 => array(),
+		'label_print_format'                   => '',
+		'label_auto_enable'                    => false,
+		'label_auto_shipment_status'           => 'processing',
+		'label_return_auto_enable'             => false,
+		'label_return_auto_shipment_status'    => 'processing',
+		'label_auto_shipment_status_shipped'   => false,
+		'label_references'                     => array(),
+		'pickup_locations_enable'              => true,
+		'pickup_locations_max_results'         => 20,
+		'enable_remote_shipment_status_update' => false,
+		'configuration_sets'                   => array(),
 	);
 
 	public function get_label_default_shipment_weight( $context = 'view' ) {
@@ -247,6 +249,10 @@ abstract class Auto extends Simple implements ShippingProviderAuto {
 		return $this->get_prop( 'label_return_auto_enable', $context );
 	}
 
+	public function get_enable_remote_shipment_status_update( $context = 'view' ) {
+		return $this->get_prop( 'enable_remote_shipment_status_update', $context );
+	}
+
 	public function get_label_print_format( $context = 'view' ) {
 		return $this->get_prop( 'label_print_format', $context );
 	}
@@ -261,6 +267,10 @@ abstract class Auto extends Simple implements ShippingProviderAuto {
 
 	public function set_label_auto_enable( $enable ) {
 		$this->set_prop( 'label_auto_enable', wc_string_to_bool( $enable ) );
+	}
+
+	public function set_enable_remote_shipment_status_update( $enable ) {
+		$this->set_prop( 'enable_remote_shipment_status_update', wc_string_to_bool( $enable ) );
 	}
 
 	public function set_label_auto_shipment_status_shipped( $enable ) {
@@ -480,10 +490,40 @@ abstract class Auto extends Simple implements ShippingProviderAuto {
 		return $settings;
 	}
 
+	protected function get_tracking_settings() {
+		$settings = parent::get_tracking_settings();
+
+		if ( $this->supports_remote_shipment_status() ) {
+			$settings = array_merge(
+				$settings,
+				array(
+					array(
+						'title' => '',
+						'type'  => 'title',
+						'id'    => 'shipping_provider_tracking_auto_options',
+					),
+					array(
+						'title' => _x( 'Remote Status', 'shipments', 'shiptastic-for-woocommerce' ),
+						'desc'  => _x( 'Refresh shipment status via API.', 'shipments', 'shiptastic-for-woocommerce' ) . '<div class="wc-shiptastic-additional-desc">' . _x( 'Enable this option to automatically refresh the shipment status based on the actual status returned by the API. To learn more about remote status updates, check the <a href="https://vendidero.com/doc/shiptastic/manage-returns">docs</a>.', 'shipments', 'shiptastic-for-woocommerce' ) . '</div>',
+						'id'    => 'enable_remote_shipment_status_update',
+						'type'  => 'shiptastic_toggle',
+						'value' => wc_bool_to_string( $this->get_setting( 'enable_remote_shipment_status_update' ) ),
+					),
+					array(
+						'type' => 'sectionend',
+						'id'   => 'shipping_provider_label_auto_options',
+					),
+				)
+			);
+		}
+
+		return $settings;
+	}
+
 	protected function get_automation_settings() {
 		$settings = array(
 			array(
-				'title' => _x( 'Automation', 'shipments', 'shiptastic-for-woocommerce' ),
+				'title' => '',
 				'type'  => 'title',
 				'id'    => 'shipping_provider_label_auto_options',
 			),
@@ -808,6 +848,23 @@ abstract class Auto extends Simple implements ShippingProviderAuto {
 		}
 
 		return $pickup_locations;
+	}
+
+	public function supports_remote_shipment_status() {
+		return false;
+	}
+
+	public function enable_remote_shipment_status_update() {
+		return true === $this->get_enable_remote_shipment_status_update();
+	}
+
+	/**
+	 * @param Shipment[] $shipments
+	 *
+	 * @return ShipmentStatus[]
+	 */
+	public function get_remote_status_for_shipments( $shipments ) {
+		return array();
 	}
 
 	protected function get_label_settings_by_shipment_type( $shipment_type = 'simple' ) {

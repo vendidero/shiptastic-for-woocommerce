@@ -138,7 +138,7 @@ abstract class REST extends \Vendidero\Shiptastic\API\Api {
 				return $response;
 			}
 
-			return new Response( $response_code, $response_body, $response_headers );
+			return $response_obj;
 		}
 
 		return new Response( 500, array(), array(), new ShipmentError( 'rest-error', sprintf( _x( 'Error while trying to perform REST request to %s', 'shipments', 'shiptastic-for-woocommerce' ), $url ) ) );
