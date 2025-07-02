@@ -124,7 +124,7 @@ class Helper {
 						'limit'             => $per_batch_run,
 						'orderby'           => 'date_created',
 						'order'             => 'ASC',
-						'status'            => array( 'shipped', 'ready-to-ship' ),
+						'status'            => array( 'shipped', 'ready-for-shipping' ),
 						'date_created'      => '>=' . $cutoff_date->getTimestamp(),
 						'paginate'          => true,
 						'count_total'       => true,

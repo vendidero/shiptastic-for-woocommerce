@@ -201,7 +201,7 @@ class Order {
 					$status = 'partially-shipped';
 				}
 
-				if ( ! $shipment->has_status( 'ready-to-ship' ) ) {
+				if ( ! $shipment->has_status( 'ready-for-shipping' ) ) {
 					$all_shipments_ready = false;
 				}
 			}
@@ -214,8 +214,8 @@ class Order {
 		} elseif ( ! in_array( $status, array( 'partially-delivered' ), true ) && ( $all_shipments_shipped && ! $needs_shipping_sent_only ) ) {
 			$status = 'shipped';
 		} elseif ( ! in_array( $status, array( 'partially-delivered', 'partially-shipped' ), true ) && ( $all_shipments_ready && ! $this->needs_shipping() ) ) {
-			$status = 'ready-to-ship';
-		} elseif ( ! in_array( $status, array( 'partially-shipped', 'partially-ready-to-ship', 'partially-delivered' ), true ) && ! $needs_shipping_sent_only ) {
+			$status = 'ready-for-shipping';
+		} elseif ( ! in_array( $status, array( 'partially-shipped', 'partially-ready-for-shipping', 'partially-delivered' ), true ) && ! $needs_shipping_sent_only ) {
 			$status = 'no-shipping-needed';
 		}
 

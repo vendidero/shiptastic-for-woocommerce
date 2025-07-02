@@ -195,14 +195,14 @@ function wc_stc_get_order_last_tracking_id( $order ) {
 
 function wc_stc_get_shipment_order_shipping_statuses() {
 	$shipment_statuses = array(
-		'not-shipped'             => _x( 'Not shipped', 'shipments', 'shiptastic-for-woocommerce' ),
-		'ready-to-ship'           => _x( 'Ready to ship', 'shipments', 'shiptastic-for-woocommerce' ),
-		'partially-ready-to-ship' => _x( 'Partially ready to ship', 'shipments', 'shiptastic-for-woocommerce' ),
-		'partially-shipped'       => _x( 'Partially shipped', 'shipments', 'shiptastic-for-woocommerce' ),
-		'shipped'                 => _x( 'Shipped', 'shipments', 'shiptastic-for-woocommerce' ),
-		'partially-delivered'     => _x( 'Partially delivered', 'shipments', 'shiptastic-for-woocommerce' ),
-		'delivered'               => _x( 'Delivered', 'shipments', 'shiptastic-for-woocommerce' ),
-		'no-shipping-needed'      => _x( 'No shipping needed', 'shipments', 'shiptastic-for-woocommerce' ),
+		'not-shipped'                  => _x( 'Not shipped', 'shipments', 'shiptastic-for-woocommerce' ),
+		'ready-for-shipping'           => _x( 'Ready for shipping', 'shipments', 'shiptastic-for-woocommerce' ),
+		'partially-ready-for-shipping' => _x( 'Partially ready for shipping', 'shipments', 'shiptastic-for-woocommerce' ),
+		'partially-shipped'            => _x( 'Partially shipped', 'shipments', 'shiptastic-for-woocommerce' ),
+		'shipped'                      => _x( 'Shipped', 'shipments', 'shiptastic-for-woocommerce' ),
+		'partially-delivered'          => _x( 'Partially delivered', 'shipments', 'shiptastic-for-woocommerce' ),
+		'delivered'                    => _x( 'Delivered', 'shipments', 'shiptastic-for-woocommerce' ),
+		'no-shipping-needed'           => _x( 'No shipping needed', 'shipments', 'shiptastic-for-woocommerce' ),
 	);
 
 	/**
@@ -359,12 +359,12 @@ function wc_stc_get_shipment( $the_shipment ) {
  */
 function wc_stc_get_shipment_statuses() {
 	$shipment_statuses = array(
-		'draft'         => _x( 'Draft', 'shipments', 'shiptastic-for-woocommerce' ),
-		'processing'    => _x( 'Processing', 'shipments', 'shiptastic-for-woocommerce' ),
-		'ready-to-ship' => _x( 'Ready to ship', 'shipments', 'shiptastic-for-woocommerce' ),
-		'shipped'       => _x( 'Shipped', 'shipments', 'shiptastic-for-woocommerce' ),
-		'delivered'     => _x( 'Delivered', 'shipments', 'shiptastic-for-woocommerce' ),
-		'requested'     => _x( 'Requested', 'shipments', 'shiptastic-for-woocommerce' ),
+		'draft'              => _x( 'Draft', 'shipments', 'shiptastic-for-woocommerce' ),
+		'processing'         => _x( 'Processing', 'shipments', 'shiptastic-for-woocommerce' ),
+		'ready-for-shipping' => _x( 'Ready for shipping', 'shipments', 'shiptastic-for-woocommerce' ),
+		'shipped'            => _x( 'Shipped', 'shipments', 'shiptastic-for-woocommerce' ),
+		'delivered'          => _x( 'Delivered', 'shipments', 'shiptastic-for-woocommerce' ),
+		'requested'          => _x( 'Requested', 'shipments', 'shiptastic-for-woocommerce' ),
 	);
 
 	/**

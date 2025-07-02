@@ -97,7 +97,7 @@ class Automation {
 			if ( $provider->automatically_set_shipment_status_shipped( $shipment ) ) {
 				$shipment->set_status( 'shipped' );
 			} else {
-				$shipment->set_status( 'ready-to-ship' );
+				$shipment->set_status( 'ready-for-shipping' );
 			}
 		}
 	}
