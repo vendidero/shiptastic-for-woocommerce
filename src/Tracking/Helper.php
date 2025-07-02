@@ -22,6 +22,8 @@ class Helper {
 			array(
 				'shipping_provider' => '',
 				'time_offset'       => time(),
+				'offset'            => 0,
+				'limit'             => 20,
 			)
 		);
 
@@ -48,8 +50,13 @@ class Helper {
 
 			$single_query['include'] = $shipments;
 
+			Package::log( 'Queueing shipment status refresh for:', 'info', 'tracking' );
+			Package::log( wc_print_r( $shipments, true ), 'info', 'tracking' );
+
+			$cur_page = ceil( $shipments_query['offset'] / $shipments_query['limit'] );
+
 			self::get_queue()->schedule_single(
-				$time_offset + 150,
+				$time_offset + 150 + ( $cur_page * 60 ),
 				'woocommerce_shiptastic_shipments_tracking_track',
 				array( 'query' => $single_query ),
 				'woocommerce_shiptastic_tracking'
@@ -86,8 +93,12 @@ class Helper {
 					$query     = new ShipmentQuery( $shipments_query );
 					$shipments = $query->get_shipments();
 
+					Package::log( sprintf( 'Retrieving remote shipment status for %d shipments', count( $shipments ) ), 'info', 'tracking' );
+
 					if ( ! empty( $shipments ) ) {
 						$statuses = $provider->get_remote_status_for_shipments( $shipments );
+
+						Package::log( sprintf( 'Retrieved %d remote statuses', count( $statuses ) ), 'info', 'tracking' );
 
 						foreach ( $statuses as $status ) {
 							if ( $shipment = $status->get_shipment() ) {
