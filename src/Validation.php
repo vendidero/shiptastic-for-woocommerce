@@ -16,6 +16,60 @@ class Validation {
 		add_action( 'woocommerce_before_delete_order_item', array( __CLASS__, 'delete_order_item' ), 10, 1 );
 		add_action( 'woocommerce_update_order_item', array( __CLASS__, 'update_order_item' ), 10, 2 );
 
+		/**
+		 * Use a tweak to detect and fire shipping status change events after the order has been saved.
+		 */
+		add_action(
+			'woocommerce_before_order_object_save',
+			function ( $order ) {
+				if ( $order->get_id() > 0 ) {
+					$old_shipping_status = '';
+					$new_shipping_status = '';
+
+					if ( $order_shipments = wc_stc_get_shipment_order( $order ) ) {
+						$new_shipping_status = $order_shipments->get_shipping_status( 'edit' );
+					}
+
+					if ( $old_order = wc_get_order( $order->get_id() ) ) {
+						/**
+						 * Need to use a tweak here to force a fresh read of old metadata
+						 * due to caching.
+						 */
+						$old_order->read_meta_data( true );
+						$old_shipping_status = $old_order->get_meta( '_shipping_status', true, 'edit' );
+					}
+
+					if ( $old_shipping_status !== $new_shipping_status ) {
+						add_action(
+							'woocommerce_update_order',
+							function ( $order_id ) use ( $order, $old_shipping_status, $new_shipping_status ) {
+								if ( $order_id === $order->get_id() ) {
+									do_action( 'woocommerce_shiptastic_order_shipping_status_' . $new_shipping_status, $order->get_id(), $order );
+
+									if ( 'shipped' === $new_shipping_status ) {
+										/**
+										 * Action that fires as soon as an order has been shipped completely.
+										 * That is the case when the order contains all relevant shipments and all the shipments are marked as shipped.
+										 *
+										 * @param string  $order_id The order id.
+										 *
+										 * @package Vendidero/Shiptastic
+										 */
+										do_action( 'woocommerce_shiptastic_order_shipped', $order_id );
+									}
+
+									do_action( 'woocommerce_shiptastic_order_shipping_status_' . $old_shipping_status . '_to_' . $new_shipping_status, $order->get_id(), $order );
+									do_action( 'woocommerce_shiptastic_order_shipping_status_changed', $order->get_id(), $old_shipping_status, $new_shipping_status, $order );
+								}
+							},
+							1000,
+							1
+						);
+					}
+				}
+			}
+		);
+
 		add_action(
 			'woocommerce_before_order_object_save',
 			function ( $order ) {
@@ -98,9 +152,8 @@ class Validation {
 		add_action( 'woocommerce_order_partially_refunded', array( __CLASS__, 'on_refund_order' ), 5, 2 );
 		add_action( 'woocommerce_order_fully_refunded', array( __CLASS__, 'on_refund_order' ), 5, 2 );
 
-		// Check if order is shipped
-		add_action( 'woocommerce_shiptastic_shipment_before_status_change', array( __CLASS__, 'maybe_update_order_date_shipped' ), 5, 2 );
-
+		// Check for order shipping status changes
+		add_action( 'woocommerce_shiptastic_shipment_before_status_change', array( __CLASS__, 'maybe_update_order_shipping_status' ), 5, 2 );
 		add_action( 'woocommerce_shiptastic_shipping_provider_deactivated', array( __CLASS__, 'maybe_disable_default_shipping_provider' ), 10 );
 	}
 
@@ -122,41 +175,18 @@ class Validation {
 	 * @param integer $shipment_id
 	 * @param Shipment $shipment
 	 */
-	public static function maybe_update_order_date_shipped( $shipment_id, $shipment ) {
+	public static function maybe_update_order_shipping_status( $shipment_id, $shipment ) {
 		if ( 'simple' === $shipment->get_type() && ( $order = $shipment->get_order() ) ) {
-			self::check_order_shipped( $order );
+			if ( $shipment_order = wc_stc_get_shipment_order( $order ) ) {
+				$shipping_status = $shipment_order->get_current_shipping_status();
+
+				$shipment_order->update_shipping_status( $shipping_status );
+			}
 		}
 	}
 
 	public static function check_order_shipped( $order ) {
-		if ( $shipment_order = wc_stc_get_shipment_order( $order ) ) {
-			if ( $shipment_order->is_shipped() ) {
-				$order_id = $shipment_order->get_order()->get_id();
-
-				/**
-				 * Action that fires as soon as an order has been shipped completely.
-				 * That is the case when the order contains all relevant shipments and all the shipments are marked as shipped.
-				 *
-				 * @param string  $order_id The order id.
-				 *
-				 * @package Vendidero/Shiptastic
-				 */
-				do_action( 'woocommerce_shiptastic_order_shipped', $order_id );
-
-				/**
-				 * Make sure to instantiate a new order instance as the woocommerce_shiptastic_order_shipped hook
-				 * might trigger the order save event. We must prevent old order data to be updated again after the
-				 * potential update within the hook. This issue seems to only occur related to the HPOS post sync feature.
-				 */
-				if ( $order = wc_get_order( $order_id ) ) {
-					$order->update_meta_data( '_date_shipped', time() );
-					$order->save();
-				}
-			} else {
-				$shipment_order->get_order()->delete_meta_data( '_date_shipped' );
-				$shipment_order->get_order()->save();
-			}
-		}
+		wc_deprecated_function( 'Vendidero\Shiptastic\Validation::check_order_shipped()', '4.4.0' );
 	}
 
 	/**

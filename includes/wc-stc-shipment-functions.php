@@ -183,14 +183,26 @@ function wc_stc_get_shipments_by_order( $order ) {
 	return $shipments;
 }
 
+function wc_stc_get_order_last_tracking_id( $order ) {
+	$tracking_id = '';
+
+	if ( $order_shipment = wc_stc_get_shipment_order( $order ) ) {
+		$tracking_id = $order_shipment->get_last_tracking_id();
+	}
+
+	return $tracking_id;
+}
+
 function wc_stc_get_shipment_order_shipping_statuses() {
 	$shipment_statuses = array(
-		'not-shipped'         => _x( 'Not shipped', 'shipments', 'shiptastic-for-woocommerce' ),
-		'partially-shipped'   => _x( 'Partially shipped', 'shipments', 'shiptastic-for-woocommerce' ),
-		'shipped'             => _x( 'Shipped', 'shipments', 'shiptastic-for-woocommerce' ),
-		'partially-delivered' => _x( 'Partially delivered', 'shipments', 'shiptastic-for-woocommerce' ),
-		'delivered'           => _x( 'Delivered', 'shipments', 'shiptastic-for-woocommerce' ),
-		'no-shipping-needed'  => _x( 'No shipping needed', 'shipments', 'shiptastic-for-woocommerce' ),
+		'not-shipped'             => _x( 'Not shipped', 'shipments', 'shiptastic-for-woocommerce' ),
+		'ready-to-ship'           => _x( 'Ready to ship', 'shipments', 'shiptastic-for-woocommerce' ),
+		'partially-ready-to-ship' => _x( 'Partially ready to ship', 'shipments', 'shiptastic-for-woocommerce' ),
+		'partially-shipped'       => _x( 'Partially shipped', 'shipments', 'shiptastic-for-woocommerce' ),
+		'shipped'                 => _x( 'Shipped', 'shipments', 'shiptastic-for-woocommerce' ),
+		'partially-delivered'     => _x( 'Partially delivered', 'shipments', 'shiptastic-for-woocommerce' ),
+		'delivered'               => _x( 'Delivered', 'shipments', 'shiptastic-for-woocommerce' ),
+		'no-shipping-needed'      => _x( 'No shipping needed', 'shipments', 'shiptastic-for-woocommerce' ),
 	);
 
 	/**
@@ -1301,10 +1313,11 @@ function wc_stc_order_is_customer_returnable( $order, $check_date = true ) {
 		$maximum_days = absint( $maximum_days );
 
 		if ( ! empty( $maximum_days ) ) {
-
 			$completed_date = $shipment_order->get_order()->get_date_created();
 
-			if ( $shipment_order->get_date_shipped() ) {
+			if ( $shipment_order->get_date_delivered() ) {
+				$completed_date = $shipment_order->get_date_delivered();
+			} elseif ( $shipment_order->get_date_shipped() ) {
 				$completed_date = $shipment_order->get_date_shipped();
 			} elseif ( $shipment_order->get_order()->get_date_completed() ) {
 				$completed_date = $shipment_order->get_order()->get_date_completed();
@@ -1314,9 +1327,10 @@ function wc_stc_order_is_customer_returnable( $order, $check_date = true ) {
 			 * Filter to adjust the completed date of an order used to determine whether an order is
 			 * still returnable by the customer or not. The date is constructed by checking for existence in the following order:
 			 *
-			 * 1. The date the order was shipped completely
-			 * 2. The date the order was marked as completed
-			 * 3. The date the order was created
+			 * 1. The date the order was delivered completely
+			 * 2. The date the order was shipped completely
+			 * 3. The date the order was marked as completed
+			 * 4. The date the order was created
 			 *
 			 * @param WC_DateTime $completed_date The order completed date.
 			 * @param WC_Order    $order The order instance.

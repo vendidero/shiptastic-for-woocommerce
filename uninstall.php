@@ -18,6 +18,8 @@ if ( defined( 'WC_SHIPTASTIC_REMOVE_ALL_DATA' ) && true === WC_SHIPTASTIC_REMOVE
 		'_customs_description',
 		'_is_non_returnable',
 		'_date_shipped',
+		'_date_delivered',
+		'_shipping_status',
 		'_return_request_key',
 		'_pickup_location_customer_number',
 		'_pickup_location_code',

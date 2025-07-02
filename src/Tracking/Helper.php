@@ -21,7 +21,7 @@ class Helper {
 			$shipments_query,
 			array(
 				'shipping_provider' => '',
-				'time_offset'       => 0,
+				'time_offset'       => time(),
 			)
 		);
 
@@ -58,6 +58,21 @@ class Helper {
 	}
 
 	public static function track( $shipments_query ) {
+		/**
+		 * If there are woocommerce_shiptastic_shipments_tracking_single_run actions left we did not finish
+		 * building the query yet - postpone the event.
+		 */
+		if ( self::get_queue()->get_next( 'woocommerce_shiptastic_shipments_tracking_single_run', null, 'woocommerce_shiptastic_tracking' ) ) {
+			self::get_queue()->schedule_single(
+				time() + 150,
+				'woocommerce_shiptastic_shipments_tracking_track',
+				array( 'query' => $shipments_query ),
+				'woocommerce_shiptastic_tracking'
+			);
+
+			return;
+		}
+
 		$shipments_query = wp_parse_args(
 			$shipments_query,
 			array(
