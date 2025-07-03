@@ -643,7 +643,7 @@ class Package {
 	}
 
 	public static function is_debug_mode() {
-		$is_debug_mode = defined( 'WP_DEBUG' ) && WP_DEBUG ? true : false;
+		$is_debug_mode = 'yes' === self::get_setting( 'enable_debug_mode', 'no' );
 
 		return apply_filters( 'woocommerce_shiptastic_is_debug_mode', $is_debug_mode );
 	}

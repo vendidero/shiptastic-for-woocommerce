@@ -160,6 +160,7 @@ abstract class Shipment extends WC_Data {
 		'shipping_method'                 => '',
 		'pickup_location_code'            => '',
 		'pickup_location_customer_number' => '',
+		'tracking_secret'                 => '',
 		'remote_status_events'            => array(),
 		'total'                           => 0,
 		'subtotal'                        => 0,
@@ -970,6 +971,16 @@ abstract class Shipment extends WC_Data {
 	 */
 	public function get_tracking_id( $context = 'view' ) {
 		return $this->get_prop( 'tracking_id', $context );
+	}
+
+	/**
+	 * Returns the shipment tracking secret.
+	 *
+	 * @param  string $context What the value is for. Valid values are 'view' and 'edit'.
+	 * @return string
+	 */
+	public function get_tracking_secret( $context = 'view' ) {
+		return $this->get_prop( 'tracking_secret', $context );
 	}
 
 	/**
@@ -2102,10 +2113,19 @@ abstract class Shipment extends WC_Data {
 	/**
 	 * Set shipment tracking id.
 	 *
-	 * @param string $tracking_id The trakcing id.
+	 * @param string $tracking_id The tracking id.
 	 */
 	public function set_tracking_id( $tracking_id ) {
 		$this->set_prop( 'tracking_id', $tracking_id );
+	}
+
+	/**
+	 * Set shipment tracking secret.
+	 *
+	 * @param string $secret The tracking secret.
+	 */
+	public function set_tracking_secret( $secret ) {
+		$this->set_prop( 'tracking_secret', $secret );
 	}
 
 	/**

@@ -74,12 +74,36 @@ interface ShippingProviderAuto extends ShippingProvider, LabelConfigurationSet {
 	 *
 	 * @return bool
 	 */
-	public function supports_remote_shipment_status();
+	public function supports_remote_shipment_status( $type );
+
+	/**
+	 * Handles a remote shipment status update event.
+	 * Needs to handle authentication too.
+	 *
+	 * @param \WP_REST_Request $request
+	 *
+	 * @return \WP_Error|\WP_REST_Response|ShipmentStatus
+	 */
+	public function handle_remote_shipment_status_update( $request );
+
+	/**
+	 * @param Shipment[] $shipments
+	 *
+	 * @return void
+	 */
+	public function subscribe_to_shipment_status_events( $shipments );
+
+	/**
+	 * @param Shipment[] $shipments
+	 *
+	 * @return void
+	 */
+	public function unsubscribe_from_shipment_status_events( $shipments );
 
 	/**
 	 * @return bool
 	 */
-	public function enable_remote_shipment_status_update();
+	public function enable_remote_shipment_status_update( $type );
 
 	/**
 	 * @param Shipment[] $shipments

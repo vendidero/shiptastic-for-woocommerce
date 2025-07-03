@@ -892,6 +892,10 @@ class Simple extends WC_Data implements ShippingProvider {
 			)
 		);
 
+		if ( $this->is_manual_integration() ) {
+			$settings = array_merge( $settings, $this->get_tracking_settings() );
+		}
+
 		return $settings;
 	}
 
@@ -1147,8 +1151,7 @@ class Simple extends WC_Data implements ShippingProvider {
 
 	public function get_setting_sections() {
 		$sections = array(
-			''         => _x( 'General', 'shipments', 'shiptastic-for-woocommerce' ),
-			'tracking' => _x( 'Tracking', 'shipments', 'shiptastic-for-woocommerce' ),
+			'' => _x( 'General', 'shipments', 'shiptastic-for-woocommerce' ),
 		);
 
 		if ( $this->supports_customer_return_requests() ) {

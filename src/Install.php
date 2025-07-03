@@ -36,6 +36,7 @@ class Install {
 		if ( function_exists( 'as_unschedule_all_actions' ) ) {
 			$hooks = array(
 				'woocommerce_shiptastic_daily_cleanup',
+				'woocommerce_shiptastic_shipments_tracking',
 			);
 
 			foreach ( $hooks as $hook ) {

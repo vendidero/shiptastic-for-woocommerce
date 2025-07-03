@@ -103,10 +103,32 @@ class Admin {
 		add_filter( 'woocommerce_admin_settings_sanitize_option', array( __CLASS__, 'sanitize_dimensions_field' ), 10, 3 );
 
 		add_action( 'woocommerce_system_status_report', array( __CLASS__, 'status_report' ) );
+		add_filter( 'woocommerce_debug_tools', array( __CLASS__, 'register_tools' ), 10, 1 );
 
 		add_action( 'admin_post_woocommerce_stc_oauth', array( __CLASS__, 'oauth' ) );
 		add_action( 'admin_post_woocommerce_stc_oauth_init', array( __CLASS__, 'oauth_init' ) );
 		add_action( 'admin_post_woocommerce_stc_oauth_revoke', array( __CLASS__, 'oauth_revoke' ) );
+	}
+
+	public static function register_tools( $tools ) {
+		if ( ! Package::is_integration() ) {
+			$tools['shiptastic_debug_mode'] = array(
+				'name'     => _x( 'Shiptastic debug mode', 'shipments', 'shiptastic-for-woocommerce' ),
+				'button'   => true === Package::is_debug_mode() ? _x( 'Disable', 'shipments', 'shiptastic-for-woocommerce' ) : _x( 'Enable', 'shipments', 'shiptastic-for-woocommerce' ),
+				'callback' => array( __CLASS__, 'toggle_debug_mode' ),
+				'desc'     => '',
+			);
+		}
+
+		return $tools;
+	}
+
+	public static function toggle_debug_mode() {
+		if ( true === Package::is_debug_mode() ) {
+			delete_option( 'woocommerce_shiptastic_enable_debug_mode' );
+		} else {
+			update_option( 'woocommerce_shiptastic_enable_debug_mode', 'yes', false );
+		}
 	}
 
 	public static function oauth_init() {

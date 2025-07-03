@@ -3,6 +3,7 @@
 namespace Vendidero\Shiptastic\Tracking;
 
 use Vendidero\Shiptastic\Package;
+use Vendidero\Shiptastic\Shipment;
 use Vendidero\Shiptastic\ShipmentQuery;
 
 defined( 'ABSPATH' ) || exit;
@@ -14,6 +15,62 @@ class Helper {
 		add_action( 'woocommerce_shiptastic_shipments_tracking', array( __CLASS__, 'init_batch_tracking' ) );
 		add_action( 'woocommerce_shiptastic_shipments_tracking_single_run', array( __CLASS__, 'init_single_run' ) );
 		add_action( 'woocommerce_shiptastic_shipments_tracking_track', array( __CLASS__, 'track' ) );
+
+		add_action( 'rest_api_init', array( __CLASS__, 'register_tracking_event_endpoints' ) );
+		add_action( 'woocommerce_shiptastic_shipment_created_label', array( __CLASS__, 'subscribe_to_remote_events' ), 20, 2 );
+	}
+
+	/**
+	 * @param Shipment $shipment
+	 *
+	 * @return void
+	 */
+	public static function subscribe_to_remote_events( $shipment ) {
+		if ( $provider = $shipment->get_shipping_provider_instance() ) {
+			if ( is_a( $provider, 'Vendidero\Shiptastic\Interfaces\ShippingProviderAuto' ) ) {
+				if ( $provider->supports_remote_shipment_status( 'push' ) && $provider->enable_remote_shipment_status_update( 'push' ) ) {
+					$provider->subscribe_to_shipment_status_events( array( $shipment ) );
+				}
+			}
+		}
+	}
+
+	public static function register_tracking_event_endpoints() {
+		foreach ( \Vendidero\Shiptastic\ShippingProvider\Helper::instance()->get_available_shipping_providers() as $provider ) {
+			if ( is_a( $provider, 'Vendidero\Shiptastic\Interfaces\ShippingProviderAuto' ) ) {
+				if ( $provider->supports_remote_shipment_status( 'push' ) && $provider->enable_remote_shipment_status_update( 'push' ) ) {
+					register_rest_route(
+						'shiptastic/v1',
+						"{$provider->get_name()}/track",
+						array(
+							'methods'             => \WP_REST_Server::EDITABLE,
+							'callback'            => function ( $request ) use ( $provider ) {
+								$result = $provider->handle_remote_shipment_status_update( $request );
+
+								if ( is_a( $result, 'Vendidero\Shiptastic\Tracking\ShipmentStatus' ) ) {
+									if ( $shipment = $result->get_shipment() ) {
+										$shipment->update_remote_status( $result );
+									}
+
+									$result = new \WP_REST_Response( array( 'success' => true ) );
+									$result->set_status( 201 );
+								}
+
+								return rest_ensure_response( $result );
+							},
+							'permission_callback' => '__return_true',
+						)
+					);
+				}
+			}
+		}
+	}
+
+	public static function get_status_update_types() {
+		return array(
+			'pull' => _x( 'Pull', 'shipments', 'shiptastic-for-woocommerce' ),
+			'push' => _x( 'Push', 'shipments', 'shiptastic-for-woocommerce' ),
+		);
 	}
 
 	public static function init_single_run( $shipments_query ) {
@@ -89,7 +146,7 @@ class Helper {
 
 		if ( $provider = wc_stc_get_shipping_provider( $shipments_query['shipping_provider'] ) ) {
 			if ( is_a( $provider, 'Vendidero\Shiptastic\Interfaces\ShippingProviderAuto' ) ) {
-				if ( $provider->supports_remote_shipment_status() && $provider->enable_remote_shipment_status_update() ) {
+				if ( $provider->supports_remote_shipment_status( 'pull' ) && $provider->enable_remote_shipment_status_update( 'pull' ) ) {
 					$query     = new ShipmentQuery( $shipments_query );
 					$shipments = $query->get_shipments();
 
@@ -114,7 +171,7 @@ class Helper {
 	public static function init_batch_tracking() {
 		foreach ( \Vendidero\Shiptastic\ShippingProvider\Helper::instance()->get_available_shipping_providers() as $provider ) {
 			if ( is_a( $provider, 'Vendidero\Shiptastic\Interfaces\ShippingProviderAuto' ) ) {
-				if ( $provider->supports_remote_shipment_status() && $provider->enable_remote_shipment_status_update() ) {
+				if ( $provider->supports_remote_shipment_status( 'pull' ) && $provider->enable_remote_shipment_status_update( 'pull' ) ) {
 					$supported_providers[ $provider->get_name() ] = $provider;
 				}
 			}
