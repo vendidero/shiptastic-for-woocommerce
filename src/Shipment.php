@@ -874,6 +874,8 @@ abstract class Shipment extends WC_Data {
 	public function update_remote_status( $status ) {
 		if ( $last_status = $this->get_last_remote_status() ) {
 			if ( $last_status->get_status() === $status->get_status() ) {
+				Package::log( sprintf( 'Not updating #%s remote status as is unchanged (%s)', $this->get_id(), $status->get_status() ), 'info', 'tracking' );
+
 				return false;
 			}
 		}

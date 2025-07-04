@@ -77,6 +77,15 @@ interface ShippingProviderAuto extends ShippingProvider, LabelConfigurationSet {
 	public function supports_remote_shipment_status( $type );
 
 	/**
+	 * Returns the number of shipments supported per status check run.
+	 *
+	 * @param $type
+	 *
+	 * @return integer
+	 */
+	public function get_number_of_shipments_per_status_check( $type );
+
+	/**
 	 * Handles a remote shipment status update event.
 	 * Needs to handle authentication too.
 	 *

@@ -859,6 +859,10 @@ abstract class Auto extends Simple implements ShippingProviderAuto {
 		return false;
 	}
 
+	public function get_number_of_shipments_per_status_check( $type ) {
+		return 20;
+	}
+
 	public function enable_remote_shipment_status_update( $type ) {
 		return wc_string_to_bool( $this->get_setting( "enable_remote_shipment_status_update_{$type}", 'no' ) );
 	}

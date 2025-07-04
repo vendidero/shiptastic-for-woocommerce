@@ -98,8 +98,9 @@ class Helper {
 
 		$query     = new ShipmentQuery( $shipments_query );
 		$shipments = $query->get_shipments();
+		$provider  = wc_stc_get_shipping_provider( $shipments_query['shipping_provider'] );
 
-		if ( ! empty( $shipments ) ) {
+		if ( ! empty( $shipments ) && $provider && is_a( $provider, 'Vendidero\Shiptastic\Interfaces\ShippingProviderAuto' ) ) {
 			$single_query = array_diff_key(
 				$shipments_query,
 				array(
@@ -109,19 +110,29 @@ class Helper {
 				)
 			);
 
-			$single_query['include'] = $shipments;
+			$number_of_shipments = $provider->get_number_of_shipments_per_status_check( 'pull' );
 
-			Package::log( 'Queueing shipment status refresh for:', 'info', 'tracking' );
-			Package::log( wc_print_r( $shipments, true ), 'info', 'tracking' );
+			if ( count( $shipments ) > $number_of_shipments ) {
+				$chunks = array_chunk( $shipments, $number_of_shipments, true );
+			} else {
+				$chunks = array( $shipments );
+			}
 
-			$cur_page = ceil( $shipments_query['offset'] / $shipments_query['limit'] );
+			foreach ( $chunks as $i => $inner_shipments ) {
+				$single_query['include'] = $inner_shipments;
 
-			self::get_queue()->schedule_single(
-				$time_offset + 150 + ( $cur_page * 60 ),
-				'woocommerce_shiptastic_shipments_tracking_track',
-				array( 'query' => $single_query ),
-				'woocommerce_shiptastic_tracking'
-			);
+				Package::log( sprintf( 'Queueing %s shipment status refresh for:', $provider->get_title() ), 'info', 'tracking' );
+				Package::log( wc_print_r( $inner_shipments, true ), 'info', 'tracking' );
+
+				$cur_page = ceil( $shipments_query['offset'] / $shipments_query['limit'] );
+
+				self::get_queue()->schedule_single(
+					$time_offset + 150 + ( $cur_page * 60 ) + ( $i * 5 ),
+					'woocommerce_shiptastic_shipments_tracking_track',
+					array( 'query' => $single_query ),
+					'woocommerce_shiptastic_tracking'
+				);
+			}
 		}
 	}
 
@@ -154,15 +165,17 @@ class Helper {
 					$query     = new ShipmentQuery( $shipments_query );
 					$shipments = $query->get_shipments();
 
-					Package::log( sprintf( 'Retrieving remote shipment status for %d shipments', count( $shipments ) ), 'info', 'tracking' );
+					Package::log( sprintf( 'Retrieving %s remote shipment status for %d shipments', $provider->get_title(), count( $shipments ) ), 'info', 'tracking' );
 
 					if ( ! empty( $shipments ) ) {
 						$statuses = $provider->get_remote_status_for_shipments( $shipments );
 
-						Package::log( sprintf( 'Retrieved %d remote statuses', count( $statuses ) ), 'info', 'tracking' );
+						Package::log( sprintf( 'Retrieved %d %s remote statuses:', count( $statuses ), $provider->get_title() ), 'info', 'tracking' );
 
 						foreach ( $statuses as $status ) {
 							if ( $shipment = $status->get_shipment() ) {
+								Package::log( wc_print_r( $status->get_data(), true ), 'info', 'tracking' );
+
 								$shipment->update_remote_status( $status );
 							}
 						}
