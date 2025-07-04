@@ -4,6 +4,7 @@ namespace Vendidero\Shiptastic\DataStores;
 
 use Vendidero\Shiptastic\Caches\Helper;
 use Vendidero\Shiptastic\Package;
+use Vendidero\Shiptastic\SecretBox;
 use WC_Data_Store_WP;
 use WC_Object_Data_Store_Interface;
 use Exception;
@@ -478,6 +479,15 @@ class Shipment extends WC_Data_Store_WP implements WC_Object_Data_Store_Interfac
 			switch ( $prop ) {
 				case 'is_customer_requested':
 					$value = wc_bool_to_string( $value );
+					break;
+				case 'tracking_secret':
+					if ( ! empty( $value ) ) {
+						$encrypted = SecretBox::encrypt( $value );
+
+						if ( ! is_wp_error( $encrypted ) ) {
+							$value = $encrypted;
+						}
+					}
 					break;
 			}
 

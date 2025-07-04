@@ -490,7 +490,7 @@ abstract class Auto extends Simple implements ShippingProviderAuto {
 				$remote_tracking_settings[] = array(
 					'title' => sprintf( _x( 'Remote Status (%s)', 'shipments', 'shiptastic-for-woocommerce' ), $type_title ),
 					'desc'  => sprintf( _x( 'Refresh shipment status via API (%s).', 'shipments', 'shiptastic-for-woocommerce' ), $type_title ) . '<div class="wc-shiptastic-additional-desc">' . _x( 'Enable this option to automatically refresh the shipment status based on the actual status returned by the API. To learn more about remote status updates, check the <a href="https://vendidero.com/doc/shiptastic/manage-returns">docs</a>.', 'shipments', 'shiptastic-for-woocommerce' ) . '</div>',
-					'id'    => "_enable_remote_shipment_status_update_{$type}",
+					'id'    => "enable_remote_shipment_status_update_{$type}",
 					'type'  => 'shiptastic_toggle',
 					'value' => wc_bool_to_string( $this->enable_remote_shipment_status_update( $type ) ),
 				);
@@ -860,9 +860,17 @@ abstract class Auto extends Simple implements ShippingProviderAuto {
 	}
 
 	public function enable_remote_shipment_status_update( $type ) {
-		return wc_string_to_bool( $this->get_setting( "enable_remote_shipment_status_update_{$type}", "no" ) );
+		return wc_string_to_bool( $this->get_setting( "enable_remote_shipment_status_update_{$type}", 'no' ) );
 	}
 
+	/**
+	 * Handles a remote shipment status update event.
+	 * Needs to handle authentication too.
+	 *
+	 * @param \WP_REST_Request $request
+	 *
+	 * @return \WP_Error|\WP_REST_Response|ShipmentStatus
+	 */
 	public function handle_remote_shipment_status_update( $request ) {
 		return new \WP_Error( 'not_supported', 'Remote tracking not supported', array( 'status' => 500 ) );
 	}

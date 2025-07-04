@@ -193,6 +193,26 @@ function wc_stc_get_order_last_tracking_id( $order ) {
 	return $tracking_id;
 }
 
+/**
+ * @param $tracking_id
+ *
+ * @return false|Shipment
+ */
+function wc_stc_get_shipment_by_tracking_id( $tracking_id ) {
+	$shipments = wc_stc_get_shipments(
+		array(
+			'tracking_id' => $tracking_id,
+			'limit'       => 1,
+		)
+	);
+
+	if ( ! empty( $shipments ) ) {
+		return $shipments[0];
+	}
+
+	return false;
+}
+
 function wc_stc_get_shipment_order_shipping_statuses() {
 	$shipment_statuses = array(
 		'not-shipped'                  => _x( 'Not shipped', 'shipments', 'shiptastic-for-woocommerce' ),

@@ -980,7 +980,19 @@ abstract class Shipment extends WC_Data {
 	 * @return string
 	 */
 	public function get_tracking_secret( $context = 'view' ) {
-		return $this->get_prop( 'tracking_secret', $context );
+		$secret = $this->get_prop( 'tracking_secret', $context );
+
+		if ( ! empty( $secret ) && 'view' === $context ) {
+			$result = SecretBox::decrypt( $secret );
+
+			if ( ! is_wp_error( $result ) ) {
+				$secret = $result;
+			}
+
+			$secret = is_null( $secret ) ? $secret : stripslashes( $secret );
+		}
+
+		return $secret;
 	}
 
 	/**

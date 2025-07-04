@@ -35,6 +35,10 @@ class Helper {
 		}
 	}
 
+	public static function get_tracking_callback_url( $provider_name ) {
+		return get_rest_url( null, "shiptastic/v1/{$provider_name}/track" );
+	}
+
 	public static function register_tracking_event_endpoints() {
 		foreach ( \Vendidero\Shiptastic\ShippingProvider\Helper::instance()->get_available_shipping_providers() as $provider ) {
 			if ( is_a( $provider, 'Vendidero\Shiptastic\Interfaces\ShippingProviderAuto' ) ) {
@@ -53,7 +57,7 @@ class Helper {
 									}
 
 									$result = new \WP_REST_Response( array( 'success' => true ) );
-									$result->set_status( 201 );
+									$result->set_status( 200 );
 								}
 
 								return rest_ensure_response( $result );
