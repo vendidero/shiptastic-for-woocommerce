@@ -20,6 +20,7 @@ class Placeholder extends Simple {
 				'description'         => '',
 				'countries_supported' => array(),
 				'is_pro'              => false,
+				'is_builtin'          => false,
 				'extension_name'      => '',
 				'help_url'            => '',
 			)
@@ -52,6 +53,14 @@ class Placeholder extends Simple {
 		return $this->placeholder_args['extension_name'];
 	}
 
+	public function is_installed() {
+		return $this->is_builtin() || ( ! empty( $this->get_extension_name() ) && Extensions::is_provider_integration_active( $this->get_original_name(), $this->get_extension_name() ) );
+	}
+
+	public function get_shipping_provider() {
+		return wc_stc_get_shipping_provider( $this->get_original_name() );
+	}
+
 	public function get_description( $context = 'view' ) {
 		return empty( $this->placeholder_args['description'] ) ? sprintf( _x( 'Conveniently create %1$s labels to your shipments.', 'shipments', 'shiptastic-for-woocommerce' ), $this->get_title() ) : $this->placeholder_args['description'];
 	}
@@ -70,16 +79,24 @@ class Placeholder extends Simple {
 		return false;
 	}
 
+	public function is_builtin() {
+		return $this->placeholder_args['is_builtin'];
+	}
+
 	public function is_pro() {
 		return $this->placeholder_args['is_pro'] && ! Package::is_pro() && ! Extensions::is_provider_integration_active( $this->get_original_name(), $this->get_extension_name() );
 	}
 
 	public function is_activated() {
-		return false;
+		return $this->get_shipping_provider() ? $this->get_shipping_provider()->is_activated() : false;
 	}
 
 	public function activate() {
-		return false;
+		return $this->get_shipping_provider() ? $this->get_shipping_provider()->activate() : false;
+	}
+
+	public function deactivate() {
+		return $this->get_shipping_provider() ? $this->get_shipping_provider()->deactivate() : false;
 	}
 
 	public function get_help_link() {

@@ -48,7 +48,7 @@ final class Checkout {
 	 * @return array
 	 */
 	private function get_checkout_data_from_request( $request ) {
-		$data = array_filter( (array) wc_clean( $request['extensions']['woocommerce-shiptastic'] ) );
+		$data = array_filter( isset( $request['extensions']['woocommerce-shiptastic'] ) ? (array) wc_clean( $request['extensions']['woocommerce-shiptastic'] ) : array() );
 		$data = wp_parse_args(
 			$data,
 			array(
