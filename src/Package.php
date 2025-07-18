@@ -268,6 +268,17 @@ class Package {
 
 	public static function register_shortcodes() {
 		add_shortcode( 'shiptastic_return_request_form', array( __CLASS__, 'return_request_form' ) );
+
+		/**
+		 * Mark the return page as a Woo page to make sure default form styles work.
+		 */
+		add_filter( 'is_woocommerce', function( $is_woocommerce ) {
+			if ( wc_post_content_has_shortcode( 'shiptastic_return_request_form' ) ) {
+				$is_woocommerce = true;
+			}
+
+			return $is_woocommerce;
+		} );
 	}
 
 	public static function return_request_form( $args = array() ) {
