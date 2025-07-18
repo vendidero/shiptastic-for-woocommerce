@@ -305,6 +305,7 @@ const render = () => {
 
     const shippingAddress = customerData.shippingAddress;
     const { setShippingAddress, updateCustomerData } = useDispatch( CART_STORE_KEY );
+
     const checkoutOptions = getCheckoutData();
     const isAvailable = pickupLocationDeliveryAvailable && needsShipping;
 
@@ -384,13 +385,15 @@ const render = () => {
     );
 
     const setOption = useCallback( ( option, value ) => {
-        checkoutOptions[ option ] = value;
+        const updatedOptions = { ...checkoutOptions };
 
-        if ( ! checkoutOptions['pickup_location'] ) {
-            checkoutOptions['pickup_location_customer_number'] = '';
+        updatedOptions[ option ] = value;
+
+        if ( ! updatedOptions['pickup_location'] ) {
+            updatedOptions['pickup_location_customer_number'] = '';
         }
 
-        dispatch( CHECKOUT_STORE_KEY ).__internalSetExtensionData( 'woocommerce-shiptastic', checkoutOptions );
+        dispatch( CHECKOUT_STORE_KEY ).__internalSetExtensionData( 'woocommerce-shiptastic', updatedOptions );
     }, [ checkoutOptions ] );
 
     useEffect(() => {

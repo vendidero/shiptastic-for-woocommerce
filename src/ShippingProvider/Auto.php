@@ -489,7 +489,7 @@ abstract class Auto extends Simple implements ShippingProviderAuto {
 			if ( $this->supports_remote_shipment_status( $type ) ) {
 				$remote_tracking_settings[] = array(
 					'title' => sprintf( _x( 'Remote Status (%s)', 'shipments', 'shiptastic-for-woocommerce' ), $type_title ),
-					'desc'  => sprintf( _x( 'Refresh shipment status via API (%s).', 'shipments', 'shiptastic-for-woocommerce' ), $type_title ) . '<div class="wc-shiptastic-additional-desc">' . _x( 'Enable this option to automatically refresh the shipment status based on the actual status returned by the API. To learn more about remote status updates, check the <a href="https://vendidero.com/doc/shiptastic/manage-returns">docs</a>.', 'shipments', 'shiptastic-for-woocommerce' ) . '</div>',
+					'desc'  => sprintf( _x( 'Refresh shipment status via API (%s).', 'shipments', 'shiptastic-for-woocommerce' ), $type_title ) . '<div class="wc-shiptastic-additional-desc">' . _x( 'Enable this option to automatically refresh the shipment status based on the actual status returned by the API. To learn more about remote status updates, check the <a href="https://vendidero.com/doc/shiptastic/sync-shipment-status">docs</a>.', 'shipments', 'shiptastic-for-woocommerce' ) . '</div>',
 					'id'    => "enable_remote_shipment_status_update_{$type}",
 					'type'  => 'shiptastic_toggle',
 					'value' => wc_bool_to_string( $this->enable_remote_shipment_status_update( $type ) ),
