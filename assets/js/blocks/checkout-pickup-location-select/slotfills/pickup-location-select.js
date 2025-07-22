@@ -393,7 +393,7 @@ const render = () => {
             updatedOptions['pickup_location_customer_number'] = '';
         }
 
-        dispatch( CHECKOUT_STORE_KEY ).__internalSetExtensionData( 'woocommerce-shiptastic', updatedOptions );
+        dispatch( CHECKOUT_STORE_KEY ).setExtensionData( 'woocommerce-shiptastic', updatedOptions );
     }, [ checkoutOptions ] );
 
     useEffect(() => {
