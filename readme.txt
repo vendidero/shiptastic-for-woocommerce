@@ -3,7 +3,7 @@ Contributors: vendidero, vdwoocommercesupport
 Tags: shipping, woocommerce, shipments, rules, woo
 Requires at least: 5.4
 Tested up to: 6.8
-Stable tag: 4.5.0
+Stable tag: 4.5.1
 Requires PHP: 5.6
 License: GPLv3
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
@@ -43,6 +43,9 @@ We recommend installing Shiptastic for WooCommerce through the WordPress Backend
 3. Manage returns
 
 == Changelog ==
+= 4.5.1 =
+* Fix: Block-based checkout pickup location customer number
+
 = 4.5.0 =
 * New: Support remote tracking for shipments
 * New: Introduce new shipment status ready-for-shipping
