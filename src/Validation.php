@@ -44,6 +44,12 @@ class Validation {
 							'woocommerce_update_order',
 							function ( $order_id ) use ( $order, $old_shipping_status, $new_shipping_status ) {
 								if ( $order_id === $order->get_id() ) {
+									/**
+									 * Before triggering any custom actions, make sure to remove self to prevent infinite loops
+									 * in case one hook (@see Automation::mark_order_completed()) saves the order from within the hook.
+									 */
+									remove_all_actions( 'woocommerce_update_order', 9998 );
+
 									do_action( 'woocommerce_shiptastic_order_shipping_status_' . $new_shipping_status, $order->get_id(), $order );
 
 									if ( 'shipped' === $new_shipping_status ) {
@@ -62,7 +68,7 @@ class Validation {
 									do_action( 'woocommerce_shiptastic_order_shipping_status_changed', $order->get_id(), $old_shipping_status, $new_shipping_status, $order );
 								}
 							},
-							1000,
+							9998,
 							1
 						);
 					}

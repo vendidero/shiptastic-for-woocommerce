@@ -19,7 +19,7 @@ class Package {
 	 *
 	 * @var string
 	 */
-	const VERSION = '4.5.1';
+	const VERSION = '4.5.2';
 
 	public static $upload_dir_suffix = '';
 
@@ -272,13 +272,16 @@ class Package {
 		/**
 		 * Mark the return page as a Woo page to make sure default form styles work.
 		 */
-		add_filter( 'is_woocommerce', function( $is_woocommerce ) {
-			if ( wc_post_content_has_shortcode( 'shiptastic_return_request_form' ) ) {
-				$is_woocommerce = true;
-			}
+		add_filter(
+			'is_woocommerce',
+			function ( $is_woocommerce ) {
+				if ( wc_post_content_has_shortcode( 'shiptastic_return_request_form' ) ) {
+					$is_woocommerce = true;
+				}
 
-			return $is_woocommerce;
-		} );
+				return $is_woocommerce;
+			}
+		);
 	}
 
 	public static function return_request_form( $args = array() ) {
