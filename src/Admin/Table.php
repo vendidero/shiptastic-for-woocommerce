@@ -908,7 +908,7 @@ class Table extends WP_List_Table {
 			);
 		}
 
-		if ( $shipment->has_status( array( 'draft', 'processing' ) ) ) {
+		if ( $shipment->has_status( array( 'draft', 'processing', 'ready-for-shipping' ) ) ) {
 			$actions['shipped'] = array(
 				'url'    => wp_nonce_url( admin_url( 'admin-ajax.php?action=woocommerce_stc_update_shipment_status&status=shipped&shipment_id=' . $shipment->get_id() ), 'update-shipment-status' ),
 				'name'   => _x( 'Shipped', 'shipments', 'shiptastic-for-woocommerce' ),
