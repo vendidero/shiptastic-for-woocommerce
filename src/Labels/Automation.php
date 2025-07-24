@@ -97,7 +97,7 @@ class Automation {
 			if ( $provider->automatically_set_shipment_status_shipped( $shipment ) ) {
 				$shipment->set_status( 'shipped' );
 			} else {
-				$shipment->set_status( 'ready-for-shipping' );
+				$shipment->set_status( apply_filters( 'woocommerce_shiptastic_shipment_status_after_label_creation', 'ready-for-shipping', $shipment ) );
 			}
 		}
 	}
