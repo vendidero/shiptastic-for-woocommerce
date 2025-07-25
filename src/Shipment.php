@@ -947,7 +947,7 @@ abstract class Shipment extends WC_Data {
 	}
 
 	public function has_tracking() {
-		$has_tracking = true;
+		$has_tracking = $this->get_tracking_id() ? true : false;
 
 		if ( ! $this->has_tracking_instruction() && ! $this->get_tracking_url() ) {
 			$has_tracking = false;

@@ -11,7 +11,7 @@
  * the readme will list any important changes.
  *
  * @package Shiptastic/Templates/Emails/Plain
- * @version 4.3.0
+ * @version 4.5.3
  */
 use Vendidero\Shiptastic\Shipment;
 
@@ -77,7 +77,7 @@ do_action( 'woocommerce_shiptastic_before_account_shipments', $shipments, $order
 
 					<?php elseif ( 'shipment-tracking' === $column_id && $shipment->has_tracking() && ! $shipment->has_status( 'delivered' ) ) : ?>
 						<a href="<?php echo esc_url( $shipment->get_tracking_url() ); ?>" target="_blank">
-							<?php echo esc_html( _x( 'track now', 'shipments', 'shiptastic-for-woocommerce' ) ); ?>
+							<?php echo esc_html( _x( 'Track now', 'shipments', 'shiptastic-for-woocommerce' ) ); ?>
 						</a>
 
 					<?php elseif ( 'shipment-actions' === $column_id ) : ?>

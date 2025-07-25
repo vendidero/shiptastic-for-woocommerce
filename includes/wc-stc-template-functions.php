@@ -209,6 +209,29 @@ if ( ! function_exists( 'woocommerce_stc_return_shipments_template_instructions'
 	}
 }
 
+if ( ! function_exists( 'woocommerce_stc_shipment_tracking_buttons' ) ) {
+
+	function woocommerce_stc_shipment_tracking_buttons( $actions, $order ) {
+		if ( $shipment_order = wc_stc_get_shipment_order( $order ) ) {
+			$shipments = $shipment_order->get_simple_shipments( true );
+
+			if ( count( $shipments ) > 1 ) {
+				$actions['view_shipments'] = array(
+					'url'  => trailingslashit( $order->get_view_order_url() ) . '#woocommerce-order-shipments',
+					'name' => _x( 'Find shipments', 'shipments', 'shiptastic-for-woocommerce' ),
+				);
+			} elseif ( $shipment = $shipment_order->get_last_shipment_with_tracking() ) {
+				$actions[ "shipment_{$shipment->get_id()}" ] = array(
+					'url'  => $shipment->get_tracking_url(),
+					'name' => _x( 'Track now', 'shipments', 'shiptastic-for-woocommerce' ),
+				);
+			}
+		}
+
+		return $actions;
+	}
+}
+
 if ( ! function_exists( 'woocommerce_shiptastic_template_non_returnable_items_note' ) ) {
 
 	function woocommerce_shiptastic_template_non_returnable_items_note( $order ) {

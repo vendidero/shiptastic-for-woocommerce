@@ -109,7 +109,7 @@ class Order {
 		$last_shipment = false;
 
 		foreach ( array_reverse( $this->get_simple_shipments() ) as $shipment ) {
-			if ( ! $shipment->get_tracking_id() && ! $shipment->is_shipped() ) {
+			if ( ! $shipment->has_tracking() && ! $shipment->is_shipped() ) {
 				$last_shipment = $shipment;
 				break;
 			}
@@ -125,7 +125,7 @@ class Order {
 		$last_shipment = false;
 
 		foreach ( array_reverse( $this->get_simple_shipments( true ) ) as $shipment ) {
-			if ( ! empty( $shipment->get_tracking_id() ) ) {
+			if ( $shipment->has_tracking() ) {
 				$last_shipment = $shipment;
 				break;
 			}

@@ -23,6 +23,9 @@ if ( Package::get_setting( 'customer_account_enable' ) === 'yes' ) {
 
 	// View shipment details
 	add_action( 'woocommerce_shiptastic_view_shipment', 'woocommerce_stc_shipment_details_table', 10 );
+
+	// Buttons
+	add_filter( 'woocommerce_my_account_my_orders_actions', 'woocommerce_stc_shipment_tracking_buttons', 10, 2 );
 }
 
 add_action( 'woocommerce_shiptastic_add_return_shipment_details_after_shipment_table', 'woocommerce_shiptastic_template_non_returnable_items_note', 10 );

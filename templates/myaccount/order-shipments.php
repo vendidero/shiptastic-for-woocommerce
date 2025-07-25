@@ -11,13 +11,13 @@
  * the readme will list any important changes.
  *
  * @package Vendidero/Shiptastic/Templates
- * @version 4.3.0
+ * @version 4.5.3
  */
 defined( 'ABSPATH' ) || exit;
 ?>
 
 <?php if ( ! empty( $shipments ) ) : ?>
-	<h2 class="woocommerce-shipments-list__title"><?php echo esc_html_x( 'Shipments', 'shipments', 'shiptastic-for-woocommerce' ); ?></h2>
+	<h2 class="woocommerce-shipments-list__title" id="woocommerce-order-shipments"><?php echo esc_html_x( 'Shipments', 'shipments', 'shiptastic-for-woocommerce' ); ?></h2>
 
 	<?php
 	wc_get_template(
