@@ -138,9 +138,8 @@ class Automation {
 	 */
 	public static function mark_order_completed( $order_id ) {
 		if ( $order = wc_get_order( $order_id ) ) {
-
 			/**
-			 * By default do not mark orders (via invoice) as completed after shipped as
+			 * Do not mark orders (paid via invoice) as completed after shipped as
 			 * the order will be shipped before the invoice was paid.
 			 */
 			$mark_as_completed = ! in_array( $order->get_payment_method(), array( 'invoice' ), true ) ? true : false;

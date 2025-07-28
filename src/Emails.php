@@ -98,19 +98,28 @@ class Emails {
 	public static function get_email_notification_hooks() {
 		return array(
 			'woocommerce_shiptastic_shipment_status_draft_to_processing',
+			'woocommerce_shiptastic_shipment_status_draft_to_ready-for-shipping',
 			'woocommerce_shiptastic_shipment_status_draft_to_shipped',
 			'woocommerce_shiptastic_shipment_status_draft_to_delivered',
+			'woocommerce_shiptastic_shipment_status_processing_to_ready-for-shipping',
 			'woocommerce_shiptastic_shipment_status_processing_to_shipped',
 			'woocommerce_shiptastic_shipment_status_processing_to_delivered',
+			'woocommerce_shiptastic_shipment_status_ready-for-shipping_to_shipped',
+			'woocommerce_shiptastic_shipment_status_ready-for-shipping_to_delivered',
 			'woocommerce_shiptastic_shipment_status_shipped_to_delivered',
 			'woocommerce_shiptastic_return_shipment_status_draft_to_processing',
+			'woocommerce_shiptastic_return_shipment_status_draft_to_ready-for-shipping',
 			'woocommerce_shiptastic_return_shipment_status_draft_to_shipped',
 			'woocommerce_shiptastic_return_shipment_status_draft_to_delivered',
 			'woocommerce_shiptastic_return_shipment_status_draft_to_requested',
+			'woocommerce_shiptastic_return_shipment_status_processing_to_ready-for-shipping',
 			'woocommerce_shiptastic_return_shipment_status_processing_to_shipped',
 			'woocommerce_shiptastic_return_shipment_status_processing_to_delivered',
+			'woocommerce_shiptastic_return_shipment_status_ready-for-shipping_to_shipped',
+			'woocommerce_shiptastic_return_shipment_status_ready-for-shipping_to_delivered',
 			'woocommerce_shiptastic_return_shipment_status_shipped_to_delivered',
 			'woocommerce_shiptastic_return_shipment_status_requested_to_processing',
+			'woocommerce_shiptastic_return_shipment_status_requested_to_ready-for-shipping',
 			'woocommerce_shiptastic_return_shipment_status_requested_to_shipped',
 		);
 	}

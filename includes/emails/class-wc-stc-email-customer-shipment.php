@@ -74,6 +74,7 @@ if ( ! class_exists( 'WC_STC_Email_Customer_Shipment', false ) ) :
 			if ( 'yes' === Package::get_setting( 'notify_enable' ) ) {
 				add_action( 'woocommerce_shiptastic_shipment_status_draft_to_shipped_notification', array( $this, 'trigger' ), 10 );
 				add_action( 'woocommerce_shiptastic_shipment_status_processing_to_shipped_notification', array( $this, 'trigger' ), 10 );
+				add_action( 'woocommerce_shiptastic_shipment_status_ready-for-shipping_to_shipped_notification', array( $this, 'trigger' ), 10 );
 			}
 
 			// Call parent constructor.
