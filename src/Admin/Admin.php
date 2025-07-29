@@ -1659,10 +1659,10 @@ class Admin {
 		$tracking_html = '';
 
 		if ( $tracking_id = $shipment->get_tracking_id() ) {
-			if ( $tracking_url = $shipment->has_tracking() ) {
-				$tracking_html = '<a class="shipment-tracking-number" href="' . esc_url( $tracking_url ) . '" target="_blank">' . $tracking_id . '</a>';
+			if ( $shipment->has_tracking() && ( $tracking_url = $shipment->get_tracking_url() ) ) {
+				$tracking_html = '<a class="shipment-tracking-number" href="' . esc_url( $tracking_url ) . '" target="_blank">' . esc_html( $tracking_id ) . '</a>';
 			} else {
-				$tracking_html = '<span class="shipment-tracking-number">' . $tracking_id . '</span>';
+				$tracking_html = '<span class="shipment-tracking-number">' . esc_html( $tracking_id ) . '</span>';
 			}
 		}
 

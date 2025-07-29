@@ -26,22 +26,23 @@ class PickupLocation {
 
 	protected $address_replacement_map = array();
 
+	protected $meta = array();
+
 	public function __construct( $args ) {
-		$args = wp_parse_args(
-			$args,
-			array(
-				'code'                         => '',
-				'type'                         => '',
-				'label'                        => '',
-				'latitude'                     => '',
-				'longitude'                    => '',
-				'shipping_provider_name'       => '',
-				'supports_customer_number'     => false,
-				'customer_number_is_mandatory' => false,
-				'address'                      => array(),
-				'address_replacement_map'      => array(),
-			)
+		$core_args = array(
+			'code'                         => '',
+			'type'                         => '',
+			'label'                        => '',
+			'latitude'                     => '',
+			'longitude'                    => '',
+			'shipping_provider_name'       => '',
+			'supports_customer_number'     => false,
+			'customer_number_is_mandatory' => false,
+			'address'                      => array(),
+			'address_replacement_map'      => array(),
 		);
+
+		$args = wp_parse_args( $args, $core_args );
 
 		if ( empty( $args['code'] ) ) {
 			$args['code'] = sanitize_key( $args['label'] );
@@ -53,34 +54,30 @@ class PickupLocation {
 
 		$code_parts      = wc_stc_get_pickup_location_code_parts( $args['code'] );
 		$args['code']    = $code_parts['code'];
-		$default_address = array(
-			'address_1' => '',
-			'city'      => '',
-			'postcode'  => $code_parts['postcode'],
-			'country'   => $code_parts['country'],
-			'state'     => '',
-			'company'   => '',
+		$args['address'] = wp_parse_args(
+			(array) $args['address'],
+			array(
+				'postcode' => $code_parts['postcode'],
+				'country'  => $code_parts['country'],
+				'company'  => '',
+			)
 		);
+
+		if ( empty( $args['address']['company'] ) ) {
+			$args['address']['company'] = $this->get_label();
+		}
 
 		if ( ! empty( $code_parts['shipping_provider'] ) ) {
 			$args['shipping_provider_name'] = $code_parts['shipping_provider'];
 		}
 
-		$this->code                         = $args['code'];
-		$this->type                         = $args['type'];
-		$this->label                        = $args['label'];
-		$this->latitude                     = $args['latitude'];
-		$this->longitude                    = $args['longitude'];
-		$this->shipping_provider_name       = is_a( $args['shipping_provider_name'], '\Vendidero\Shiptastic\Interfaces\ShippingProvider' ) ? $args['shipping_provider_name']->get_name() : $args['shipping_provider_name'];
-		$this->supports_customer_number     = wc_string_to_bool( $args['supports_customer_number'] );
-		$this->customer_number_is_mandatory = wc_string_to_bool( $args['customer_number_is_mandatory'] );
-		$this->address                      = wp_parse_args( (array) $args['address'], $default_address );
-
-		if ( empty( $this->address['company'] ) ) {
-			$this->address['company'] = $this->get_label();
+		foreach ( $args as $arg_name => $value ) {
+			if ( is_callable( array( $this, "set_{$arg_name}" ) ) ) {
+				$this->{"set_{$arg_name}"}( $value );
+			} else {
+				$this->update_meta_data( $arg_name, $value );
+			}
 		}
-
-		$this->address_replacement_map = (array) $args['address_replacement_map'];
 	}
 
 	public function get_id() {
@@ -97,20 +94,50 @@ class PickupLocation {
 		}
 	}
 
+	public function set_code( $code ) {
+		$this->code = $code;
+	}
+
 	public function get_label() {
 		return $this->label;
+	}
+
+	public function set_label( $label ) {
+		$this->label = $label;
 	}
 
 	public function get_shipping_provider_name() {
 		return $this->shipping_provider_name;
 	}
 
+	public function set_shipping_provider_name( $provider_name ) {
+		$this->shipping_provider_name = is_a( $provider_name, '\Vendidero\Shiptastic\Interfaces\ShippingProvider' ) ? $provider_name->get_name() : $provider_name;
+	}
+
 	public function get_type() {
 		return $this->type;
 	}
 
+	public function set_type( $type ) {
+		$this->type = $type;
+	}
+
 	public function get_address() {
 		return $this->address;
+	}
+
+	public function set_address( $address ) {
+		$this->address = wp_parse_args(
+			(array) $address,
+			array(
+				'address_1' => '',
+				'city'      => '',
+				'postcode'  => '',
+				'country'   => '',
+				'state'     => '',
+				'company'   => '',
+			)
+		);
 	}
 
 	public function get_postcode() {
@@ -135,6 +162,10 @@ class PickupLocation {
 
 	public function supports_customer_number() {
 		return $this->supports_customer_number;
+	}
+
+	public function set_supports_customer_number( $supports ) {
+		$this->supports_customer_number = wc_string_to_bool( $supports );
 	}
 
 	public function supports_cart( $cart_data ) {
@@ -171,6 +202,10 @@ class PickupLocation {
 		return $this->customer_number_is_mandatory;
 	}
 
+	public function set_customer_number_is_mandatory( $is_mandatory ) {
+		$this->customer_number_is_mandatory = wc_string_to_bool( $is_mandatory );
+	}
+
 	/**
 	 * @param $customer_number
 	 *
@@ -190,8 +225,16 @@ class PickupLocation {
 		return $this->latitude;
 	}
 
+	public function set_latitude( $latitude ) {
+		$this->latitude = $latitude;
+	}
+
 	public function get_longitude() {
 		return $this->longitude;
+	}
+
+	public function set_longitude( $longitude ) {
+		$this->longitude = $longitude;
 	}
 
 	public function get_formatted_address( $separator = ', ' ) {
@@ -200,6 +243,10 @@ class PickupLocation {
 
 	public function get_address_replacement_map() {
 		return $this->address_replacement_map;
+	}
+
+	public function set_address_replacement_map( $address_map ) {
+		$this->address_replacement_map = (array) $address_map;
 	}
 
 	public function get_address_replacements() {
@@ -229,8 +276,16 @@ class PickupLocation {
 		}
 	}
 
+	public function update_meta_data( $meta_key, $meta_value ) {
+		$this->meta[ $meta_key ] = $meta_value;
+	}
+
+	public function get_meta( $meta_key, $default_value = null ) {
+		return array_key_exists( $meta_key, $this->meta ) ? $this->meta[ $meta_key ] : $default_value;
+	}
+
 	public function get_data() {
-		return array(
+		$data = array(
 			'code'                         => $this->get_code(),
 			'type'                         => $this->get_type(),
 			'label'                        => $this->get_label(),
@@ -245,5 +300,11 @@ class PickupLocation {
 			'formatted_address'            => $this->get_formatted_address(),
 			'shipping_provider_name'       => $this->get_shipping_provider_name(),
 		);
+
+		foreach ( $this->meta as $key => $value ) {
+			$data[ $key ] = $value;
+		}
+
+		return $data;
 	}
 }
