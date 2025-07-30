@@ -64,7 +64,7 @@ class PickupLocation {
 		);
 
 		if ( empty( $args['address']['company'] ) ) {
-			$args['address']['company'] = $this->get_label();
+			$args['address']['company'] = $args['label'];
 		}
 
 		if ( ! empty( $code_parts['shipping_provider'] ) ) {
