@@ -1,0 +1,51 @@
+body {
+  background-color: #fff;
+  color: #50575e;
+  box-sizing: border-box;
+  margin: 0;
+}
+
+.wc-shiptastic-wizard * {
+  box-sizing: border-box;
+}
+
+.wc-shiptastic-wizard-header {
+  .wc-shiptastic-wizard-progress-bar {
+    .wc-shiptastic-wizard-progress-bar-container {
+      height: 8px;
+      width: 100%;
+      background: transparent;
+    }
+
+    .wc-shiptastic-wizard-progress-bar-filler {
+      height: 100%;
+      min-width: 8px;
+      background-color: var(--wp-admin-theme-color);
+    }
+  }
+
+  .wc-shiptastic-wizard-header-nav {
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    align-items: center;
+    padding: 15px 15px;
+
+    .wc-shiptastic-wizard-logo {
+      svg {
+        width: 150px;
+        height: auto;
+      }
+    }
+  }
+}
+
+.wc-shiptastic-wizard-form {
+  min-height: 630px;
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  padding: 0 20px;
+}
+
+

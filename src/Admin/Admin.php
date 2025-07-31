@@ -2079,6 +2079,7 @@ class Admin {
 			'woocommerce_page_wc-stc-return-shipments',
 			'woocommerce_page_shipment-packaging',
 			'woocommerce_page_shipment-packaging-report',
+            'wc-shiptastic-setup'
 		);
 
 		return $screen_ids;

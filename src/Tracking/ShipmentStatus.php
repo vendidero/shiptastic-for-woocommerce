@@ -193,7 +193,7 @@ class ShipmentStatus {
 			'is_delivered'       => wc_bool_to_string( $this->get_is_delivered() ),
 			'is_in_transit'      => wc_bool_to_string( $this->get_is_in_transit() ),
 			'last_updated'       => $this->get_last_updated() ? $this->get_last_updated()->getTimestamp() : null,
-			'delivered_at'       => $this->get_delivered_at() ? $this->get_is_delivered()->getTimestamp() : null,
+			'delivered_at'       => $this->get_delivered_at() ? $this->get_delivered_at()->getTimestamp() : null,
 			'ice'                => $this->get_ice(),
 		);
 
