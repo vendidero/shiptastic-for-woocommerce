@@ -648,7 +648,9 @@ table.wc-shiptastic-shipping-rules {
             }
 
             &.conditions-actions {
-              margin-left: auto;
+              margin-right: auto;
+              padding-left: 10px;
+              min-width: 65px;
 
               .button {
                 margin-top: 0;
