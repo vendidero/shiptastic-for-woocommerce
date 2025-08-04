@@ -1,28 +1,24 @@
 <?php
 defined( 'ABSPATH' ) || exit;
-
-$fields = wc_stc_get_shipment_setting_address_fields();
-$default_fields = wc_stc_get_shipment_setting_default_address_fields();
-$address_fields_to_render = array(
-	'company',
-	'address_1',
-	'address_2',
-	'city',
-	'postcode',
-	'country',
-);
 ?>
 
-<h1><?php echo esc_html_x( 'Welcome! To get started, tell us something about yourself.', 'shipments', 'shiptastic-for-woocommerce' ); ?></h1>
+<div class="wc-shiptastic-wizard-entry">
+	<h1><?php echo esc_html_x( 'Welcome! To get started, tell us from where you are shipping.', 'shipments', 'shiptastic-for-woocommerce' ); ?></h1>
+</div>
 
-<?php foreach( $address_fields_to_render as $field ) :
+<div class="wc-shiptastic-wizard-inner-content inner-content-small">
+	<p class="entry-desc"><?php echo esc_html_x( 'This address may differ from your shop\'s base address in case you are shipping from another location.', 'shipments', 'shiptastic-for-woocommerce' ); ?></p>
 
-	?>
-	<fieldset>
-		<label for="<?php echo esc_attr( $field ); ?>"><?php echo esc_html( $default_fields[ $field ] ); ?></label>
-		<?php if ( 'country' !== $field ) : ?>
-			<input type="text" id="<?php echo esc_attr( $field ); ?>" name="<?php echo esc_attr( $field ); ?>" value="<?php echo esc_attr( $fields[ $field ] ); ?>" />
-		<?php else: ?>
-		<?php endif; ?>
-	</fieldset>
-<?php endforeach; ?>
+	<div class="error-wrapper"></div>
+
+	<table class="wc-shiptastic-wizard-settings">
+		<tbody>
+			<?php WC_Admin_Settings::output_fields( \Vendidero\Shiptastic\Admin\Setup\Wizard::get_settings( 'welcome' ) ); ?>
+		</tbody>
+	</table>
+
+	<div class="wc-shiptastic-wizard-links">
+		<button class="button button-primary button-submit" type="submit"><?php echo esc_attr_x( 'Continue', 'shipments-wizard', 'shiptastic-for-woocommerce' ); ?></button>
+	</div>
+</div>
+
