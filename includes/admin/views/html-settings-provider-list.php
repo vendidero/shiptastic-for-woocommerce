@@ -44,14 +44,8 @@ defined( 'ABSPATH' ) || exit;
 			</td>
 			<td class="wc-stc-shipping-provider-activated" id="wc-stc-shipping-provider-activated-<?php echo esc_attr( $provider->get_name() ); ?>">
 				<?php if ( is_a( $provider, '\Vendidero\Shiptastic\ShippingProvider\Placeholder' ) ) : ?>
-					<?php if ( $provider->is_pro() ) : ?>
-
-					<?php else : ?>
-						<?php if ( current_user_can( 'install_plugins' ) ) : ?>
-							<a class="button button-secondary wc-shiptastic-install-extension-btn wc-shiptastic-ajax-loading-btn" data-extension="<?php echo esc_attr( $provider->get_extension_name() ); ?>" href="<?php echo esc_url( $provider->get_help_link() ); ?>"><span class="btn-text"><?php echo esc_html_x( 'Install', 'shipments', 'shiptastic-for-woocommerce' ); ?></span></a>
-						<?php else : ?>
-							<span class="<?php echo( $provider->is_activated() ? 'status-enabled' : 'status-disabled' ); ?>"><?php echo( $provider->is_activated() ? esc_attr_x( 'Yes', 'shipments', 'shiptastic-for-woocommerce' ) : esc_attr_x( 'No', 'shipments', 'shiptastic-for-woocommerce' ) ); ?></span>
-						<?php endif; ?>
+					<?php if ( ! $provider->is_pro() ) : ?>
+						<a class="button button-secondary wc-shiptastic-ajax-action wc-shiptastic-ajax-loading-btn" data-nonce="<?php echo esc_attr( wp_create_nonce( 'shiptastic-install-extension' ) ); ?>" data-args="<?php echo esc_attr( "?redirect=yes&provider_name={$provider->get_name()}&extension={$provider->get_extension_name()}" ); ?>" data-action="install_extension" href="<?php echo esc_url( $provider->get_help_link() ); ?>"><span class="btn-text"><?php echo esc_html_x( 'Install', 'shipments', 'shiptastic-for-woocommerce' ); ?></span></a>
 					<?php endif; ?>
 				<?php else : ?>
 					<fieldset>

@@ -34,7 +34,7 @@ defined( 'ABSPATH' ) || exit;
 			<td class="wc-shiptastic-setting-tab-enabled" id="wc-shiptastic-setting-tab-enabled-<?php echo esc_attr( $tab->get_name() ); ?>">
 				<?php if ( $tab->needs_install() ) : ?>
 					<?php if ( current_user_can( 'install_plugins' ) ) : ?>
-						<a class="button button-secondary wc-shiptastic-install-extension-btn wc-stc-ajax-loading-btn" data-extension="<?php echo esc_attr( $tab->get_extension_name() ); ?>" href="<?php echo esc_url( $tab->get_url() ); ?>"><span class="btn-text"><?php echo esc_html_x( 'Install', 'shipments', 'shiptastic-for-woocommerce' ); ?></span></a>
+						<a class="button button-secondary wc-shiptastic-ajax-action wc-shiptastic-ajax-loading-btn" data-nonce="<?php echo esc_attr( wp_create_nonce( 'shiptastic-install-extension' ) ); ?>" data-args="<?php echo esc_attr( "?redirect=yes&extension={$tab->get_extension_name()}" ); ?>" data-action="install_extension" href="<?php echo esc_url( $tab->get_url() ); ?>"><span class="btn-text"><?php echo esc_html_x( 'Install', 'shipments', 'shiptastic-for-woocommerce' ); ?></span></a>
 					<?php else : ?>
 						<span class="<?php echo( $tab->is_enabled() ? 'status-enabled' : 'status-disabled' ); ?>"><?php echo( $tab->is_enabled() ? esc_attr_x( 'Yes', 'shipments', 'shiptastic-for-woocommerce' ) : esc_attr_x( 'No', 'shipments', 'shiptastic-for-woocommerce' ) ); ?></span>
 					<?php endif; ?>

@@ -525,13 +525,14 @@ class Admin {
 			$value['value'] = \WC_Admin_Settings::get_option( $value['id'], $value['default'] );
 		}
 
-		$option_value = $value['value'];
+		$option_value       = $value['value'];
+		$value['row_class'] = $value['row_class'] . ' wc-shiptastic-toggle-field';
 
 		if ( ! isset( $value['checkboxgroup'] ) || 'start' === $value['checkboxgroup'] ) {
 			?>
-			<tr valign="top">
+			<tr valign="top" class="<?php echo esc_attr( $value['row_class'] ); ?>">
 			<th scope="row" class="titledesc">
-				<span class="wc-shiptastic-label-wrap"><?php echo esc_html( $value['title'] ); ?><?php echo wp_kses_post( $field_description_data['tooltip_html'] ); ?></span>
+				<label class="wc-shiptastic-label-wrap" for="<?php echo esc_attr( $value['id'] ); ?>"><?php echo esc_html( $value['title'] ); ?><?php echo wp_kses_post( $field_description_data['tooltip_html'] ); ?></label>
 			</th>
 			<td class="forminp forminp-<?php echo esc_attr( sanitize_title( $value['type'] ) ); ?>">
 			<fieldset>
@@ -582,7 +583,7 @@ class Admin {
 		type="checkbox"
 		style="display: none; <?php echo esc_attr( $args['css'] ); ?>"
 		value="1"
-		class="<?php echo esc_attr( $args['class'] ); ?>"
+		class="<?php echo esc_attr( $args['class'] ); ?> wc-shiptastic-toggle-input"
 		<?php checked( $args['value'], 'yes' ); ?>
 		<?php
 		if ( ! empty( $args['custom_attributes'] ) && is_array( $args['custom_attributes'] ) ) {
@@ -1944,20 +1945,19 @@ class Admin {
 		// Shipping provider settings
 		if ( 'woocommerce_page_wc-settings' === $screen_id && isset( $_GET['tab'] ) && 'shiptastic-shipping_provider' === $_GET['tab'] && empty( $_GET['provider'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 			wp_enqueue_script( 'wc-shiptastic-admin-shipping-providers' );
-
-			wp_localize_script(
-				'wc-shiptastic-admin-shipping-providers',
-				'wc_shiptastic_admin_shipping_providers_params',
-				array(
-					'ajax_url'                             => admin_url( 'admin-ajax.php' ),
-					'edit_shipping_providers_nonce'        => wp_create_nonce( 'edit-shipping-providers' ),
-					'remove_shipping_provider_nonce'       => wp_create_nonce( 'remove-shipping-provider' ),
-					'sort_shipping_provider_nonce'         => wp_create_nonce( 'sort-shipping-provider' ),
-					'install_extension_nonce'              => wp_create_nonce( 'install-shipping-provider-extension' ),
-					'i18n_remove_shipping_provider_notice' => _x( 'Do you really want to delete the shipping provider? Some of your existing shipments might be linked to that provider and might need adjustments.', 'shipments', 'shiptastic-for-woocommerce' ),
-				)
-			);
 		}
+
+		wp_localize_script(
+			'wc-shiptastic-admin-shipping-providers',
+			'wc_shiptastic_admin_shipping_providers_params',
+			array(
+				'ajax_url'                             => admin_url( 'admin-ajax.php' ),
+				'edit_shipping_providers_nonce'        => wp_create_nonce( 'edit-shipping-providers' ),
+				'remove_shipping_provider_nonce'       => wp_create_nonce( 'remove-shipping-provider' ),
+				'sort_shipping_provider_nonce'         => wp_create_nonce( 'sort-shipping-provider' ),
+				'i18n_remove_shipping_provider_notice' => _x( 'Do you really want to delete the shipping provider? Some of your existing shipments might be linked to that provider and might need adjustments.', 'shipments', 'shiptastic-for-woocommerce' ),
+			)
+		);
 
 		// Shipping provider method
 		if ( self::is_shipping_settings_request() ) {

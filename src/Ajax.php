@@ -42,7 +42,7 @@ class Ajax {
 			'shipments_bulk_action_handle',
 			'remove_shipping_provider',
 			'sort_shipping_provider',
-			'install_shipping_provider_extension',
+			'install_extension',
 			'edit_shipping_provider_status',
 			'create_shipment_label_load',
 			'create_shipment_label_submit',
@@ -50,6 +50,7 @@ class Ajax {
 			'remove_shipment_label',
 			'send_return_shipment_notification_email',
 			'confirm_return_request',
+			'create_return_page',
 		);
 
 		foreach ( $ajax_events as $ajax_event ) {
@@ -457,40 +458,89 @@ class Ajax {
 		}
 	}
 
-	public static function install_shipping_provider_extension() {
-		check_ajax_referer( 'install-shipping-provider-extension', 'security' );
+	public static function install_extension() {
+		check_ajax_referer( 'shiptastic-install-extension', 'security' );
 
-		if ( ! current_user_can( 'install_plugins' ) || ! isset( $_POST['provider_name'] ) ) {
+		if ( ! current_user_can( 'install_plugins' ) || ! isset( $_POST['extension'] ) ) {
 			wp_die( - 1 );
 		}
 
-		$provider_name = wc_clean( wp_unslash( $_POST['provider_name'] ) );
-		$provider_name = '_' === substr( $provider_name, 0, 1 ) ? substr( $provider_name, 1 ) : $provider_name;
-		$placeholder   = ShippingProvider\Helper::instance()->get_shipping_provider_integration( $provider_name );
+		$redirect        = isset( $_POST['redirect'] ) ? wc_string_to_bool( wc_clean( wp_unslash( $_POST['redirect'] ) ) ) : false;
+		$provider_name   = isset( $_POST['provider_name'] ) ? wc_clean( wp_unslash( $_POST['provider_name'] ) ) : '';
+		$extension_name  = wc_clean( wp_unslash( $_POST['extension'] ) );
+		$extension_title = \Vendidero\Shiptastic\Extensions::get_plugin_name( $extension_name );
 
-		if ( $placeholder && $placeholder->get_extension_name() && \Vendidero\Shiptastic\Extensions::is_plugin_whitelisted( $placeholder->get_extension_name() ) ) {
-			$result = \Vendidero\Shiptastic\Extensions::install_or_activate_extension( $placeholder->get_extension_name() );
+		if ( ! empty( $provider_name ) ) {
+			$provider_name = '_' === substr( $provider_name, 0, 1 ) ? substr( $provider_name, 1 ) : $provider_name;
+			$placeholder   = ShippingProvider\Helper::instance()->get_shipping_provider_integration( $provider_name );
 
-			ShippingProvider\Helper::instance()->load_shipping_providers();
+			if ( $placeholder ) {
+				$extension_title = $placeholder->get_title();
 
-			if ( $provider = wc_stc_get_shipping_provider( $provider_name ) ) {
+				if ( ! $placeholder->get_extension_name() ) {
+					$extension_name = '';
+				} else {
+					$extension_name = $placeholder->get_extension_name();
+				}
+			}
+		}
+
+		if ( \Vendidero\Shiptastic\Extensions::is_plugin_whitelisted( $extension_name ) ) {
+			\Vendidero\Shiptastic\Extensions::install_or_activate_extension( $extension_name );
+
+			$success      = \Vendidero\Shiptastic\Extensions::is_plugin_installed( $extension_name );
+			$redirect_url = '';
+
+			if ( ! empty( $provider_name ) ) {
+				ShippingProvider\Helper::instance()->load_shipping_providers();
+
+				if ( $provider = wc_stc_get_shipping_provider( $provider_name ) ) {
+					$success      = true;
+					$redirect_url = $provider->get_edit_link();
+				} else {
+					$success = false;
+				}
+			}
+
+			if ( $success ) {
 				wp_send_json(
 					array(
-						'success'   => true,
-						'extension' => $placeholder->get_extension_name(),
-						'url'       => $provider->get_edit_link(),
+						'success'      => true,
+						'extension'    => $extension_name,
+						'redirect'     => $redirect,
+						'url'          => $redirect && $redirect_url ? $redirect_url : false,
+						'success_text' => _x( 'Installed successfully', 'shipments', 'shiptastic-for-woocommerce' ),
 					)
 				);
 			} else {
-				$message = sprintf( _x( 'There was an error while automatically installing %1$s. %2$s', 'shipments', 'shiptastic-for-woocommerce' ), esc_html( $placeholder->get_title() ), \Vendidero\Shiptastic\Extensions::get_plugin_manual_install_message( $placeholder->get_extension_name() ) );
+				$message = sprintf( _x( 'There was an error while automatically installing %1$s. %2$s', 'shipments', 'shiptastic-for-woocommerce' ), esc_html( $extension_title ), \Vendidero\Shiptastic\Extensions::get_plugin_manual_install_message( $extension_name ) );
 
 				wp_send_json(
 					array(
-						'message' => $message,
+						'message'   => $message,
+						'extension' => $extension_name,
 					)
 				);
 			}
 		}
+	}
+
+	public static function create_return_page() {
+		check_ajax_referer( 'shiptastic-create-return-page', 'security' );
+
+		if ( ! current_user_can( 'edit_pages' ) ) {
+			wp_die( - 1 );
+		}
+
+		$page_id = wc_create_page( _x( 'returns', 'shipments-returns-page-slug', 'shiptastic-for-woocommerce' ), 'woocommerce_returns_page_id', _x( 'Returns', 'shipments-returns-page-slug', 'shiptastic-for-woocommerce' ), '<!-- wp:shortcode -->[shiptastic_return_request_form]<!-- /wp:shortcode -->' );
+
+		wp_send_json(
+			array(
+				'success'      => true,
+				'success_text' => _x( 'Page created successfully', 'shipments', 'shiptastic-for-woocommerce' ),
+				'page_id'      => $page_id,
+			)
+		);
 	}
 
 	public static function sort_shipping_provider() {

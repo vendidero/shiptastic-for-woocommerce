@@ -16,7 +16,7 @@ window.shiptastic.admin = window.shiptastic.admin || {};
         onSubmit: function( e ) {
             var self = shipments.admin.wizard,
                 $form = $( this ),
-                $errorWrapper = $form.find( '.error-wrapper' ),
+                $errorWrapper = $form.find( '.wc-shiptastic-error-wrapper' ),
                 $mainButton = $( '#wc-shiptastic-wizard-links' ).find( '.button-submit' ),
                 data = $form.serialize();
 
@@ -41,7 +41,11 @@ window.shiptastic.admin = window.shiptastic.admin || {};
                 $form.find( ':input:not(.disabled):not([type=hidden])' ).prop( 'disabled', false );
                 $mainButton.prop( 'disabled', false ).removeClass( 'loading' );
 
-                var response = JSON.parse( xhr.responseText );
+                try {
+                    var response = JSON.parse( xhr.responseText );
+                } catch( $e ) {
+                    response = {};
+                }
 
                 $.each( response.data, function( i, error ) {
                     $errorWrapper.append( '<div class="notice notice-error"><p>' + error.message + '</p></div>' );

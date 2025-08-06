@@ -124,6 +124,16 @@ class Simple extends WC_Data implements ShippingProvider {
 		return '';
 	}
 
+	public function get_logo_path() {
+		return '';
+	}
+
+	public function get_supported_features() {
+		return array(
+			'tracking',
+		);
+	}
+
 	public function get_section_help_link( $section ) {
 		return '';
 	}
@@ -803,10 +813,10 @@ class Simple extends WC_Data implements ShippingProvider {
 		return apply_filters(
 			"{$this->get_hook_prefix()}tracking_placeholders",
 			array(
-				'{shipment_number}'   => $shipment ? $shipment->get_shipment_number() : '',
-				'{order_number}'      => $shipment ? $shipment->get_order_number() : '',
 				'{tracking_id}'       => $shipment ? $shipment->get_tracking_id() : '',
 				'{postcode}'          => $shipment ? $shipment->get_postcode() : '',
+				'{shipment_number}'   => $shipment ? $shipment->get_shipment_number() : '',
+				'{order_number}'      => $shipment ? $shipment->get_order_number() : '',
 				'{date_sent_day}'     => $shipment && $shipment->get_date_sent() ? $shipment->get_date_sent()->format( 'd' ) : '',
 				'{date_sent_month}'   => $shipment && $shipment->get_date_sent() ? $shipment->get_date_sent()->format( 'm' ) : '',
 				'{date_sent_year}'    => $shipment && $shipment->get_date_sent() ? $shipment->get_date_sent()->format( 'Y' ) : '',
@@ -1076,7 +1086,7 @@ class Simple extends WC_Data implements ShippingProvider {
 					'id'          => 'supports_customer_returns',
 					'placeholder' => '',
 					'value'       => wc_bool_to_string( $this->get_supports_customer_returns( 'edit' ) ),
-					'default'     => 'no',
+					'default'     => 'yes',
 					'type'        => 'shiptastic_toggle',
 				),
 
@@ -1084,7 +1094,7 @@ class Simple extends WC_Data implements ShippingProvider {
 					'title'             => _x( 'Guest returns', 'shipments', 'shiptastic-for-woocommerce' ),
 					'desc'              => _x( 'Allow guests to submit return requests to shipments.', 'shipments', 'shiptastic-for-woocommerce' ) . '<div class="wc-shiptastic-additional-desc">' . sprintf( _x( 'Guests will need to provide their email address and the order id to receive a one-time link to submit a return request. The placeholder %s might be used to place the request form on your site.', 'shipments', 'shiptastic-for-woocommerce' ), '<code>[shiptastic_return_request_form]</code>' ) . '</div>',
 					'id'                => 'supports_guest_returns',
-					'default'           => 'no',
+					'default'           => 'yes',
 					'value'             => wc_bool_to_string( $this->get_supports_guest_returns( 'edit' ) ),
 					'type'              => 'shiptastic_toggle',
 					'custom_attributes' => array(

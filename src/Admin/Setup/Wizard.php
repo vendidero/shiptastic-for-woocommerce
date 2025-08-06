@@ -4,6 +4,8 @@ namespace Vendidero\Shiptastic\Admin\Setup;
 
 use Vendidero\Shiptastic\Admin\Admin;
 use Vendidero\Shiptastic\Package;
+use Vendidero\Shiptastic\ShippingProvider\Helper;
+use Vendidero\Shiptastic\ShippingProvider\Simple;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -44,11 +46,11 @@ class Wizard {
 		return self::$steps;
 	}
 
-	protected static function setup() {
-		$default_steps = array(
+	protected static function get_all_steps() {
+		$all_steps = array(
 			'welcome'           => array(
 				'name'     => _x( 'Welcome', 'shipments', 'shiptastic-for-woocommerce' ),
-				'order'    => 1,
+				'order'    => 10,
 				'settings' => function () {
 					$fields                   = wc_stc_get_shipment_setting_address_fields();
 					$default_fields           = wc_stc_get_shipment_setting_default_address_fields();
@@ -78,7 +80,7 @@ class Wizard {
 			),
 			'packaging'         => array(
 				'name'     => _x( 'Packaging', 'shipments', 'shiptastic-for-woocommerce' ),
-				'order'    => 10,
+				'order'    => 20,
 				'settings' => function () {
 					return array(
 						array(
@@ -91,22 +93,53 @@ class Wizard {
 				},
 			),
 			'shipping_provider' => array(
-				'name'     => _x( 'Shipping Service Provider', 'shipments', 'shiptastic-for-woocommerce' ),
-				'order'    => 20,
-				'settings' => function () {
-					return array();
+				'name'    => _x( 'Shipping Service Provider', 'shipments', 'shiptastic-for-woocommerce' ),
+				'order'   => 30,
+				'handler' => function () {
+					$new_title = isset( $_POST['new_shipping_provider_title'] ) ? wc_clean( wp_unslash( $_POST['new_shipping_provider_title'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing
+
+					if ( ! empty( $new_title ) ) {
+						$provider = wc_stc_create_shipping_provider(
+							array(
+								'title'                    => $new_title,
+								'tracking_url_placeholder' => isset( $_POST['new_shipping_provider_tracking_url_placeholder'] ) ? wc_clean( wp_unslash( $_POST['new_shipping_provider_tracking_url_placeholder'] ) ) : '', // phpcs:ignore WordPress.Security.NonceVerification.Missing
+							)
+						);
+					}
 				},
+			),
+			'returns'           => array(
+				'name'    => _x( 'Returns', 'shipments', 'shiptastic-for-woocommerce' ),
+				'order'   => 40,
+				'handler' => function () {
+					Admin::save_return_reasons();
+
+					if ( $main_provider = self::get_main_shipping_provider() ) {
+						$supports_customer_returns = isset( $_POST[ "shipping_provider_{$main_provider->get_name()}_supports_customer_returns" ] ) ? wc_string_to_bool( wc_clean( wp_unslash( $_POST[ "shipping_provider_{$main_provider->get_name()}_supports_customer_returns" ] ) ) ) : false; // phpcs:ignore WordPress.Security.NonceVerification.Missing
+						$supports_guest_returns    = isset( $_POST[ "shipping_provider_{$main_provider->get_name()}_supports_guest_returns" ] ) ? wc_string_to_bool( wc_clean( wp_unslash( $_POST[ "shipping_provider_{$main_provider->get_name()}_supports_guest_returns" ] ) ) ) : false; // phpcs:ignore WordPress.Security.NonceVerification.Missing
+						$needs_manual_confirmation = isset( $_POST[ "shipping_provider_{$main_provider->get_name()}_return_manual_confirmation" ] ) ? wc_string_to_bool( wc_clean( wp_unslash( $_POST[ "shipping_provider_{$main_provider->get_name()}_return_manual_confirmation" ] ) ) ) : false; // phpcs:ignore WordPress.Security.NonceVerification.Missing
+
+						$main_provider->set_supports_customer_returns( $supports_customer_returns );
+						$main_provider->set_supports_guest_returns( $supports_guest_returns );
+						$main_provider->set_return_manual_confirmation( $needs_manual_confirmation );
+
+						$main_provider->save();
+					}
+				},
+			),
+			'ready'             => array(
+				'name'  => _x( 'Ready to ship', 'shipments', 'shiptastic-for-woocommerce' ),
+				'order' => 50,
 			),
 		);
 
-		self::$steps = $default_steps;
-		uasort( self::$steps, array( __CLASS__, 'uasort_callback' ) );
+		uasort( $all_steps, array( __CLASS__, 'uasort_callback' ) );
 
 		$order = 0;
 
-		foreach ( self::$steps as $key => $step ) {
-			self::$steps[ $key ] = wp_parse_args(
-				self::$steps[ $key ],
+		foreach ( $all_steps as $key => $step ) {
+			$all_steps[ $key ] = wp_parse_args(
+				$all_steps[ $key ],
 				array(
 					'id'               => $key,
 					'view'             => $key . '.php',
@@ -117,9 +150,15 @@ class Wizard {
 				)
 			);
 
-			self::$steps[ $key ]['order'] = ++$order;
+			$all_steps[ $key ]['order'] = ++$order;
 		}
 
+		return $all_steps;
+	}
+
+	protected static function setup() {
+		$default_steps      = self::get_all_steps();
+		self::$steps        = $default_steps;
 		self::$current_step = isset( $_REQUEST['step'] ) ? sanitize_key( wp_unslash( $_REQUEST['step'] ) ) : current( array_keys( self::$steps ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 	}
 
@@ -136,6 +175,23 @@ class Wizard {
 	 */
 	public static function admin_menus() {
 		add_submenu_page( '', _x( 'Setup', 'shipments', 'shiptastic-for-woocommerce' ), _x( 'Setup', 'shipments', 'shiptastic-for-woocommerce' ), 'manage_options', 'wc-shiptastic-setup' );
+	}
+
+	/**
+	 * @return \Vendidero\Shiptastic\Interfaces\ShippingProvider|\Vendidero\Shiptastic\ShippingProvider\Auto|Simple|null
+	 */
+	public static function get_main_shipping_provider() {
+		$main_provider = wc_stc_get_default_shipping_provider_instance();
+
+		if ( ! $main_provider ) {
+			$available = \Vendidero\Shiptastic\ShippingProvider\Helper::instance()->get_available_shipping_providers();
+
+			if ( ! empty( $available ) ) {
+				$main_provider = array_values( $available )[0];
+			}
+		}
+
+		return $main_provider;
 	}
 
 	/**
@@ -218,7 +274,7 @@ class Wizard {
 				<div class="wc-shiptastic-wizard-header-nav">
 					<div class="wc-shiptastic-wizard-logo">
 						<span class="shiptastic-logo">
-							<?php include Package::get_path( 'assets/logo.svg' ); ?>
+							<?php include Package::get_path( 'assets/icons/logo.svg' ); ?>
 						</span>
 					</div>
 					<?php if ( $current_step['order'] < count( $steps ) ) : ?>
@@ -301,17 +357,16 @@ class Wizard {
 		return admin_url( 'admin.php?page=wc-shiptastic-setup&step=' . $key );
 	}
 
-	public static function get_next_step() {
-		$current = self::get_current_step();
-		$next    = self::$current_step;
+	public static function get_next_step( $current_step = null ) {
+		self::get_steps();
 
-		if ( $current['order'] < count( self::$steps ) ) {
-			$order_next = $current['order'] + 1;
+		$current = null === $current_step ? self::get_current_step() : $current_step;
+		$next    = $current['id'];
 
-			foreach ( self::$steps as $step_key => $step ) {
-				if ( $step['order'] === $order_next ) {
-					$next = $step_key;
-				}
+		foreach ( self::$steps as $step_key => $step ) {
+			if ( $step['order'] > $current['order'] ) {
+				$next = $step_key;
+				break;
 			}
 		}
 
@@ -325,14 +380,21 @@ class Wizard {
 			wp_die();
 		}
 
+		/**
+		 * Use all steps to determine the current step as some steps may be hidden conditionally
+		 * and that might have changed upon saving the request.
+		 */
 		$current_step = isset( $_POST['step'] ) ? sanitize_key( wp_unslash( $_POST['step'] ) ) : self::get_current_step()['id'];
+		$all_steps    = self::get_all_steps();
+		$step         = array_key_exists( $current_step, $all_steps ) ? $all_steps[ $current_step ] : false;
 
-		if ( ! $step = self::get_step( $current_step ) ) {
+		if ( ! $step ) {
 			wp_die();
 		}
 
-		$result    = true;
-		$next_step = self::get_next_step();
+		self::$current_step = $current_step;
+		$result             = true;
+		$next_step          = self::get_next_step( $step );
 
 		if ( ! is_null( $step['handler'] ) ) {
 			$result = call_user_func( $step['handler'] );

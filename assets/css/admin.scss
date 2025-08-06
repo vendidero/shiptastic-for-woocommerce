@@ -209,6 +209,7 @@ a.woocommerce-shiptastic-input-toggle-trigger {
 span.woocommerce-shiptastic-input-toggle {
   height: 16px;
   width: 32px;
+  box-sizing: initial;
   border: 2px solid var(--wp-admin-theme-color, #007cba);
   background-color: var(--wp-admin-theme-color, #007cba);
   display: inline-block;
@@ -2043,6 +2044,48 @@ a.button.wc-stc-shipment-action-button {
   }
 }
 
+.wp-core-ui {
+  .wc-shiptastic-ajax-loading-btn {
+    position: relative;
+    display: inline-flex !important;
+    justify-content: center;
+    align-items: center;
+
+    &.wc-shiptastic-is-loading {
+      .btn-text {
+        opacity: .3;
+        z-index: 0;
+      }
+
+      .spinner {
+        position: absolute;
+        z-index: 5;
+        background-size: 16px 16px;
+        float: none;
+        text-align: center;
+        width: 16px;
+        height: 16px;
+        vertical-align: middle;
+        margin: 0;
+      }
+    }
+
+    &.wc-shiptastic-success {
+      border-color: #00a32a;
+      color: #00a32a;
+
+      &:focus, &:hover {
+        border-color: #00a32a;
+        color: #00a32a;
+      }
+
+      &:focus {
+        box-shadow: 0 0 0 1px #00a32a;
+      }
+    }
+  }
+}
+
 .wc-shiptastic-settings {
   .nav-tab-wrapper {
     a.nav-tab[href*="tab=shiptastic"] {
@@ -2205,32 +2248,6 @@ a.button.wc-stc-shipment-action-button {
     }
   }
 
-  .wc-shiptastic-ajax-loading-btn {
-    position: relative;
-    display: inline-flex;
-    justify-content: center;
-    align-items: center;
-
-    &.wc-shiptastic-is-loading {
-      .btn-text {
-        opacity: .3;
-        z-index: 0;
-      }
-
-      .spinner {
-        position: absolute;
-        z-index: 5;
-        background-size: 16px 16px;
-        float: none;
-        text-align: center;
-        width: 16px;
-        height: 16px;
-        vertical-align: middle;
-        margin: 0;
-      }
-    }
-  }
-
   .wc-shiptastic-setting-tabs {
     margin-top: 1.5em;
 
@@ -2371,7 +2388,7 @@ a.button.wc-stc-shipment-action-button {
   }
 }
 
-.wc-shiptastic-setting-tabs, .wc-shiptastic-admin-settings {
+.wc-shiptastic-setting-tabs, .wc-shiptastic-admin-settings, .wp-core-ui {
   a.woocommerce-stc-input-toggle-trigger {
     color: transparent;
     border: none;
