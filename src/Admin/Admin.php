@@ -78,6 +78,7 @@ class Admin {
 		add_action( 'woocommerce_admin_field_shipping_provider_packaging_zone_title', array( __CLASS__, 'render_shipping_provider_packaging_zone_title_field' ) );
 		add_action( 'woocommerce_admin_field_shipping_provider_packaging_zone_title_close', array( __CLASS__, 'render_shipping_provider_packaging_zone_title_close_field' ) );
 		add_action( 'admin_post_woocommerce_stc_save_packaging_settings', array( __CLASS__, 'save_packaging_page' ) );
+		add_action( 'admin_post_woocommerce_stc_set_default_provider', array( __CLASS__, 'set_default_provider' ) );
 
 		// Hide shipping provider meta
 		add_filter( 'woocommerce_hidden_order_itemmeta', array( __CLASS__, 'set_order_meta_hidden' ) );
@@ -783,6 +784,20 @@ class Admin {
 
 	public static function hide_packaging_page_from_menu() {
 		remove_submenu_page( 'woocommerce', 'shipment-packaging' );
+	}
+
+	public static function set_default_provider() {
+		if ( ! current_user_can( 'manage_woocommerce' ) || ! isset( $_GET['_wpnonce'] ) || ! wp_verify_nonce( wc_clean( wp_unslash( $_GET['_wpnonce'] ) ), 'shiptastic-set-default-provider' ) ) {
+			wp_die( '', 400 );
+		}
+
+		$provider_name = isset( $_GET['provider'] ) ? wc_clean( wp_unslash( $_GET['provider'] ) ) : '';
+
+		if ( $provider = wc_stc_get_shipping_provider( $provider_name ) ) {
+			update_option( 'woocommerce_shiptastic_default_shipping_provider', $provider->get_name() );
+		}
+
+		wp_safe_redirect( esc_url_raw( wp_get_referer() ? wp_get_referer() : admin_url( '?page=wc-settings&tab=shiptastic-shipping_provider' ) ) );
 	}
 
 	public static function save_packaging_page() {

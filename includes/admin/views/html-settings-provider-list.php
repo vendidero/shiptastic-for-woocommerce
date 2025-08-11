@@ -3,6 +3,8 @@
  * Admin View: Shipping providers
  */
 defined( 'ABSPATH' ) || exit;
+
+$default_provider = wc_stc_get_default_shipping_provider();
 ?>
 
 <table class="wc-stc-shipping-providers widefat">
@@ -17,7 +19,7 @@ defined( 'ABSPATH' ) || exit;
 	</thead>
 	<tbody class="wc-shiptastic-setting-tab-rows">
 	<?php foreach ( $providers as $provider_name => $provider ) : ?>
-		<tr data-shipping-provider="<?php echo esc_attr( $provider->get_name() ); ?>">
+		<tr data-shipping-provider="<?php echo esc_attr( $provider->get_name() ); ?>" class="<?php echo esc_attr( $provider->get_name() === $default_provider ? 'is-default' : '' ); ?>">
 			<td class="sort" id="wc-stc-shipping-provider-sort-<?php echo esc_attr( $provider->get_name() ); ?>">
 				<div class="wc-item-reorder-nav wc-stc-shipping-provider-reorder-nav">
 					<button type="button" class="wc-move-up" tabindex="0" aria-hidden="false" aria-label="<?php /* Translators: %s Payment gateway name. */ echo esc_attr( sprintf( _x( 'Move the "%s" provider up', 'shipments', 'shiptastic-for-woocommerce' ), esc_html( $provider->get_title() ) ) ); ?>"><?php echo esc_html_x( 'Move up', 'shipments', 'shiptastic-for-woocommerce' ); ?></button>
@@ -26,10 +28,24 @@ defined( 'ABSPATH' ) || exit;
 				</div>
 			</td>
 			<td class="wc-stc-shipping-provider-title" id="wc-stc-shipping-provider-title-<?php echo esc_attr( $provider->get_name() ); ?>">
-				<a href="<?php echo esc_url( $provider->get_edit_link() ? $provider->get_edit_link() : $provider->get_help_link() ); ?>" class="wc-stc-shipping-provider-edit-link"><?php echo wp_kses_post( $provider->get_title() ); ?></a>
+				<a href="<?php echo esc_url( $provider->get_edit_link() ? $provider->get_edit_link() : $provider->get_help_link() ); ?>" class="wc-stc-shipping-provider-edit-link">
+					<?php echo wp_kses_post( $provider->get_title() ); ?>
+					<?php if ( $provider->get_name() === $default_provider ) : ?>
+						<span class="wc-shiptastic-badge"><?php echo esc_html_x( 'Default', 'shipments', 'shiptastic-for-woocommerce' ); ?></span>
+					<?php endif; ?>
+				</a>
 				<div class="row-actions">
 					<?php if ( $provider->get_edit_link() ) : ?>
 						<a href="<?php echo esc_url( $provider->get_edit_link() ); ?>"><?php echo esc_html_x( 'Edit', 'shipments', 'shiptastic-for-woocommerce' ); ?></a>
+						<?php if ( $provider->get_name() !== $default_provider ) : ?>
+							<span class="sep">|</span>
+							<a
+								class="wc-stc-shipping-provider-set-default"
+								aria-label="<?php echo esc_attr_x( 'Set as default', 'shipments', 'shiptastic-for-woocommerce' ); ?>"
+								title="<?php echo esc_attr_x( 'Set as default', 'shipments', 'shiptastic-for-woocommerce' ); ?>"
+								href="<?php echo esc_url( wp_nonce_url( admin_url( 'admin-post.php?action=woocommerce_stc_set_default_provider&provider=' . $provider->get_name() ), 'shiptastic-set-default-provider' ) ); ?>"
+							><?php echo esc_html_x( 'Set as default', 'shipments', 'shiptastic-for-woocommerce' ); ?></a>
+						<?php endif; ?>
 						<?php if ( $provider->is_manual_integration() ) : ?>
 							<span class="sep">|</span>
 							<a class="wc-stc-shipping-provider-delete" href="#"><?php echo esc_html_x( 'Delete', 'shipments', 'shiptastic-for-woocommerce' ); ?></a>

@@ -2122,6 +2122,32 @@ a.button.wc-stc-shipment-action-button {
     }
   }
 
+  .wc-shiptastic-badge {
+    text-decoration: none;
+    border: 1px solid #3c434a;
+    color: #3c434a;
+    font-size: 11px;
+    border-radius: 3px;
+    padding: 2px;
+    margin-left: 2px;
+    position: relative;
+    top: -1px;
+  }
+
+  a {
+    .wc-shiptastic-badge {
+      text-decoration: none;
+      border-color: #0073aa;
+      color: #0073aa;
+
+      &:hover {
+        color: #135e96;
+      }
+    }
+  }
+
+
+
   .wc-shiptastic-button {
     &.loading {
       font-size: 0;
@@ -2553,6 +2579,10 @@ table.wc-stc-shipping-providers {
 
   th {
     font-weight: 600;
+
+    .woocommerce-help-tip {
+      margin-top: -3px;
+    }
   }
 
   td.sort {
@@ -2632,6 +2662,17 @@ table.wc-stc-shipping-providers {
     }
   }
 
+  td.wc-stc-shipping-provider-default,
+  th.wc-stc-shipping-provider-default {
+    width: 10ch;
+    text-align: center;
+
+    .status-enabled, .status-disabled {
+      display: inline-block;
+      margin-top: 3px;
+    }
+  }
+
   td.wc-stc-shipping-provider-activated, th.wc-stc-shipping-provider-activated {
     width: 1%;
     text-align: center;
@@ -2663,6 +2704,12 @@ table.wc-stc-shipping-providers {
 
   td.wc-stc-shipping-provider-title, th.wc-stc-shipping-provider-title {
     width: 30ch;
+  }
+
+  td.wc-stc-shipping-provider-title {
+    a.wc-stc-shipping-provider-delete {
+      color: #b32d2e;
+    }
   }
 
   tr:nth-child(odd) td {

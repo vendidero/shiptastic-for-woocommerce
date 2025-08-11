@@ -9,7 +9,7 @@ $main_provider = \Vendidero\Shiptastic\Admin\Setup\Wizard::get_main_shipping_pro
 </div>
 
 <div class="wc-shiptastic-wizard-inner-content inner-content-small">
-	<p class="entry-desc"><?php echo esc_html_x( 'Processing returns with WooCommerce is inconvenient. With Shiptastic, you can let your customers submit return requests, which you can either review and approve or process automatically.', 'shipments', 'shiptastic-for-woocommerce' ); ?></p>
+	<p class="entry-desc"><?php echo esc_html_x( 'Processing returns with WooCommerce is inconvenient. Shiptastic enables your customers to submit return requests, which you can either review and approve or process automatically.', 'shipments', 'shiptastic-for-woocommerce' ); ?></p>
 
 	<div class="wc-shiptastic-wizard-config">
 		<div class="wc-shiptastic-error-wrapper"></div>

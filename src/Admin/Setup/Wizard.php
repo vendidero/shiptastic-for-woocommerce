@@ -4,7 +4,6 @@ namespace Vendidero\Shiptastic\Admin\Setup;
 
 use Vendidero\Shiptastic\Admin\Admin;
 use Vendidero\Shiptastic\Package;
-use Vendidero\Shiptastic\ShippingProvider\Helper;
 use Vendidero\Shiptastic\ShippingProvider\Simple;
 
 defined( 'ABSPATH' ) || exit;
@@ -29,12 +28,41 @@ class Wizard {
 		if ( current_user_can( 'manage_options' ) ) {
 			add_action( 'admin_menu', array( __CLASS__, 'admin_menus' ), 20 );
 			add_action( 'admin_init', array( __CLASS__, 'render' ), 20 );
+			add_action( 'admin_init', array( __CLASS__, 'redirect' ), 5 );
 
 			// Load after base has registered scripts
 			add_action( 'admin_enqueue_scripts', array( __CLASS__, 'enqueue_scripts' ), 15 );
 
 			add_action( 'wp_ajax_woocommerce_stc_next_wizard_step', array( 'Vendidero\Shiptastic\Ajax', 'suppress_errors' ), 5 );
 			add_action( 'wp_ajax_woocommerce_stc_next_wizard_step', array( __CLASS__, 'save' ) );
+		}
+	}
+
+	public static function redirect() {
+		if ( get_transient( '_wc_shiptastic_setup_wizard_redirect' ) && apply_filters( 'woocommerce_shiptastic_enable_setup_wizard', true ) ) {
+			$do_redirect  = true;
+			$current_page = isset( $_GET['page'] ) ? wc_clean( wp_unslash( $_GET['page'] ) ) : false; // phpcs:ignore WordPress.Security.NonceVerification
+
+			// On these pages, or during these events, postpone the redirect.
+			if ( wp_doing_ajax() || is_network_admin() || ! current_user_can( 'manage_woocommerce' ) ) {
+				$do_redirect = false;
+			}
+
+			// On these pages, or during these events, disable the redirect.
+			if (
+				( 'wc-shiptastic-setup' === $current_page ) ||
+				apply_filters( 'woocommerce_shiptastic_prevent_automatic_wizard_redirect', Package::is_integration() ) ||
+				isset( $_GET['activate-multi'] ) // phpcs:ignore WordPress.Security.NonceVerification
+			) {
+				delete_transient( '_wc_shiptastic_setup_wizard_redirect' );
+				$do_redirect = false;
+			}
+
+			if ( $do_redirect ) {
+				delete_transient( '_wc_shiptastic_setup_wizard_redirect' );
+				wp_safe_redirect( admin_url( 'admin.php?page=wc-shiptastic-setup' ) );
+				exit;
+			}
 		}
 	}
 
@@ -57,6 +85,8 @@ class Wizard {
 					$settings                 = array();
 					$address_fields_to_render = array(
 						'company',
+						'first_name',
+						'last_name',
 						'address_1',
 						'address_2',
 						'city',
@@ -71,7 +101,7 @@ class Wizard {
 							'id'        => "woocommerce_shiptastic_shipper_address_{$field}",
 							'value'     => 'country' === $field ? $fields[ $field ] . ':' . $fields['state'] : $fields[ $field ],
 							'default'   => 'country' === $field ? $fields[ $field ] . ':' . $fields['state'] : $fields[ $field ],
-							'row_class' => in_array( $field, array( 'city', 'postcode' ), true ) ? 'half' : '',
+							'row_class' => in_array( $field, array( 'city', 'postcode', 'first_name', 'last_name' ), true ) ? 'half' : '',
 						);
 					}
 
@@ -99,12 +129,18 @@ class Wizard {
 					$new_title = isset( $_POST['new_shipping_provider_title'] ) ? wc_clean( wp_unslash( $_POST['new_shipping_provider_title'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing
 
 					if ( ! empty( $new_title ) ) {
-						$provider = wc_stc_create_shipping_provider(
+						wc_stc_create_shipping_provider(
 							array(
 								'title'                    => $new_title,
 								'tracking_url_placeholder' => isset( $_POST['new_shipping_provider_tracking_url_placeholder'] ) ? wc_clean( wp_unslash( $_POST['new_shipping_provider_tracking_url_placeholder'] ) ) : '', // phpcs:ignore WordPress.Security.NonceVerification.Missing
 							)
 						);
+					}
+
+					$current_providers = wc_stc_get_available_shipping_providers();
+
+					if ( 1 === count( $current_providers ) ) {
+						update_option( 'woocommerce_shiptastic_default_shipping_provider', array_values( $current_providers )[0]->get_name() );
 					}
 				},
 			),

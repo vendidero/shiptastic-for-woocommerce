@@ -376,6 +376,10 @@ a {
       margin-top: 0;
       font-size: 1.5em;
     }
+
+    p {
+      margin-bottom: 0;
+    }
   }
 
   .list-item-footer {
@@ -383,6 +387,8 @@ a {
     flex-wrap: wrap;
     justify-content: flex-end;
     width: 100%;
+    align-items: center;
+    gap: 10px;
   }
 
   .wizard-features {
