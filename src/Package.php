@@ -19,7 +19,7 @@ class Package {
 	 *
 	 * @var string
 	 */
-	const VERSION = '4.5.4';
+	const VERSION = '4.5.5';
 
 	public static $upload_dir_suffix = '';
 
@@ -1048,7 +1048,7 @@ class Package {
 	 * @return string
 	 */
 	public static function get_i18n_path() {
-		return apply_filters( 'woocommerce_shiptastic_get_i18n_path', self::get_path( 'i18n/languages' ) );
+		return self::is_standalone() ? self::get_path( 'i18n/languages' ) : apply_filters( 'woocommerce_shiptastic_get_i18n_path', self::get_path( 'i18n/languages' ) );
 	}
 
 	/**
@@ -1057,6 +1057,6 @@ class Package {
 	 * @return string
 	 */
 	public static function get_i18n_textdomain() {
-		return apply_filters( 'woocommerce_shiptastic_get_i18n_textdomain', 'shiptastic-for-woocommerce' );
+		return self::is_standalone() ? 'shiptastic-for-woocommerce' : apply_filters( 'woocommerce_shiptastic_get_i18n_textdomain', 'shiptastic-for-woocommerce' );
 	}
 }
