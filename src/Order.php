@@ -1426,34 +1426,38 @@ class Order {
 			if ( ! is_callable( array( $item, 'get_product' ) ) ) {
 				continue;
 			}
-			if ( $product = $item->get_product() ) {
-				$s_product = apply_filters( 'woocommerce_shiptastic_shipment_order_item_product', wc_shiptastic_get_product( $product ), $item );
-				if ( $s_product ) {
-					$width      = empty( $s_product->get_shipping_width() ) ? 0 : (float) wc_format_decimal( $s_product->get_shipping_width() );
-					$length     = empty( $s_product->get_shipping_length() ) ? 0 : (float) wc_format_decimal( $s_product->get_shipping_length() );
-					$height     = empty( $s_product->get_shipping_height() ) ? 0 : (float) wc_format_decimal( $s_product->get_shipping_height() );
-					$dimensions = array(
-						'width'  => (float) wc_get_dimension( $width, wc_stc_get_packaging_dimension_unit() ),
-						'length' => (float) wc_get_dimension( $length, wc_stc_get_packaging_dimension_unit() ),
-						'height' => (float) wc_get_dimension( $height, wc_stc_get_packaging_dimension_unit() ),
-					);
-					if ( $dimensions['width'] > $args['max_dimensions']['width'] ) {
-						$args['max_dimensions']['width'] = $dimensions['width'];
-					}
-					if ( $dimensions['length'] > $args['max_dimensions']['length'] ) {
-						$args['max_dimensions']['length'] = $dimensions['length'];
-					}
-					if ( $dimensions['height'] > $args['max_dimensions']['height'] ) {
-						$args['max_dimensions']['height'] = $dimensions['height'];
-					}
-					$weight = empty( $product->get_weight() ) ? 0 : (float) wc_format_decimal( $product->get_weight() );
-					$weight = (float) wc_get_weight( $weight, wc_stc_get_packaging_weight_unit() );
-					if ( $weight > $args['max_weight'] ) {
-						$args['max_weight'] = $weight;
-					}
+
+			if ( $product = $this->get_order_item_product( $item ) ) {
+				$width      = empty( $product->get_shipping_width() ) ? 0 : (float) wc_format_decimal( $product->get_shipping_width() );
+				$length     = empty( $product->get_shipping_length() ) ? 0 : (float) wc_format_decimal( $product->get_shipping_length() );
+				$height     = empty( $product->get_shipping_height() ) ? 0 : (float) wc_format_decimal( $product->get_shipping_height() );
+				$dimensions = array(
+					'width'  => (float) wc_get_dimension( $width, wc_stc_get_packaging_dimension_unit() ),
+					'length' => (float) wc_get_dimension( $length, wc_stc_get_packaging_dimension_unit() ),
+					'height' => (float) wc_get_dimension( $height, wc_stc_get_packaging_dimension_unit() ),
+				);
+
+				if ( $dimensions['width'] > $args['max_dimensions']['width'] ) {
+					$args['max_dimensions']['width'] = $dimensions['width'];
+				}
+
+				if ( $dimensions['length'] > $args['max_dimensions']['length'] ) {
+					$args['max_dimensions']['length'] = $dimensions['length'];
+				}
+
+				if ( $dimensions['height'] > $args['max_dimensions']['height'] ) {
+					$args['max_dimensions']['height'] = $dimensions['height'];
+				}
+
+				$weight = empty( $product->get_weight() ) ? 0 : (float) wc_format_decimal( $product->get_weight() );
+				$weight = (float) wc_get_weight( $weight, wc_stc_get_packaging_weight_unit() );
+
+				if ( $weight > $args['max_weight'] ) {
+					$args['max_weight'] = $weight;
 				}
 			}
 		}
+
 		return $args;
 	}
 
