@@ -37,6 +37,40 @@ abstract class Auto extends Simple implements ShippingProviderAuto {
 		'configuration_sets'                 => array(),
 	);
 
+	public function get_supported_features() {
+		$features = parent::get_supported_features();
+
+		foreach ( wc_stc_get_shipment_label_types() as $type ) {
+			if ( $this->supports_labels( $type ) ) {
+				$features[] = "labels_{$type}";
+			}
+		}
+
+		if ( true === $this->supports_pickup_locations() ) {
+			$features[] = 'pickup_locations';
+		}
+
+		foreach ( array_keys( \Vendidero\Shiptastic\Tracking\Helper::get_status_update_types() ) as $type ) {
+			if ( $this->supports_remote_shipment_status( $type ) ) {
+				$features[] = 'remote_status_updates';
+				break;
+			}
+		}
+
+		return $features;
+	}
+
+	public function get_logo_path() {
+		$logo_path    = sanitize_file_name( "{$this->get_name()}.svg" );
+		$default_path = Package::get_path( "assets/icons/{$logo_path}" );
+
+		if ( file_exists( $default_path ) ) {
+			return $default_path;
+		}
+
+		return '';
+	}
+
 	public function get_label_default_shipment_weight( $context = 'view' ) {
 		return apply_filters( "{$this->get_hook_prefix()}label_default_shipment_weight", 0.5, $this );
 	}

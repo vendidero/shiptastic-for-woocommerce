@@ -2,6 +2,7 @@
 namespace Vendidero\Shiptastic;
 
 use Vendidero\Shiptastic\Admin\Admin;
+use Vendidero\Shiptastic\Admin\Setup\Wizard;
 use Vendidero\Shiptastic\Registry\Container;
 use Vendidero\Shiptastic\ShippingMethod\MethodHelper;
 
@@ -36,6 +37,7 @@ class Bootstrap {
 
 		if ( is_admin() ) {
 			$this->container->get( Admin::class )::init();
+			$this->container->get( Wizard::class )::init();
 		}
 
 		$this->container->get( Ajax::class )::init();
@@ -79,6 +81,12 @@ class Bootstrap {
 			Admin::class,
 			function ( $container ) {
 				return Admin::class;
+			}
+		);
+		$this->container->register(
+			Wizard::class,
+			function ( $container ) {
+				return Wizard::class;
 			}
 		);
 		$this->container->register(

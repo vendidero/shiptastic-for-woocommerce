@@ -10,7 +10,6 @@ window.shiptastic.admin = window.shiptastic.admin || {};
             self.params = wc_shiptastic_admin_settings_params;
 
             $( document )
-                .on( 'click', 'a.woocommerce-stc-shipment-input-toggle-trigger', self.onInputToggleClick )
                 .on( 'change shiptastic_show_or_hide_fields', 'table.form-table :input[id]', self.onChangeInput )
                 .on( 'click', '.wc_input_table a.add', self.onAddInputRow );
 
@@ -168,28 +167,6 @@ window.shiptastic.admin = window.shiptastic.admin || {};
                     }
                 }
             } );
-        },
-
-        onInputToggleClick: function() {
-            var $toggle   = $( this ).find( 'span.woocommerce-stc-input-toggle' ),
-                $row      = $toggle.parents( 'fieldset' ),
-                $checkbox = $row.find( 'input[type=checkbox]' ),
-                $enabled  = $toggle.hasClass( 'woocommerce-input-toggle--enabled' );
-
-            $toggle.removeClass( 'woocommerce-input-toggle--enabled' );
-            $toggle.removeClass( 'woocommerce-input-toggle--disabled' );
-
-            if ( $enabled ) {
-                $checkbox.prop( 'checked', false );
-                $toggle.addClass( 'woocommerce-input-toggle--disabled' );
-            } else {
-                $checkbox.prop( 'checked', true );
-                $toggle.addClass( 'woocommerce-input-toggle--enabled' );
-            }
-
-            $checkbox.trigger( 'change' );
-
-            return false;
         }
     };
 

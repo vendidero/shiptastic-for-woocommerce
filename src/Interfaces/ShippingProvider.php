@@ -16,6 +16,10 @@ interface ShippingProvider {
 
 	public function get_help_link();
 
+	public function get_supported_features();
+
+	public function get_logo_path();
+
 	public function get_section_help_link( $section );
 
 	public function get_signup_link();

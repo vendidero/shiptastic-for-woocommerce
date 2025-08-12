@@ -18,8 +18,7 @@ window.shiptastic.admin = window.shiptastic.admin || {};
 
             $( document )
                 .on( 'click', '.wc-stc-shipping-provider-delete', self.onRemoveProvider )
-                .on( 'change', '.wc-stc-shipping-providers input.wc-stc-shipping-provider-activated-checkbox', this.onChangeProviderStatus )
-                .on( 'click', 'a.wc-shiptastic-install-extension-btn', this.onInstallExtension );
+                .on( 'change', '.wc-stc-shipping-providers input.wc-stc-shipping-provider-activated-checkbox', this.onChangeProviderStatus );
 
 
             // Use load event to prevent firing during initial (after ready) phase
@@ -64,48 +63,6 @@ window.shiptastic.admin = window.shiptastic.admin || {};
                 };
 
             self.doAjax( params );
-        },
-
-        onInstallExtension: function() {
-            var self  = shipments.admin.shipping_providers,
-                $this = $( this );
-
-            var params = {
-                action: 'woocommerce_stc_install_shipping_provider_extension',
-                security: self.params.install_extension_nonce,
-                provider_name: $this.parents( 'tr' ).data( 'shipping-provider' )
-            };
-
-            $this.addClass( 'wc-shiptastic-is-loading' );
-            $this.append( '<span class="spinner is-active"></span>' );
-
-            self.doAjax( params, self.onInstallExtensionSuccess );
-
-            return false;
-        },
-
-        onInstallExtensionSuccess: function( data ) {
-            var self  = shipments.admin.shipping_providers,
-                $link = self.$wrapper.find( 'a[data-extension="' + data['extension'] + '"]' );
-
-            $link.find( '.spinner' ).remove();
-            $link.removeClass( 'wc-stc-is-loading' );
-
-            if ( data.success ) {
-                window.location.href = data.url;
-            } else if ( data.hasOwnProperty( 'message' ) ) {
-                var $wrapper = $( '#wpbody-content' ).find( '.wrap' );
-
-                if ( $( '.wc-shiptastic-setting-tabs' ).length > 0 ) {
-                    $wrapper = $( '.wc-shiptastic-setting-tabs' );
-                }
-
-                $wrapper.before( '<div class="error inline" id="message"><p>' + data.message + '</p></div>' );
-
-                $( 'html, body' ).animate({
-                    scrollTop: ( $( '#message' ).offset().top - 32 )
-                }, 1000 );
-            }
         },
 
         onChangeProviderStatus: function() {

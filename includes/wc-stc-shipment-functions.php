@@ -739,13 +739,69 @@ function wc_stc_get_default_shipping_provider() {
 
 	/**
 	 * Filter to adjust the default shipping provider used as a fallback for shipments
-	 * for which no provider could be determined automatically (e.g. by the chosen shipping methid).
+	 * for which no provider could be determined automatically (e.g. by chosen shipping method).
 	 *
 	 * @param string  $title The shipping provider slug.
 	 *
 	 * @package Vendidero/Shiptastic
 	 */
 	return apply_filters( 'woocommerce_shiptastic_default_shipping_provider', $default );
+}
+
+/**
+ * @return \Vendidero\Shiptastic\Interfaces\ShippingProvider|ShippingProvider\Auto|ShippingProvider\Simple|null
+ */
+function wc_stc_get_default_shipping_provider_instance() {
+	$default = wc_stc_get_default_shipping_provider();
+
+	if ( ! empty( $default ) && ( $provider = wc_stc_get_shipping_provider( $default ) ) ) {
+		if ( $provider->is_activated() ) {
+			return $provider;
+		}
+	}
+
+	return null;
+}
+
+/**
+ * @param $props
+ * @param $is_manual
+ *
+ * @return ShippingProvider\Simple
+ */
+function wc_stc_create_shipping_provider( $props = array(), $is_manual = true ) {
+	$props = wp_parse_args(
+		$props,
+		array(
+			'title'                    => '',
+			'description'              => '',
+			'tracking_url_placeholder' => '',
+		)
+	);
+
+	$provider = new ShippingProvider\Simple();
+	$provider->set_props( $props );
+
+	if ( empty( $provider->get_tracking_desc_placeholder( 'edit' ) ) ) {
+		$provider->set_tracking_desc_placeholder( $provider->get_default_tracking_desc_placeholder() );
+	}
+
+	if ( empty( $provider->get_tracking_url_placeholder( 'edit' ) ) ) {
+		$provider->set_tracking_url_placeholder( $provider->get_default_tracking_url_placeholder() );
+	}
+
+	if ( $is_manual ) {
+		add_filter( 'woocommerce_shiptastic_shipping_provider_is_manual_creation_request', '__return_true', 9999 );
+	}
+
+	$provider->activate();
+	$provider->save();
+
+	if ( $is_manual ) {
+		remove_filter( 'woocommerce_shiptastic_shipping_provider_is_manual_creation_request', '__return_true', 9999 );
+	}
+
+	return $provider;
 }
 
 function wc_stc_get_shipping_provider_select( $include_none = true ) {

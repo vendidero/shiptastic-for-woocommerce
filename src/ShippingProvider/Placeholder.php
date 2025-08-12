@@ -3,11 +3,12 @@
 namespace Vendidero\Shiptastic\ShippingProvider;
 
 use Vendidero\Shiptastic\Extensions;
+use Vendidero\Shiptastic\Interfaces\ShippingProviderAuto;
 use Vendidero\Shiptastic\Package;
 
 defined( 'ABSPATH' ) || exit;
 
-class Placeholder extends Simple {
+class Placeholder extends Auto {
 
 	protected $placeholder_args;
 
@@ -15,14 +16,17 @@ class Placeholder extends Simple {
 		$this->placeholder_args = wp_parse_args(
 			$args,
 			array(
-				'title'               => '',
-				'name'                => '',
-				'description'         => '',
-				'countries_supported' => array(),
-				'is_pro'              => false,
-				'is_builtin'          => false,
-				'extension_name'      => '',
-				'help_url'            => '',
+				'title'                                  => '',
+				'name'                                   => '',
+				'description'                            => '',
+				'countries_supported'                    => array(),
+				'is_pro'                                 => false,
+				'is_builtin'                             => false,
+				'extension_name'                         => '',
+				'help_url'                               => '',
+				'label_types_supported'                  => array( 'simple', 'return' ),
+				'supports_pickup_locations'              => false,
+				'remote_shipment_status_types_supported' => array(),
 			)
 		);
 
@@ -34,6 +38,17 @@ class Placeholder extends Simple {
 	}
 
 	public function get_edit_link( $section = '' ) {
+		return '';
+	}
+
+	public function get_logo_path() {
+		$logo_path    = sanitize_file_name( "{$this->get_original_name()}.svg" );
+		$default_path = Package::get_path( "assets/icons/{$logo_path}" );
+
+		if ( file_exists( $default_path ) ) {
+			return $default_path;
+		}
+
 		return '';
 	}
 
@@ -51,6 +66,18 @@ class Placeholder extends Simple {
 
 	public function get_extension_name() {
 		return $this->placeholder_args['extension_name'];
+	}
+
+	public function supports_labels( $label_type, $shipment = false ) {
+		return in_array( $label_type, (array) $this->placeholder_args['label_types_supported'], true );
+	}
+
+	public function supports_pickup_locations() {
+		return true === $this->placeholder_args['supports_pickup_locations'];
+	}
+
+	public function supports_remote_shipment_status( $type ) {
+		return in_array( $type, (array) $this->placeholder_args['remote_shipment_status_types_supported'], true );
 	}
 
 	public function is_installed() {

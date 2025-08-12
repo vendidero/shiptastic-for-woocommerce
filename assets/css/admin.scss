@@ -209,6 +209,7 @@ a.woocommerce-shiptastic-input-toggle-trigger {
 span.woocommerce-shiptastic-input-toggle {
   height: 16px;
   width: 32px;
+  box-sizing: initial;
   border: 2px solid var(--wp-admin-theme-color, #007cba);
   background-color: var(--wp-admin-theme-color, #007cba);
   display: inline-block;
@@ -2045,6 +2046,48 @@ a.button.wc-stc-shipment-action-button {
   }
 }
 
+.wp-core-ui {
+  .wc-shiptastic-ajax-loading-btn {
+    position: relative;
+    display: inline-flex !important;
+    justify-content: center;
+    align-items: center;
+
+    &.wc-shiptastic-is-loading {
+      .btn-text {
+        opacity: .3;
+        z-index: 0;
+      }
+
+      .spinner {
+        position: absolute;
+        z-index: 5;
+        background-size: 16px 16px;
+        float: none;
+        text-align: center;
+        width: 16px;
+        height: 16px;
+        vertical-align: middle;
+        margin: 0;
+      }
+    }
+
+    &.wc-shiptastic-success {
+      border-color: #00a32a;
+      color: #00a32a;
+
+      &:focus, &:hover {
+        border-color: #00a32a;
+        color: #00a32a;
+      }
+
+      &:focus {
+        box-shadow: 0 0 0 1px #00a32a;
+      }
+    }
+  }
+}
+
 .wc-shiptastic-settings {
   .nav-tab-wrapper {
     a.nav-tab[href*="tab=shiptastic"] {
@@ -2080,6 +2123,32 @@ a.button.wc-stc-shipment-action-button {
       }
     }
   }
+
+  .wc-shiptastic-badge {
+    text-decoration: none;
+    border: 1px solid #3c434a;
+    color: #3c434a;
+    font-size: 11px;
+    border-radius: 3px;
+    padding: 2px;
+    margin-left: 2px;
+    position: relative;
+    top: -1px;
+  }
+
+  a {
+    .wc-shiptastic-badge {
+      text-decoration: none;
+      border-color: #0073aa;
+      color: #0073aa;
+
+      &:hover {
+        color: #135e96;
+      }
+    }
+  }
+
+
 
   .wc-shiptastic-button {
     &.loading {
@@ -2204,32 +2273,6 @@ a.button.wc-stc-shipment-action-button {
 
     .page-title-action {
       top: -1px;
-    }
-  }
-
-  .wc-shiptastic-ajax-loading-btn {
-    position: relative;
-    display: inline-flex;
-    justify-content: center;
-    align-items: center;
-
-    &.wc-shiptastic-is-loading {
-      .btn-text {
-        opacity: .3;
-        z-index: 0;
-      }
-
-      .spinner {
-        position: absolute;
-        z-index: 5;
-        background-size: 16px 16px;
-        float: none;
-        text-align: center;
-        width: 16px;
-        height: 16px;
-        vertical-align: middle;
-        margin: 0;
-      }
     }
   }
 
@@ -2373,7 +2416,7 @@ a.button.wc-stc-shipment-action-button {
   }
 }
 
-.wc-shiptastic-setting-tabs, .wc-shiptastic-admin-settings {
+.wc-shiptastic-setting-tabs, .wc-shiptastic-admin-settings, .wp-core-ui {
   a.woocommerce-stc-input-toggle-trigger {
     color: transparent;
     border: none;
@@ -2538,6 +2581,10 @@ table.wc-stc-shipping-providers {
 
   th {
     font-weight: 600;
+
+    .woocommerce-help-tip {
+      margin-top: -3px;
+    }
   }
 
   td.sort {
@@ -2617,6 +2664,17 @@ table.wc-stc-shipping-providers {
     }
   }
 
+  td.wc-stc-shipping-provider-default,
+  th.wc-stc-shipping-provider-default {
+    width: 10ch;
+    text-align: center;
+
+    .status-enabled, .status-disabled {
+      display: inline-block;
+      margin-top: 3px;
+    }
+  }
+
   td.wc-stc-shipping-provider-activated, th.wc-stc-shipping-provider-activated {
     width: 1%;
     text-align: center;
@@ -2648,6 +2706,12 @@ table.wc-stc-shipping-providers {
 
   td.wc-stc-shipping-provider-title, th.wc-stc-shipping-provider-title {
     width: 30ch;
+  }
+
+  td.wc-stc-shipping-provider-title {
+    a.wc-stc-shipping-provider-delete {
+      color: #b32d2e;
+    }
   }
 
   tr:nth-child(odd) td {

@@ -26,10 +26,27 @@ class Install {
 		self::maybe_create_packaging();
 		self::update_providers();
 
+		if ( self::is_new_install() && ! Package::is_integration() ) {
+			set_transient( '_wc_shiptastic_setup_wizard_redirect', 1, 60 * 60 );
+		}
+
 		update_option( 'woocommerce_shiptastic_version', Package::get_version() );
 		update_option( 'woocommerce_shiptastic_db_version', Package::get_version() );
 
 		do_action( 'woocommerce_flush_rewrite_rules' );
+	}
+
+	/**
+	 * Is this a brand new Shiptastic install?
+	 *
+	 * @return boolean
+	 */
+	public static function is_new_install() {
+		return is_null( get_option( 'woocommerce_shiptastic_version', null ) )
+				|| (
+					-1 === wc_get_page_id( 'returns' )
+					&& 0 === array_sum( (array) wc_stc_get_shipment_counts( 'simple' ) )
+				);
 	}
 
 	public static function deactivate() {
