@@ -6,7 +6,6 @@ use Automattic\WooCommerce\Utilities\I18nUtil;
 use Exception;
 use Vendidero\Shiptastic\Registry\Container;
 use Vendidero\Shiptastic\ShippingMethod\MethodHelper;
-use Vendidero\Shiptastic\Tracking\Helper;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -19,7 +18,7 @@ class Package {
 	 *
 	 * @var string
 	 */
-	const VERSION = '4.5.5';
+	const VERSION = '4.6.0';
 
 	public static $upload_dir_suffix = '';
 
@@ -28,7 +27,7 @@ class Package {
 	protected static $locale = array();
 
 	/**
-	 * Init the package - load the REST API Server class.
+	 * Init the package
 	 */
 	public static function init() {
 		if ( ! self::has_dependencies() ) {
