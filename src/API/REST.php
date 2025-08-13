@@ -107,6 +107,8 @@ abstract class REST extends \Vendidero\Shiptastic\API\Api {
 				if ( Package::is_debug_mode() ) {
 					Package::log( sprintf( '%s error during REST (%s) call to %s:', $response->get_error_code(), $type, $url ), 'info', $this->get_title() );
 					Package::log( wc_print_r( $response->get_error_messages(), true ), 'info', $this->get_title() );
+					Package::log( 'Body:', 'info', $this->get_title() );
+					Package::log( wc_print_r( $body_args, true ), 'info', $this->get_title() );
 				}
 
 				return new Response( 500, array(), array(), $response );
@@ -133,6 +135,8 @@ abstract class REST extends \Vendidero\Shiptastic\API\Api {
 				if ( $response->is_error() && Package::is_debug_mode() ) {
 					Package::log( sprintf( '%s error during REST (%s) call to %s:', $response->get_code(), $type, $url ), 'info', $this->get_title() );
 					Package::log( wc_print_r( $response->get_error()->get_error_messages(), true ), 'info', $this->get_title() );
+					Package::log( 'Body:', 'info', $this->get_title() );
+					Package::log( wc_print_r( $body_args, true ), 'info', $this->get_title() );
 				}
 
 				return $response;

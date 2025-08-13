@@ -955,13 +955,13 @@ class Package {
 	}
 
 	public static function get_assets_url( $script_or_style ) {
-		$assets_url = self::get_url() . '/build';
+		$assets_url = self::get_url( 'build' );
 		$is_debug   = defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG;
 		$is_style   = '.css' === substr( $script_or_style, -4 );
 		$is_static  = strstr( $script_or_style, 'static/' );
 
 		if ( $is_debug && $is_static && ! $is_style ) {
-			$assets_url = self::get_url() . '/assets/js';
+			$assets_url = self::get_url( 'assets/js' );
 		}
 
 		return trailingslashit( $assets_url ) . $script_or_style;
