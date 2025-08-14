@@ -860,7 +860,7 @@ class Label extends WC_Data implements ShipmentLabel {
 			$customs_items[ $key ] = apply_filters(
 				"{$this->get_general_hook_prefix()}customs_item",
 				array(
-					'description'         => apply_filters( "{$this->get_general_hook_prefix()}item_description", wc_clean( wc_shiptastic_substring( $single_item_description, 0, $max_desc_length ) ), $item, $this, $shipment ),
+					'description'         => wc_shiptastic_substring( wc_shiptastic_get_alphanumeric_string( apply_filters( "{$this->get_general_hook_prefix()}item_description", $single_item_description, $item, $this, $shipment ) ), 0, $max_desc_length ),
 					'category'            => apply_filters( "{$this->get_general_hook_prefix()}item_category", $category, $item, $this, $shipment ),
 					'origin_code'         => ( $shipment_product && $shipment_product->get_manufacture_country() ) ? $shipment_product->get_manufacture_country() : Package::get_base_country(),
 					'tariff_number'       => $shipment_product ? $shipment_product->get_hs_code() : '',
@@ -885,7 +885,7 @@ class Label extends WC_Data implements ShipmentLabel {
 			$total_value        += (float) $customs_items[ $key ]['value'];
 		}
 
-		$item_description = wc_shiptastic_substring( $item_description, 0, $max_desc_length );
+		$item_description = wc_shiptastic_substring( wc_shiptastic_get_alphanumeric_string( $item_description ), 0, $max_desc_length );
 
 		$customs_data = apply_filters(
 			"{$this->get_general_hook_prefix()}customs_data",

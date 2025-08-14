@@ -1698,3 +1698,19 @@ function wc_shiptastic_substring( $str, $start, $length = null ) {
 
 	return $str;
 }
+
+/**
+ *
+ * Remove any special char except dash and whitespace.
+ *
+ * @param string $str
+ *
+ * @return string
+ */
+function wc_shiptastic_get_alphanumeric_string( $str ) {
+	$str = remove_accents( $str );
+	$str = preg_replace( '/[^ \w-]/', ' ', $str );
+	$str = preg_replace( '/\s+/', ' ', $str );
+
+	return wc_clean( $str );
+}
