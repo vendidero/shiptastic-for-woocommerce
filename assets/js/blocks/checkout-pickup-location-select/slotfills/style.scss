@@ -12,8 +12,22 @@
   .wc-block-components-address-form-wrapper {
     .managed-by-pickup-location {
       input, select {
-        background-color: #eee !important;
+        background-color: rgba(0,0,0,.05) !important;
+        border-color: rgba(0,0,0,.2) !important;
         pointer-events: none;
+      }
+    }
+  }
+}
+
+.has-dark-controls {
+  .wp-block-woocommerce-checkout-shipping-address-block {
+    .wc-block-components-address-form-wrapper {
+      .managed-by-pickup-location {
+        input, select {
+          background-color: rgba(255,255,255,.1) !important;
+          border-color: rgba(255,255,255,.2) !important;
+        }
       }
     }
   }
