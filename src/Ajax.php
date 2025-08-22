@@ -28,6 +28,7 @@ class Ajax {
 			'add_shipment_item_submit',
 			'add_return_shipment_load',
 			'add_return_shipment_submit',
+			'create_return_shipment_refund_submit',
 			'add_shipment',
 			'remove_shipment',
 			'remove_shipment_item',
@@ -51,11 +52,21 @@ class Ajax {
 			'send_return_shipment_notification_email',
 			'confirm_return_request',
 			'create_return_page',
+			'calculate_return_costs',
+		);
+
+		$ajax_nopriv_events = array(
+			'calculate_return_costs',
 		);
 
 		foreach ( $ajax_events as $ajax_event ) {
 			add_action( 'wp_ajax_woocommerce_stc_' . $ajax_event, array( __CLASS__, 'suppress_errors' ), 5 );
 			add_action( 'wp_ajax_woocommerce_stc_' . $ajax_event, array( __CLASS__, $ajax_event ) );
+
+			if ( in_array( $ajax_event, $ajax_nopriv_events, true ) ) {
+				add_action( 'wp_ajax_nopriv_woocommerce_stc_' . $ajax_event, array( __CLASS__, $ajax_event ) );
+				add_action( 'wc_ajax_woocommerce_stc_' . $ajax_event, array( __CLASS__, $ajax_event ) );
+			}
 		}
 	}
 
@@ -825,6 +836,55 @@ class Ajax {
 		self::send_json_success( $response, $order_shipment );
 	}
 
+	public static function create_return_shipment_refund_submit() {
+		check_ajax_referer( 'create-return-shipment-refund-submit', 'security' );
+
+		if ( ! current_user_can( 'edit_shop_orders' ) || ! isset( $_POST['reference_id'] ) ) {
+			wp_die( -1 );
+		}
+
+		$response_error = array(
+			'success' => false,
+			'message' => _x( 'There was an error processing the refund.', 'shipments', 'shiptastic-for-woocommerce' ),
+		);
+
+		$shipment_id   = absint( $_POST['reference_id'] );
+		$return_costs  = wc_clean( wp_unslash( isset( $_POST['return_costs'] ) ? $_POST['return_costs'] : 0.0 ) );
+		$restock_items = wc_string_to_bool( wc_clean( wp_unslash( isset( $_POST['return_restock_refunded_items'] ) ? $_POST['return_restock_refunded_items'] : 'no' ) ) );
+
+		if ( ! $return = wc_stc_get_shipment( $shipment_id ) ) {
+			wp_send_json( $response_error );
+		}
+
+		$return->set_return_costs( $return_costs );
+
+		if ( ! $return->needs_refund() ) {
+			wp_send_json( $response_error );
+		}
+
+		$refund = $return->create_refund(
+			array(
+				'restock_items' => $restock_items,
+			)
+		);
+
+		if ( is_wp_error( $refund ) ) {
+			wp_send_json(
+				array(
+					'success' => false,
+					'message' => $refund->get_error_message(),
+				)
+			);
+		} else {
+			wp_send_json(
+				array(
+					'success' => true,
+					'reload'  => true,
+				)
+			);
+		}
+	}
+
 	public static function add_return_shipment_submit() {
 		check_ajax_referer( 'add-return-shipment-submit', 'security' );
 
@@ -857,29 +917,49 @@ class Ajax {
 			wp_send_json( $response_error );
 		}
 
-		$shipment = wc_stc_create_return_shipment( $order_shipment, array( 'items' => $items ) );
+		$result = $order_shipment->create_returns( $items );
 
-		if ( is_wp_error( $shipment ) ) {
-			wp_send_json( $response_error );
+		if ( is_wp_error( $result ) || empty( $result ) ) {
+			if ( is_wp_error( $result ) ) {
+				wp_send_json(
+					array(
+						'success' => false,
+						'message' => $result->get_error_message(),
+					)
+				);
+			} else {
+				wp_send_json( $response_error );
+			}
+		} else {
+			$shipment_count = 0;
+
+			foreach ( $result as $id => $shipment ) {
+				++$shipment_count;
+				$shipment_type = $shipment->get_type();
+
+				if ( 1 === $shipment_count ) {
+					// Mark as active
+					$is_active = true;
+				} else {
+					// Mark as active
+					$is_active = false;
+				}
+
+				ob_start();
+				include Package::get_path() . '/includes/admin/views/html-order-shipment.php';
+				$html .= ob_get_clean();
+			}
+
+			$response['new_shipment']      = $html;
+			$response['new_shipment_type'] = $shipment_type;
+
+			$response['fragments'] = array(
+				'.order-shipping-status' => self::get_order_status_html( $order_shipment ),
+				'.order-return-status'   => self::get_order_return_status_html( $order_shipment ),
+			);
+
+			self::send_json_success( $response, $order_shipment );
 		}
-
-		$order_shipment->add_shipment( $shipment );
-
-		// Mark as active
-		$is_active = true;
-
-		ob_start();
-		include Package::get_path() . '/includes/admin/views/html-order-shipment.php';
-		$html = ob_get_clean();
-
-		$response['new_shipment']      = $html;
-		$response['new_shipment_type'] = $shipment->get_type();
-		$response['fragments']         = array(
-			'.order-shipping-status' => self::get_order_status_html( $order_shipment ),
-			'.order-return-status'   => self::get_order_return_status_html( $order_shipment ),
-		);
-
-		self::send_json_success( $response, $order_shipment );
 	}
 
 	public static function validate_shipment_item_quantities() {
@@ -1693,5 +1773,58 @@ class Ajax {
 		}
 
 		wp_send_json( $response );
+	}
+
+	public static function calculate_return_costs() {
+		check_ajax_referer( 'add_return_shipment', 'add-return-shipment-nonce' );
+
+		$order_id  = ! empty( $_POST['order_id'] ) ? absint( wp_unslash( $_POST['order_id'] ) ) : false;
+		$items     = ! empty( $_POST['items'] ) ? wc_clean( wp_unslash( $_POST['items'] ) ) : array();
+		$item_data = ! empty( $_POST['item'] ) ? wc_clean( wp_unslash( $_POST['item'] ) ) : array();
+		$error     = new \WP_Error();
+
+		if ( ! ( $order = wc_get_order( $order_id ) ) || ( ! wc_stc_customer_can_add_return_shipment( $order_id ) ) ) {
+			$error->add( 'return_not_allowed', _x( 'You are not allowed to add returns to that order.', 'shipments', 'shiptastic-for-woocommerce' ) );
+
+			wp_send_json_error( $error, 500 );
+		}
+
+		if ( ! wc_stc_order_is_customer_returnable( $order ) ) {
+			$error->add( 'return_not_allowed', _x( 'Sorry, but this order does not support returns any longer.', 'shipments', 'shiptastic-for-woocommerce' ) );
+
+			wp_send_json_error( $error, 500 );
+		}
+
+		if ( empty( $items ) ) {
+			$error->add( 'return_empty', _x( 'Please choose one or more items from the list.', 'shipments', 'shiptastic-for-woocommerce' ) );
+
+			wp_send_json_error( $error, 500 );
+		}
+
+		$shipment_order = wc_stc_get_shipment_order( $order );
+		$return_items   = array();
+
+		foreach ( $items as $order_item_id ) {
+			$return_items[ $order_item_id ] = array(
+				'quantity'           => isset( $item_data[ $order_item_id ]['quantity'] ) ? absint( $item_data[ $order_item_id ]['quantity'] ) : 0,
+				'return_reason_code' => isset( $item_data[ $order_item_id ]['reason'] ) ? wc_clean( $item_data[ $order_item_id ]['reason'] ) : '',
+			);
+		}
+
+		$result = $shipment_order->get_return_costs( $return_items );
+
+		if ( is_wp_error( $result ) ) {
+			wp_send_json_error( $error, 500 );
+		} else {
+			$costs_formatted = wc_price( $result );
+
+			wp_send_json(
+				array(
+					'cost_formatted' => $costs_formatted,
+					'cost'           => wc_format_decimal( $result ),
+					'cost_i18n'      => '<div class="woocommerce-info">' . wp_kses_post( 0.00 === $result ? _x( 'Your return is free of charge.', 'shipments', 'shiptastic-for-woocommerce' ) : sprintf( _x( 'Your return shipping costs of %s will be automatically deducted from your refund amount.', 'shipments', 'shiptastic-for-woocommerce' ), $costs_formatted ) ) . '</div>',
+				)
+			);
+		}
 	}
 }

@@ -248,7 +248,6 @@ class Package {
 				}
 
 				if ( $callback && $order_id && ( $order_shipment = wc_stc_get_shipment_order( $order_id ) ) && ! empty( $key ) ) {
-
 					// Order return key is invalid.
 					if ( ! wc_stc_customer_can_add_return_shipment( $order_id ) ) {
 						throw new Exception( esc_html_x( 'Sorry, this order is invalid and cannot be returned.', 'shipments', 'shiptastic-for-woocommerce' ) );
@@ -832,6 +831,20 @@ class Package {
 
 		if ( file_exists( $default_template_path ) ) {
 			$template_path = self::get_template_path();
+
+			if ( 'myaccount/add-return-shipment.php' === $template_name ) {
+				self::register_script( 'wc-shiptastic-returns', 'static/returns.js', array( 'jquery', 'woocommerce' ) );
+
+				wp_localize_script(
+					'wc-shiptastic-returns',
+					'wc_shiptastic_returns_params',
+					array(
+						'wc_ajax_url' => \WC_AJAX::get_endpoint( '%%endpoint%%' ),
+					)
+				);
+
+				wp_enqueue_script( 'wc-shiptastic-returns' );
+			}
 
 			// Check for Theme overrides
 			$theme_template = locate_template(

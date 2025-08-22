@@ -11,7 +11,7 @@
  * the readme will list any important changes.
  *
  * @package Vendidero/Shiptastic/Templates
- * @version 4.3.0
+ * @version 4.7.0
  */
 defined( 'ABSPATH' ) || exit;
 ?>
@@ -26,6 +26,8 @@ defined( 'ABSPATH' ) || exit;
 <?php endif; ?>
 
 <form id="add_return_shipment" method="post">
+	<div class="wc-shiptastic-error-wrapper"></div>
+
 	<table class="woocommerce-table woocommerce-table--shipment-details shop_table add_return_shipment_table">
 		<thead>
 		<tr>
@@ -81,6 +83,8 @@ defined( 'ABSPATH' ) || exit;
 	 */
 	do_action( 'woocommerce_shiptastic_add_return_shipment_details_after_shipment_table', $order );
 	?>
+
+	<div class="return-shipment-costs"></div>
 
 	<p>
 		<?php wp_nonce_field( 'add_return_shipment', 'add-return-shipment-nonce' ); ?>

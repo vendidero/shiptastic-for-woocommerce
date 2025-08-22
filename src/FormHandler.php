@@ -211,32 +211,21 @@ class FormHandler {
 			return;
 		}
 
-		$return_items   = array();
 		$shipment_order = wc_stc_get_shipment_order( $order );
+		$return_items   = array();
 
 		foreach ( $items as $order_item_id ) {
-			if ( $item = $shipment_order->get_simple_shipment_item( $order_item_id ) ) {
-				$quantity            = isset( $item_data[ $order_item_id ]['quantity'] ) ? absint( $item_data[ $order_item_id ]['quantity'] ) : 0;
-				$quantity_returnable = $shipment_order->get_item_quantity_left_for_returning( $order_item_id );
-				$reason              = isset( $item_data[ $order_item_id ]['reason'] ) ? wc_clean( $item_data[ $order_item_id ]['reason'] ) : '';
+			$return_items[ $order_item_id ] = array(
+				'quantity'           => isset( $item_data[ $order_item_id ]['quantity'] ) ? absint( $item_data[ $order_item_id ]['quantity'] ) : 0,
+				'return_reason_code' => isset( $item_data[ $order_item_id ]['reason'] ) ? wc_clean( $item_data[ $order_item_id ]['reason'] ) : '',
+			);
 
-				if ( ! empty( $reason ) && ! wc_stc_return_shipment_reason_exists( $reason ) ) {
-					wc_add_notice( _x( 'The return reason you have chosen does not exist.', 'shipments', 'shiptastic-for-woocommerce' ), 'error' );
-					return;
-				} elseif ( empty( $reason ) && ! wc_stc_allow_customer_return_empty_return_reason( $order ) ) {
-					wc_add_notice( _x( 'Please choose a return reason from the list.', 'shipments', 'shiptastic-for-woocommerce' ), 'error' );
-					return;
-				}
-
-				if ( $quantity > $quantity_returnable ) {
-					wc_add_notice( _x( 'Please check your item quantities. Quantities must not exceed maximum quantities.', 'shipments', 'shiptastic-for-woocommerce' ), 'error' );
-					return;
-				} else {
-					$return_items[ $order_item_id ] = array(
-						'quantity'           => $quantity,
-						'return_reason_code' => $reason,
-					);
-				}
+			if ( ! empty( $return_items[ $order_item_id ]['return_reason_code'] ) && ! wc_stc_return_shipment_reason_exists( $return_items[ $order_item_id ]['return_reason_code'] ) ) {
+				wc_add_notice( _x( 'The return reason you have chosen does not exist.', 'shipments', 'shiptastic-for-woocommerce' ), 'error' );
+				return;
+			} elseif ( empty( $return_items[ $order_item_id ]['return_reason_code'] ) && ! wc_stc_allow_customer_return_empty_return_reason( $order ) ) {
+				wc_add_notice( _x( 'Please choose a return reason from the list.', 'shipments', 'shiptastic-for-woocommerce' ), 'error' );
+				return;
 			}
 		}
 
@@ -256,28 +245,24 @@ class FormHandler {
 			$default_status = 'processing';
 		}
 
-		// Add return shipment
-		$return_shipment = wc_stc_create_return_shipment(
-			$shipment_order,
+		$result = $shipment_order->create_returns(
+			$return_items,
 			array(
-				'items' => $return_items,
-				'props' => array(
-					/**
-					 * This filter may be used to adjust the default status of a return shipment
-					 * added by a customer.
-					 *
-					 * @param string    $status The default status.
-					 * @param WC_Order $order The order object.
-					 *
-					 * @package Vendidero/Shiptastic
-					 */
-					'status'                => apply_filters( 'woocommerce_shiptastic_customer_new_return_shipment_request_status', $default_status, $order ),
-					'is_customer_requested' => true,
-				),
+				/**
+				 * This filter may be used to adjust the default status of a return shipment
+				 * added by a customer.
+				 *
+				 * @param string    $status The default status.
+				 * @param WC_Order $order The order object.
+				 *
+				 * @package Vendidero/Shiptastic
+				 */
+				'status'                => apply_filters( 'woocommerce_shiptastic_customer_new_return_shipment_request_status', $default_status, $order ),
+				'is_customer_requested' => true,
 			)
 		);
 
-		if ( is_wp_error( $return_shipment ) ) {
+		if ( is_wp_error( $result ) || empty( $result ) ) {
 			wc_add_notice( _x( 'There was an error while creating the return. Please contact us for further information.', 'shipments', 'shiptastic-for-woocommerce' ), 'error' );
 			return;
 		} else {
@@ -291,21 +276,27 @@ class FormHandler {
 				wc_add_notice( $success_message );
 			}
 
-			/**
-			 * This hook is fired after a customer has added a new return request
-			 * for a specific shipment. The return shipment object has been added successfully.
-			 *
-			 * @param ReturnShipment $shipment The return shipment object.
-			 * @param WC_Order      $order The order object.
-			 *
-			 * @package Vendidero/Shiptastic
-			 */
-			do_action( 'woocommerce_shiptastic_new_customer_return_shipment_request', $return_shipment, $order );
+			$last_return_shipment = null;
+
+			foreach ( $result as $return_shipment ) {
+				/**
+				 * This hook is fired after a customer has added a new return request
+				 * for a specific shipment. The return shipment object has been added successfully.
+				 *
+				 * @param ReturnShipment $shipment The return shipment object.
+				 * @param WC_Order      $order The order object.
+				 *
+				 * @package Vendidero/Shiptastic
+				 */
+				do_action( 'woocommerce_shiptastic_new_customer_return_shipment_request', $return_shipment, $order );
+
+				$last_return_shipment = $return_shipment;
+			}
 
 			if ( $needs_manual_confirmation ) {
 				$return_url = $order->get_view_order_url();
 			} else {
-				$return_url = $return_shipment->get_view_shipment_url();
+				$return_url = $last_return_shipment->get_view_shipment_url();
 			}
 
 			if ( $order->get_customer_id() <= 0 ) {
@@ -329,7 +320,7 @@ class FormHandler {
 			 *
 			 * @package Vendidero/Shiptastic
 			 */
-			$redirect = apply_filters( 'woocommerce_shiptastic_customer_new_return_shipment_request_redirect', $return_url, $return_shipment, $needs_manual_confirmation );
+			$redirect = apply_filters( 'woocommerce_shiptastic_customer_new_return_shipment_request_redirect', $return_url, $last_return_shipment, $needs_manual_confirmation );
 
 			wp_safe_redirect( esc_url_raw( $redirect ) );
 			exit;

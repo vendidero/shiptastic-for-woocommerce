@@ -1887,6 +1887,7 @@ class Admin {
 					'send_return_notification_nonce'     => wp_create_nonce( 'send-return-shipment-notification' ),
 					'refresh_packaging_nonce'            => wp_create_nonce( 'refresh-shipment-packaging' ),
 					'confirm_return_request_nonce'       => wp_create_nonce( 'confirm-return-request' ),
+					'create_return_shipment_refund_submit_nonce' => wp_create_nonce( 'create-return-shipment-refund-submit' ),
 					'add_return_shipment_load_nonce'     => wp_create_nonce( 'add-return-shipment-load' ),
 					'add_return_shipment_submit_nonce'   => wp_create_nonce( 'add-return-shipment-submit' ),
 					'add_shipment_item_load_nonce'       => wp_create_nonce( 'add-shipment-item-load' ),

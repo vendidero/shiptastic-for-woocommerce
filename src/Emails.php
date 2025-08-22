@@ -90,6 +90,7 @@ class Emails {
 
 	public static function email_hooks() {
 		add_action( 'woocommerce_shiptastic_email_shipment_details', array( __CLASS__, 'email_return_instructions' ), 5, 4 );
+		add_action( 'woocommerce_shiptastic_email_shipment_details', array( __CLASS__, 'email_return_costs' ), 10, 4 );
 		add_action( 'woocommerce_shiptastic_email_shipment_details', array( __CLASS__, 'email_tracking' ), 10, 4 );
 		add_action( 'woocommerce_shiptastic_email_shipment_details', array( __CLASS__, 'email_address' ), 20, 4 );
 		add_action( 'woocommerce_shiptastic_email_shipment_details', array( __CLASS__, 'email_details' ), 30, 4 );
@@ -128,6 +129,40 @@ class Emails {
 		$actions = array_merge( $actions, self::get_email_notification_hooks() );
 
 		return $actions;
+	}
+
+	/**
+	 * @param Shipment $shipment
+	 * @param bool $sent_to_admin
+	 * @param bool $plain_text
+	 * @param string $email
+	 */
+	public static function email_return_costs( $shipment, $sent_to_admin = false, $plain_text = false, $email = '' ) {
+		if ( 'return' !== $shipment->get_type() || $shipment->has_status( 'delivered' ) ) {
+			return;
+		}
+
+		if ( $plain_text ) {
+			wc_get_template(
+				'emails/plain/email-return-shipment-costs.php',
+				array(
+					'shipment'      => $shipment,
+					'sent_to_admin' => $sent_to_admin,
+					'plain_text'    => $plain_text,
+					'email'         => $email,
+				)
+			);
+		} else {
+			wc_get_template(
+				'emails/email-return-shipment-costs.php',
+				array(
+					'shipment'      => $shipment,
+					'sent_to_admin' => $sent_to_admin,
+					'plain_text'    => $plain_text,
+					'email'         => $email,
+				)
+			);
+		}
 	}
 
 	/**

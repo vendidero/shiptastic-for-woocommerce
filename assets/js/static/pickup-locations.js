@@ -1,4 +1,3 @@
-
 window.shiptastic = window.shiptastic || {};
 window.shiptastic.shipments_pickup_locations = window.shiptastic.shipments_pickup_locations || {};
 

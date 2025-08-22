@@ -13,6 +13,7 @@ use Vendidero\Shiptastic\Interfaces\ShippingProvider;
 use Vendidero\Shiptastic\SecretBox;
 use Vendidero\Shiptastic\Shipment;
 use Vendidero\Shiptastic\ShipmentError;
+use Vendidero\Shiptastic\Utilities\NumberUtil;
 use WC_Data;
 use WC_Data_Store;
 
@@ -71,6 +72,7 @@ class Simple extends WC_Data implements ShippingProvider {
 		'supports_customer_returns'  => false,
 		'supports_guest_returns'     => false,
 		'return_manual_confirmation' => true,
+		'return_costs'               => 0,
 		'return_instructions'        => '',
 		'tracking_url_placeholder'   => '',
 		'tracking_desc_placeholder'  => '',
@@ -370,6 +372,17 @@ class Simple extends WC_Data implements ShippingProvider {
 	 */
 	public function get_return_instructions( $context = 'view' ) {
 		return $this->get_prop( 'return_instructions', $context );
+	}
+
+	/**
+	 * Get the return costs.
+	 *
+	 * @param string $context
+	 *
+	 * @return mixed
+	 */
+	public function get_return_costs( $context = 'view' ) {
+		return $this->get_prop( 'return_costs', $context );
 	}
 
 	public function has_return_instructions() {
@@ -692,6 +705,10 @@ class Simple extends WC_Data implements ShippingProvider {
 	 */
 	public function set_return_instructions( $instructions ) {
 		$this->set_prop( 'return_instructions', $instructions );
+	}
+
+	public function set_return_costs( $costs ) {
+		$this->set_prop( 'return_costs', wc_format_decimal( $costs, wc_get_price_decimals() ) );
 	}
 
 	/**
@@ -1097,6 +1114,20 @@ class Simple extends WC_Data implements ShippingProvider {
 					'default'           => 'yes',
 					'value'             => wc_bool_to_string( $this->get_supports_guest_returns( 'edit' ) ),
 					'type'              => 'shiptastic_toggle',
+					'custom_attributes' => array(
+						'data-show_if_shipping_provider_supports_customer_returns' => '',
+					),
+				),
+
+				array(
+					'title'             => sprintf( _x( 'Costs (%s)', 'shipments', 'shiptastic-for-woocommerce' ), get_woocommerce_currency_symbol() ),
+					'desc'              => _x( 'Choose whether returns are subject to a fee for your customers.', 'shipments', 'shiptastic-for-woocommerce' ) . '<div class="wc-shiptastic-additional-desc">' . sprintf( _x( 'Costs are automatically deducted from the refund created to the return shipment. You may override these costs on a per-packaging basis.', 'shipments', 'shiptastic-for-woocommerce' ) ) . '</div>',
+					'id'                => 'return_costs',
+					'default'           => 0,
+					'value'             => wc_format_localized_decimal( $this->get_return_costs( 'edit' ) ),
+					'class'             => 'wc_input_decimal',
+					'type'              => 'text',
+					'css'               => 'max-width: 150px;',
 					'custom_attributes' => array(
 						'data-show_if_shipping_provider_supports_customer_returns' => '',
 					),

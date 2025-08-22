@@ -28,13 +28,13 @@ defined( 'ABSPATH' ) || exit;
 		<div class="column col-6">
 			<div class="columns">
 				<div class="column col-4">
-					<p class="form-row">
+					<div class="form-row">
 						<label for="shipment-weight-<?php echo esc_attr( $shipment->get_id() ); ?>"><?php printf( esc_html_x( 'Content (%s)', 'shipments', 'shiptastic-for-woocommerce' ), esc_html( $shipment->get_weight_unit() ) ); ?></label>
 						<input type="text" class="wc_input_decimal wc-stc-shipment-weight" value="<?php echo esc_attr( wc_format_localized_decimal( $shipment->get_weight( 'edit' ) ) ); ?>" name="shipment_weight[<?php echo esc_attr( $shipment->get_id() ); ?>]" id="shipment-weight-<?php echo esc_attr( $shipment->get_id() ); ?>" placeholder="<?php echo esc_attr( wc_format_localized_decimal( $shipment->get_content_weight() ) ); ?>" />
-					</p>
+					</div>
 				</div>
 				<div class="column col-8">
-					<p class="form-row dimensions_field">
+					<div class="form-row dimensions_field">
 						<label for="shipment-length-<?php echo esc_attr( $shipment->get_id() ); ?>"><?php printf( esc_html_x( 'Dimensions (%s)', 'shipments', 'shiptastic-for-woocommerce' ), esc_html( $shipment->get_dimension_unit() ) ); ?><?php echo wc_help_tip( _x( 'LxWxH in decimal form.', 'shipments', 'shiptastic-for-woocommerce' ) ); ?></label>
 
 						<span class="input-inner-wrap">
@@ -42,39 +42,39 @@ defined( 'ABSPATH' ) || exit;
 							<input type="text" <?php echo ( $shipment->has_packaging() ? 'disabled="disabled"' : '' ); ?> size="6" class="wc_input_decimal wc-stc-shipment-dimension <?php echo ( $shipment->has_packaging() ? 'disabled' : '' ); ?>" value="<?php echo esc_attr( wc_format_localized_decimal( $shipment->get_width( 'edit' ) ) ); ?>" name="shipment_width[<?php echo esc_attr( $shipment->get_id() ); ?>]" id="shipment-width-<?php echo esc_attr( $shipment->get_id() ); ?>" placeholder="<?php echo esc_attr( wc_format_localized_decimal( $shipment->get_content_width() ) ); ?>" />
 							<input type="text" <?php echo ( $shipment->has_packaging() ? 'disabled="disabled"' : '' ); ?> size="6" class="wc_input_decimal wc-stc-shipment-dimension <?php echo ( $shipment->has_packaging() ? 'disabled' : '' ); ?>" value="<?php echo esc_attr( wc_format_localized_decimal( $shipment->get_height( 'edit' ) ) ); ?>" name="shipment_height[<?php echo esc_attr( $shipment->get_id() ); ?>]" id="shipment-height-<?php echo esc_attr( $shipment->get_id() ); ?>" placeholder="<?php echo esc_attr( wc_format_localized_decimal( $shipment->get_content_height() ) ); ?>" />
 						</span>
-					</p>
+					</div>
 				</div>
 			</div>
 
-			<p class="form-row wc-stc-shipment-packaging-wrapper">
+			<div class="form-row wc-stc-shipment-packaging-wrapper">
 				<label for="shipment-packaging-<?php echo esc_attr( $shipment->get_id() ); ?>"><?php echo esc_html_x( 'Packaging', 'shipments', 'shiptastic-for-woocommerce' ); ?></label>
 
 				<?php require 'html-order-shipment-packaging-select.php'; ?>
-			</p>
+			</div>
 		</div>
 
 		<div class="column col-6">
-			<p class="form-row">
+			<div class="form-row">
 				<label for="shipment-status-<?php echo esc_attr( $shipment->get_id() ); ?>"><?php echo esc_html_x( 'Status', 'shipments', 'shiptastic-for-woocommerce' ); ?></label>
 				<select class="shipment-status-select" id="shipment-status-<?php echo esc_attr( $shipment->get_id() ); ?>" name="shipment_status[<?php echo esc_attr( $shipment->get_id() ); ?>]">
 					<?php foreach ( wc_stc_get_shipment_selectable_statuses( $shipment ) as $status => $title ) : // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited ?>
 						<option value="<?php echo esc_attr( $status ); ?>" <?php selected( $status, $shipment->get_status(), true ); ?>><?php echo esc_html( $title ); ?></option>
 					<?php endforeach; ?>
 				</select>
-			</p>
+			</div>
 
 			<?php if ( count( $shipment->get_available_shipping_methods() ) > 1 ) : ?>
-				<p class="form-row">
+				<div class="form-row">
 					<label for="shipment-shipping-method-<?php echo esc_attr( $shipment->get_id() ); ?>"><?php echo esc_html_x( 'Shipping method', 'shipments', 'shiptastic-for-woocommerce' ); ?></label>
 					<select class="shipment-shipping-method-select" id="shipment-shipping-method-<?php echo esc_attr( $shipment->get_id() ); ?>" name="shipment_shipping_method[<?php echo esc_attr( $shipment->get_id() ); ?>]">
 						<?php foreach ( $shipment->get_available_shipping_methods() as $method => $title ) : // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited ?>
 							<option value="<?php echo esc_attr( $method ); ?>" <?php selected( $method, $shipment->get_shipping_method(), true ); ?>><?php echo esc_html( $title ); ?></option>
 						<?php endforeach; ?>
 					</select>
-				</p>
+				</div>
 			<?php endif; ?>
 
-			<p class="form-row">
+			<div class="form-row">
 				<label for="shipment-shipping-provider-<?php echo esc_attr( $shipment->get_id() ); ?>"><?php echo esc_html_x( 'Shipping Service Provider', 'shipments', 'shiptastic-for-woocommerce' ); ?></label>
 				<select class="shipment-shipping-provider-select" id="shipment-shipping-provider-<?php echo esc_attr( $shipment->get_id() ); ?>" name="shipment_shipping_provider[<?php echo esc_attr( $shipment->get_id() ); ?>]">
 					<?php
@@ -84,12 +84,12 @@ defined( 'ABSPATH' ) || exit;
 						<option data-is-manual="<?php echo ( ( $provider_instance && $provider_instance->is_manual_integration() ) ? 'yes' : 'no' ); ?>" value="<?php echo esc_attr( $provider ); ?>" <?php selected( $provider, $shipment->get_shipping_provider(), true ); ?>><?php echo esc_html( $title ); ?></option>
 					<?php endforeach; ?>
 				</select>
-			</p>
+			</div>
 
-			<p class="form-row show-if show-if-provider show-if-provider-is-manual">
+			<div class="form-row show-if show-if-provider show-if-provider-is-manual">
 				<label for="shipment-tracking-id-<?php echo esc_attr( $shipment->get_id() ); ?>"><?php echo esc_html_x( 'Tracking Number', 'shipments', 'shiptastic-for-woocommerce' ); ?></label>
 				<input type="text" value="<?php echo esc_attr( $shipment->get_tracking_id() ); ?>" name="shipment_tracking_id[<?php echo esc_attr( $shipment->get_id() ); ?>]" id="shipment-tracking-id-<?php echo esc_attr( $shipment->get_id() ); ?>" />
-			</p>
+			</div>
 
 			<?php
 			/**
@@ -264,6 +264,41 @@ defined( 'ABSPATH' ) || exit;
 					</a>
 				<?php elseif ( 'return' === $shipment->get_type() && $shipment->has_status( 'requested' ) ) : ?>
 					<a class="shipment-footer-action confirm-return-shipment" href="#" data-id="<?php echo esc_attr( $shipment->get_id() ); ?>"><?php echo wc_help_tip( _x( 'Confirm the return request to the customer. The customer receives an email notification possibly containing return instructions.', 'shipments', 'shiptastic-for-woocommerce' ) ); ?><?php echo esc_html_x( 'Confirm return request', 'shipments', 'shiptastic-for-woocommerce' ); ?></a>
+				<?php elseif ( 'return' === $shipment->get_type() && $shipment->has_status( 'delivered' ) && $shipment->needs_refund() ) : ?>
+					<a class="shipment-footer-action create-return-shipment-refund has-shipment-modal" id="wc-stc-modal-create-return-shipment-refund-<?php echo esc_attr( $shipment->get_id() ); ?>" href="#" data-id="wc-stc-modal-create-return-shipment-refund" data-reference="<?php echo esc_attr( $shipment->get_id() ); ?>"><?php echo wc_help_tip( _x( 'Create a refund linked to this return. Return costs will be automatically deducted from refund total.', 'shipments', 'shiptastic-for-woocommerce' ) ); ?><?php echo esc_html_x( 'Create refund', 'shipments', 'shiptastic-for-woocommerce' ); ?></a>
+
+					<script type="text/template" id="tmpl-wc-stc-modal-create-return-shipment-refund-<?php echo esc_attr( $shipment->get_id() ); ?>">
+						<div class="wc-backbone-modal wc-stc-admin-shipment-modal wc-stc-modal-create-return-shipment-refund">
+							<div class="wc-backbone-modal-content">
+								<section class="wc-backbone-modal-main" role="main">
+									<header class="wc-backbone-modal-header">
+										<h1><?php echo esc_html_x( 'Create refund', 'shipments', 'shiptastic-for-woocommerce' ); ?></h1>
+										<button class="modal-close modal-close-link dashicons dashicons-no-alt">
+											<span class="screen-reader-text">Close modal panel</span>
+										</button>
+									</header>
+									<article>
+										<form action="" method="post">
+											<p class="form-field">
+												<label for="return-costs-<?php echo esc_attr( $shipment->get_id() ); ?>"><?php printf( esc_html_x( 'Return costs (%s)', 'shipments', 'shiptastic-for-woocommerce' ), esc_html( get_woocommerce_currency_symbol() ) ); ?></label>
+												<input type="text" class="wc_input_decimal wc-stc-shipment-return-costs" value="<?php echo esc_attr( wc_format_localized_decimal( $shipment->get_return_costs( 'edit' ) ) ); ?>" name="return_costs" id="return-costs-<?php echo esc_attr( $shipment->get_id() ); ?>" />
+											</p>
+											<p class="form-field form-field-checkbox">
+												<label for="return-restock-refunded-items-<?php echo esc_attr( $shipment->get_id() ); ?>"><?php echo esc_html_x( 'Restock refunded items?', 'shipments', 'shiptastic-for-woocommerce' ); ?></label>
+												<input type="checkbox" name="return_restock_refunded_items" id="return-restock-refunded-items-<?php echo esc_attr( $shipment->get_id() ); ?>" value="yes" class="checkbox" />
+											</p>
+										</form>
+									</article>
+									<footer>
+										<div class="inner">
+											<button id="btn-ok" class="button button-primary button-large"><?php echo esc_html_x( 'Create refund', 'shipments', 'shiptastic-for-woocommerce' ); ?></button>
+										</div>
+									</footer>
+								</section>
+							</div>
+						</div>
+						<div class="wc-backbone-modal-backdrop modal-close"></div>
+					</script>
 				<?php endif; ?>
 
 				<?php if ( $shipment->is_editable() ) : ?>

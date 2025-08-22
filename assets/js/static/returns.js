@@ -1,23 +1,25 @@
 window.shiptastic = window.shiptastic || {};
-window.shiptastic.admin = window.shiptastic.admin || {};
+window.shiptastic.returns = window.shiptastic.returns || {};
 
 ( function( $, shipments ) {
-    shipments.admin.wizard = {
+    /**
+     * Core
+     */
+    shipments.returns = {
         params: {},
 
-        init: function() {
-            var self = shipments.admin.wizard;
-            self.params = wc_shiptastic_admin_wizard_params;
+        init: function () {
+            var self  = shipments.returns;
+            self.params  = wc_shiptastic_returns_params;
 
-            $( document )
-                .on( 'submit', '.wc-shiptastic-wizard-form', self.onSubmit );
+            $( document ).on( 'change', '#add_return_shipment input.return-item-checkbox, #add_return_shipment input.qty', self.onChangeReturnForm );
         },
 
-        onSubmit: function( e ) {
-            var self = shipments.admin.wizard,
-                $form = $( this ),
+        onChangeReturnForm: function() {
+            var self = shipments.returns,
+                $form = $( this ).parents( 'form' ),
                 $errorWrapper = $form.find( '.wc-shiptastic-error-wrapper' ),
-                $mainButton = $( '#wc-shiptastic-wizard-links' ).find( '.button-submit' ),
+                $mainButton = $form.find( '.button[type=submit]' ),
                 data = $form.serialize();
 
             $errorWrapper.find( ".notice" ).remove();
@@ -25,9 +27,11 @@ window.shiptastic.admin = window.shiptastic.admin || {};
             $form.find( ':input:not(.disabled):not([type=hidden])' ).prop( 'disabled', true );
             $mainButton.prop( 'disabled', true ).addClass( 'loading' );
 
+            $form.find( '.return-shipment-costs' ).hide();
+
             $.ajax( {
                 type: 'POST',
-                url: self.params.ajax_url,
+                url: self.params.wc_ajax_url.toString().replace('%%endpoint%%', 'woocommerce_stc_calculate_return_costs'),
                 data: data,
                 dataType: 'json',
             }).done( function ( response ) {
@@ -35,7 +39,7 @@ window.shiptastic.admin = window.shiptastic.admin || {};
                 $form.find( ':input:not(.disabled):not([type=hidden])' ).prop( 'disabled', false );
                 $mainButton.prop( 'disabled', false ).removeClass( 'loading' );
 
-                window.location = response.redirect;
+                $form.find( '.return-shipment-costs' ).html( response.cost_i18n ).show();
             }).fail( function ( xhr ) {
                 $form.removeClass( 'loading' );
                 $form.find( ':input:not(.disabled):not([type=hidden])' ).prop( 'disabled', false );
@@ -48,7 +52,7 @@ window.shiptastic.admin = window.shiptastic.admin || {};
                 }
 
                 $.each( response.data, function( i, error ) {
-                    $errorWrapper.append( '<div class="notice notice-error"><p>' + error.message + '</p></div>' );
+                    $errorWrapper.append( '<p class="woocommerce-error notice">' + error.message + '</p>' );
                 });
 
                 $errorWrapper[0].scrollIntoView({
@@ -62,7 +66,6 @@ window.shiptastic.admin = window.shiptastic.admin || {};
     };
 
     $( document ).ready( function() {
-        shipments.admin.wizard.init();
+        shipments.returns.init();
     });
-
 })( jQuery, window.shiptastic );

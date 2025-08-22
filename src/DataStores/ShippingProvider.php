@@ -28,6 +28,7 @@ class ShippingProvider extends WC_Data_Store_WP implements WC_Object_Data_Store_
 		'_description',
 		'_return_manual_confirmation',
 		'_return_instructions',
+		'_return_costs',
 		'_supports_customer_returns',
 		'_supports_guest_returns',
 	);

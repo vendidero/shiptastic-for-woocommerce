@@ -53,6 +53,10 @@ class MetaBox {
 				$props['packaging_id'] = wc_clean( wp_unslash( $_POST['shipment_packaging_id'][ $id ] ) ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
 			}
 
+			if ( isset( $_POST['shipment_return_costs'][ $id ] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Missing
+				$props['return_costs'] = wc_clean( wp_unslash( $_POST['shipment_return_costs'][ $id ] ) ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
+			}
+
 			if ( isset( $_POST['shipment_shipping_provider'][ $id ] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Missing
 				$provider  = wc_clean( wp_unslash( $_POST['shipment_shipping_provider'][ $id ] ) ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
 				$providers = wc_stc_get_shipping_providers();

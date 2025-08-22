@@ -11,7 +11,7 @@
  * the readme will list any important changes.
  *
  * @package Vendidero/Shiptastic/Templates
- * @version 4.3.0
+ * @version 4.7.0
  */
 use Vendidero\Shiptastic\Shipment;
 use Vendidero\Shiptastic\ShipmentItem;
@@ -23,7 +23,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 <tr class="<?php echo esc_attr( 'woocommerce-table__line-item return_shipment_item' ); ?>">
 
 	<td class="woocommerce-table__product-select product-select">
-		<input class="woocommerce-form__input woocommerce-form__input-checkbox" name="items[]" type="checkbox" id="item-<?php echo esc_attr( $order_item_id ); ?>-add-return" value="<?php echo esc_attr( $order_item_id ); ?>" />
+		<input class="woocommerce-form__input woocommerce-form__input-checkbox return-item-checkbox" name="items[]" type="checkbox" id="item-<?php echo esc_attr( $order_item_id ); ?>-add-return" value="<?php echo esc_attr( $order_item_id ); ?>" />
 	</td>
 
 	<td class="woocommerce-table__product-name product-name">

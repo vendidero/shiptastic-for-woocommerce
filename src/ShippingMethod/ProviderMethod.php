@@ -138,13 +138,33 @@ class ProviderMethod implements LabelConfigurationSet {
 		return in_array( $this->get_shipping_provider(), $shipping_provider_name, true );
 	}
 
+	public function get_return_costs() {
+		$costs = $this->get_prop( 'return_costs' );
+
+		if ( '' !== $costs ) {
+			return wc_format_decimal( $costs, wc_get_price_decimals() );
+		} else {
+			return '';
+		}
+	}
+
+	public function has_return_costs() {
+		return '' === $this->get_return_costs() ? false : true;
+	}
+
+	public function set_return_costs( $return_costs ) {
+		$this->set_prop( 'return_costs', $return_costs );
+	}
+
 	public function get_prop( $key, $context = 'view' ) {
 		$default = '';
 
 		if ( 'configuration_sets' === $key ) {
 			$default = array();
 		} elseif ( 'shipping_provider' === $key ) {
-			$default = wc_stc_get_default_shipping_provider();
+			$default = $this->is_builtin_method() ? $this->method->get_shipping_provider()->get_name() : wc_stc_get_default_shipping_provider();
+		} elseif ( 'return_costs' === $key ) {
+			$default = '';
 		}
 
 		if ( ! $this->is_placeholder() && ! MethodHelper::method_is_excluded( $this->get_id() ) ) {

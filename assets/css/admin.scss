@@ -1392,7 +1392,7 @@ a.button.wc-stc-shipment-action-button {
           a.shipment-footer-action {
             margin-right: 1em;
 
-            &:last-child {
+            &:last-child, &:last-of-type {
               margin-right: 0;
             }
 
@@ -1449,7 +1449,7 @@ a.button.wc-stc-shipment-action-button {
         }
       }
 
-      p.form-row {
+      .form-row {
         margin-bottom: 1.5em;
 
         &.wc-stc-shipment-packaging-wrapper {

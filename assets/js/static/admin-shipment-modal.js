@@ -390,6 +390,10 @@ window.shiptastic.admin = window.shiptastic.admin || {};
 
         $( document.body ).trigger( 'wc_shiptastic_admin_shipment_modal_after_submit_success', [data, self] );
         self.$modalTrigger.trigger( 'wc_shiptastic_admin_shipment_modal_after_submit_success', [data, self] );
+
+        if ( data.hasOwnProperty( 'reload' ) && true === data['reload'] ) {
+            window.location.reload();
+        }
     };
 
     AdminShipmentModal.prototype.getCleanId = function( removePrefix = false ) {

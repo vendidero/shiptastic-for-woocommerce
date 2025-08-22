@@ -227,7 +227,25 @@ class MethodHelper {
 			 * implications (e.g. the WC_Shipping_Method::get_instance_form_fields() is called on every option retrieval).
 			 */
 			add_filter( 'woocommerce_shipping_' . $method . '_instance_option', array( __CLASS__, 'inject_method_instance_settings' ), 10, 3 );
-			add_filter( 'woocommerce_shipping_instance_form_fields_' . $method, array( __CLASS__, 'add_method_settings' ), 10, 1 );
+			add_filter(
+				'woocommerce_shipping_instance_form_fields_' . $method,
+				function ( $p_settings ) use ( $method ) {
+					$p_settings = self::add_method_settings( $p_settings );
+
+					if ( self::is_builtin_method( $method ) ) {
+						if ( $provider_method = MethodHelper::get_provider_method( $method ) ) {
+							if ( isset( $p_settings['label_configuration_set_shipping_provider_title'] ) && $provider_method->get_shipping_provider_instance() ) {
+								$p_settings['label_configuration_set_shipping_provider_title']['title']       = _x( 'Additional Settings', 'shipments', 'shiptastic-for-woocommerce' );
+								$p_settings['label_configuration_set_shipping_provider_title']['description'] = sprintf( _x( 'Adjust additional settings and configure %s labels.', 'shipments', 'shiptastic-for-woocommerce' ), $provider_method->get_shipping_provider_instance()->get_title() );
+							}
+						}
+					}
+
+					return $p_settings;
+				},
+				10,
+				1
+			);
 
 			/**
 			 * Lazy-load option values
@@ -379,13 +397,15 @@ class MethodHelper {
 		return self::$methods[ $method_key ];
 	}
 
+	public static function is_builtin_method( $method ) {
+		return 'shipping_provider_' === substr( $method, 0, 18 ) ? true : false;
+	}
+
 	public static function method_is_excluded( $method ) {
 		$is_excluded = false;
 		$excluded    = apply_filters( 'woocommerce_shiptastic_get_methods_excluded_from_provider_settings', array( 'pr_dhl_paket', 'flexible_shipping_info' ) );
 
 		if ( in_array( $method, $excluded, true ) ) {
-			$is_excluded = true;
-		} elseif ( 'shipping_provider_' === substr( $method, 0, 18 ) ) {
 			$is_excluded = true;
 		}
 
@@ -405,6 +425,10 @@ class MethodHelper {
 	 */
 	public static function filter_method_option_value( $value, $setting_id, $method ) {
 		$shipping_method = self::get_provider_method( $method );
+
+		if ( $shipping_method->is_builtin_method() && 'shipping_provider' === $setting_id ) {
+			$value = $shipping_method->get_shipping_provider();
+		}
 
 		if ( $shipping_method->is_configuration_set_setting( $setting_id ) ) {
 			if ( $configuration_set = $shipping_method->get_configuration_set( $setting_id ) ) {
@@ -429,9 +453,11 @@ class MethodHelper {
 	 */
 	public static function filter_method_settings( $p_settings, $shipping_method ) {
 		$shipping_provider = isset( $p_settings['shipping_provider'] ) ? $p_settings['shipping_provider'] : '';
+		$return_costs      = isset( $p_settings['return_costs'] ) ? $p_settings['return_costs'] : '';
 		$method            = self::get_provider_method( $shipping_method );
 
 		$method->set_shipping_provider( $shipping_provider );
+		$method->set_return_costs( $return_costs );
 
 		foreach ( $p_settings as $setting_id => $setting_val ) {
 			if ( 'configuration_sets' === $setting_id ) {
@@ -529,6 +555,13 @@ class MethodHelper {
 				'default'     => apply_filters( 'woocommerce_shiptastic_shipping_provider_method_default_provider', '' ),
 				'options'     => wc_stc_get_shipping_provider_select(),
 				'description' => _x( 'Choose a shipping service provider which will be selected by default for an eligible shipment.', 'shipments', 'shiptastic-for-woocommerce' ),
+			),
+			'return_costs'       => array(
+				'title'       => _x( 'Return costs', 'shipments', 'shiptastic-for-woocommerce' ),
+				'type'        => 'text',
+				'class'       => 'wc_input_decimal',
+				'default'     => '',
+				'description' => _x( 'Choose whether returns are subject to a fee for your customers. Leave empty to use the return costs configured for the shipping provider instead.', 'shipments', 'shiptastic-for-woocommerce' ),
 			),
 			'configuration_sets' => array(
 				'title'   => '',

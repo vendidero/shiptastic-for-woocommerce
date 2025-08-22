@@ -429,7 +429,6 @@ function wc_stc_get_shipment_selectable_statuses( $shipment ) {
  */
 function wc_stc_create_return_shipment( $order_shipment, $args = array() ) {
 	try {
-
 		if ( ! $order_shipment || ! is_a( $order_shipment, 'Vendidero\Shiptastic\Order' ) ) {
 			throw new Exception( esc_html_x( 'Invalid order.', 'shipments', 'shiptastic-for-woocommerce' ) );
 		}
@@ -443,6 +442,7 @@ function wc_stc_create_return_shipment( $order_shipment, $args = array() ) {
 			array(
 				'items' => array(),
 				'props' => array(),
+				'save'  => true,
 			)
 		);
 
@@ -456,7 +456,11 @@ function wc_stc_create_return_shipment( $order_shipment, $args = array() ) {
 		$shipment->set_order_shipment( $order_shipment );
 		$shipment->sync( $args['props'] );
 		$shipment->sync_items( $args );
-		$shipment->save();
+		$shipment->calculate_return_costs();
+
+		if ( $args['save'] ) {
+			$shipment->save();
+		}
 	} catch ( Exception $e ) {
 		return new WP_Error( 'error', $e->getMessage() );
 	}

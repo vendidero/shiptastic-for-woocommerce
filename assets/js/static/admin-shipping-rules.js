@@ -1,6 +1,10 @@
 /* global wc_shiptastic_admin_shipping_rules_params, ajaxurl */
 ( function( $, data, wp, ajaxurl ) {
     $( function() {
+        if ( $( 'select[id$=shipping_provider]' ).length > 0 ) {
+            $( 'select[id$=shipping_provider]' ).parents( 'tr' ).hide();
+        }
+
         var $tbody            = $( '.wc-shiptastic-shipping-rules-rows' ),
             $table            = $( '.wc-shiptastic-shipping-rules' ),
             $row_template     = wp.template( 'wc-shiptastic-shipping-rules-row' ),
