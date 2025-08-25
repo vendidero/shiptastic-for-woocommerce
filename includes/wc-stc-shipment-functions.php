@@ -1694,27 +1694,57 @@ function wc_stc_get_shipment_error( $error ) {
 }
 
 function wc_shiptastic_substring( $str, $start, $length = null ) {
-	if ( function_exists( 'mb_substr' ) ) {
-		$str = mb_substr( $str, $start, $length );
-	} else {
-		$str = substr( $str, $start, $length );
-	}
+	if ( is_array( $str ) ) {
+		return array_map( 'wc_shiptastic_substring', $str );
+	} elseif ( is_scalar( $str ) ) {
+		if ( function_exists( 'mb_substr' ) ) {
+			$str = mb_substr( $str, $start, $length );
+		} else {
+			$str = substr( $str, $start, $length );
+		}
 
-	return $str;
+		return $str;
+	} else {
+		return $str;
+	}
 }
 
 /**
  *
  * Remove any special char except dash and whitespace.
  *
- * @param string $str
+ * @param string|array $str
  *
- * @return string
+ * @return string|array
  */
 function wc_shiptastic_get_alphanumeric_string( $str ) {
-	$str = remove_accents( $str );
-	$str = preg_replace( '/[^ \w-]/', ' ', $str );
-	$str = preg_replace( '/\s+/', ' ', $str );
+	if ( is_array( $str ) ) {
+		return array_map( 'wc_shiptastic_get_alphanumeric_string', $str );
+	} elseif ( is_scalar( $str ) ) {
+		$str = wc_shiptastic_decode_html( $str );
+		$str = remove_accents( $str );
+		$str = preg_replace( '/[^ \w-]/', ' ', $str );
+		$str = preg_replace( '/\s+/', ' ', $str );
 
-	return wc_clean( $str );
+		return wc_clean( $str );
+	} else {
+		return $str;
+	}
+}
+
+/**
+ * Convert html entities, e.g. &amp; to utf-8.
+ *
+ * @param string|array $str
+ *
+ * @return string|array
+ */
+function wc_shiptastic_decode_html( $str ) {
+	if ( is_array( $str ) ) {
+		return array_map( 'wc_shiptastic_decode_html', $str );
+	} elseif ( is_scalar( $str ) ) {
+		return html_entity_decode( $str, ENT_QUOTES | ENT_HTML5, 'UTF-8' );
+	} else {
+		return $str;
+	}
 }
