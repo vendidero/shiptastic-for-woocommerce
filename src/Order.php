@@ -1967,12 +1967,12 @@ class Order {
 		$shipping_method = false;
 		$method          = false;
 
-		foreach ( $this->get_order()->get_shipping_methods() as $method ) {
+		foreach ( $this->get_order()->get_shipping_methods() as $order_shipping_method ) {
 			if ( empty( $method_id ) ) {
-				$shipping_method = $method;
+				$shipping_method = $order_shipping_method;
 				break;
-			} elseif ( $method_id === $method->get_id() ) {
-				$shipping_method = $method;
+			} elseif ( $method_id === $order_shipping_method->get_id() ) {
+				$shipping_method = $order_shipping_method;
 				break;
 			}
 		}
