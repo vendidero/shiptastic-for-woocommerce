@@ -64,8 +64,6 @@ class Package {
 		add_action( 'init', array( __CLASS__, 'check_version' ), 10 );
 		add_action( 'init', array( __CLASS__, 'load_plugin_textdomain' ) );
 		add_action( 'init', array( __CLASS__, 'load_fallback_compatibility' ) );
-
-		add_filter( 'woocommerce_shipping_method_add_rate_args', array( __CLASS__, 'manipulate_shipping_rates' ), 1000, 2 );
 	}
 
 	public static function load_plugin_textdomain() {
@@ -223,14 +221,6 @@ class Package {
 				}
 			}
 		}
-	}
-
-	public static function manipulate_shipping_rates( $args, $method ) {
-		if ( $method = wc_stc_get_shipping_provider_method( $method ) ) {
-			$args['meta_data']['_shipping_provider'] = $method->get_shipping_provider();
-		}
-
-		return $args;
 	}
 
 	public static function add_return_shipment_guest_endpoints( $template, $template_name ) {

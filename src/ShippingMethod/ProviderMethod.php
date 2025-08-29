@@ -24,6 +24,8 @@ class ProviderMethod implements LabelConfigurationSet {
 
 	protected $instance_id = 0;
 
+	protected $provider_is_disabled = false;
+
 	protected $is_placeholder = false;
 
 	/**
@@ -79,10 +81,22 @@ class ProviderMethod implements LabelConfigurationSet {
 		return $this->method;
 	}
 
+	public function provider_is_disabled() {
+		return $this->provider_is_disabled;
+	}
+
+	public function set_provider_is_disabled( $provider_is_disabled ) {
+		$this->provider_is_disabled = wc_string_to_bool( $provider_is_disabled );
+	}
+
 	/**
 	 * @return false|ShippingProvider
 	 */
 	public function get_shipping_provider_instance() {
+		if ( $this->provider_is_disabled() ) {
+			return false;
+		}
+
 		if ( $this->is_builtin_method() ) {
 			return $this->method->get_shipping_provider();
 		}
@@ -107,6 +121,10 @@ class ProviderMethod implements LabelConfigurationSet {
 	}
 
 	public function get_shipping_provider() {
+		if ( $this->provider_is_disabled() ) {
+			return '';
+		}
+
 		if ( $this->is_builtin_method() ) {
 			$provider_slug = $this->method->get_shipping_provider()->get_name();
 		} else {

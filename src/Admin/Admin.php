@@ -824,7 +824,7 @@ class Admin {
 	 * @param array $metas
 	 */
 	public static function set_order_meta_hidden( $metas ) {
-		$metas = array_merge( $metas, array( 'shipping_provider', '_shipping_provider' ) );
+		$metas = array_merge( $metas, array( 'shipping_provider', '_shipping_provider', '_packaged_items', '_cart_item_key' ) );
 
 		return $metas;
 	}
@@ -982,6 +982,17 @@ class Admin {
 				'value'       => $shipments_product->is_non_returnable( 'edit' ) ? 'yes' : 'no',
 			)
 		);
+
+		woocommerce_wp_select(
+			array(
+				'id'          => '_ship_separately_via',
+				'label'       => _x( 'Ship separately via', 'shipments', 'shiptastic-for-woocommerce' ),
+				'description' => _x( 'Ship this product in a separate group in which only one of the selected shipping service providers (e.g., freight forwarding, dropshipping) is available.', 'shipments', 'shiptastic-for-woocommerce' ),
+				'value'       => $shipments_product->get_ship_separately_via( 'edit' ),
+				'options'     => wc_stc_get_shipping_provider_select(),
+				'desc_tip'    => true,
+			)
+		);
 		?>
 		<p class="wc-stc-product-settings-subtitle">
 			<?php echo esc_html_x( 'Customs', 'shipments', 'shiptastic-for-woocommerce' ); ?>
@@ -1048,6 +1059,7 @@ class Admin {
 		$shipments_product->set_customs_description( isset( $_POST['_customs_description'] ) ? wc_clean( wp_unslash( $_POST['_customs_description'] ) ) : '' ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
 		$shipments_product->set_manufacture_country( isset( $_POST['_manufacture_country'] ) ? wc_clean( wp_unslash( $_POST['_manufacture_country'] ) ) : '' ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
 		$shipments_product->set_is_non_returnable( isset( $_POST['_is_non_returnable'] ) ? wc_clean( wp_unslash( $_POST['_is_non_returnable'] ) ) : '' ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
+		$shipments_product->set_ship_separately_via( isset( $_POST['_ship_separately_via'] ) ? wc_clean( wp_unslash( $_POST['_ship_separately_via'] ) ) : array() ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
 
 		$shipments_product->set_shipping_length( isset( $_POST['_shipping_length'] ) ? wc_clean( wp_unslash( $_POST['_shipping_length'] ) ) : '' ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
 		$shipments_product->set_shipping_width( isset( $_POST['_shipping_width'] ) ? wc_clean( wp_unslash( $_POST['_shipping_width'] ) ) : '' ); // phpcs:ignore WordPress.Security.NonceVerification.Missing

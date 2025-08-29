@@ -2,7 +2,6 @@
 
 namespace Vendidero\Shiptastic\ShippingMethod;
 
-use Vendidero\Shiptastic\Compatibility\Bundles;
 use Vendidero\Shiptastic\Extensions;
 use Vendidero\Shiptastic\Package;
 use Vendidero\Shiptastic\Packing\CartItem;
@@ -24,7 +23,7 @@ class MethodHelper {
 	public static function init() {
 		// Use a high priority here to make sure we are hooking even after plugins such as flexible shipping
 		add_filter( 'woocommerce_shipping_methods', array( __CLASS__, 'set_method_filters' ), 5000, 1 );
-		add_filter( 'woocommerce_package_rates', array( __CLASS__, 'maybe_disable_provider_combination' ), 300 );
+		add_filter( 'woocommerce_package_rates', array( __CLASS__, 'maybe_disable_rates' ), 300, 2 );
 
 		add_filter( 'woocommerce_generate_shipping_provider_method_tabs_html', array( __CLASS__, 'render_method_tabs' ), 10, 4 );
 		add_filter( 'woocommerce_generate_shipping_provider_method_zone_override_open_html', array( __CLASS__, 'render_zone_override' ), 10, 4 );
@@ -33,14 +32,44 @@ class MethodHelper {
 		add_filter( 'woocommerce_generate_shipping_provider_method_tabs_close_html', array( __CLASS__, 'render_method_tab_content_close' ), 10, 4 );
 		add_filter( 'woocommerce_generate_shipping_provider_method_configuration_sets_html', array( __CLASS__, 'render_method_configuration_sets' ), 10 );
 
+		add_filter( 'woocommerce_cart_shipping_packages', array( __CLASS__, 'split_cart_packages' ), 1 );
 		add_filter( 'woocommerce_cart_shipping_packages', array( __CLASS__, 'register_cart_items_to_pack' ) );
 		add_filter( 'woocommerce_shipping_methods', array( __CLASS__, 'register_shipping_methods' ) );
 		add_filter( 'woocommerce_hidden_order_itemmeta', array( __CLASS__, 'set_shipping_order_meta_hidden' ) );
+
+		add_filter( 'woocommerce_shipping_method_add_rate', array( __CLASS__, 'register_rate_meta' ), 1000, 3 );
 	}
 
-	public static function maybe_disable_provider_combination( $rates ) {
-		$provider_map = array();
-		$excluded_map = array();
+	public static function register_rate_meta( $rate, $args, $method ) {
+		/**
+		 * Store a map of cart items with their corresponding quantity
+		 * to allow retrieving packages after checkout.
+		 */
+		if ( $args['package'] ) {
+			$items_in_package = array();
+
+			foreach ( $args['package']['contents'] as $cart_item_key => $item ) {
+				if ( $product = $item['data'] ) {
+					$items_in_package[ $product->get_id() ] = array(
+						'quantity' => $item['quantity'],
+					);
+				}
+			}
+
+			$rate->add_meta_data( '_packaged_items', $items_in_package );
+		}
+
+		if ( $method = wc_stc_get_shipping_provider_method( $method ) ) {
+			$rate->add_meta_data( '_shipping_provider', $method->get_shipping_provider() );
+		}
+
+		return $rate;
+	}
+
+	public static function maybe_disable_rates( $rates, $package ) {
+		$provider_map     = array();
+		$excluded_map     = array();
+		$package_provider = isset( $package['shipping_provider'] ) ? $package['shipping_provider'] : false;
 
 		foreach ( $rates as $rate_key => $rate ) {
 			if ( is_a( $rate, 'WC_Shipping_Rate' ) ) {
@@ -49,14 +78,18 @@ class MethodHelper {
 						$provider_map[ $method->get_shipping_provider() ] = array();
 					}
 
-					$provider_map[ $method->get_shipping_provider() ][] = $rate_key;
+					if ( $package_provider && $method->get_shipping_provider() !== $package_provider ) {
+						unset( $rates[ $rate_key ] );
+					} else {
+						$provider_map[ $method->get_shipping_provider() ][] = $rate_key;
 
-					if ( $method->is_builtin_method() ) {
-						if ( $disable_if = $method->get_method()->get_disable_if_providers_available() ) {
-							$excluded_map[ $rate_key ] = array(
-								'provider'   => $method->get_shipping_provider(),
-								'disable_if' => $disable_if,
-							);
+						if ( $method->is_builtin_method() ) {
+							if ( $disable_if = $method->get_method()->get_disable_if_providers_available() ) {
+								$excluded_map[ $rate_key ] = array(
+									'provider'   => $method->get_shipping_provider(),
+									'disable_if' => $disable_if,
+								);
+							}
 						}
 					}
 				}
@@ -107,12 +140,59 @@ class MethodHelper {
 		return $methods;
 	}
 
-	public static function register_cart_items_to_pack( $cart_contents ) {
-		if ( ! Package::is_packing_supported() || apply_filters( 'woocommerce_shiptastic_disable_cart_packing', false ) ) {
-			return $cart_contents;
+	public static function split_cart_packages( $packages ) {
+		$new_packages = array();
+
+		foreach ( $packages as $index => $package_details ) {
+			foreach ( $package_details['contents'] as $content_key => $item ) {
+				$product = $item['data'];
+
+				if ( ! is_a( $product, 'WC_Product' ) ) {
+					continue;
+				} elseif ( ! $product->needs_shipping() ) {
+					continue;
+				}
+
+				$s_product = wc_shiptastic_get_product( $product );
+
+				if ( $s_product->is_shipped_separately() ) {
+					$provider_name = $s_product->get_ship_separately_via();
+
+					if ( ! isset( $new_packages[ $provider_name ] ) ) {
+						$new_packages[ $provider_name ] = $package_details;
+
+						$new_packages[ $provider_name ]['contents']          = array();
+						$new_packages[ $provider_name ]['shipping_provider'] = $provider_name;
+						$new_packages[ $provider_name ]['applied_coupons']   = array();
+						$new_packages[ $provider_name ]['contents_cost']     = 0.0;
+					}
+
+					$new_packages[ $provider_name ]['contents'][ $content_key ] = $item;
+					$new_packages[ $provider_name ]['contents_cost']           += $item['line_total'];
+
+					$packages[ $index ]['contents_cost'] -= $item['line_total'];
+					unset( $packages[ $index ]['contents'][ $content_key ] );
+
+					if ( empty( $packages[ $index ]['contents'] ) ) {
+						unset( $packages[ $index ] );
+					}
+				}
+			}
 		}
 
-		foreach ( $cart_contents as $index => $content ) {
+		if ( ! empty( $new_packages ) ) {
+			$packages = array_merge( $packages, array_values( $new_packages ) );
+		}
+
+		return $packages;
+	}
+
+	public static function register_cart_items_to_pack( $packages ) {
+		if ( ! Package::is_packing_supported() || apply_filters( 'woocommerce_shiptastic_disable_cart_packing', false ) ) {
+			return $packages;
+		}
+
+		foreach ( $packages as $index => $package_details ) {
 			$package_data = array(
 				'total'                        => 0.0,
 				'subtotal'                     => 0.0,
@@ -128,7 +208,7 @@ class MethodHelper {
 
 			do_action( 'woocommerce_shiptastic_before_prepare_cart_contents' );
 
-			foreach ( $content['contents'] as $content_key => $item ) {
+			foreach ( $package_details['contents'] as $content_key => $item ) {
 				$item    = apply_filters( 'woocommerce_shiptastic_cart_item', $item, $content_key );
 				$product = $item['data'];
 
@@ -185,25 +265,25 @@ class MethodHelper {
 			 * as Woo does not pass the current $cart object to the filter used here. Within the shipping package data there is unfortunately
 			 * no item total amount (incl taxes) available.
 			 */
-			if ( isset( $cart_contents[ $index ]['cart_subtotal'] ) && 0 !== $cart_contents[ $index ]['cart_subtotal'] && apply_filters( 'shiptastic_prefer_cart_totals_over_cart_item_totals', false, $cart_contents ) ) {
+			if ( isset( $package_details['cart_subtotal'] ) && 0 !== $package_details['cart_subtotal'] && apply_filters( 'shiptastic_prefer_cart_totals_over_cart_item_totals', false, $packages ) ) {
 				$cart  = WC()->cart;
 				$total = (float) $cart->get_cart_contents_total();
 
 				if ( $cart->display_prices_including_tax() ) {
 					$total += (float) $cart->get_cart_contents_tax();
 				} else {
-					$total = (float) $cart_contents[ $index ]['contents_cost']; // this is excl tax
+					$total = (float) $package_details['contents_cost']; // this is excl tax
 				}
 
 				$package_data['total']    = NumberUtil::round_to_precision( $total ); // item total after discounts
-				$package_data['subtotal'] = NumberUtil::round_to_precision( (float) $cart_contents[ $index ]['cart_subtotal'] ); // item total before discounts
+				$package_data['subtotal'] = NumberUtil::round_to_precision( (float) $package_details['cart_subtotal'] ); // item total before discounts
 			}
 
-			$cart_contents[ $index ]['package_data']  = $package_data;
-			$cart_contents[ $index ]['items_to_pack'] = $items;
+			$packages[ $index ]['package_data']  = $package_data;
+			$packages[ $index ]['items_to_pack'] = $items;
 		}
 
-		return $cart_contents;
+		return $packages;
 	}
 
 	public static function render_method_configuration_sets() {

@@ -500,14 +500,8 @@ class ReturnShipment extends Shipment {
 				throw new Exception( esc_html_x( 'Invalid shipment order', 'shipments', 'shiptastic-for-woocommerce' ) );
 			}
 
-			$return_address = wc_stc_get_shipment_return_address( $order_shipment );
-			$order          = $order_shipment->get_order();
-
-			/**
-			 * Make sure that manually adjusted providers are not overridden by syncing.
-			 */
-			$default_provider    = $order_shipment->get_default_return_shipping_provider();
-			$provider            = $this->get_shipping_provider( 'edit' );
+			$return_address      = wc_stc_get_shipment_return_address( $order_shipment );
+			$order               = $order_shipment->get_order();
 			$sender_address_data = array_merge(
 				( $order->has_shipping_address() ? $order->get_address( 'shipping' ) : $order->get_address( 'billing' ) ),
 				array(
@@ -524,16 +518,29 @@ class ReturnShipment extends Shipment {
 			$args = wp_parse_args(
 				$args,
 				array(
-					'order_id'          => $order->get_id(),
-					'country'           => $return_address['country'],
-					'shipping_method'   => wc_stc_get_shipment_order_shipping_method_id( $order ),
+					'order_id'        => $order->get_id(),
+					'country'         => $return_address['country'],
+					'shipping_method' => $this->get_shipping_method( 'edit' ) ? $this->get_shipping_method( 'edit' ) : $order_shipment->get_shipping_method_id(),
+					'address'         => $return_address,
+					'sender_address'  => $sender_address_data,
+					'weight'          => $this->get_weight( 'edit' ),
+					'length'          => $this->get_length( 'edit' ),
+					'width'           => $this->get_width( 'edit' ),
+					'height'          => $this->get_height( 'edit' ),
+				)
+			);
+
+			/**
+			 * Make sure that manually adjusted providers are not overridden by syncing.
+			 */
+			$default_provider_instance = wc_stc_get_order_shipping_provider( $order, $args['shipping_method'] );
+			$default_provider          = $default_provider_instance ? $default_provider_instance->get_name() : '';
+			$provider                  = $this->get_shipping_provider( 'edit' );
+
+			$args = wp_parse_args(
+				$args,
+				array(
 					'shipping_provider' => ( ! empty( $provider ) ) ? $provider : $default_provider,
-					'address'           => $return_address,
-					'sender_address'    => $sender_address_data,
-					'weight'            => $this->get_weight( 'edit' ),
-					'length'            => $this->get_length( 'edit' ),
-					'width'             => $this->get_width( 'edit' ),
-					'height'            => $this->get_height( 'edit' ),
 				)
 			);
 

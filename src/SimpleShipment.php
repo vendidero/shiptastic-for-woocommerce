@@ -118,15 +118,8 @@ class SimpleShipment extends Shipment {
 				throw new Exception( _x( 'Invalid shipment order', 'shipments', 'shiptastic-for-woocommerce' ) );
 			}
 
-			$order = $order_shipment->get_order();
-
-			/**
-			 * Make sure that manually adjusted providers are not overridden by syncing.
-			 */
-			$default_provider_instance = wc_stc_get_order_shipping_provider( $order );
-			$default_provider          = $default_provider_instance ? $default_provider_instance->get_name() : '';
-			$provider                  = $this->get_shipping_provider( 'edit' );
-			$address_data              = array_merge(
+			$order        = $order_shipment->get_order();
+			$address_data = array_merge(
 				( $order->has_shipping_address() ? $order->get_address( 'shipping' ) : $order->get_address( 'billing' ) ),
 				array(
 					'email' => $order->get_billing_email(),
@@ -166,8 +159,7 @@ class SimpleShipment extends Shipment {
 				$args,
 				array(
 					'order_id'                        => $order->get_id(),
-					'shipping_method'                 => wc_stc_get_shipment_order_shipping_method_id( $order ),
-					'shipping_provider'               => ( ! empty( $provider ) ) ? $provider : $default_provider,
+					'shipping_method'                 => $this->get_shipping_method( 'edit' ) ? $this->get_shipping_method( 'edit' ) : $order_shipment->get_shipping_method_id(),
 					'packaging_id'                    => $this->get_packaging_id( 'edit' ),
 					'address'                         => $address_data,
 					'country'                         => $country,
@@ -179,6 +171,20 @@ class SimpleShipment extends Shipment {
 					'width'                           => $dimensions['width'],
 					'height'                          => $dimensions['height'],
 					'additional_total'                => $order_shipment->calculate_shipment_additional_total( $this ),
+				)
+			);
+
+			/**
+			 * Make sure that manually adjusted providers are not overridden by syncing.
+			 */
+			$default_provider_instance = wc_stc_get_order_shipping_provider( $order, $args['shipping_method'] );
+			$default_provider          = $default_provider_instance ? $default_provider_instance->get_name() : '';
+			$provider                  = $this->get_shipping_provider( 'edit' );
+
+			$args = wp_parse_args(
+				$args,
+				array(
+					'shipping_provider' => ( ! empty( $provider ) ) ? $provider : $default_provider,
 				)
 			);
 

@@ -62,6 +62,18 @@ class Product {
 		return $this->product;
 	}
 
+	public function get_ship_separately_via( $context = 'view' ) {
+		$data = $this->get_forced_parent_product()->get_meta( '_ship_separately_via', true, $context );
+
+		return $data;
+	}
+
+	public function is_shipped_separately( $context = 'view' ) {
+		$separate = $this->get_ship_separately_via( $context );
+
+		return ! empty( $separate );
+	}
+
 	public function get_shipping_length( $context = 'view' ) {
 		$length = $this->get_product()->get_meta( '_shipping_length', true, $context );
 
@@ -168,6 +180,10 @@ class Product {
 
 	public function set_manufacture_country( $country ) {
 		$this->product->update_meta_data( '_manufacture_country', substr( wc_strtoupper( $country ), 0, 2 ) );
+	}
+
+	public function set_ship_separately_via( $shipping_provider ) {
+		$this->product->update_meta_data( '_ship_separately_via', $shipping_provider );
 	}
 
 	public function set_shipping_length( $length ) {
