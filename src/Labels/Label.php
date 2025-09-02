@@ -907,7 +907,7 @@ class Label extends WC_Data implements ShipmentLabel {
 				'item_total_value'              => $total_value,
 				'currency'                      => $order ? $order->get_currency() : get_woocommerce_currency(),
 				'invoice_number'                => '',
-				'incoterms'                     => '',
+				'incoterms'                     => $shipment->get_incoterms(),
 				'export_type'                   => '',
 				'export_reason_description'     => $item_description,
 				'export_type_description'       => $item_description,

@@ -1796,6 +1796,7 @@ function wc_shiptastic_get_alphanumeric_string( $str ) {
 
 /**
  * Convert html entities, e.g. &amp; to utf-8.
+ * Do not call html_entity_decode on bool as that would transform true => 1.
  *
  * @param string|array $str
  *
@@ -1804,7 +1805,7 @@ function wc_shiptastic_get_alphanumeric_string( $str ) {
 function wc_shiptastic_decode_html( $str ) {
 	if ( is_array( $str ) ) {
 		return array_map( 'wc_shiptastic_decode_html', $str );
-	} elseif ( is_scalar( $str ) ) {
+	} elseif ( is_scalar( $str ) && ! is_bool( $str ) ) {
 		return html_entity_decode( $str, ENT_QUOTES | ENT_HTML5, 'UTF-8' );
 	} else {
 		return $str;
