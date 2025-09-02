@@ -91,19 +91,6 @@ class Validation {
 					$skip_validation = true;
 				}
 
-				if ( ! $skip_validation ) {
-					add_action(
-						'woocommerce_update_order',
-						function ( $order_id ) use ( $order ) {
-							if ( $order_id === $order->get_id() ) {
-								self::update_order( $order_id );
-							}
-						},
-						10,
-						1
-					);
-				}
-
 				/**
 				 * Prevent additional validation from happening while saving order items.
 				 */
@@ -119,6 +106,19 @@ class Validation {
 					5,
 					2
 				);
+
+				if ( ! $skip_validation ) {
+					add_action(
+						'woocommerce_update_order',
+						function ( $order_id ) use ( $order ) {
+							if ( $order_id === $order->get_id() ) {
+								self::update_order( $order_id );
+							}
+						},
+						10,
+						1
+					);
+				}
 			},
 			10
 		);
@@ -334,7 +334,7 @@ class Validation {
 	}
 
 	protected static function is_admin_save_order_request() {
-		$is_admin_order_save_request = doing_action( 'save_post' );
+		$is_admin_order_save_request = doing_action( 'save_post' ) || doing_action( 'woocommerce_process_shop_order_meta' );
 
 		/**
 		 * Detect admin order adjustments e.g. add item, remove item, save post etc. and
