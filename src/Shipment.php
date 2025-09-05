@@ -1223,7 +1223,23 @@ abstract class Shipment extends WC_Data {
 	 * @return string
 	 */
 	public function get_address_1( $context = 'view' ) {
-		return $this->get_address_prop( 'address_1', $context );
+		$address_1 = $this->get_address_prop( 'address_1', $context );
+
+		if ( 'view' === $context && ! empty( $address_1 ) ) {
+			$address_data = wc_stc_get_formatted_address_data(
+				array(
+					'address_1' => $address_1,
+					'address_2' => $this->get_address_2( 'edit' ),
+				),
+				$this->get_country()
+			);
+
+			if ( $address_data['house_number_in_address_2'] ) {
+				$address_1 = $address_data['address_1'];
+			}
+		}
+
+		return $address_1;
 	}
 
 	/**
@@ -1233,7 +1249,23 @@ abstract class Shipment extends WC_Data {
 	 * @return string
 	 */
 	public function get_address_2( $context = 'view' ) {
-		return $this->get_address_prop( 'address_2', $context );
+		$address_2 = $this->get_address_prop( 'address_2', $context );
+
+		if ( 'view' === $context && ! empty( $address_2 ) ) {
+			$address_data = wc_stc_get_formatted_address_data(
+				array(
+					'address_1' => $this->get_address_1( 'edit' ),
+					'address_2' => $address_2,
+				),
+				$this->get_country()
+			);
+
+			if ( $address_data['house_number_in_address_2'] ) {
+				$address_2 = $address_data['address_2'];
+			}
+		}
+
+		return $address_2;
 	}
 
 	/**

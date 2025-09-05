@@ -734,6 +734,90 @@ function wc_stc_get_address_from_street_and_number( $street, $number, $country )
 	return $address;
 }
 
+/**
+ * Formats address_1 and address_2 based on known formats for certain countries.
+ * Falls back to searching house number in address_2 if house number is not provided in address_1 line.
+ *
+ * @param array|string $address
+ * @param string $country
+ *
+ * @return array
+ */
+function wc_stc_get_formatted_address_data( $address, $country ) {
+	if ( is_string( $address ) ) {
+		$address = array(
+			'address_1' => $address,
+			'address_2' => '',
+		);
+	}
+
+	$address = wp_parse_args(
+		(array) $address,
+		array(
+			'address_1'                 => '',
+			'address_2'                 => '',
+			'house_number_in_address_2' => false,
+		)
+	);
+
+	$format = Package::get_country_street_format( $country );
+
+	if ( $format && ! empty( $address['address_1'] ) ) {
+		$split = wc_stc_split_shipment_street( $address['address_1'] );
+
+		/**
+		 * Fallback to searching for house number in both address_1 and address_2.
+		 */
+		if ( empty( $split['number'] ) ) {
+			$full_split = wc_stc_split_shipment_street( wc_stc_format_address_line( $format, $address['address_2'], $address['address_1'] ) );
+
+			if ( ! empty( $full_split['number'] ) ) {
+				$address['house_number_in_address_2'] = true;
+				$split                                = $full_split;
+			}
+		}
+
+		if ( ! empty( $split['number'] ) ) {
+			$address_addition     = $split['addition'] . ( ! empty( $split['addition_2'] ) ? ' ' . $split['addition_2'] : '' );
+			$address['address_1'] = wc_stc_format_address_line( $format, $split['number'], $split['street'], $address_addition );
+
+			if ( ! empty( $address_addition ) ) {
+				$address['address_2'] = $address_addition . ', ' . $address['address_2'];
+
+				/**
+				 * Override address_2 field with address addition in case house number is in address_2
+				 */
+				if ( $address['house_number_in_address_2'] ) {
+					$address['address_2'] = $address_addition;
+
+					/**
+					 * Address addition (which contains house number) has already been added to address_1
+					 */
+					if ( strstr( $format, '%sa' ) ) {
+						$address['address_2'] = '';
+					}
+				}
+			}
+
+			/**
+			 * Remove trailing comma + (duplicate) whitespace
+			 */
+			$address['address_2'] = preg_replace( '/\s+/', ' ', rtrim( $address['address_2'], ', ' ) );
+		}
+	}
+
+	return $address;
+}
+
+function wc_stc_format_address_line( $format, $number, $street, $street_addition = '' ) {
+	$formatted_address_line = str_replace( array( '%n', '%sa', '%s' ), array( $number, $street_addition, $street ), $format );
+
+	/**
+	 * Remove trailing comma + (duplicate) whitespace
+	 */
+	return preg_replace( '/\s+/', ' ', rtrim( $formatted_address_line, ', ' ) );
+}
+
 function wc_stc_split_shipment_street( $street_str ) {
 	$return = array(
 		'street'     => $street_str,

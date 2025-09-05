@@ -24,6 +24,8 @@ class Package {
 
 	protected static $iso = null;
 
+	protected static $street_formats = null;
+
 	protected static $locale = array();
 
 	/**
@@ -386,6 +388,14 @@ class Package {
 		return (array) self::$iso;
 	}
 
+	protected static function get_countries_street_formats() {
+		if ( is_null( self::$street_formats ) ) {
+			self::$street_formats = include self::get_path() . '/i18n/street-formats.php';
+		}
+
+		return (array) self::$street_formats;
+	}
+
 	public static function get_country_iso_alpha2( $country_code ) {
 		$country_code = strtoupper( $country_code );
 		$iso          = self::get_countries_iso_alpha3();
@@ -395,6 +405,17 @@ class Package {
 		}
 
 		return $country_code;
+	}
+
+	public static function get_country_street_format( $country_code ) {
+		$country_code   = strtoupper( $country_code );
+		$street_formats = self::get_countries_street_formats();
+
+		if ( array_key_exists( $country_code, $street_formats ) ) {
+			return $street_formats[ $country_code ];
+		}
+
+		return null;
 	}
 
 	public static function get_base_country() {
