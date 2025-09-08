@@ -3,7 +3,7 @@ Contributors: vendidero, vdwoocommercesupport
 Tags: shipping, woocommerce, shipments, rules, woo
 Requires at least: 5.4
 Tested up to: 6.8
-Stable tag: 4.6.0
+Stable tag: 4.7.0
 Requires PHP: 5.6
 License: GPLv3
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
@@ -43,6 +43,16 @@ We recommend installing Shiptastic for WooCommerce through the WordPress Backend
 3. Manage returns
 
 == Changelog ==
+= 4.7.0 =
+* New: Support return costs
+* New: Create refunds based on returns
+* New: Support multiple shipping packages (cart, checkout)
+* New: Allow certain products to be shipped separately via a certain provider
+* Improvement: Prevent multiple validation events from triggering while saving the order
+* Improvement: Heuristic to determine whether house number is stored in address_2
+* Improvement: Encode API body args by converting HTML special chars to utf-8 first
+* Fix: Bundle container weight
+
 = 4.6.0 =
 * New: Setup wizard
 * Improvement: Default shipping service provider handling
