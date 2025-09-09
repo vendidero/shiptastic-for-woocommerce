@@ -593,7 +593,7 @@ class Order {
 	 *
 	 * @return ReturnShipment[]|\WP_Error
 	 */
-	protected function create_returns_as_draft( $items, $props = array() ) {
+	protected function create_returns_as_draft( $return_items, $props = array() ) {
 		$shipments_created = array();
 		$errors            = new \WP_Error();
 
@@ -606,7 +606,7 @@ class Order {
 		);
 
 		if ( $this->needs_return() ) {
-			$packages = $this->get_return_packages( $items );
+			$packages = $this->get_return_packages( $return_items );
 
 			if ( empty( $packages ) ) {
 				$errors->add( 'return_items_missing', _x( 'Please choose one or more items from the list.', 'shipments', 'shiptastic-for-woocommerce' ) );
@@ -657,7 +657,7 @@ class Order {
 								if ( ! isset( $shipment_items[ $order_item->get_id() ] ) ) {
 									$shipment_items[ $order_item->get_id() ] = array(
 										'quantity' => 1,
-										'return_reason_code' => isset( $return_items[ $order_item->get_id() ] ) ? $return_items[ $order_item->get_id() ] : '',
+										'return_reason_code' => isset( $return_items[ $order_item->get_id() ] ) ? $return_items[ $order_item->get_id() ]['return_reason_code'] : '',
 									);
 								} else {
 									++$shipment_items[ $order_item->get_id() ]['quantity'];
@@ -698,6 +698,15 @@ class Order {
 				}
 
 				if ( ! $has_created_shipments ) {
+					$shipment_items = array();
+
+					foreach ( $package['item_map'] as $order_item_id => $quantity ) {
+						$shipment_items[ $order_item_id ] = array(
+							'quantity'           => $quantity,
+							'return_reason_code' => isset( $return_items[ $order_item_id ] ) ? $return_items[ $order_item_id ]['return_reason_code'] : '',
+						);
+					}
+
 					$shipment = wc_stc_create_return_shipment(
 						$this,
 						array(
@@ -707,7 +716,7 @@ class Order {
 									'shipping_method' => $this->get_shipping_method_id( $method_id ),
 								)
 							),
-							'items' => $package['item_map'],
+							'items' => $shipment_items,
 							'save'  => false,
 						)
 					);
