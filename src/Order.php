@@ -367,7 +367,7 @@ class Order {
 				continue;
 			}
 
-			$package_data = $this->get_package_data( $items, $all_items );
+			$package_data = $this->get_package_data( $items );
 
 			foreach ( $package_data['item_map'] as $order_item_id => $quantity ) {
 				if ( ! empty( $method_id ) && array_key_exists( $order_item_id, $all_items ) ) {
@@ -588,14 +588,34 @@ class Order {
 	/**
 	 * Creates draft returns based on items requested.
 	 *
-	 * @param $items
+	 * @param array $return_items
 	 * @param $props
 	 *
 	 * @return ReturnShipment[]|\WP_Error
 	 */
-	protected function create_returns_as_draft( $return_items, $props = array() ) {
+	protected function create_returns_as_draft( $original_items, $props = array() ) {
 		$shipments_created = array();
 		$errors            = new \WP_Error();
+		$return_items      = array();
+
+		foreach ( $original_items as $order_item_id => $item ) {
+			if ( is_array( $item ) ) {
+				$item = wp_parse_args(
+					$item,
+					array(
+						'quantity'           => 1,
+						'return_reason_code' => '',
+					)
+				);
+			} else {
+				$item = array(
+					'quantity'           => absint( $item ),
+					'return_reason_code' => '',
+				);
+			}
+
+			$return_items[ $order_item_id ] = $item;
+		}
 
 		$props = wp_parse_args(
 			$props,

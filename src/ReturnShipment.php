@@ -613,7 +613,6 @@ class ReturnShipment extends Shipment {
 
 					if ( ! empty( $args['items'] ) ) {
 						if ( isset( $args['items'][ $order_item_id ] ) ) {
-
 							if ( is_array( $args['items'][ $order_item_id ] ) ) {
 								$default_item_data = wp_parse_args(
 									$args['items'][ $order_item_id ],
