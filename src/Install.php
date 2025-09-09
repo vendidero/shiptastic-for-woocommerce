@@ -318,6 +318,10 @@ class Install {
 	}
 
 	public static function migrate_to_configuration_sets( $providers_to_migrate = array() ) {
+		if ( ! function_exists( 'wc_stc_get_shipping_provider' ) ) {
+			Package::init();
+		}
+
 		$providers    = empty( $providers_to_migrate ) ? Helper::instance()->get_shipping_providers() : (array) $providers_to_migrate;
 		$provider_ids = array();
 
