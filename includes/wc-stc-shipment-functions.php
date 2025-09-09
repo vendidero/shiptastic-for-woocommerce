@@ -1601,17 +1601,23 @@ function wc_stc_get_order_shipping_provider( $order, $method_id = '' ) {
 	if ( is_a( $shipping_method, 'WC_Order_Item_Shipping' ) ) {
 		$provider_name = $shipping_method->get_meta( '_shipping_provider' );
 
-		if ( ! empty( $provider_name ) ) {
-			$provider = wc_stc_get_shipping_provider( $provider_name );
+		if ( ! empty( $provider_name ) && ( $provider_instance = wc_stc_get_shipping_provider( $provider_name ) ) ) {
+			$provider = $provider_instance;
 		}
 	}
 
-	if ( ! $provider ) {
-		foreach ( array_reverse( $shipment_order->get_shipments() ) as $shipment ) {
-			if ( $shipment->get_shipping_provider_instance() ) {
-				$provider = $shipment->get_shipping_provider_instance();
-				break;
-			}
+	/**
+	 * Allow the actual shipping provider to be overridden in case shipments have
+	 * already been created (manually).
+	 */
+	foreach ( array_reverse( $shipment_order->get_shipments() ) as $shipment ) {
+		if ( ! empty( $method_id ) && $shipment->get_shipping_method() !== $method_id ) {
+			continue;
+		}
+
+		if ( $shipment->get_shipping_provider_instance() ) {
+			$provider = $shipment->get_shipping_provider_instance();
+			break;
 		}
 	}
 

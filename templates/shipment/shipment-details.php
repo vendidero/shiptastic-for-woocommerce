@@ -25,7 +25,7 @@ if ( ! $shipment ) {
 
 $order                 = $shipment->get_order(); // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
 $show_receiver_details = is_user_logged_in() && $order && $order->get_user_id() === get_current_user_id();
-$show_tracking         = $show_receiver_details && $shipment->has_tracking();
+$show_tracking         = $show_receiver_details && $shipment->has_tracking() && ! $shipment->has_status( 'delivered' );
 $shipment_items        = $shipment->get_items( 'customer' );
 
 if ( is_a( $shipment, 'Vendidero\Shiptastic\ReturnShipment' ) ) {

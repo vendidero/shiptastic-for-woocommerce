@@ -126,7 +126,7 @@ class Order {
 		$last_shipment = false;
 
 		foreach ( array_reverse( $this->get_simple_shipments( true ) ) as $shipment ) {
-			if ( $shipment->has_tracking() ) {
+			if ( $shipment->has_tracking() && ! $shipment->has_status( 'delivered' ) ) {
 				$last_shipment = $shipment;
 				break;
 			}
@@ -535,7 +535,7 @@ class Order {
 		$costs = apply_filters( 'woocommerce_shiptastic_shipment_order_return_costs', $costs, $items, $this );
 
 		if ( $round ) {
-			$costs = wc_format_decimal( $costs, wc_get_price_decimals() );
+			$costs = NumberUtil::round_to_precision( $costs, wc_get_price_decimals() );
 		}
 
 		return $costs;
