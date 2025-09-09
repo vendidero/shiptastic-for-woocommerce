@@ -11,7 +11,7 @@
  * the readme will list any important changes.
  *
  * @package Shiptastic/Templates/Emails
- * @version 4.7.0
+ * @version 4.7.1
  */
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -19,5 +19,5 @@ if ( ! defined( 'ABSPATH' ) ) {
 ?>
 
 <?php if ( $shipment->has_return_costs() ) : ?>
-	<p><?php echo wp_kses_post( sprintf( _x( 'The return shipping costs are %s and will be automatically deducted from your refund amount.', 'shipments', 'shiptastic-for-woocommerce' ), wc_price( $shipment->get_return_costs() ) ) ); ?></p>
+	<p><?php echo wp_kses_post( sprintf( _x( 'The return shipping costs of %s will be automatically deducted from your refund amount.', 'shipments', 'shiptastic-for-woocommerce' ), wc_price( $shipment->get_return_costs() ) ) ); ?></p>
 <?php endif; ?>

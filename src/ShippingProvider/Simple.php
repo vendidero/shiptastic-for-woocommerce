@@ -1121,7 +1121,7 @@ class Simple extends WC_Data implements ShippingProvider {
 
 				array(
 					'title'             => sprintf( _x( 'Costs (%s)', 'shipments', 'shiptastic-for-woocommerce' ), get_woocommerce_currency_symbol() ),
-					'desc'              => _x( 'Choose whether returns are subject to a fee for your customers.', 'shipments', 'shiptastic-for-woocommerce' ) . '<div class="wc-shiptastic-additional-desc">' . sprintf( _x( 'Costs are automatically deducted from the refund created to the return shipment. You may override these costs on a per-packaging basis.', 'shipments', 'shiptastic-for-woocommerce' ) ) . '</div>',
+					'desc'              => _x( 'Choose whether returns are subject to a fee for your customers.', 'shipments', 'shiptastic-for-woocommerce' ) . '<div class="wc-shiptastic-additional-desc">' . sprintf( _x( 'Costs are automatically deducted from the refund created to the return shipment.', 'shipments', 'shiptastic-for-woocommerce' ) ) . '</div>',
 					'id'                => 'return_costs',
 					'default'           => 0,
 					'value'             => wc_format_localized_decimal( $this->get_return_costs( 'edit' ) ),

@@ -187,7 +187,7 @@ class ReturnShipment extends Shipment {
 									$refund_costs_incl_taxes = $shipment_order->return_costs_include_taxes();
 
 									$refund_fee = new \WC_Order_Item_Fee();
-									$refund_fee->set_name( _x( 'Refund fee', 'shipments', 'shiptastic-for-woocommerce' ) );
+									$refund_fee->set_name( _x( 'Return costs', 'shipments', 'shiptastic-for-woocommerce' ) );
 									$refund_fee->update_meta_data( '_is_refund_return_costs_fee', 'yes' );
 
 									if ( ! empty( $refund_costs_tax_rates ) ) {

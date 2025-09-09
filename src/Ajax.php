@@ -1822,7 +1822,7 @@ class Ajax {
 				array(
 					'cost_formatted' => $costs_formatted,
 					'cost'           => wc_format_decimal( $result ),
-					'cost_i18n'      => '<div class="woocommerce-info">' . wp_kses_post( 0.00 === $result ? _x( 'Your return is free of charge.', 'shipments', 'shiptastic-for-woocommerce' ) : sprintf( _x( 'Your return shipping costs of %s will be automatically deducted from your refund amount.', 'shipments', 'shiptastic-for-woocommerce' ), $costs_formatted ) ) . '</div>',
+					'cost_i18n'      => '<div class="woocommerce-info">' . wp_kses_post( 0.00 === $result ? _x( 'Your return is free of charge.', 'shipments', 'shiptastic-for-woocommerce' ) : sprintf( _x( 'The return shipping costs of %s will be automatically deducted from your refund amount.', 'shipments', 'shiptastic-for-woocommerce' ), $costs_formatted ) ) . '</div>',
 				)
 			);
 		}
