@@ -1627,6 +1627,12 @@ function wc_stc_get_order_shipping_provider( $order, $method_id = '' ) {
 		}
 	}
 
+	if ( ! $provider ) {
+		if ( $provider_name = wc_stc_get_default_shipping_provider() ) {
+			$provider = wc_stc_get_shipping_provider( $provider_name );
+		}
+	}
+
 	/**
 	 * Filters the shipping provider detected for a specific order.
 	 *

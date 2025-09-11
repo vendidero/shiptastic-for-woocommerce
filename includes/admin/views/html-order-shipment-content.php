@@ -285,7 +285,7 @@ defined( 'ABSPATH' ) || exit;
 											</p>
 											<p class="form-field form-field-checkbox">
 												<label for="return-restock-refunded-items-<?php echo esc_attr( $shipment->get_id() ); ?>"><?php echo esc_html_x( 'Restock refunded items?', 'shipments', 'shiptastic-for-woocommerce' ); ?></label>
-												<input type="checkbox" name="return_restock_refunded_items" id="return-restock-refunded-items-<?php echo esc_attr( $shipment->get_id() ); ?>" value="yes" class="checkbox" />
+												<input type="checkbox" name="return_restock_refunded_items" id="return-restock-refunded-items-<?php echo esc_attr( $shipment->get_id() ); ?>" value="yes" class="checkbox" <?php checked( apply_filters( 'woocommerce_shiptastic_return_refund_restock_items_default', false ) ); ?> />
 											</p>
 										</form>
 									</article>
