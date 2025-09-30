@@ -224,13 +224,13 @@ class Bundles implements Compatibility {
 				$reset_dimensions = true;
 			}
 		} elseif ( wc_pb_is_bundled_order_item( $item, $order ) ) {
-			if ( ! $product->needs_shipping() || 'no' === $item->get_meta( '_bundled_item_needs_shipping', true ) ) {
+			if ( ! $product->needs_shipping() || ! self::order_item_is_shipped_individually( $item ) ) {
 				$reset_weight     = true;
 				$reset_dimensions = true;
 			}
 
 			/**
-			 * Force resetting product dimensions/weight for assembled bundle children to make
+			 * Force resetting product dimensions/weight for assembled bundle children to make sure
 			 * that the content weight/dimensions matches the actual bundle data.
 			 */
 			if ( ! self::order_item_is_shipped_individually( $item ) ) {
@@ -240,6 +240,7 @@ class Bundles implements Compatibility {
 					if ( self::order_item_is_assembled_bundle( $container, $shipment_order ) ) {
 						$aggregate_weight = false;
 						$reset_dimensions = true;
+						$reset_weight     = false;
 
 						if ( $parent_product = $shipment_order->get_order_item_product( $container ) ) {
 							if ( is_a( $parent_product->get_product(), 'WC_Product_Bundle' ) && is_callable( array( $parent_product->get_product(), 'get_aggregate_weight' ) ) ) {

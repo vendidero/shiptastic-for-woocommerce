@@ -1876,18 +1876,7 @@ function wc_shiptastic_substring( $str, $start, $length = null ) {
  * @return string|array
  */
 function wc_shiptastic_get_alphanumeric_string( $str ) {
-	if ( is_array( $str ) ) {
-		return array_map( 'wc_shiptastic_get_alphanumeric_string', $str );
-	} elseif ( is_scalar( $str ) ) {
-		$str = wc_shiptastic_decode_html( $str );
-		$str = remove_accents( $str );
-		$str = preg_replace( '/[^ \w-]/', ' ', $str );
-		$str = preg_replace( '/\s+/', ' ', $str );
-
-		return wc_clean( $str );
-	} else {
-		return $str;
-	}
+	return \Vendidero\Shiptastic\Encoding::to_alphanumeric( $str );
 }
 
 /**
@@ -1899,11 +1888,5 @@ function wc_shiptastic_get_alphanumeric_string( $str ) {
  * @return string|array
  */
 function wc_shiptastic_decode_html( $str ) {
-	if ( is_array( $str ) ) {
-		return array_map( 'wc_shiptastic_decode_html', $str );
-	} elseif ( is_scalar( $str ) && ! is_bool( $str ) ) {
-		return html_entity_decode( $str, ENT_QUOTES | ENT_HTML5, 'UTF-8' );
-	} else {
-		return $str;
-	}
+	return \Vendidero\Shiptastic\Encoding::to_utf8( $str );
 }
