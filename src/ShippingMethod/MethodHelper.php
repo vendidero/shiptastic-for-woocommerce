@@ -79,6 +79,10 @@ class MethodHelper {
 					}
 
 					if ( $package_provider && $method->get_shipping_provider() !== $package_provider ) {
+						if ( self::is_local_pickup_method( $method->get_id() ) && apply_filters( 'woocommerce_shiptastic_allow_local_pickup_for_separate_package', true, $package_provider, $method ) ) {
+							continue;
+						}
+
 						unset( $rates[ $rate_key ] );
 					} else {
 						$provider_map[ $method->get_shipping_provider() ][] = $rate_key;
@@ -481,9 +485,25 @@ class MethodHelper {
 		return 'shipping_provider_' === substr( $method, 0, 18 ) ? true : false;
 	}
 
+	public static function get_local_pickup_methods() {
+		/**
+		 * Filters which shipping methods are considered local pickup method
+		 * which by default do not require shipment.
+		 *
+		 * @param string[] $pickup_methods Array of local pickup shipping method ids.
+		 *
+		 * @package Vendidero/Shiptastic
+		 */
+		return apply_filters( 'woocommerce_shiptastic_shipment_local_pickup_shipping_methods', array( 'local_pickup', 'pickup_location', 'legacy_local_pickup' ) );
+	}
+
+	public static function is_local_pickup_method( $method_id ) {
+		return in_array( $method_id, self::get_local_pickup_methods(), true );
+	}
+
 	public static function method_is_excluded( $method ) {
 		$is_excluded = false;
-		$excluded    = apply_filters( 'woocommerce_shiptastic_get_methods_excluded_from_provider_settings', array( 'pr_dhl_paket', 'flexible_shipping_info' ) );
+		$excluded    = apply_filters( 'woocommerce_shiptastic_get_methods_excluded_from_provider_settings', array_merge( array( 'pr_dhl_paket', 'flexible_shipping_info' ), self::get_local_pickup_methods() ) );
 
 		if ( in_array( $method, $excluded, true ) ) {
 			$is_excluded = true;

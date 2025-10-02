@@ -644,8 +644,8 @@ class Encoding {
 				 * removing any illegal chars.
 				 */
 				if ( in_array( self::BASIC_LATIN, $filters, true ) ) {
-					$str = str_replace( array( "–", "—" ), '-', $str );
-					$str = str_replace( "’", "'", $str );
+					$str = str_replace( array( '–', '—' ), '-', $str );
+					$str = str_replace( '’', "'", $str );
 				}
 
 				$pattern_str = self::get_utf8_patterns( $filters );

@@ -38,6 +38,8 @@ class Order {
 
 	protected $package_data = null;
 
+	protected $order_item_packages = null;
+
 	protected $shipments_to_delete = array();
 
 	/**
@@ -327,28 +329,18 @@ class Order {
 		return apply_filters( 'woocommerce_shiptastic_order_item_product', $s_product, $order_item );
 	}
 
-	public function get_available_items_for_packing( $shipping_method_id = '' ) {
+	public function get_available_items_for_packing( $shipping_method_id = 'all' ) {
 		return apply_filters( 'woocommerce_shiptastic_shipment_order_available_items_for_packing', $this->get_available_items_for_shipment( array( 'shipping_method_id' => $shipping_method_id ) ), $this );
 	}
 
-	public function get_available_return_items_for_packing( $shipping_method_id = '' ) {
+	public function get_available_return_items_for_packing( $shipping_method_id = 'all' ) {
 		return apply_filters( 'woocommerce_shiptastic_shipment_order_available_return_items_for_packing', $this->get_available_items_for_return( array( 'shipping_method_id' => $shipping_method_id ) ), $this );
 	}
 
 	protected function get_return_packages( $items_requested = array() ) {
 		$return_package_data = array();
-		$method_ids          = array();
-
-		if ( $this->has_multiple_packages() ) {
-			foreach ( $this->get_order()->get_shipping_methods() as $method ) {
-				if ( $this->shipping_method_is_separate_package( $method ) ) {
-					$method_ids[] = $method->get_id();
-				}
-			}
-		}
-
-		$method_ids[] = '';
-		$all_items    = $this->get_available_items_for_return(
+		$method_ids          = array_keys( $this->get_order_item_packages( 'raw' ) );
+		$all_items           = $this->get_available_items_for_return(
 			array(
 				'shipping_method_id' => '',
 				'items_requested'    => $items_requested,
@@ -459,21 +451,11 @@ class Order {
 				$this->package_data = array();
 			}
 
-			$method_ids = array();
+			$other_items         = $this->get_available_items_for_packing( '' );
+			$shipping_method_ids = array_keys( $this->get_order_item_packages( 'raw' ) );
 
-			if ( $this->has_multiple_packages() ) {
-				foreach ( $this->get_order()->get_shipping_methods() as $method ) {
-					if ( $this->shipping_method_is_separate_package( $method ) ) {
-						$method_ids[] = $method->get_id();
-					}
-				}
-			}
-
-			$method_ids[] = '';
-			$all_items    = $this->get_available_items_for_packing( '' );
-
-			foreach ( $method_ids as $method_id ) {
-				$items = '' === $method_id ? $all_items : $this->get_available_items_for_packing( $method_id );
+			foreach ( $shipping_method_ids as $shipping_method_id ) {
+				$items = '' === $shipping_method_id ? $other_items : $this->get_available_items_for_packing( $shipping_method_id );
 
 				if ( empty( $items ) ) {
 					continue;
@@ -481,17 +463,19 @@ class Order {
 
 				$package_data = $this->get_package_data( $items );
 
-				foreach ( $package_data['item_map'] as $order_item_id => $quantity ) {
-					if ( ! empty( $method_id ) && array_key_exists( $order_item_id, $all_items ) ) {
-						$all_items[ $order_item_id ]['max_quantity'] -= $quantity;
+				if ( ! empty( $method_id ) ) {
+					foreach ( $package_data['item_map'] as $order_item_id => $quantity ) {
+						if ( array_key_exists( $order_item_id, $other_items ) ) {
+							$other_items[ $order_item_id ]['max_quantity'] -= $quantity;
 
-						if ( $all_items[ $order_item_id ]['max_quantity'] <= 0 ) {
-							unset( $all_items[ $order_item_id ] );
+							if ( $other_items[ $order_item_id ]['max_quantity'] <= 0 ) {
+								unset( $other_items[ $order_item_id ] );
+							}
 						}
 					}
 				}
 
-				$this->package_data[ $method_id ] = $package_data;
+				$this->package_data[ $shipping_method_id ] = $package_data;
 			}
 		}
 
@@ -1306,7 +1290,8 @@ class Order {
 				'sent_only'                => false,
 				'shipment_id'              => 0,
 				'exclude_current_shipment' => false,
-				'shipping_method_id'       => '',
+				'shipping_method_id'       => 'all',
+				'exclude_local_pickup'     => true,
 			)
 		);
 
@@ -1315,12 +1300,7 @@ class Order {
 		}
 
 		if ( $order_item ) {
-			$quantity_left = $this->get_shippable_item_quantity( $order_item );
-
-			if ( ! empty( $args['shipping_method_id'] ) && $this->shipping_method_is_separate_package( $args['shipping_method_id'] ) ) {
-				$quantity      = $this->get_shipping_method_item_quantity( $args['shipping_method_id'], $order_item );
-				$quantity_left = min( $quantity_left, $quantity );
-			}
+			$quantity_left = $this->get_shippable_item_quantity( $order_item, $args['shipping_method_id'] );
 
 			foreach ( $this->get_shipments() as $shipment ) {
 				if ( $args['sent_only'] && ! $shipment->is_shipped() ) {
@@ -1359,13 +1339,22 @@ class Order {
 		return apply_filters( 'woocommerce_shiptastic_shipment_order_item_quantity_left_for_shipping', $quantity_left, $order_item, $this );
 	}
 
-	public function get_item_quantity_sent_by_order_item_id( $order_item_id ) {
+	public function get_item_quantity_sent_by_order_item_id( $order_item_id, $shipping_method_id = 'all' ) {
 		$shipments = $this->get_simple_shipments();
 		$quantity  = 0;
 
-		foreach ( $shipments as $shipment ) {
+		if ( is_numeric( $shipping_method_id ) ) {
+			if ( $formatted_id = $this->get_shipping_method_id( $shipping_method_id ) ) {
+				$shipping_method_id = $formatted_id;
+			}
+		}
 
+		foreach ( $shipments as $shipment ) {
 			if ( ! $shipment->is_shipped() ) {
+				continue;
+			}
+
+			if ( 'all' !== $shipping_method_id && $shipment->get_shipping_method() !== $shipping_method_id ) {
 				continue;
 			}
 
@@ -1402,22 +1391,15 @@ class Order {
 				'delivered_only'           => false,
 				'shipment_id'              => 0,
 				'exclude_current_shipment' => false,
-				'shipping_method_id'       => '',
+				'shipping_method_id'       => 'all',
 				'items_requested'          => array(),
 			)
 		);
 
-		$quantity_left = $this->get_item_quantity_sent_by_order_item_id( $order_item_id );
+		$quantity_left = $this->get_item_quantity_sent_by_order_item_id( $order_item_id, $args['shipping_method_id'] );
 
 		if ( $this->order_item_is_non_returnable( $order_item_id ) ) {
 			$quantity_left = 0;
-		}
-
-		if ( ! empty( $args['shipping_method_id'] ) && $this->shipping_method_is_separate_package( $args['shipping_method_id'] ) ) {
-			if ( $order_item = $this->get_order()->get_item( $order_item_id, false ) ) {
-				$quantity      = $this->get_shipping_method_item_quantity( $args['shipping_method_id'], $order_item );
-				$quantity_left = min( $quantity_left, $quantity );
-			}
 		}
 
 		if ( ! empty( $args['items_requested'] ) ) {
@@ -1559,14 +1541,15 @@ class Order {
 				'shipment_id'              => 0,
 				'sent_only'                => false,
 				'exclude_current_shipment' => false,
-				'shipping_method_id'       => '',
+				'shipping_method_id'       => 'all',
+				'exclude_local_pickup'     => true,
 			)
 		);
 
 		$items    = array();
 		$shipment = $args['shipment_id'] ? $this->get_shipment( $args['shipment_id'] ) : false;
 
-		foreach ( $this->get_shippable_items() as $item ) {
+		foreach ( $this->get_shippable_items( $args['shipping_method_id'] ) as $item ) {
 			$quantity_left = $this->get_item_quantity_left_for_shipping( $item, $args );
 
 			if ( $shipment ) {
@@ -1645,7 +1628,7 @@ class Order {
 				'delivered_only'           => false,
 				'exclude_current_shipment' => false,
 				'exclude_children'         => true,
-				'shipping_method_id'       => '',
+				'shipping_method_id'       => 'all',
 				'items_requested'          => array(),
 			)
 		);
@@ -1653,7 +1636,7 @@ class Order {
 		$items    = array();
 		$shipment = $args['shipment_id'] ? $this->get_shipment( $args['shipment_id'] ) : false;
 
-		foreach ( $this->get_returnable_items( $args['exclude_children'] ) as $item ) {
+		foreach ( $this->get_returnable_items( $args['exclude_children'], $args['shipping_method_id'] ) as $item ) {
 			$quantity_left = $this->get_item_quantity_left_for_returning( $item->get_order_item_id(), $args );
 
 			if ( $shipment ) {
@@ -1760,15 +1743,11 @@ class Order {
 	 *
 	 * @return WC_Order_Item[] Shippable items.
 	 */
-	public function get_shippable_items() {
-		$items = $this->get_order()->get_items( 'line_item' );
+	public function get_shippable_items( $shipping_method_id = 'all' ) {
+		$items = array();
 
-		foreach ( $items as $key => $item ) {
-			if ( $product = $this->get_order_item_product( $item ) ) {
-				if ( $product->is_virtual() || $this->get_shippable_item_quantity( $item ) <= 0 ) {
-					unset( $items[ $key ] );
-				}
-			}
+		foreach ( $this->get_order_item_packages( $shipping_method_id ) as $item_key => $item ) {
+			$items[ $item_key ] = $item['instance'];
 		}
 
 		$items = array_filter( $items );
@@ -1780,12 +1759,13 @@ class Order {
 		 * @param WC_Order_Item[]                       $items Array containing shippable order items.
 		 * @param WC_Order                              $order The order object.
 		 * @param Order $order The shipment order object.
+		 * @param mixed $shipping_method_id
 		 *
 		 * @package Vendidero/Shiptastic
 		 */
 		do_action( 'woocommerce_shiptastic_order_after_get_items', $this->get_order() );
 
-		return apply_filters( 'woocommerce_shiptastic_shipment_order_shippable_items', $items, $this->get_order(), $this );
+		return apply_filters( 'woocommerce_shiptastic_shipment_order_shippable_items', $items, $this->get_order(), $this, $shipping_method_id );
 	}
 
 	/**
@@ -1793,8 +1773,14 @@ class Order {
 	 *
 	 * @return ShipmentItem[] Shippable items.
 	 */
-	public function get_returnable_items( $exclude_children = true ) {
+	public function get_returnable_items( $exclude_children = true, $shipping_method_id = 'all' ) {
 		$items = array();
+
+		if ( is_numeric( $shipping_method_id ) ) {
+			if ( $formatted_id = $this->get_shipping_method_id( $shipping_method_id ) ) {
+				$shipping_method_id = $formatted_id;
+			}
+		}
 
 		foreach ( $this->get_simple_shipments() as $shipment ) {
 			if ( ! $shipment->is_shipped() ) {
@@ -1803,6 +1789,10 @@ class Order {
 
 			foreach ( $shipment->get_items() as $item ) {
 				if ( $this->order_item_is_non_returnable( $item->get_order_item_id() ) || ( $exclude_children && $item->get_item_parent_id() > 0 ) ) {
+					continue;
+				}
+
+				if ( 'all' !== $shipping_method_id && $shipment->get_shipping_method() !== $shipping_method_id ) {
 					continue;
 				}
 
@@ -1853,15 +1843,138 @@ class Order {
 		return $items;
 	}
 
-	public function get_shippable_item_quantity( $order_item ) {
-		$refunded_qty = absint( $this->get_order()->get_qty_refunded_for_item( $order_item->get_id() ) );
+	/**
+	 * Returns a map of available order items with its corresponding quantities.
+	 * By default, returns all items - can be filtered by a certain shipping method
+	 * in case multiple packages exist.
+	 *
+	 * @param $shipping_method_id
+	 *
+	 * @return mixed
+	 */
+	protected function get_order_item_packages( $shipping_method_id = 'all' ) {
+		if ( is_null( $this->order_item_packages ) || ! isset( $this->order_item_packages[''] ) ) {
+			if ( ! is_array( $this->order_item_packages ) ) {
+				$this->order_item_packages = array();
+			}
 
-		// Make sure we are safe to substract quantity for logical purposes
-		if ( $refunded_qty < 0 ) {
-			$refunded_qty *= -1;
+			$method_ids = array();
+
+			if ( $this->has_multiple_packages() ) {
+				foreach ( $this->get_order()->get_shipping_methods() as $method ) {
+					if ( $this->shipping_method_is_separate_package( $method ) ) {
+						$method_ids[] = $method->get_id();
+					}
+				}
+			}
+
+			$all_items = array();
+
+			foreach ( $this->get_order()->get_items( 'line_item' ) as $key => $item ) {
+				$total_quantity = absint( $item->get_quantity() );
+
+				if ( ( $product = $this->get_order_item_product( $item ) ) && $product->is_virtual() ) {
+					$total_quantity = 0;
+				}
+
+				$refunded_qty = absint( $this->get_order()->get_qty_refunded_for_item( $item->get_id() ) );
+
+				if ( $refunded_qty < 0 ) {
+					$refunded_qty *= -1;
+				}
+
+				$total_quantity -= $refunded_qty;
+
+				/**
+				 * Filter that allows adjusting the quantity left for shipping or a specific order item.
+				 *
+				 * @param integer                               $quantity_left The quantity left for shipping.
+				 * @param WC_Order_Item                        $item The order item object.
+				 * @param Order $order The shipment order object.
+				 * @param mixed $shipping_method_id
+				 *
+				 * @package Vendidero/Shiptastic
+				 */
+				$total_quantity = apply_filters( 'woocommerce_shiptastic_shipment_order_item_shippable_quantity', $total_quantity, $item, $this, 'all' );
+
+				if ( $total_quantity > 0 ) {
+					$all_items[ $key ] = array(
+						'quantity' => absint( $item->get_quantity() ),
+						'instance' => $item,
+					);
+				}
+			}
+
+			foreach ( $method_ids as $method_id ) {
+				foreach ( $all_items as $item_key => $item_data ) {
+					$method_quantity = $this->get_shipping_method_item_quantity( $method_id, $item_data['instance'] );
+					$method_quantity = min( $item_data['quantity'], $method_quantity );
+
+					if ( $method_quantity > 0 ) {
+						$all_items[ $item_key ]['quantity'] -= $method_quantity;
+
+						if ( ! $this->has_local_pickup( $method_id ) ) {
+							if ( ! isset( $this->order_item_packages[ $method_id ] ) ) {
+								$this->order_item_packages[ $method_id ] = array();
+							}
+
+							$this->order_item_packages[ $method_id ][ $item_key ] = array(
+								'instance' => $item_data['instance'],
+								'quantity' => $method_quantity,
+							);
+						}
+					}
+
+					if ( $all_items[ $item_key ]['quantity'] <= 0 ) {
+						unset( $all_items[ $item_key ] );
+					}
+				}
+			}
+
+			$this->order_item_packages[''] = $all_items;
 		}
 
-		$quantity_left = absint( $order_item->get_quantity() ) - $refunded_qty;
+		$order_items = array();
+
+		if ( 'all' === $shipping_method_id ) {
+			foreach ( $this->order_item_packages as $method_id => $items ) {
+				foreach ( $items as $item_key => $item_data ) {
+					if ( ! array_key_exists( $item_key, $order_items ) ) {
+						$order_items[ $item_key ] = array(
+							'instance' => $item_data['instance'],
+							'quantity' => 0,
+						);
+					}
+
+					$order_items[ $item_key ]['quantity'] += $item_data['quantity'];
+				}
+			}
+
+			$order_items = array_filter( $order_items );
+		} elseif ( array_key_exists( $shipping_method_id, $this->order_item_packages ) ) {
+			$order_items = $this->order_item_packages[ $shipping_method_id ];
+			$order_items = array_filter( $order_items );
+		} elseif ( 'raw' === $shipping_method_id ) {
+			$order_items = $this->order_item_packages;
+		}
+
+		return apply_filters( 'woocommerce_shiptastic_shipment_order_item_packages', $order_items, $shipping_method_id, $this );
+	}
+
+	public function get_shippable_item_quantity( $order_item, $shipping_method_id = 'all' ) {
+		$quantity_left = 0;
+		$all_items     = $this->get_order_item_packages( $shipping_method_id );
+
+		if ( $order_item->get_id() > 0 ) {
+			$quantity_left = array_key_exists( $order_item->get_id(), $all_items ) ? $all_items[ $order_item->get_id() ]['quantity'] : 0;
+		} else {
+			foreach ( $this->get_order_item_packages() as $item_key => $item_data ) {
+				if ( $item_data['instance'] === $order_item ) {
+					$quantity_left = $item_data['quantity'];
+					break;
+				}
+			}
+		}
 
 		/**
 		 * Filter that allows adjusting the quantity left for shipping or a specific order item.
@@ -1869,10 +1982,11 @@ class Order {
 		 * @param integer                               $quantity_left The quantity left for shipping.
 		 * @param WC_Order_Item                        $item The order item object.
 		 * @param Order $order The shipment order object.
+		 * @param mixed $shipping_method_id
 		 *
 		 * @package Vendidero/Shiptastic
 		 */
-		return apply_filters( 'woocommerce_shiptastic_shipment_order_item_shippable_quantity', $quantity_left, $order_item, $this );
+		return apply_filters( 'woocommerce_shiptastic_shipment_order_item_shippable_quantity', $quantity_left, $order_item, $this, $shipping_method_id );
 	}
 
 	/**
@@ -2039,13 +2153,11 @@ class Order {
 			$item = $method_id;
 		} elseif ( empty( $method_id ) ) {
 			foreach ( $this->get_order()->get_shipping_methods() as $method ) {
-				if ( empty( $method_id ) ) {
-					$item = $method;
-					break;
-				}
+				$item = $method;
+				break;
 			}
 		} elseif ( is_numeric( $method_id ) ) {
-				$item = $this->get_order()->get_item( $method_id, false );
+			$item = $this->get_order()->get_item( $method_id, false );
 		} else {
 			foreach ( $this->get_order()->get_shipping_methods() as $method ) {
 				$the_method_id = $method->get_method_id() . ':' . $method->get_instance_id();
@@ -2095,25 +2207,29 @@ class Order {
 		return apply_filters( 'woocommerce_shiptastic_shipment_order_pickup_location_address', $pickup_location_address, $this->get_order(), $this );
 	}
 
-	protected function has_local_pickup() {
-		$shipping_methods = $this->get_order()->get_shipping_methods();
-		$has_pickup       = false;
+	protected function has_local_pickup( $method_id = '' ) {
+		$has_pickup     = false;
+		$pickup_methods = MethodHelper::get_local_pickup_methods();
 
-		/**
-		 * Filters which shipping methods are considered local pickup method
-		 * which by default do not require shipment.
-		 *
-		 * @param string[] $pickup_methods Array of local pickup shipping method ids.
-		 *
-		 * @package Vendidero/Shiptastic
-		 */
-		$pickup_methods = apply_filters( 'woocommerce_shiptastic_shipment_local_pickup_shipping_methods', array( 'local_pickup', 'pickup_location' ) );
+		if ( empty( $method_id ) ) {
+			$shipping_methods = $this->get_order()->get_shipping_methods();
 
-		foreach ( $shipping_methods as $shipping_method ) {
-			if ( in_array( $shipping_method->get_method_id(), $pickup_methods, true ) ) {
+			/**
+			 * In case multiple shipping packages/methods exist for the order
+			 * do only treat this order as local pickup if all packages are picked up locally.
+			 */
+			if ( ! empty( $shipping_methods ) ) {
 				$has_pickup = true;
-				break;
+
+				foreach ( $shipping_methods as $shipping_method ) {
+					if ( ! in_array( $shipping_method->get_method_id(), $pickup_methods, true ) ) {
+						$has_pickup = false;
+						break;
+					}
+				}
 			}
+		} elseif ( $shipping_method = $this->get_shipping_method_by_id( $method_id ) ) {
+			$has_pickup = in_array( $shipping_method->get_method_id(), $pickup_methods, true );
 		}
 
 		return $has_pickup;
@@ -2245,6 +2361,7 @@ class Order {
 		$this->package_data        = null;
 		$this->shipments           = null;
 		$this->shipments_to_delete = null;
+		$this->order_item_packages = null;
 
 		if ( $cache = \Vendidero\Shiptastic\Caches\Helper::get_cache_object( 'shipment-orders' ) ) {
 			$cache->remove( $this->get_order()->get_id() );
