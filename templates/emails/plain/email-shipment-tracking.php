@@ -11,7 +11,7 @@
  * the readme will list any important changes.
  *
  * @package Shiptastic/Templates/Emails/Plain
- * @version 4.3.0
+ * @version 4.8.0
  */
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -28,5 +28,5 @@ if ( $shipment->get_tracking_url() ) {
 }
 
 if ( $shipment->has_tracking_instruction() ) {
-	echo esc_html( $shipment->get_tracking_instruction( true ) ) . "\n";
+	echo esc_html( $shipment->get_tracking_instruction( 'plain' ) ) . "\n";
 }

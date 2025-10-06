@@ -365,7 +365,11 @@ class ShipmentsController extends \WC_REST_Controller {
 
 			if ( $provider = wc_stc_get_shipping_provider( $provider ) ) {
 				$shipment->set_shipping_provider( $provider );
+			} else {
+				$shipment->set_shipping_provider_title( $provider );
 			}
+		} elseif ( isset( $request['shipping_provider_title'] ) ) {
+			$shipment->set_shipping_provider_title( wp_kses_post( wp_unslash( $request['shipping_provider_title'] ) ) );
 		}
 
 		if ( isset( $request['shipping_method'] ) ) {
@@ -386,6 +390,14 @@ class ShipmentsController extends \WC_REST_Controller {
 
 		if ( isset( $request['tracking_id'] ) ) {
 			$shipment->set_tracking_id( wc_clean( wp_unslash( $request['tracking_id'] ) ) );
+		}
+
+		if ( isset( $request['tracking_url'] ) ) {
+			$shipment->set_tracking_url( sanitize_url( wp_unslash( $request['tracking_url'] ) ) );
+		}
+
+		if ( isset( $request['tracking_instruction'] ) ) {
+			$shipment->set_tracking_instruction( wp_kses_post( wp_unslash( $request['tracking_instruction'] ) ) );
 		}
 
 		if ( isset( $request['dimensions'] ) ) {
@@ -1172,50 +1184,52 @@ class ShipmentsController extends \WC_REST_Controller {
 		}
 
 		return array(
-			'id'                    => $shipment->get_id(),
-			'shipment_number'       => $shipment->get_shipment_number(),
-			'date_created'          => wc_rest_prepare_date_response( $shipment->get_date_created( $context ), false ),
-			'date_created_gmt'      => wc_rest_prepare_date_response( $shipment->get_date_created( $context ) ),
-			'date_sent'             => wc_rest_prepare_date_response( $shipment->get_date_sent( $context ), false ),
-			'date_sent_gmt'         => wc_rest_prepare_date_response( $shipment->get_date_sent( $context ) ),
-			'est_delivery_date'     => wc_rest_prepare_date_response( $shipment->get_est_delivery_date( $context ), false ),
-			'est_delivery_date_gmt' => wc_rest_prepare_date_response( $shipment->get_est_delivery_date( $context ) ),
-			'total'                 => wc_format_decimal( $shipment->get_total( $context ), $dp ),
-			'subtotal'              => wc_format_decimal( $shipment->get_subtotal( $context ), $dp ),
-			'additional_total'      => wc_format_decimal( $shipment->get_additional_total( $context ), $dp ),
-			'order_id'              => $shipment->get_order_id( $context ),
-			'order_number'          => $shipment->get_order_number(),
-			'weight'                => wc_format_decimal( $shipment->get_weight( $context ), $dp ),
-			'content_weight'        => wc_format_decimal( $shipment->get_content_weight(), $dp ),
-			'weight_unit'           => $shipment->get_weight_unit( $context ),
-			'packaging_id'          => $shipment->get_packaging_id( $context ),
-			'packaging_weight'      => $shipment->get_packaging_weight( $context ),
-			'status'                => $shipment->get_status( $context ),
-			'type'                  => $shipment->get_type(),
-			'tracking_id'           => $shipment->get_tracking_id( $context ),
-			'tracking_url'          => $shipment->get_tracking_url(),
-			'shipping_provider'     => $shipment->get_shipping_provider( $context ),
-			'content_dimensions'    => array(
+			'id'                      => $shipment->get_id(),
+			'shipment_number'         => $shipment->get_shipment_number(),
+			'date_created'            => wc_rest_prepare_date_response( $shipment->get_date_created( $context ), false ),
+			'date_created_gmt'        => wc_rest_prepare_date_response( $shipment->get_date_created( $context ) ),
+			'date_sent'               => wc_rest_prepare_date_response( $shipment->get_date_sent( $context ), false ),
+			'date_sent_gmt'           => wc_rest_prepare_date_response( $shipment->get_date_sent( $context ) ),
+			'est_delivery_date'       => wc_rest_prepare_date_response( $shipment->get_est_delivery_date( $context ), false ),
+			'est_delivery_date_gmt'   => wc_rest_prepare_date_response( $shipment->get_est_delivery_date( $context ) ),
+			'total'                   => wc_format_decimal( $shipment->get_total( $context ), $dp ),
+			'subtotal'                => wc_format_decimal( $shipment->get_subtotal( $context ), $dp ),
+			'additional_total'        => wc_format_decimal( $shipment->get_additional_total( $context ), $dp ),
+			'order_id'                => $shipment->get_order_id( $context ),
+			'order_number'            => $shipment->get_order_number(),
+			'weight'                  => wc_format_decimal( $shipment->get_weight( $context ), $dp ),
+			'content_weight'          => wc_format_decimal( $shipment->get_content_weight(), $dp ),
+			'weight_unit'             => $shipment->get_weight_unit( $context ),
+			'packaging_id'            => $shipment->get_packaging_id( $context ),
+			'packaging_weight'        => $shipment->get_packaging_weight( $context ),
+			'status'                  => $shipment->get_status( $context ),
+			'type'                    => $shipment->get_type(),
+			'tracking_id'             => $shipment->get_tracking_id( $context ),
+			'tracking_url'            => $shipment->get_tracking_url( $context ),
+			'tracking_instruction'    => $shipment->get_tracking_instruction( $context ),
+			'shipping_provider'       => $shipment->get_shipping_provider( $context ),
+			'shipping_provider_title' => $shipment->get_shipping_provider_title( $context ),
+			'content_dimensions'      => array(
 				'length' => wc_format_decimal( $shipment->get_content_length(), $dp ),
 				'width'  => wc_format_decimal( $shipment->get_content_width(), $dp ),
 				'height' => wc_format_decimal( $shipment->get_content_height(), $dp ),
 			),
-			'dimensions'            => array(
+			'dimensions'              => array(
 				'length' => wc_format_decimal( $shipment->get_length( $context ), $dp ),
 				'width'  => wc_format_decimal( $shipment->get_width( $context ), $dp ),
 				'height' => wc_format_decimal( $shipment->get_height( $context ), $dp ),
 			),
-			'package_dimensions'    => array(
+			'package_dimensions'      => array(
 				'length' => wc_format_decimal( $shipment->get_package_length(), $dp ),
 				'width'  => wc_format_decimal( $shipment->get_package_width(), $dp ),
 				'height' => wc_format_decimal( $shipment->get_package_height(), $dp ),
 			),
-			'dimension_unit'        => $shipment->get_dimension_unit( $context ),
-			'address'               => $shipment->get_address( $context ),
-			'sender_address'        => 'return' === $shipment->get_type() ? $shipment->get_sender_address( $context ) : array(),
-			'is_customer_requested' => 'return' === $shipment->get_type() ? $shipment->get_is_customer_requested( $context ) : false,
-			'items'                 => $item_data,
-			'meta_data'             => $shipment->get_meta_data(),
+			'dimension_unit'          => $shipment->get_dimension_unit( $context ),
+			'address'                 => $shipment->get_address( $context ),
+			'sender_address'          => 'return' === $shipment->get_type() ? $shipment->get_sender_address( $context ) : array(),
+			'is_customer_requested'   => 'return' === $shipment->get_type() ? $shipment->get_is_customer_requested( $context ) : false,
+			'items'                   => $item_data,
+			'meta_data'               => $shipment->get_meta_data(),
 		);
 	}
 
@@ -1374,97 +1388,106 @@ class ShipmentsController extends \WC_REST_Controller {
 			'readonly'    => false,
 			'type'        => 'object',
 			'properties'  => array(
-				'id'                    => array(
+				'id'                      => array(
 					'description' => _x( 'Shipment ID.', 'shipments', 'shiptastic-for-woocommerce' ),
 					'type'        => 'integer',
 					'context'     => array( 'view', 'edit' ),
 					'readonly'    => true,
 				),
-				'shipment_number'       => array(
+				'shipment_number'         => array(
 					'description' => _x( 'Shipment number.', 'shipments', 'shiptastic-for-woocommerce' ),
 					'type'        => 'string',
 					'context'     => array( 'view', 'edit' ),
 					'readonly'    => true,
 				),
-				'order_id'              => array(
+				'order_id'                => array(
 					'description' => _x( 'Shipment order id.', 'shipments', 'shiptastic-for-woocommerce' ),
 					'type'        => 'string',
 					'context'     => array( 'view', 'edit' ),
 				),
-				'order_number'          => array(
+				'order_number'            => array(
 					'description' => _x( 'Shipment order number.', 'shipments', 'shiptastic-for-woocommerce' ),
 					'type'        => 'string',
 					'context'     => array( 'view', 'edit' ),
 					'readonly'    => true,
 				),
-				'status'                => array(
+				'status'                  => array(
 					'description' => _x( 'Shipment status.', 'shipments', 'shiptastic-for-woocommerce' ),
 					'type'        => 'string',
 					'context'     => array( 'view', 'edit' ),
 					'enum'        => self::get_shipment_statuses(),
 				),
-				'tracking_id'           => array(
+				'tracking_id'             => array(
 					'description' => _x( 'Shipment tracking id.', 'shipments', 'shiptastic-for-woocommerce' ),
 					'type'        => 'string',
 					'context'     => array( 'view', 'edit' ),
 				),
-				'tracking_url'          => array(
+				'tracking_url'            => array(
 					'description' => _x( 'Shipment tracking url.', 'shipments', 'shiptastic-for-woocommerce' ),
 					'type'        => 'string',
 					'context'     => array( 'view', 'edit' ),
-					'readonly'    => true,
 				),
-				'shipping_provider'     => array(
+				'tracking_instruction'    => array(
+					'description' => _x( 'Shipment tracking instruction.', 'shipments', 'shiptastic-for-woocommerce' ),
+					'type'        => 'string',
+					'context'     => array( 'view', 'edit' ),
+				),
+				'shipping_provider'       => array(
 					'description' => _x( 'Shipment shipping service provider.', 'shipments', 'shiptastic-for-woocommerce' ),
 					'type'        => 'string',
 					'context'     => array( 'view', 'edit' ),
 				),
-				'date_created'          => array(
+				'shipping_provider_title' => array(
+					'description' => _x( 'Shipment shipping service provider title.', 'shipments', 'shiptastic-for-woocommerce' ),
+					'type'        => 'string',
+					'context'     => array( 'view', 'edit' ),
+				),
+				'date_created'            => array(
 					'description' => _x( "The date the shipment was created, in the site's timezone.", 'shipments', 'shiptastic-for-woocommerce' ),
 					'type'        => 'date-time',
 					'context'     => array( 'view', 'edit' ),
 					'readonly'    => true,
 				),
-				'date_created_gmt'      => array(
+				'date_created_gmt'        => array(
 					'description' => _x( 'The date the shipment was created, as GMT.', 'shipments', 'shiptastic-for-woocommerce' ),
 					'type'        => 'date-time',
 					'context'     => array( 'view', 'edit' ),
 					'readonly'    => true,
 				),
-				'date_sent'             => array(
+				'date_sent'               => array(
 					'description' => _x( "The date the shipment was sent, in the site's timezone.", 'shipments', 'shiptastic-for-woocommerce' ),
 					'type'        => 'date-time',
 					'context'     => array( 'view', 'edit' ),
 					'readonly'    => true,
 				),
-				'date_sent_gmt'         => array(
+				'date_sent_gmt'           => array(
 					'description' => _x( 'The date the shipment was sent, as GMT.', 'shipments', 'shiptastic-for-woocommerce' ),
 					'type'        => 'date-time',
 					'context'     => array( 'view', 'edit' ),
 					'readonly'    => true,
 				),
-				'est_delivery_date'     => array(
+				'est_delivery_date'       => array(
 					'description' => _x( "The estimated delivery date of the shipment, in the site's timezone.", 'shipments', 'shiptastic-for-woocommerce' ),
 					'type'        => 'date-time',
 					'context'     => array( 'view', 'edit' ),
 				),
-				'est_delivery_date_gmt' => array(
+				'est_delivery_date_gmt'   => array(
 					'description' => _x( 'The estimated delivery date of the shipment, as GMT.', 'shipments', 'shiptastic-for-woocommerce' ),
 					'type'        => 'date-time',
 					'context'     => array( 'view', 'edit' ),
 				),
-				'type'                  => array(
+				'type'                    => array(
 					'description' => _x( 'Shipment type, e.g. simple or return.', 'shipments', 'shiptastic-for-woocommerce' ),
 					'type'        => 'string',
 					'context'     => array( 'view', 'edit' ),
 					'enum'        => wc_stc_get_shipment_types(),
 				),
-				'is_customer_requested' => array(
+				'is_customer_requested'   => array(
 					'description' => _x( 'Return shipment is requested by customer.', 'shipments', 'shiptastic-for-woocommerce' ),
 					'type'        => 'boolean',
 					'context'     => array( 'view', 'edit' ),
 				),
-				'sender_address'        => array(
+				'sender_address'          => array(
 					'description' => _x( 'Return sender address.', 'shipments', 'shiptastic-for-woocommerce' ),
 					'type'        => 'object',
 					'context'     => array( 'view', 'edit' ),
@@ -1521,18 +1544,18 @@ class ShipmentsController extends \WC_REST_Controller {
 						),
 					),
 				),
-				'weight'                => array(
+				'weight'                  => array(
 					'description' => _x( 'Shipment weight.', 'shipments', 'shiptastic-for-woocommerce' ),
 					'type'        => 'string',
 					'context'     => array( 'view', 'edit' ),
 				),
-				'content_weight'        => array(
+				'content_weight'          => array(
 					'description' => _x( 'Shipment content weight.', 'shipments', 'shiptastic-for-woocommerce' ),
 					'type'        => 'string',
 					'context'     => array( 'view', 'edit' ),
 					'readonly'    => true,
 				),
-				'content_dimensions'    => array(
+				'content_dimensions'      => array(
 					'description' => _x( 'Shipment content dimensions.', 'shipments', 'shiptastic-for-woocommerce' ),
 					'type'        => 'object',
 					'context'     => array( 'view', 'edit' ),
@@ -1558,48 +1581,48 @@ class ShipmentsController extends \WC_REST_Controller {
 						),
 					),
 				),
-				'weight_unit'           => array(
+				'weight_unit'             => array(
 					'description' => _x( 'Shipment weight unit.', 'shipments', 'shiptastic-for-woocommerce' ),
 					'type'        => 'string',
 					'context'     => array( 'view', 'edit' ),
 					'default'     => $weight_unit,
 				),
-				'packaging_id'          => array(
+				'packaging_id'            => array(
 					'description' => _x( 'Shipment packaging id.', 'shipments', 'shiptastic-for-woocommerce' ),
 					'type'        => 'integer',
 					'context'     => array( 'view', 'edit' ),
 				),
-				'packaging_weight'      => array(
+				'packaging_weight'        => array(
 					'description' => _x( 'Shipment packaging weight.', 'shipments', 'shiptastic-for-woocommerce' ),
 					'type'        => 'string',
 					'context'     => array( 'view', 'edit' ),
 				),
-				'total'                 => array(
+				'total'                   => array(
 					'description' => _x( 'Shipment total.', 'shipments', 'shiptastic-for-woocommerce' ),
 					'type'        => 'string',
 					'context'     => array( 'view', 'edit' ),
 				),
-				'subtotal'              => array(
+				'subtotal'                => array(
 					'description' => _x( 'Shipment subtotal.', 'shipments', 'shiptastic-for-woocommerce' ),
 					'type'        => 'string',
 					'context'     => array( 'view', 'edit' ),
 				),
-				'additional_total'      => array(
+				'additional_total'        => array(
 					'description' => _x( 'Shipment additional total.', 'shipments', 'shiptastic-for-woocommerce' ),
 					'type'        => 'string',
 					'context'     => array( 'view', 'edit' ),
 				),
-				'version'               => array(
+				'version'                 => array(
 					'description' => _x( 'Shipment version.', 'shipments', 'shiptastic-for-woocommerce' ),
 					'type'        => 'string',
 					'context'     => array( 'view', 'edit' ),
 				),
-				'shipping_method'       => array(
+				'shipping_method'         => array(
 					'description' => _x( 'Shipment shipping method.', 'shipments', 'shiptastic-for-woocommerce' ),
 					'type'        => 'string',
 					'context'     => array( 'view', 'edit' ),
 				),
-				'dimensions'            => array(
+				'dimensions'              => array(
 					'description' => _x( 'Shipment dimensions.', 'shipments', 'shiptastic-for-woocommerce' ),
 					'type'        => 'object',
 					'context'     => array( 'view', 'edit' ),
@@ -1621,7 +1644,7 @@ class ShipmentsController extends \WC_REST_Controller {
 						),
 					),
 				),
-				'package_dimensions'    => array(
+				'package_dimensions'      => array(
 					'description' => _x( 'Shipment package dimensions.', 'shipments', 'shiptastic-for-woocommerce' ),
 					'type'        => 'object',
 					'context'     => array( 'view', 'edit' ),
@@ -1647,13 +1670,13 @@ class ShipmentsController extends \WC_REST_Controller {
 						),
 					),
 				),
-				'dimension_unit'        => array(
+				'dimension_unit'          => array(
 					'description' => _x( 'Shipment dimension unit.', 'shipments', 'shiptastic-for-woocommerce' ),
 					'type'        => 'string',
 					'context'     => array( 'view', 'edit' ),
 					'default'     => $dimension_unit,
 				),
-				'address'               => array(
+				'address'                 => array(
 					'description' => _x( 'Shipping address.', 'shipments', 'shiptastic-for-woocommerce' ),
 					'type'        => 'object',
 					'context'     => array( 'view', 'edit' ),
@@ -1710,7 +1733,7 @@ class ShipmentsController extends \WC_REST_Controller {
 						),
 					),
 				),
-				'meta_data'             => array(
+				'meta_data'               => array(
 					'description' => _x( 'Meta data.', 'shipments', 'shiptastic-for-woocommerce' ),
 					'type'        => 'array',
 					'context'     => array( 'view', 'edit' ),
@@ -1736,7 +1759,7 @@ class ShipmentsController extends \WC_REST_Controller {
 						),
 					),
 				),
-				'items'                 => array(
+				'items'                   => array(
 					'description' => _x( 'Shipment items.', 'shipments', 'shiptastic-for-woocommerce' ),
 					'type'        => 'array',
 					'context'     => array( 'view', 'edit' ),

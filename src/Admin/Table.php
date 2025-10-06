@@ -854,10 +854,8 @@ class Table extends WP_List_Table {
 			echo '<span class="shipment-packaging">' . wp_kses_post( $packaging->get_description() ) . '</span> ';
 		}
 
-		$provider = $shipment->get_shipping_provider();
-
-		if ( ! empty( $provider ) ) {
-			echo '<span class="shipment-shipping-provider">' . sprintf( esc_html_x( 'via %s', 'shipments', 'shiptastic-for-woocommerce' ), wp_kses_post( wc_stc_get_shipping_provider_title( $provider ) ) ) . '</span> ';
+		if ( $provider_title = $shipment->get_shipping_provider_title() ) {
+			echo '<span class="shipment-shipping-provider">' . sprintf( esc_html_x( 'via %s', 'shipments', 'shiptastic-for-woocommerce' ), wp_kses_post( $provider_title ) ) . '</span> ';
 		}
 
 		if ( $tracking_id = $shipment->get_tracking_id() ) {

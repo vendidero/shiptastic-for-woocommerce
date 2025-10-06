@@ -47,6 +47,9 @@ class Shipment extends WC_Data_Store_WP implements WC_Object_Data_Store_Interfac
 		'_remote_status_events',
 		'_tracking_secret',
 		'_return_costs',
+		'_tracking_url',
+		'_tracking_instruction',
+		'_shipping_provider_title',
 	);
 
 	protected $core_props = array(
@@ -202,6 +205,16 @@ class Shipment extends WC_Data_Store_WP implements WC_Object_Data_Store_Interfac
 		if ( in_array( 'shipping_provider', $changed_props, true ) ) {
 			if ( $shipment->supports_label() && $shipment->has_label() ) {
 				$shipment->get_label()->delete();
+			}
+
+			/**
+			 * Remove the static shipping provider title in case a valid
+			 * shipping provider exists.
+			 */
+			if ( $shipment->get_shipping_provider_title( 'edit' ) ) {
+				if ( $shipment->get_shipping_provider_instance() ) {
+					$shipment->set_shipping_provider_title( '' );
+				}
 			}
 		}
 
@@ -480,6 +493,9 @@ class Shipment extends WC_Data_Store_WP implements WC_Object_Data_Store_Interfac
 			switch ( $prop ) {
 				case 'is_customer_requested':
 					$value = wc_bool_to_string( $value );
+					break;
+				case 'tracking_url':
+					$value = ! empty( $value ) ? sanitize_url( $value ) : '';
 					break;
 				case 'tracking_secret':
 					if ( ! empty( $value ) ) {
