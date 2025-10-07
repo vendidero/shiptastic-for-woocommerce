@@ -34,6 +34,9 @@ if ( ! class_exists( 'WC_STC_Email_Customer_Return_Shipment', false ) ) :
 		 */
 		public $shipment;
 
+		/**
+		 * @var \Vendidero\Shiptastic\EmailLocale
+		 */
 		public $helper = null;
 
 		/**
@@ -55,7 +58,7 @@ if ( ! class_exists( 'WC_STC_Email_Customer_Return_Shipment', false ) ) :
 			$this->template_html  = 'emails/customer-return-shipment.php';
 			$this->template_plain = 'emails/plain/customer-return-shipment.php';
 			$this->template_base  = Package::get_path() . '/templates/';
-			$this->helper         = function_exists( 'wc_stc_get_email_helper' ) ? wc_stc_get_email_helper( $this ) : false;
+			$this->helper         = wc_stc_get_email_locale_helper( $this );
 
 			$this->placeholders = array(
 				'{site_title}'      => $this->get_blogname(),
@@ -92,19 +95,15 @@ if ( ! class_exists( 'WC_STC_Email_Customer_Return_Shipment', false ) ) :
 		}
 
 		public function setup_locale() {
-			if ( $this->is_customer_email() && function_exists( 'wc_stc_switch_to_site_locale' ) && apply_filters( 'woocommerce_email_setup_locale', true ) ) {
-				wc_stc_switch_to_site_locale();
-			}
-
 			parent::setup_locale();
+
+			$this->helper->setup_locale();
 		}
 
 		public function restore_locale() {
-			if ( $this->is_customer_email() && function_exists( 'wc_stc_restore_locale' ) && apply_filters( 'woocommerce_email_restore_locale', true ) ) {
-				wc_stc_restore_locale();
-			}
-
 			parent::restore_locale();
+
+			$this->helper->restore_locale();
 		}
 
 		/**
@@ -114,11 +113,7 @@ if ( ! class_exists( 'WC_STC_Email_Customer_Return_Shipment', false ) ) :
 		 * @param bool $is_confirmation
 		 */
 		public function trigger( $shipment_id, $is_confirmation = false ) {
-			if ( $this->helper ) {
-				$this->helper->setup_locale();
-			} else {
-				$this->setup_locale();
-			}
+			$this->setup_locale();
 
 			$this->is_confirmation = $is_confirmation;
 
@@ -135,8 +130,11 @@ if ( ! class_exists( 'WC_STC_Email_Customer_Return_Shipment', false ) ) :
 				$this->placeholders['{shipment_number}'] = $this->shipment->get_shipment_number();
 
 				if ( $order_shipment = wc_stc_get_shipment_order( $this->shipment->get_order() ) ) {
-					$this->object                         = $this->shipment->get_order();
-					$this->recipient                      = $order_shipment->get_order()->get_billing_email();
+					$this->object    = $this->shipment->get_order();
+					$this->recipient = $order_shipment->get_order()->get_billing_email();
+
+					$this->helper->setup_email_locale();
+
 					$this->placeholders['{order_date}']   = wc_format_datetime( $order_shipment->get_order()->get_date_created() );
 					$this->placeholders['{order_number}'] = $order_shipment->get_order()->get_order_number();
 
@@ -148,23 +146,12 @@ if ( ! class_exists( 'WC_STC_Email_Customer_Return_Shipment', false ) ) :
 
 			$this->id = 'customer_return_shipment';
 
-			if ( $this->helper ) {
-				$this->helper->setup_email_locale();
-			}
-
 			if ( $this->is_enabled() && $this->get_recipient() ) {
 				$this->send( $this->get_recipient(), $this->get_subject(), $this->get_content(), $this->get_headers(), $this->get_attachments() );
 			}
 
-			if ( $this->helper ) {
-				$this->helper->restore_email_locale();
-			}
-
-			if ( $this->helper ) {
-				$this->helper->restore_locale();
-			} else {
-				$this->restore_locale();
-			}
+			$this->helper->restore_email_locale();
+			$this->restore_locale();
 		}
 
 		/**

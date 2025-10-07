@@ -1890,3 +1890,10 @@ function wc_shiptastic_get_alphanumeric_string( $str ) {
 function wc_shiptastic_decode_html( $str ) {
 	return \Vendidero\Shiptastic\Encoding::to_utf8( $str );
 }
+
+/**
+ * @param WC_Email $email
+ */
+function wc_stc_get_email_locale_helper( $email ) {
+	return new \Vendidero\Shiptastic\EmailLocale( $email );
+}

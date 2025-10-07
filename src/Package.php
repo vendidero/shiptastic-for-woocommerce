@@ -73,9 +73,6 @@ class Package {
 			return;
 		}
 
-		add_filter( 'plugin_locale', array( __CLASS__, 'support_german_language_variants' ), 10, 2 );
-		add_filter( 'load_translation_file', array( __CLASS__, 'force_load_german_language_variant' ), 10, 2 );
-
 		if ( function_exists( 'determine_locale' ) ) {
 			$locale = determine_locale();
 		} else {
@@ -85,38 +82,17 @@ class Package {
 
 		$locale = apply_filters( 'plugin_locale', $locale, 'shiptastic-for-woocommerce' );
 
-		load_textdomain( 'shiptastic-for-woocommerce', trailingslashit( WP_LANG_DIR ) . 'shiptastic-for-woocommerce/shiptastic-for-woocommerce-' . $locale . '.mo' );
-		load_plugin_textdomain( 'shiptastic-for-woocommerce', false, plugin_basename( self::get_path() ) . '/i18n/languages/' );
-	}
+		$custom_translation_path = WP_LANG_DIR . '/shiptastic-for-woocommerce/shiptastic-for-woocommerce-' . $locale . '.mo';
+		$plugin_translation_path = WP_LANG_DIR . '/plugins/shiptastic-for-woocommerce-' . $locale . '.mo';
 
-	public static function force_load_german_language_variant( $file, $domain ) {
-		if ( 'shiptastic-for-woocommerce' === $domain && function_exists( 'determine_locale' ) && class_exists( 'WP_Translation_Controller' ) ) {
-			$locale     = determine_locale();
-			$new_locale = self::get_german_language_variant( $locale );
-
-			if ( $new_locale !== $locale ) {
-				$i18n_controller = \WP_Translation_Controller::get_instance();
-				$i18n_controller->load_file( $file, $domain, $locale ); // Force loading the determined file in the original locale.
-			}
+		// If a custom translation exists (by default it will not, as it is not a standard WordPress convention)
+		// we unload the existing translation, then essentially layer the custom translation on top of the canonical
+		// translation. Otherwise, we simply step back and let WP manage things.
+		if ( is_readable( $custom_translation_path ) ) {
+			unload_textdomain( 'shiptastic-for-woocommerce' );
+			load_textdomain( 'shiptastic-for-woocommerce', $custom_translation_path );
+			load_textdomain( 'shiptastic-for-woocommerce', $plugin_translation_path );
 		}
-
-		return $file;
-	}
-
-	protected static function get_german_language_variant( $locale ) {
-		if ( apply_filters( 'woocommerce_shiptastic_force_de_language', in_array( $locale, array( 'de_CH', 'de_CH_informal', 'de_AT' ), true ) ) ) {
-			$locale = apply_filters( 'woocommerce_shiptastic_german_language_variant_locale', 'de_DE' );
-		}
-
-		return $locale;
-	}
-
-	public static function support_german_language_variants( $locale, $domain ) {
-		if ( 'shiptastic-for-woocommerce' === $domain ) {
-			$locale = self::get_german_language_variant( $locale );
-		}
-
-		return $locale;
 	}
 
 	public static function get_locale_info( $country = '' ) {

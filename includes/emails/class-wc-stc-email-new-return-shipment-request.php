@@ -32,6 +32,9 @@ if ( ! class_exists( 'WC_STC_Email_New_Return_Shipment_Request', false ) ) :
 		 */
 		public $shipment;
 
+		/**
+		 * @var \Vendidero\Shiptastic\EmailLocale
+		 */
 		public $helper = null;
 
 		/**
@@ -45,6 +48,7 @@ if ( ! class_exists( 'WC_STC_Email_New_Return_Shipment_Request', false ) ) :
 			$this->template_html  = 'emails/admin-new-return-shipment-request.php';
 			$this->template_plain = 'emails/plain/admin-new-return-shipment-request.php';
 			$this->template_base  = Package::get_path() . '/templates/';
+			$this->helper         = wc_stc_get_email_locale_helper( $this );
 
 			$this->placeholders = array(
 				'{site_title}'      => $this->get_blogname(),
@@ -81,6 +85,18 @@ if ( ! class_exists( 'WC_STC_Email_New_Return_Shipment_Request', false ) ) :
 			return _x( 'New return request to: #{order_number}', 'shipments', 'shiptastic-for-woocommerce' );
 		}
 
+		public function setup_locale() {
+			parent::setup_locale();
+
+			$this->helper->setup_locale();
+		}
+
+		public function restore_locale() {
+			parent::restore_locale();
+
+			$this->helper->restore_locale();
+		}
+
 		/**
 		 * Trigger.
 		 *
@@ -90,7 +106,6 @@ if ( ! class_exists( 'WC_STC_Email_New_Return_Shipment_Request', false ) ) :
 			$this->setup_locale();
 
 			if ( $this->shipment = wc_stc_get_shipment( $shipment_id ) ) {
-
 				if ( 'return' !== $this->shipment->get_type() ) {
 					return;
 				}
