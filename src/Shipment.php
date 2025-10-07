@@ -2204,6 +2204,16 @@ abstract class Shipment extends WC_Data {
 		$this->set_prop( 'tracking_instruction', $tracking_instruction );
 	}
 
+	public function remove_tracking() {
+		$this->set_tracking_id( '' );
+		$this->set_tracking_url( '' );
+		$this->set_tracking_instruction( '' );
+
+		if ( $this->supports_label() && ( $label = $this->get_label() ) ) {
+			$label->delete( true );
+		}
+	}
+
 	/**
 	 * Set shipment tracking secret.
 	 *
@@ -2985,15 +2995,16 @@ abstract class Shipment extends WC_Data {
 	}
 
 	public function delete_label( $force = false ) {
-		if ( $this->supports_label() && ( $label = $this->get_label() ) ) {
-			$label->delete( $force );
-			$this->set_tracking_id( '' );
-			$this->save();
+		$result = false;
 
-			return true;
+		if ( $this->supports_label() && $this->get_label() ) {
+			$result = true;
 		}
 
-		return false;
+		$this->remove_tracking();
+		$this->save();
+
+		return $result;
 	}
 
 	/**
@@ -3155,6 +3166,27 @@ abstract class Shipment extends WC_Data {
 
 			if ( array_key_exists( 'packaging_id', $this->get_changes() ) || $this->is_editable() ) {
 				$this->update_packaging();
+			}
+
+			/**
+			 * Reset tracking information and delete (old) label when changing provider.
+			 */
+			if ( array_key_exists( 'shipping_provider', $this->get_changes() ) ) {
+				foreach ( array( 'tracking_id', 'tracking_url', 'tracking_instruction' ) as $tracking_field ) {
+					if ( ! array_key_exists( $tracking_field, $this->get_changes() ) ) {
+						$this->{"set_{$tracking_field}"}( '' );
+
+						if ( 'tracking_id' === $tracking_field ) {
+							$old_provider_name = $this->data['shipping_provider'];
+
+							if ( ! empty( $old_provider_name ) && ( $provider_instance = wc_stc_get_shipping_provider( $old_provider_name ) ) ) {
+								if ( $label = $provider_instance->get_label( $this ) ) {
+									$label->delete( true );
+								}
+							}
+						}
+					}
+				}
 			}
 
 			if ( $this->data_store ) {

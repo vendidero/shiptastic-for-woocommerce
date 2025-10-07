@@ -180,6 +180,8 @@ class SimpleShipment extends Shipment {
 			$default_provider_instance = wc_stc_get_order_shipping_provider( $order, $args['shipping_method'] );
 			$default_provider          = $default_provider_instance ? $default_provider_instance->get_name() : '';
 			$provider                  = $this->get_shipping_provider( 'edit' );
+			$provider_title            = $this->get_shipping_provider_title( 'edit' );
+			$default_provider          = ! empty( $provider_title ) ? '' : $default_provider; // In case a provider title has been set manually, do not override the provider.
 
 			$args = wp_parse_args(
 				$args,

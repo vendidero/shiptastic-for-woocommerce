@@ -20,7 +20,7 @@ class Sendcloud implements Compatibility {
 
 	/**
 	 * Check whether the note contains Sendcloud content and act accordingly.
-	 * Sample: The Austrian Post tracking number for this SendCloud shipment is: 1234567890 and can be traced at: {url}
+	 * Sample: The Austrian Post tracking number for this SendCloud shipment is: 1234567890 and can be traced at: http://sendcloud.com?tracking
 	 *
 	 * @param $data
 	 * @param $note_details
@@ -31,7 +31,7 @@ class Sendcloud implements Compatibility {
 		$data         = wp_parse_args(
 			$data,
 			array(
-				'content' => '',
+				'comment_content' => '',
 			)
 		);
 		$note_details = wp_parse_args(
@@ -41,13 +41,13 @@ class Sendcloud implements Compatibility {
 			)
 		);
 
-		if ( strstr( $data['content'], 'tracking number for this SendCloud shipment' ) ) {
+		if ( strstr( $data['comment_content'], 'tracking number for this SendCloud shipment' ) ) {
 			$tracking_number         = '';
 			$shipping_provider_title = '';
 			$tracking_url            = '';
 
 			if ( $shipment_order = wc_stc_get_shipment_order( $note_details['order_id'] ) ) {
-				preg_match( '/shipment is: ?([^\s]+)/', $data['content'], $matches );
+				preg_match( '/shipment is: ?([^\s]+)/', $data['comment_content'], $matches );
 
 				if ( 2 === count( $matches ) ) {
 					$tracking_number = $matches[1];
@@ -55,13 +55,13 @@ class Sendcloud implements Compatibility {
 					$tracking_number = preg_replace( '/[^A-Z0-9]/', '', $tracking_number ); // Remove non-alphanumeric characters.
 				}
 
-				preg_match( '/The (.*?) tracking number for/', $data['content'], $matches );
+				preg_match( '/The (.*?) tracking number for/', $data['comment_content'], $matches );
 
 				if ( 2 === count( $matches ) ) {
 					$shipping_provider_title = $matches[1];
 				}
 
-				preg_match( '/can be traced at: ?([^\s]+)/', $data['content'], $matches );
+				preg_match( '/can be traced at: ?([^\s]+)/', $data['comment_content'], $matches );
 
 				if ( 2 === count( $matches ) ) {
 					$tracking_url = sanitize_url( $matches[1] );
@@ -69,6 +69,7 @@ class Sendcloud implements Compatibility {
 
 				if ( ! empty( $tracking_number ) ) {
 					if ( $shipment = $shipment_order->get_last_shipment_without_tracking() ) {
+						$shipment->set_shipping_provider( '' );
 						$shipment->set_tracking_id( $tracking_number );
 
 						if ( ! empty( $shipping_provider_title ) ) {

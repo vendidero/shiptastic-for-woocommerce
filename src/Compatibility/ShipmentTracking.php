@@ -50,6 +50,7 @@ class ShipmentTracking implements Compatibility {
 		if ( ! empty( $tracking_item['tracking_number'] ) ) {
 			if ( $shipment_order = wc_stc_get_shipment_order( $order_id ) ) {
 				if ( $shipment = $shipment_order->get_last_shipment_without_tracking() ) {
+					$shipment->set_shipping_provider( '' );
 					$shipment->set_tracking_id( $tracking_item['tracking_number'] );
 
 					$provider_title = $tracking_item['custom_tracking_provider'] ? $tracking_item['custom_tracking_provider'] : $tracking_item['tracking_provider'];
@@ -89,7 +90,7 @@ class ShipmentTracking implements Compatibility {
 
 			if ( ! empty( $shipments ) ) {
 				foreach ( $shipments as $shipment ) {
-					$shipment->set_tracking_id( '' );
+					$shipment->remove_tracking();
 					$shipment->save();
 				}
 			}

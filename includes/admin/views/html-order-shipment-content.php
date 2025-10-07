@@ -78,10 +78,14 @@ defined( 'ABSPATH' ) || exit;
 				<label for="shipment-shipping-provider-<?php echo esc_attr( $shipment->get_id() ); ?>"><?php echo esc_html_x( 'Shipping Service Provider', 'shipments', 'shiptastic-for-woocommerce' ); ?></label>
 				<select class="shipment-shipping-provider-select" id="shipment-shipping-provider-<?php echo esc_attr( $shipment->get_id() ); ?>" name="shipment_shipping_provider[<?php echo esc_attr( $shipment->get_id() ); ?>]">
 					<?php
-					foreach ( wc_stc_get_shipping_provider_select() as $provider => $title ) :  // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
+					foreach ( wc_stc_get_shipping_provider_select() as $provider => $provider_title ) :  // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
 						$provider_instance = wc_stc_get_shipping_provider( $provider );
+
+						if ( '' === $provider && $shipment->get_shipping_provider_title() ) {
+							$provider_title = $shipment->get_shipping_provider_title();
+						}
 						?>
-						<option data-is-manual="<?php echo ( ( $provider_instance && $provider_instance->is_manual_integration() ) ? 'yes' : 'no' ); ?>" value="<?php echo esc_attr( $provider ); ?>" <?php selected( $provider, $shipment->get_shipping_provider(), true ); ?>><?php echo esc_html( $title ); ?></option>
+						<option data-is-manual="<?php echo ( ( $provider_instance && $provider_instance->is_manual_integration() ) ? 'yes' : 'no' ); ?>" value="<?php echo esc_attr( $provider ); ?>" <?php selected( $provider, $shipment->get_shipping_provider(), true ); ?>><?php echo esc_html( $provider_title ); ?></option>
 					<?php endforeach; ?>
 				</select>
 			</div>
