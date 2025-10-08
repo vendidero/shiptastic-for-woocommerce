@@ -789,7 +789,8 @@ tbody.packaging_list {
   &.status-partially-shipped,
   &.status-partially-ready-for-shipping,
   &.status-partially-delivered,
-  &.status-open,
+  &.status-no-return-needed,
+  &.status-not-returned,
   &.status-partially-returned {
     background: #f8dda7;
     color: #573b00;
@@ -805,7 +806,8 @@ tbody.packaging_list {
     color: #2c4700;
   }
 
-  &.shipment-type-return-status.status-shipped {
+  &.shipment-type-return-status.status-shipped,
+  &.order-return-status.status-shipped {
     background: #f8dda7;
     color: #573b00;
   }

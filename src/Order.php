@@ -153,7 +153,7 @@ class Order {
 		}
 	}
 
-	public function update_shipping_status( $new_status ) {
+	public function update_shipping_status( $new_status, $save = true ) {
 		if ( $new_status !== $this->get_shipping_status( 'edit' ) && in_array( $new_status, array_keys( wc_stc_get_shipment_order_shipping_statuses() ), true ) ) {
 			$this->get_order()->update_meta_data( '_shipping_status', $new_status );
 
@@ -171,7 +171,9 @@ class Order {
 				$this->get_order()->delete_meta_data( '_date_shipped' );
 			}
 
-			$this->get_order()->save();
+			if ( $save ) {
+				$this->get_order()->save();
+			}
 
 			return true;
 		}
@@ -235,6 +237,84 @@ class Order {
 		return $shipping_status;
 	}
 
+	public function update_return_status( $new_status, $save = true ) {
+		if ( $new_status !== $this->get_return_status( 'edit' ) && in_array( $new_status, array_keys( wc_stc_get_shipment_order_return_statuses() ), true ) ) {
+			$this->get_order()->update_meta_data( '_return_status', $new_status );
+
+			if ( 'returned' === $new_status ) {
+				$this->get_order()->update_meta_data( '_date_returned', time() );
+			}
+
+			if ( ! in_array( $new_status, array( 'returned' ), true ) ) {
+				$this->get_order()->delete_meta_data( '_date_returned' );
+			}
+
+			if ( $save ) {
+				$this->get_order()->save();
+			}
+
+			return true;
+		}
+
+		return false;
+	}
+
+	public function get_current_return_status() {
+		$status                  = 'not-returned';
+		$shipments               = $this->get_return_shipments();
+		$all_shipments_delivered = false;
+		$all_shipments_shipped   = false;
+		$all_shipments_requested = false;
+
+		if ( ! empty( $shipments ) ) {
+			$all_shipments_delivered = true;
+			$all_shipments_shipped   = true;
+			$all_shipments_requested = true;
+
+			foreach ( $shipments as $shipment ) {
+				if ( ! $shipment->has_status( 'delivered' ) ) {
+					$all_shipments_delivered = false;
+				} else {
+					$status = 'partially-returned';
+				}
+
+				if ( ! $shipment->is_shipped() ) {
+					$all_shipments_shipped = false;
+				} elseif ( ! in_array( $status, array( 'partially-returned' ), true ) ) {
+					$status = 'partially-shipped';
+				}
+
+				if ( ! $shipment->has_status( 'requested' ) ) {
+					$all_shipments_requested = false;
+				}
+			}
+		}
+
+		$needs_return_delivered_only = $this->needs_return( array( 'shipped_only' => true ) );
+
+		if ( $all_shipments_delivered && ! $needs_return_delivered_only ) {
+			$status = 'returned';
+		} elseif ( ! in_array( $status, array( 'partially-returned' ), true ) && ( $all_shipments_shipped && ! $needs_return_delivered_only ) ) {
+			$status = 'shipped';
+		} elseif ( ! in_array( $status, array( 'partially-returned', 'partially-shipped' ), true ) && ( $all_shipments_requested ) ) {
+			$status = 'requested';
+		} elseif ( ! in_array( $status, array( 'partially-returned', 'partially-shipped' ), true ) && ! $needs_return_delivered_only ) {
+			$status = 'no-return-needed';
+		}
+
+		return apply_filters( 'woocommerce_shiptastic_shipment_order_return_status', $status, $this );
+	}
+
+	public function get_return_status( $context = 'view' ) {
+		$return_status = $this->get_order()->get_meta( '_return_status', true, $context );
+
+		if ( 'view' === $context && '' === $return_status ) {
+			$return_status = $this->get_current_return_status();
+		}
+
+		return $return_status;
+	}
+
 	public function supports_third_party_email_transmission() {
 		$supports_email_transmission = Package::base_country_belongs_to_eu_customs_area() ? false : true;
 
@@ -280,26 +360,6 @@ class Order {
 		return false;
 	}
 
-	public function get_return_status() {
-		$status    = 'open';
-		$shipments = $this->get_return_shipments();
-
-		if ( ! empty( $shipments ) ) {
-			foreach ( $shipments as $shipment ) {
-				if ( $shipment->has_status( 'delivered' ) ) {
-					$status = 'partially-returned';
-					break;
-				}
-			}
-		}
-
-		if ( ! $this->needs_return( array( 'delivered_only' => true ) ) && $this->has_shipped_shipments() ) {
-			$status = 'returned';
-		}
-
-		return $status;
-	}
-
 	public function get_default_return_shipping_provider() {
 		$default_provider_instance = $this->get_shipping_provider();
 		$default_provider          = $default_provider_instance ? $default_provider_instance->get_name() : '';
@@ -342,7 +402,7 @@ class Order {
 		$method_ids          = array_keys( $this->get_order_item_packages( 'raw' ) );
 		$all_items           = $this->get_available_items_for_return(
 			array(
-				'shipping_method_id' => '',
+				'shipping_method_id' => 'all',
 				'items_requested'    => $items_requested,
 			)
 		);
@@ -1389,6 +1449,7 @@ class Order {
 			$args,
 			array(
 				'delivered_only'           => false,
+				'shipped_only'             => false,
 				'shipment_id'              => 0,
 				'exclude_current_shipment' => false,
 				'shipping_method_id'       => 'all',
@@ -1400,6 +1461,22 @@ class Order {
 
 		if ( $this->order_item_is_non_returnable( $order_item_id ) ) {
 			$quantity_left = 0;
+		}
+
+		foreach ( $this->get_return_shipments() as $shipment ) {
+			if ( $args['delivered_only'] && ! $shipment->has_status( 'delivered' ) ) {
+				continue;
+			} elseif ( $args['shipped_only'] && ! $shipment->is_shipped() ) {
+				continue;
+			}
+
+			if ( $args['exclude_current_shipment'] && $args['shipment_id'] > 0 && ( $shipment->get_id() === $args['shipment_id'] ) ) {
+				continue;
+			}
+
+			if ( $shipment_item = $shipment->get_item_by_order_item_id( $order_item_id ) ) {
+				$quantity_left -= absint( $shipment_item->get_quantity() );
+			}
 		}
 
 		if ( ! empty( $args['items_requested'] ) ) {
@@ -1422,20 +1499,6 @@ class Order {
 				$quantity_left = min( $quantity_left, $item_data['quantity'] );
 			} else {
 				$quantity_left = 0;
-			}
-		}
-
-		foreach ( $this->get_return_shipments() as $shipment ) {
-			if ( $args['delivered_only'] && ! $shipment->has_status( 'delivered' ) ) {
-				continue;
-			}
-
-			if ( $args['exclude_current_shipment'] && $args['shipment_id'] > 0 && ( $shipment->get_id() === $args['shipment_id'] ) ) {
-				continue;
-			}
-
-			if ( $shipment_item = $shipment->get_item_by_order_item_id( $order_item_id ) ) {
-				$quantity_left -= absint( $shipment_item->get_quantity() );
 			}
 		}
 
@@ -1520,7 +1583,7 @@ class Order {
 				}
 
 				if ( array_key_exists( $product_id, $method_items ) ) {
-					return absint( $method_items[ $product_id ] );
+					return absint( $method_items[ $product_id ]['quantity'] );
 				}
 			}
 		}
@@ -1698,6 +1761,7 @@ class Order {
 			$args,
 			array(
 				'delivered_only' => false,
+				'shipped_only'   => false,
 			)
 		);
 
@@ -1913,7 +1977,7 @@ class Order {
 					if ( $method_quantity > 0 ) {
 						$all_items[ $item_key ]['quantity'] -= $method_quantity;
 
-						if ( ! $this->has_local_pickup( $method_id ) ) {
+						if ( ! $this->has_local_pickup( $method_id ) || $this->create_shipments_for_local_pickup() ) {
 							if ( ! isset( $this->order_item_packages[ $method_id ] ) ) {
 								$this->order_item_packages[ $method_id ] = array();
 							}
@@ -2232,7 +2296,7 @@ class Order {
 			$has_pickup = in_array( $shipping_method->get_method_id(), $pickup_methods, true );
 		}
 
-		return $has_pickup;
+		return apply_filters( 'woocommerce_shiptastic_shipment_order_has_local_pickup', $has_pickup, $method_id, $this );
 	}
 
 	/**
@@ -2270,6 +2334,10 @@ class Order {
 		return apply_filters( 'woocommerce_shiptastic_shipment_order_has_auto_packing', $has_auto_packing, $this->get_order(), $this );
 	}
 
+	protected function create_shipments_for_local_pickup() {
+		return apply_filters( 'woocommerce_shiptastic_shipment_order_create_shipments_for_local_pickup', false, $this );
+	}
+
 	/**
 	 * Checks whether the order needs shipping or not by checking quantity
 	 * for every line item.
@@ -2290,7 +2358,7 @@ class Order {
 		$needs_shipping = false;
 		$has_pickup     = $this->has_local_pickup();
 
-		if ( ! $has_pickup ) {
+		if ( ! $has_pickup || $this->create_shipments_for_local_pickup() ) {
 			foreach ( $order_items as $order_item ) {
 				if ( $this->item_needs_shipping( $order_item, $args ) ) {
 					$needs_shipping = true;
@@ -2322,6 +2390,7 @@ class Order {
 			$args,
 			array(
 				'delivered_only' => false,
+				'shipped_only'   => false,
 			)
 		);
 
@@ -2366,6 +2435,8 @@ class Order {
 		if ( $cache = \Vendidero\Shiptastic\Caches\Helper::get_cache_object( 'shipment-orders' ) ) {
 			$cache->remove( $this->get_order()->get_id() );
 		}
+
+		$this->order = wc_get_order( $this->get_order()->get_id() );
 	}
 
 	/**

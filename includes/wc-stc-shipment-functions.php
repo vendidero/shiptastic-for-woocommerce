@@ -238,9 +238,14 @@ function wc_stc_get_shipment_order_shipping_statuses() {
 
 function wc_stc_get_shipment_order_return_statuses() {
 	$shipment_statuses = array(
-		'open'               => _x( 'Open', 'shipments', 'shiptastic-for-woocommerce' ),
-		'partially-returned' => _x( 'Partially returned', 'shipments', 'shiptastic-for-woocommerce' ),
-		'returned'           => _x( 'Returned', 'shipments', 'shiptastic-for-woocommerce' ),
+		'not-returned'        => _x( 'Not returned', 'shipments', 'shiptastic-for-woocommerce' ),
+		'partially-shipped'   => _x( 'Partially shipped', 'shipments', 'shiptastic-for-woocommerce' ),
+		'shipped'             => _x( 'Shipped', 'shipments', 'shiptastic-for-woocommerce' ),
+		'partially-returned'  => _x( 'Partially returned', 'shipments', 'shiptastic-for-woocommerce' ),
+		'returned'            => _x( 'Returned', 'shipments', 'shiptastic-for-woocommerce' ),
+		'partially-requested' => _x( 'Partially requested', 'shipments', 'shiptastic-for-woocommerce' ),
+		'requested'           => _x( 'Requested', 'shipments', 'shiptastic-for-woocommerce' ),
+		'no-return-needed'    => _x( 'No return needed', 'shipments', 'shiptastic-for-woocommerce' ),
 	);
 
 	/**

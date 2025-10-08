@@ -21,6 +21,13 @@ class MetaBox {
 			$id    = $shipment->get_id();
 			$props = array();
 
+			/**
+			 * Do not save/sync shipment in case form data is missing.
+			 */
+			if ( ! isset( $_POST['shipment_status'][ $id ] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Missing
+				continue;
+			}
+
 			// Update items
 			self::refresh_shipment_items( $order, $shipment );
 
@@ -93,6 +100,13 @@ class MetaBox {
 			foreach ( $shipment->get_items() as $item ) {
 				$item_id = $item->get_id();
 				$props   = array();
+
+				/**
+				 * Do not save/sync shipment item in case form data is missing.
+				 */
+				if ( ! isset( $_POST['shipment_item'][ $id ] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Missing
+					continue;
+				}
 
 				// Set quantity to 1 by default
 				if ( $shipment->is_editable() ) {

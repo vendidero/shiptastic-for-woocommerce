@@ -256,6 +256,7 @@ class Api {
 			array(
 				'shipments'                       => array(),
 				'shipping_status'                 => 'no-shipping-needed',
+				'return_status'                   => 'no-return-needed',
 				'shipping_provider'               => '',
 				'pickup_location_code'            => '',
 				'pickup_location_customer_number' => '',
@@ -274,6 +275,7 @@ class Api {
 			}
 
 			$response_order_data['shipping_status']                 = $order_shipment->get_shipping_status();
+			$response_order_data['return_status']                   = $order_shipment->get_return_status();
 			$response_order_data['shipping_provider']               = $provider ? $provider->get_name() : '';
 			$response_order_data['pickup_location_code']            = $order_shipment->get_pickup_location_code();
 			$response_order_data['pickup_location_customer_number'] = $order_shipment->get_pickup_location_customer_number();
@@ -297,6 +299,14 @@ class Api {
 
 		$schema_properties['shipping_status'] = array(
 			'description' => _x( 'Shipping status', 'shipments', 'shiptastic-for-woocommerce' ),
+			'type'        => 'string',
+			'enum'        => $statuses,
+			'context'     => array( 'view', 'edit' ),
+			'readonly'    => true,
+		);
+
+		$schema_properties['return_status'] = array(
+			'description' => _x( 'Return status', 'shipments', 'shiptastic-for-woocommerce' ),
 			'type'        => 'string',
 			'enum'        => $statuses,
 			'context'     => array( 'view', 'edit' ),
