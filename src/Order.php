@@ -1351,7 +1351,6 @@ class Order {
 				'shipment_id'              => 0,
 				'exclude_current_shipment' => false,
 				'shipping_method_id'       => 'all',
-				'exclude_local_pickup'     => true,
 			)
 		);
 
@@ -1605,7 +1604,6 @@ class Order {
 				'sent_only'                => false,
 				'exclude_current_shipment' => false,
 				'shipping_method_id'       => 'all',
-				'exclude_local_pickup'     => true,
 			)
 		);
 

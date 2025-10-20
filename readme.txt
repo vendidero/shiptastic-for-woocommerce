@@ -47,6 +47,13 @@ We recommend installing Shiptastic for WooCommerce through the WordPress Backend
 3. Manage returns
 
 == Changelog ==
+= 4.8.0 =
+* Improvement: WPML (Email) compatibility
+* Improvement: Do not remove local pickup for separately shipped products
+* Improvement: Extend shipment data schema to allow manually supplying tracking URL, instructions and provider title
+* Improvement: Parse Sendcloud order notes and update shipment(s)
+* Improvement: Persist the order return status just like the shipping status
+
 = 4.7.1 =
 * Fix: Fallback to default shipping provider for orders
 
