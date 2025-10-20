@@ -3,16 +3,16 @@ Contributors: vendidero, vdwoocommercesupport
 Tags: shipping, woocommerce, shipments, rules, woo
 Requires at least: 5.4
 Tested up to: 6.8
-Stable tag: 4.7.1
+Stable tag: 4.8.0
 Requires PHP: 5.6
 License: GPLv3
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
 
-Shiptastic for WooCommerce is your all-in-one shipping solution for WooCommerce. From partial shipments to shipping rules, Shiptastic got you covered.
+Shiptastic for WooCommerce is your all-in-one shipping and fulfillment solution for WooCommerce covering (partial) shipments and return management.
 
 == Description ==
 
-Shiptastic for WooCommerce is your all-in-one shipping solution for WooCommerce. From partial shipments to shipping rules, Shiptastic got you covered.
+Shiptastic for WooCommerce is your all-in-one shipping and fulfillment solution for WooCommerce covering (partial) shipments and return management.
 
 * *Shipments* - Create (partial) shipments for orders - either automatically or by hand.
 * *Returns* - Allow your customers to submit return requests for orders. Review and process requests from within your admin panel.
@@ -23,6 +23,10 @@ Shiptastic for WooCommerce is your all-in-one shipping solution for WooCommerce.
 = UPS® integration =
 
 Shiptastic comes with a ready-made [integration for UPS](https://wordpress.org/plugins/shiptastic-integration-for-ups). Navigate to WooCommerce > Settings > Shiptastic > Shipping Service Providers and install UPS to create labels for Shipments & Returns right from your dashboard and provide your customers with an easy way to select UPS Access Point™ delivery from within your checkout.
+
+= DHL & Deutsche Post integration =
+
+Business customers from Germany benefit from our [integration for DHL & Deutsche Post](https://wordpress.org/plugins/shiptastic-integration-for-dhl). Navigate to WooCommerce > Settings > Shiptastic > Shipping Service Providers and install DHL to create labels for Shipments & Returns right from your dashboard and provide your customers with an easy way to select Packstation/Postfiliale/Paketshop delivery from within your checkout.
 
 == Installation ==
 

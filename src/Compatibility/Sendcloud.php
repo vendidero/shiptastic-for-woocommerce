@@ -88,7 +88,11 @@ class Sendcloud implements Compatibility {
 							}
 						}
 
-						$shipment->save();
+						if ( apply_filters( 'woocommerce_shiptastic_sencloud_mark_shipment_as_shipped', false, $shipment ) ) {
+							$shipment->update_status( 'shipped' );
+						} else {
+							$shipment->save();
+						}
 					}
 				}
 			}

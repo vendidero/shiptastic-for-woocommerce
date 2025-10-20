@@ -6,13 +6,13 @@
  * Author: vendidero
  * Author URI: https://vendidero.com
  * Text Domain: shiptastic-for-woocommerce
- * Version: 4.7.1
+ * Version: 4.8.0
  * Requires at least: 5.4
  * Requires PHP: 5.6
  * License: GPLv3
  * Requires Plugins: woocommerce
  * WC requires at least: 3.9
- * WC tested up to: 10.1
+ * WC tested up to: 10.2
  */
 defined( 'ABSPATH' ) || exit;
 

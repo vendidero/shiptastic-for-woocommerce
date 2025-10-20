@@ -74,7 +74,7 @@ class Validation {
 									if ( $old_shipping_status !== $new_shipping_status ) {
 										do_action( 'woocommerce_shiptastic_order_shipping_status_' . $new_shipping_status, $order->get_id(), $order );
 
-										if ( 'shipped' === $new_shipping_status ) {
+										if ( 'shipped' === $new_shipping_status || ( 'delivered' === $new_shipping_status && in_array( $old_shipping_status, array( 'not-shipped', 'ready-for-shipping' ), true ) ) ) {
 											/**
 											 * Action that fires as soon as an order has been shipped completely.
 											 * That is the case when the order contains all relevant shipments and all the shipments are marked as shipped.
