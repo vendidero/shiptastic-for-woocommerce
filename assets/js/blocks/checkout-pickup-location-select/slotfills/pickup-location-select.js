@@ -307,6 +307,7 @@ const render = () => {
     const { setShippingAddress, updateCustomerData } = useDispatch( CART_STORE_KEY );
 
     const checkoutOptions = getCheckoutData();
+
     const isAvailable = pickupLocationDeliveryAvailable && needsShipping;
 
     const availableLocations = useMemo(
@@ -384,10 +385,8 @@ const render = () => {
         ]
     );
 
-    const setOption = useCallback( ( option, value ) => {
-        const updatedOptions = { ...checkoutOptions };
-
-        updatedOptions[ option ] = value;
+    const setOptions = useCallback( ( values ) => {
+        const updatedOptions = { ...checkoutOptions, ...values };
 
         if ( ! updatedOptions['pickup_location'] ) {
             updatedOptions['pickup_location_customer_number'] = '';
@@ -396,10 +395,59 @@ const render = () => {
         dispatch( CHECKOUT_STORE_KEY ).setExtensionData( 'woocommerce-shiptastic', updatedOptions );
     }, [ checkoutOptions ] );
 
+    const setOption = useCallback( ( option, value ) => {
+        setOptions( { [option]: value } );
+    }, [ checkoutOptions, setOptions ] );
+
+    const onRemovePickupLocation = useCallback( () => {
+        setOption( 'pickup_location', '' );
+        dispatch( 'core/notices' ).createNotice(
+            'warning',
+            _x( 'Please review your shipping address.', 'shipments', 'shiptastic-for-woocommerce' ),
+            {
+                id: 'wc-shiptastic-review-shipping-address',
+                context: 'wc/checkout/shipping-address',
+            }
+        );
+    }, [
+        availableLocationsByCode,
+        shippingAddress,
+        checkoutOptions
+    ] );
+
+    const onChangePickupLocation = useCallback( ( pickupLocation ) => {
+        if ( availableLocationsByCode.hasOwnProperty( pickupLocation ) ) {
+            setOption( 'pickup_location', pickupLocation );
+            setPickupLocationSearchAddress( { 'address_1': '' } );
+
+            __internalSetUseShippingAsBilling( false );
+
+            const { removeNotice } = dispatch( 'core/notices' );
+
+            removeNotice( 'wc-shiptastic-review-shipping-address', 'wc/checkout/shipping-address' );
+            removeNotice( 'wc-shiptastic-pickup-location-missing', 'wc/checkout/shipping-address' );
+        } else if ( ! pickupLocation ) {
+            onRemovePickupLocation();
+        } else {
+            setOption( 'pickup_location', '' );
+        }
+    }, [
+        availableLocationsByCode,
+        setPickupLocationSearchAddress,
+        shippingAddress,
+        checkoutOptions
+    ] );
+
+    const onChangePickupLocationCustomerNumber = useCallback( ( customerNumber ) => {
+        setOption( 'pickup_location_customer_number', customerNumber );
+    }, [ checkoutOptions ] );
+
     useEffect(() => {
         if ( pickupLocationDeliveryAvailable && getLocationByCode( defaultPickupLocation ) ) {
-            setOption( 'pickup_location', defaultPickupLocation );
-            setOption( 'pickup_location_customer_number', defaultCustomerNumber );
+            setOptions( {
+                'pickup_location': defaultPickupLocation,
+                'pickup_location_customer_number': defaultCustomerNumber
+            } );
         }
     }, [
         defaultPickupLocation
@@ -538,49 +586,6 @@ const render = () => {
         pickupLocationSearchAddress,
         setIsSearchingPickupLocation
     ] );
-
-    const onRemovePickupLocation = useCallback( () => {
-        setOption( 'pickup_location', '' );
-        dispatch( 'core/notices' ).createNotice(
-            'warning',
-            _x( 'Please review your shipping address.', 'shipments', 'shiptastic-for-woocommerce' ),
-            {
-                id: 'wc-shiptastic-review-shipping-address',
-                context: 'wc/checkout/shipping-address',
-            }
-        );
-    }, [
-        availableLocationsByCode,
-        shippingAddress,
-        checkoutOptions
-    ] );
-
-    const onChangePickupLocation = useCallback( ( pickupLocation ) => {
-        if ( availableLocationsByCode.hasOwnProperty( pickupLocation ) ) {
-            setOption( 'pickup_location', pickupLocation );
-            setPickupLocationSearchAddress( { 'address_1': '' } );
-
-            __internalSetUseShippingAsBilling( false );
-
-            const { removeNotice } = dispatch( 'core/notices' );
-
-            removeNotice( 'wc-shiptastic-review-shipping-address', 'wc/checkout/shipping-address' );
-            removeNotice( 'wc-shiptastic-pickup-location-missing', 'wc/checkout/shipping-address' );
-        } else if ( ! pickupLocation ) {
-            onRemovePickupLocation();
-        } else {
-            setOption( 'pickup_location', '' );
-        }
-    }, [
-        availableLocationsByCode,
-        setPickupLocationSearchAddress,
-        shippingAddress,
-        checkoutOptions
-    ] );
-
-    const onChangePickupLocationCustomerNumber = useCallback( ( customerNumber ) => {
-        setOption( 'pickup_location_customer_number', customerNumber );
-    }, [ checkoutOptions ] );
 
     useEffect(() => {
         const currentShippingProviders = getSelectedShippingProviders( shippingRates );

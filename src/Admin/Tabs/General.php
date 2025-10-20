@@ -250,6 +250,24 @@ class General extends Tab {
 		return $settings;
 	}
 
+	protected function after_save( $settings, $current_section = '' ) {
+		parent::after_save( $settings, $current_section );
+
+		if ( 'business_information' === $current_section ) {
+			if ( ! isset( $_POST['woocommerce_shiptastic_use_alternate_return'] ) ) {
+				$return_fields = wc_stc_get_shipment_setting_address_fields( 'return' );
+
+				foreach ( $return_fields as $field => $value ) {
+					if ( in_array( $field, $this->get_address_fields_to_skip(), true ) ) {
+						continue;
+					}
+
+					delete_option( "woocommerce_shiptastic_return_address_{$field}" );
+				}
+			}
+		}
+	}
+
 	protected function get_automation_settings() {
 		$statuses = array_diff_key( wc_stc_get_shipment_statuses(), array_flip( array( 'requested' ) ) );
 
