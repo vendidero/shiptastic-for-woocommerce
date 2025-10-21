@@ -12,7 +12,7 @@
  * License: GPLv3
  * Requires Plugins: woocommerce
  * WC requires at least: 3.9
- * WC tested up to: 10.2
+ * WC tested up to: 10.3
  */
 defined( 'ABSPATH' ) || exit;
 
