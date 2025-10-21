@@ -3,22 +3,33 @@ Contributors: vendidero, vdwoocommercesupport
 Tags: shipping, woocommerce, shipments, rules, woo
 Requires at least: 5.4
 Tested up to: 6.8
-Stable tag: 4.8.0
+Stable tag: 4.8.1
 Requires PHP: 5.6
 License: GPLv3
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
 
-Shiptastic for WooCommerce is your all-in-one shipping and fulfillment solution for WooCommerce covering (partial) shipments and return management.
+Shiptastic for WooCommerce is your all-in-one shipping and fulfillment solution for WooCommerce.
 
 == Description ==
 
-Shiptastic for WooCommerce is your all-in-one shipping and fulfillment solution for WooCommerce covering (partial) shipments and return management.
+Shiptastic for WooCommerce is your all-in-one shipping and fulfillment solution for WooCommerce covering (partial) shipments, return management & much more.
 
 * *Shipments* - Create (partial) shipments for orders - either automatically or by hand.
 * *Returns* - Allow your customers to submit return requests for orders. Review and process requests from within your admin panel.
 * *Packaging* - Store your packaging options to allow Shiptastic to pack your customer's cart/order based on your available options.
 * *Shipping Rules* - Create complex shipping scenarios and calculate shipping costs based on your packaging options.
 * *Shipping Service Providers* - Either use one of our available provider integrations or manually add you shipping service provider.
+
+= Order Fulfillment =
+
+With Shiptastic for WooCommerce you may fulfill your orders right from your WooCommerce backend instead of relying on expensive third-party services.
+Create shipments, either automatically or manually, which sync all necessary data (e.g. packaging, weight, dimensions) based on your products and
+choose different shipping service providers to create labels. Send notifications to your customers with tracking links and descriptions as soon as a shipment is marked as shipped.
+
+= Handle returns with ease =
+
+Shiptastic for WooCommerce makes accepting returns easier for you and your customers. Allow your customers (guest and registered customers) to create return requests for applicable orders which you may either automatically accept or manually approve.
+Notify your customers about return shipments and send return instructions, including return labels, to your customers. Optionally charge a fee for a return which will be automatically deducted from the refund created to the return shipment.
 
 = UPS® integration =
 
@@ -27,6 +38,16 @@ Shiptastic comes with a ready-made [integration for UPS](https://wordpress.org/p
 = DHL & Deutsche Post integration =
 
 Business customers from Germany benefit from our [integration for DHL & Deutsche Post](https://wordpress.org/plugins/shiptastic-integration-for-dhl). Navigate to WooCommerce > Settings > Shiptastic > Shipping Service Providers and install DHL to create labels for Shipments & Returns right from your dashboard and provide your customers with an easy way to select Packstation/Postfiliale/Paketshop delivery from within your checkout.
+
+== Frequently Asked Questions ==
+
+= Where can I find the docs? =
+Find the [docs](https://vendidero.com/doc/shiptastic/home-shiptastic) on our website.
+
+= How to accept return requests from guests? =
+Make sure that you've created a page with the [shiptastic_return_request_form] shortcode. This shortcode will provide
+customers (guests, registered customers) with a form to submit a return requests to an order applicable. Also make sure that the
+shipping service provider linked to the order/shipment has the return options enabled.
 
 == Installation ==
 
@@ -44,9 +65,16 @@ We recommend installing Shiptastic for WooCommerce through the WordPress Backend
 
 1. Manage shipments
 2. Create shipping scenarios
-3. Manage returns
+3. Order Fulfillment
+4. Customer return requests
+5. Pickup location delivery
+6. Manage returns
 
 == Changelog ==
+= 4.8.1 =
+* Fix: Pickup location select for existing customers
+* Fix: Reset shipper return address in case not used
+
 = 4.8.0 =
 * Improvement: WPML (Email) compatibility
 * Improvement: Do not remove local pickup for separately shipped products
