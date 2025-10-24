@@ -53,6 +53,7 @@ class Ajax {
 			'confirm_return_request',
 			'create_return_page',
 			'calculate_return_costs',
+			'json_search_shipping_providers',
 		);
 
 		$ajax_nopriv_events = array(
@@ -79,6 +80,31 @@ class Ajax {
 		}
 
 		$GLOBALS['wpdb']->hide_errors();
+	}
+
+	public static function json_search_shipping_providers() {
+		check_ajax_referer( 'search-shipping-providers', 'security' );
+
+		if ( ! current_user_can( 'manage_woocommerce' ) || ! isset( $_REQUEST['provider'] ) ) {
+			wp_die( -1 );
+		}
+
+		$provider_search = wc_clean( wp_unslash( $_REQUEST['provider'] ) );
+		$search_results  = array();
+
+		foreach ( Helper::instance()->get_known_shipping_providers() as $slug => $provider ) {
+			if ( strstr( strtolower( $provider->get_title() ), strtolower( $provider_search ) ) ) {
+				$search_results[ $slug ] = array(
+					'id'           => esc_html( $slug ),
+					'text'         => esc_html( $provider->get_title() ),
+					'slug'         => esc_html( $slug ),
+					'icon'         => esc_url_raw( $provider->get_icon() ),
+					'tracking_url' => esc_url_raw( $provider->get_default_tracking_url_placeholder() ),
+				);
+			}
+		}
+
+		wp_send_json( $search_results );
 	}
 
 	public static function send_return_shipment_notification_email() {

@@ -11,9 +11,82 @@ window.shiptastic.admin = window.shiptastic.admin || {};
 
             $( document )
                 .on( 'change shiptastic_show_or_hide_fields', 'table.form-table :input[id]', self.onChangeInput )
-                .on( 'click', '.wc_input_table a.add', self.onAddInputRow );
+                .on( 'click', '.wc_input_table a.add', self.onAddInputRow )
+                .on( 'change', '.stc-search-shipping-provider', self.onChangeProviderSearch );
+
+            try {
+                $( document.body ).on( 'wc-enhanced-select-init wc-stc-enhanced-select-init', self.onEnhancedSelectInit ).trigger( 'wc-stc-enhanced-select-init' );
+            } catch( err ) {
+                // If select2 failed (conflict?) log the error but don't stop other scripts breaking.
+                window.console.log( err );
+            }
 
             $( 'table.form-table :input[id]' ).trigger( 'shiptastic_show_or_hide_fields' );
+        },
+
+        onChangeProviderSearch: function() {
+            let data = $( this ).find( ':selected' ).data( 'data' );
+
+            if ( data.hasOwnProperty( 'text' ) && data.text ) {
+                $( '#shipping_provider_title' ).val( data.text );
+            }
+
+            if ( data.hasOwnProperty( 'tracking_url' ) && data.tracking_url ) {
+                $( '#shipping_provider_tracking_url_placeholder' ).val( data.tracking_url );
+            }
+        },
+
+        onEnhancedSelectInit: function() {
+            var self = shipments.admin.shipment_settings;
+
+            function display_result( self, select2_args ) {
+                $( self ).selectWoo( select2_args ).addClass( 'enhanced' );
+            }
+
+            $( ':input.stc-search-shipping-provider' ).filter( ':not(.enhanced)' ).each( function() {
+                let select2_args = {
+                    allowClear:  $( this ).data( 'allow_clear' ) ? true : false,
+                    placeholder: $( this ).data( 'placeholder' ),
+                    minimumInputLength: $( this ).data( 'minimum_input_length' ) ? $( this ).data( 'minimum_input_length' ) : '1',
+                    templateResult: function( provider ) {
+                        if ( ! provider.icon ) {
+                            return provider.text;
+                        }
+
+                        return $(
+                            '<span class="stc-provider-result-wrapper"><img src="' + provider.icon +'" class="provider-icon" /> ' + provider.text + '</span>'
+                        );
+                    },
+                    ajax: {
+                        url:         self.params.ajax_url,
+                        dataType:    'json',
+                        delay:       250,
+                        data:        function( params ) {
+                            return {
+                                provider     : params.term,
+                                action       : $( this ).data( 'action' ) || 'woocommerce_stc_json_search_shipping_providers',
+                                security     : self.params.search_shipping_providers_nonce,
+                                exclude      : $( this ).data( 'exclude' ),
+                                limit        : $( this ).data( 'limit' ),
+                            };
+                        },
+                        processResults: function( data ) {
+                            let providers = [];
+                            if ( data && ! data.error ) {
+                                $.each( data, function( index, provider ) {
+                                    providers.push( provider );
+                                } );
+                            }
+                            return {
+                                results: providers,
+                            };
+                        },
+                        cache: true
+                    }
+                };
+
+                display_result( this, select2_args );
+            });
         },
 
         onAddInputRow: function() {

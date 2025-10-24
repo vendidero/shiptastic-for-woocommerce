@@ -18,7 +18,7 @@ interface ShippingProvider {
 
 	public function get_supported_features();
 
-	public function get_logo_path();
+	public function get_icon();
 
 	public function get_section_help_link( $section );
 
@@ -54,6 +54,8 @@ interface ShippingProvider {
 	public function get_title( $context = 'view' );
 
 	public function get_name( $context = 'view' );
+
+	public function get_original_name( $context = 'view' );
 
 	public function get_description( $context = 'view' );
 

@@ -1,4 +1,7 @@
 <?php
+
+use Vendidero\Shiptastic\Package;
+
 defined( 'ABSPATH' ) || exit;
 
 $features     = \Vendidero\Shiptastic\ShippingProvider\Helper::instance()->get_features();
@@ -22,7 +25,7 @@ $new_provider = new \Vendidero\Shiptastic\ShippingProvider\Simple();
 					<div class="wc-shiptastic-wizard-list-item wc-shiptastic-wizard-provider <?php echo esc_attr( $provider->is_pro() ? 'is-pro' : '' ); ?>">
 						<div class="list-item-content">
 							<div class="list-item-left">
-								<h3><?php echo esc_html( $provider->get_title() ); ?></h3>
+								<h3><?php echo wp_kses_post( $provider->get_title() ); ?></h3>
 
 								<ul class="wizard-features">
 									<?php foreach ( $provider->get_supported_features() as $feature ) : ?>
@@ -30,9 +33,9 @@ $new_provider = new \Vendidero\Shiptastic\ShippingProvider\Simple();
 									<?php endforeach; ?>
 								</ul>
 							</div>
-							<?php if ( $provider_icon = $provider->get_logo_path() ) : ?>
+							<?php if ( $provider_icon = $provider->get_icon() ) : ?>
 								<div class="list-item-right">
-									<span class="wc-stc-provider-icon"><?php include $provider_icon; ?></span>
+									<span class="wc-stc-provider-icon"><img alt="<?php echo esc_attr( $provider->get_title() ); ?>" src="<?php echo esc_url( $provider_icon ); ?>" /></span>
 								</div>
 							<?php endif; ?>
 						</div>
@@ -58,11 +61,29 @@ $new_provider = new \Vendidero\Shiptastic\ShippingProvider\Simple();
 			<table class="wc-shiptastic-wizard-settings form-table shipping-provider-settings">
 				<tbody>
 				<?php
-				WC_Admin_Settings::output_fields(
+				$settings = array();
+
+				if ( Package::woo_supports_providers() ) {
+					$settings = array_merge(
+						$settings,
+						array(
+							array(
+								'title'    => _x( 'Shipping Provider', 'shipments', 'shiptastic-for-woocommerce' ),
+								'desc_tip' => _x( 'Start from a known shipping provider or provide the settings yourself.', 'shipments', 'shiptastic-for-woocommerce' ),
+								'id'       => 'shipping_provider_original_name',
+								'default'  => '',
+								'type'     => 'shiptastic_search_shipping_provider',
+							),
+						)
+					);
+				}
+
+				$settings = array_merge(
+					$settings,
 					array(
 						array(
 							'title'       => _x( 'Title', 'shipments', 'shiptastic-for-woocommerce' ),
-							'id'          => 'new_shipping_provider_title',
+							'id'          => 'shipping_provider_title',
 							'placeholder' => '',
 							'value'       => '',
 							'type'        => 'text',
@@ -70,13 +91,15 @@ $new_provider = new \Vendidero\Shiptastic\ShippingProvider\Simple();
 						array(
 							'title'       => _x( 'Tracking URL', 'shipments', 'shiptastic-for-woocommerce' ),
 							'desc'        => '<div class="wc-shiptastic-additional-desc">' . sprintf( _x( 'Adjust the placeholder used to construct the tracking URL for this shipping provider. You may use on of the following placeholders to insert the tracking id or other dynamic data: %s', 'shipments', 'shiptastic-for-woocommerce' ), implode( ', ', array_slice( array_keys( $new_provider->get_tracking_placeholders() ), 0, 3 ) ) ) . '</div>',
-							'id'          => 'new_shipping_provider_tracking_url_placeholder',
+							'id'          => 'shipping_provider_tracking_url_placeholder',
 							'placeholder' => 'https://wwwapps.ups.com/tracking/tracking.cgi?tracknum={tracking_id}',
 							'value'       => '',
 							'type'        => 'text',
 						),
 					)
 				);
+
+				WC_Admin_Settings::output_fields( $settings );
 				?>
 				</tbody>
 			</table>

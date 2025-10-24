@@ -10,6 +10,7 @@ use Exception;
 use Vendidero\Shiptastic\Admin\Settings;
 use Vendidero\Shiptastic\Interfaces\ShipmentLabel;
 use Vendidero\Shiptastic\Interfaces\ShippingProvider;
+use Vendidero\Shiptastic\Package;
 use Vendidero\Shiptastic\SecretBox;
 use Vendidero\Shiptastic\Shipment;
 use Vendidero\Shiptastic\ShipmentError;
@@ -59,6 +60,11 @@ class Simple extends WC_Data implements ShippingProvider {
 	protected $print_formats = null;
 
 	/**
+	 * @var null|Placeholder
+	 */
+	protected $original_shipping_provider = null;
+
+	/**
 	 * Stores provider data.
 	 *
 	 * @var array
@@ -67,6 +73,7 @@ class Simple extends WC_Data implements ShippingProvider {
 		'activated'                  => false,
 		'title'                      => '',
 		'name'                       => '',
+		'original_name'              => '',
 		'description'                => '',
 		'order'                      => 0,
 		'supports_customer_returns'  => false,
@@ -123,6 +130,14 @@ class Simple extends WC_Data implements ShippingProvider {
 	public function __clone() {}
 
 	public function get_help_link() {
+		return '';
+	}
+
+	public function get_icon() {
+		if ( $original = $this->get_original_provider() ) {
+			return $original->get_icon();
+		}
+
 		return '';
 	}
 
@@ -254,6 +269,29 @@ class Simple extends WC_Data implements ShippingProvider {
 	 */
 	public function get_name( $context = 'view' ) {
 		return $this->get_prop( 'name', $context );
+	}
+
+	/**
+	 * Returns the original name (slug), e.g. dhl for the shipping provider.
+	 *
+	 * @param string $context
+	 *
+	 * @return string
+	 */
+	public function get_original_name( $context = 'view' ) {
+		return $this->get_prop( 'original_name', $context );
+	}
+
+	public function get_original_provider( $context = 'view' ) {
+		if ( is_null( $this->original_shipping_provider ) ) {
+			$this->original_shipping_provider = false;
+
+			if ( $original_name = $this->get_original_name( $context ) ) {
+				$this->original_shipping_provider = Helper::instance()->get_known_shipping_provider( $original_name );
+			}
+		}
+
+		return $this->original_shipping_provider;
 	}
 
 	/**
@@ -672,6 +710,17 @@ class Simple extends WC_Data implements ShippingProvider {
 	}
 
 	/**
+	 * Set the name of the current shipping provider.
+	 *
+	 * @param string $name
+	 */
+	public function set_original_name( $name ) {
+		$this->set_prop( 'original_name', $name );
+
+		$this->original_shipping_provider = null;
+	}
+
+	/**
 	 * Set the title of the current shipping provider.
 	 *
 	 * @param string $title
@@ -884,6 +933,22 @@ class Simple extends WC_Data implements ShippingProvider {
 		);
 
 		if ( $this->is_manual_integration() ) {
+			if ( Package::woo_supports_providers() ) {
+				$settings = array_merge(
+					$settings,
+					array(
+						array(
+							'title'    => _x( 'Shipping Provider', 'shipments', 'shiptastic-for-woocommerce' ),
+							'desc_tip' => _x( 'Start from a known shipping provider or provide the settings yourself.', 'shipments', 'shiptastic-for-woocommerce' ),
+							'id'       => 'shipping_provider_original_name',
+							'value'    => $this->get_original_name( 'edit' ),
+							'default'  => '',
+							'type'     => 'shiptastic_search_shipping_provider',
+						),
+					)
+				);
+			}
+
 			$settings = array_merge(
 				$settings,
 				array(

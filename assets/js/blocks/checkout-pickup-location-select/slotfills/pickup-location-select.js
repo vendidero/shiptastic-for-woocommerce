@@ -161,7 +161,7 @@ const PickupLocationSelectForm = ({
 
     if (isAvailable) {
         return (
-            <div className="wc-shiptastic-pickup-location-delivery">
+            <div className="wc-shiptastic-pickup-location-delivery" id="wc-shiptastic-choose-pickup-location">
                 {!currentPickupLocation && (
                     <h4>
                         <span
@@ -616,7 +616,7 @@ const render = () => {
                 pickupLocationOptions={pickupLocationOptions}
                 getPickupLocationByCode={getLocationByCode}
                 isAvailable={isAvailable}
-                isSearching={ isSearchingPickupLocation }
+                isSearching={isSearchingPickupLocation}
                 onRemovePickupLocation={onRemovePickupLocation}
                 currentPickupLocation={currentPickupLocation}
                 onChangePickupLocation={onChangePickupLocation}

@@ -126,13 +126,14 @@ class Wizard {
 				'name'    => _x( 'Shipping Service Provider', 'shipments', 'shiptastic-for-woocommerce' ),
 				'order'   => 30,
 				'handler' => function () {
-					$new_title = isset( $_POST['new_shipping_provider_title'] ) ? wc_clean( wp_unslash( $_POST['new_shipping_provider_title'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing
+					$new_title = isset( $_POST['shipping_provider_title'] ) ? wc_clean( wp_unslash( $_POST['shipping_provider_title'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing
 
 					if ( ! empty( $new_title ) ) {
 						wc_stc_create_shipping_provider(
 							array(
 								'title'                    => $new_title,
-								'tracking_url_placeholder' => isset( $_POST['new_shipping_provider_tracking_url_placeholder'] ) ? wc_clean( wp_unslash( $_POST['new_shipping_provider_tracking_url_placeholder'] ) ) : '', // phpcs:ignore WordPress.Security.NonceVerification.Missing
+								'original_name'            => isset( $_POST['shipping_provider_original_name'] ) ? wc_clean( wp_unslash( $_POST['shipping_provider_original_name'] ) ) : '', // phpcs:ignore WordPress.Security.NonceVerification.Missing
+								'tracking_url_placeholder' => isset( $_POST['shipping_provider_tracking_url_placeholder'] ) ? wc_clean( wp_unslash( $_POST['shipping_provider_tracking_url_placeholder'] ) ) : '', // phpcs:ignore WordPress.Security.NonceVerification.Missing
 							)
 						);
 					}
@@ -287,6 +288,8 @@ class Wizard {
 
 		set_current_screen( 'wc-shiptastic-setup' );
 
+		do_action( 'woocommerce_shiptastic_before_setup_wizard' );
+
 		ob_start();
 		?>
 		<!DOCTYPE html>
@@ -338,6 +341,8 @@ class Wizard {
 		</body>
 		</html>
 		<?php
+
+		do_action( 'woocommerce_shiptastic_after_setup_wizard' );
 		exit;
 	}
 

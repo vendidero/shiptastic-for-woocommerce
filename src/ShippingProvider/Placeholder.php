@@ -13,12 +13,14 @@ class Placeholder extends Auto {
 	protected $placeholder_args;
 
 	public function __construct( $data = 0, $args = array() ) {
-		$this->placeholder_args = wp_parse_args(
+		$args = wp_parse_args(
 			$args,
 			array(
 				'title'                                  => '',
 				'name'                                   => '',
 				'description'                            => '',
+				'tracking_url_placeholder'               => '',
+				'icon'                                   => '',
 				'countries_supported'                    => array(),
 				'is_pro'                                 => false,
 				'is_builtin'                             => false,
@@ -30,29 +32,42 @@ class Placeholder extends Auto {
 			)
 		);
 
-		if ( empty( $this->placeholder_args['name'] ) ) {
-			$this->placeholder_args['name'] = str_replace( '-', '_', sanitize_title( $this->placeholder_args['title'] ) );
+		if ( empty( $args['name'] ) ) {
+			$args['name'] = str_replace( '-', '_', sanitize_title( $args['title'] ) );
 		}
 
+		$this->set_placeholder_args( $args );
+
 		parent::__construct( $data );
+	}
+
+	public function set_placeholder_args( $args ) {
+		foreach ( $args as $arg => $value ) {
+			$this->placeholder_args[ $arg ] = $value;
+		}
 	}
 
 	public function get_edit_link( $section = '' ) {
 		return '';
 	}
 
-	public function get_logo_path() {
-		$logo_path    = sanitize_file_name( "{$this->get_original_name()}.svg" );
-		$default_path = Package::get_path( "assets/icons/{$logo_path}" );
+	public function get_icon() {
+		$icon_file    = sanitize_file_name( "{$this->get_original_name()}.svg" );
+		$default_path = Package::get_path( "assets/icons/{$icon_file}" );
+		$default_url  = file_exists( $default_path ) ? Package::get_url( "assets/icons/{$icon_file}" ) : '';
 
-		if ( file_exists( $default_path ) ) {
-			return $default_path;
+		if ( ! file_exists( $default_path ) && ! empty( $this->placeholder_args['icon'] ) ) {
+			$default_url = $this->placeholder_args['icon'];
 		}
 
-		return '';
+		return $default_url;
 	}
 
-	public function get_original_name() {
+	public function get_default_tracking_url_placeholder( $context = 'view' ) {
+		return $this->placeholder_args['tracking_url_placeholder'];
+	}
+
+	public function get_original_name( $context = 'view' ) {
 		return $this->placeholder_args['name'];
 	}
 

@@ -38,6 +38,11 @@ class Helper {
 	private $available_shipping_providers = null;
 
 	/**
+	 * @var null|\Vendidero\Shiptastic\ShippingProvider\Placeholder[]
+	 */
+	private $known_providers = null;
+
+	/**
 	 * Main Helper Instance.
 	 *
 	 * Ensures only one instance of the Shipping Provider Helper is loaded or can be loaded.
@@ -115,6 +120,83 @@ class Helper {
 	/**
 	 * @param $name
 	 *
+	 * @return false|Placeholder
+	 */
+	public function get_known_shipping_provider( $name ) {
+		$known_providers = $this->get_known_shipping_providers();
+
+		if ( array_key_exists( $name, $known_providers ) ) {
+			return $known_providers[ $name ];
+		}
+
+		return false;
+	}
+
+	/**
+	 * @return Placeholder[]
+	 */
+	public function get_known_shipping_providers() {
+		if ( is_null( $this->known_providers ) ) {
+			$this->known_providers = $this->get_available_shipping_provider_integrations();
+
+			if ( defined( 'WC_ABSPATH' ) && file_exists( WC_ABSPATH . 'src/internal/Fulfillments/ShippingProviders.php' ) ) {
+				$woo_known_providers = include WC_ABSPATH . 'src/internal/Fulfillments/ShippingProviders.php';
+				ksort( $woo_known_providers );
+
+				foreach ( $woo_known_providers as $slug => $provider ) {
+					if ( class_exists( $provider ) ) {
+						try {
+							$woo_provider_instance = wc_get_container()->get( $provider );
+						} catch ( \Throwable $e ) {
+							$logger = wc_get_logger();
+							$logger->error(
+								sprintf(
+									'Error instantiating shipping provider class %s: %s',
+									$provider,
+									$e->getMessage()
+								),
+								array( 'source' => 'woocommerce-fulfillments' )
+							);
+							continue; // Skip if the provider class cannot be instantiated.
+						}
+
+						$tracking_url_placeholder = $woo_provider_instance->get_tracking_url( '1234' );
+						$tracking_url_placeholder = str_replace( '1234', '{tracking_id}', $tracking_url_placeholder );
+
+						/**
+						 * In case the provider exists as an integration, register a fallback icon but skip override.
+						 */
+						if ( array_key_exists( $slug, $this->known_providers ) ) {
+							$this->known_providers[ $slug ]->set_placeholder_args( array( 'icon' => $woo_provider_instance->get_icon() ) );
+							continue;
+						}
+
+						$provider_instance = new Placeholder(
+							0,
+							array(
+								'title'                    => $woo_provider_instance->get_name(),
+								'tracking_url_placeholder' => $tracking_url_placeholder,
+								'icon'                     => $woo_provider_instance->get_icon(),
+								'countries_supported'      => $woo_provider_instance->get_shipping_from_countries(),
+							)
+						);
+
+						if ( ! $provider_instance->is_base_country_supported() ) {
+							continue;
+						}
+
+						$this->known_providers[ $slug ] = $provider_instance;
+					}
+				}
+			}
+		}
+
+		return (array) $this->known_providers;
+	}
+
+	/**
+	 * @param $name
+	 *
 	 * @return Placeholder|false
 	 */
 	public function get_shipping_provider_integration( $name ) {
@@ -150,6 +232,7 @@ class Helper {
 						'title'                     => _x( 'UPS', 'shipments', 'shiptastic-for-woocommerce' ),
 						'is_builtin'                => false,
 						'is_pro'                    => false,
+						'tracking_url_placeholder'  => 'https://wwwapps.ups.com/tracking/tracking.cgi?tracknum={tracking_id}',
 						'extension_name'            => 'shiptastic-integration-for-ups',
 						'label_types_supported'     => array( 'simple', 'return' ),
 						'remote_shipment_status_types_supported' => array( 'pull' ),
@@ -160,6 +243,7 @@ class Helper {
 						'countries_supported'       => array( 'DE' ),
 						'is_builtin'                => false,
 						'is_pro'                    => false,
+						'tracking_url_placeholder'  => 'https://www.dhl.de/de/privatkunden/pakete-empfangen/verfolgen.html?lang=de&idc={tracking_id}&rfn=&extendedSearch=true',
 						'extension_name'            => 'shiptastic-integration-for-dhl',
 						'label_types_supported'     => array( 'simple', 'return' ),
 						'remote_shipment_status_types_supported' => array( 'pull' ),
@@ -170,6 +254,7 @@ class Helper {
 						'countries_supported'       => array( 'DE' ),
 						'is_builtin'                => false,
 						'is_pro'                    => false,
+						'tracking_url_placeholder'  => 'https://deutschepost.de/de/s/sendungsverfolgung.html?piececode={tracking_id}',
 						'extension_name'            => 'shiptastic-integration-for-dhl',
 						'label_types_supported'     => array( 'simple', 'return' ),
 						'supports_pickup_locations' => true,

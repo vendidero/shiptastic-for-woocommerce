@@ -37,6 +37,10 @@ a .wc-shiptastic-pro-outlined {
   border: 1px solid #0073aa;
   color: #0073aa;
   text-decoration: none;
+
+  &:hover {
+    color: #135e96;
+  }
 }
 
 .wc-shiptastic-pro-outlined {
@@ -2128,6 +2132,7 @@ a.button.wc-stc-shipment-action-button {
 
   .wc-shiptastic-badge {
     text-decoration: none;
+    line-height: normal;
     border: 1px solid #3c434a;
     color: #3c434a;
     font-size: 11px;
@@ -2714,9 +2719,39 @@ table.wc-stc-shipping-providers {
     a.wc-stc-shipping-provider-delete {
       color: #b32d2e;
     }
+
+    a.wc-stc-shipping-provider-edit-link {
+      display: flex;
+      align-items: baseline;
+    }
+
+    img.wc-stc-shipping-provider-icon {
+      margin-right: 10px;
+      display: inline-flex;
+      align-self: center;
+      max-width: 70px;
+      max-height: 20px;
+    }
+
+    .row-actions {
+      font-size: 12px;
+    }
   }
 
   tr:nth-child(odd) td {
     background: #f9f9f9;
+  }
+}
+
+.select2-results__option {
+  .stc-provider-result-wrapper {
+    display: flex;
+    align-items: center;
+
+    img {
+      max-width: 70px;
+      max-height: 20px;
+      margin-right: 5px;
+    }
   }
 }

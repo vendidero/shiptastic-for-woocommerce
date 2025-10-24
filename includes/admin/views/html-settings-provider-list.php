@@ -29,6 +29,9 @@ $default_provider = wc_stc_get_default_shipping_provider();
 			</td>
 			<td class="wc-stc-shipping-provider-title" id="wc-stc-shipping-provider-title-<?php echo esc_attr( $provider->get_name() ); ?>">
 				<a href="<?php echo esc_url( $provider->get_edit_link() ? $provider->get_edit_link() : $provider->get_help_link() ); ?>" class="wc-stc-shipping-provider-edit-link">
+					<?php if ( $icon = $provider->get_icon() ) : ?>
+						<img class="wc-stc-shipping-provider-icon" alt="<?php echo esc_attr( $provider->get_title() ); ?>" src="<?php echo esc_url( $icon ); ?>" />
+					<?php endif; ?>
 					<?php echo wp_kses_post( $provider->get_title() ); ?>
 					<?php if ( $provider->get_name() === $default_provider ) : ?>
 						<span class="wc-shiptastic-badge"><?php echo esc_html_x( 'Default', 'shipments', 'shiptastic-for-woocommerce' ); ?></span>

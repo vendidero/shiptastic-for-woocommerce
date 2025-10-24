@@ -254,7 +254,7 @@ class General extends Tab {
 		parent::after_save( $settings, $current_section );
 
 		if ( 'business_information' === $current_section ) {
-			if ( ! isset( $_POST['woocommerce_shiptastic_use_alternate_return'] ) ) {
+			if ( ! isset( $_POST['woocommerce_shiptastic_use_alternate_return'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Missing
 				$return_fields = wc_stc_get_shipment_setting_address_fields( 'return' );
 
 				foreach ( $return_fields as $field => $value ) {

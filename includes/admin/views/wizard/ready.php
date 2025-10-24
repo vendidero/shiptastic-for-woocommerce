@@ -39,6 +39,6 @@ defined( 'ABSPATH' ) || exit;
 	</fieldset>
 
 	<div class="wc-shiptastic-wizard-links">
-		<a class="button button-primary" href="<?php echo esc_url( 'index.php' ); ?>"><?php echo esc_attr_x( 'Back to work', 'shipments-wizard', 'shiptastic-for-woocommerce' ); ?></a>
+		<a class="button button-primary" href="<?php echo esc_url( \Vendidero\Shiptastic\Admin\Settings::get_settings_url() ); ?>"><?php echo esc_attr_x( 'To the settings', 'shipments-wizard', 'shiptastic-for-woocommerce' ); ?></a>
 	</div>
 </div>

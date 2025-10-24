@@ -906,6 +906,7 @@ function wc_stc_create_shipping_provider( $props = array(), $is_manual = true ) 
 		array(
 			'title'                    => '',
 			'description'              => '',
+			'original_name'            => '',
 			'tracking_url_placeholder' => '',
 		)
 	);

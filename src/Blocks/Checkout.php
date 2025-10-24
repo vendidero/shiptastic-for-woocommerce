@@ -279,7 +279,7 @@ final class Checkout {
 		}
 
 		return array(
-			'pickup_location_delivery_available'      => $is_available && ! empty( $locations ),
+			'pickup_location_delivery_available'      => $is_available,
 			'default_pickup_location'                 => WC()->customer->get_meta( 'pickup_location_code' ),
 			'default_pickup_location_customer_number' => WC()->customer->get_meta( 'pickup_location_customer_number' ),
 			'pickup_locations'                        => array_map(

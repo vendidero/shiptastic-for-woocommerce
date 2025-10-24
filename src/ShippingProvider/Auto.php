@@ -60,6 +60,17 @@ abstract class Auto extends Simple implements ShippingProviderAuto {
 		return $features;
 	}
 
+	public function get_icon() {
+		$icon_file    = sanitize_file_name( "{$this->get_name()}.svg" );
+		$default_path = Package::get_path( "assets/icons/{$icon_file}" );
+
+		if ( file_exists( $default_path ) ) {
+			return Package::get_url( "assets/icons/{$icon_file}" );
+		}
+
+		return '';
+	}
+
 	public function get_logo_path() {
 		$logo_path    = sanitize_file_name( "{$this->get_name()}.svg" );
 		$default_path = Package::get_path( "assets/icons/{$logo_path}" );

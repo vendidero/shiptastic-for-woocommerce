@@ -329,7 +329,8 @@ a {
   display: inline-flex;
   max-width: 100px;
 
-  svg {
+  img {
+    max-width: 100px;
     height: auto;
     display: inline-flex;
   }
@@ -375,6 +376,8 @@ a {
     h3 {
       margin-top: 0;
       font-size: 1.5em;
+      display: inline-flex;
+      align-items: center;
     }
 
     p {

@@ -96,12 +96,11 @@ class Admin {
 		);
 
 		add_action( 'woocommerce_admin_field_shiptastic_toggle', array( __CLASS__, 'toggle_input_field' ), 30 );
-		add_filter( 'woocommerce_admin_settings_sanitize_option', array( __CLASS__, 'sanitize_toggle_field' ), 10, 3 );
-
+		add_action( 'woocommerce_admin_field_shiptastic_search_shipping_provider', array( __CLASS__, 'search_shipping_provider_field' ), 10 );
+		add_action( 'woocommerce_admin_field_dimensions', array( __CLASS__, 'register_dimensions_field' ), 30 );
 		add_action( 'woocommerce_admin_field_shiptastic_oauth', array( __CLASS__, 'oauth_field' ), 30 );
 
-		add_action( 'woocommerce_admin_field_dimensions', array( __CLASS__, 'register_dimensions_field' ), 30 );
-		add_filter( 'woocommerce_admin_settings_sanitize_option', array( __CLASS__, 'sanitize_dimensions_field' ), 10, 3 );
+		add_filter( 'woocommerce_admin_settings_sanitize_option', array( __CLASS__, 'sanitize_fields' ), 10, 3 );
 
 		add_action( 'woocommerce_system_status_report', array( __CLASS__, 'status_report' ) );
 		add_filter( 'woocommerce_debug_tools', array( __CLASS__, 'register_tools' ), 10, 1 );
@@ -325,7 +324,7 @@ class Admin {
 		<?php
 	}
 
-	public static function sanitize_toggle_field( $value, $option, $raw_value ) {
+	public static function sanitize_fields( $value, $option, $raw_value ) {
 		$option = wp_parse_args(
 			$option,
 			array(
@@ -335,6 +334,39 @@ class Admin {
 
 		if ( 'shiptastic_toggle' === $option['type'] ) {
 			$value = '1' === $raw_value || 'yes' === $raw_value ? 'yes' : 'no';
+		} elseif ( 'dimensions' === $option['type'] ) {
+			$option = wp_parse_args(
+				$option,
+				array(
+					'type'       => '',
+					'field_name' => '',
+					'id'         => '',
+					'store_as'   => 'separate',
+				)
+			);
+
+			$value       = wp_parse_args(
+				(array) $value,
+				array(
+					'length' => 0,
+					'width'  => 0,
+					'height' => 0,
+				)
+			);
+			$value       = wc_clean( $value );
+			$option_name = ! empty( $option['field_name'] ) ? $option['field_name'] : $option['id'];
+
+			if ( 'separate' === $option['store_as'] ) {
+				$option_name = str_replace( 'dimensions', '', $option_name );
+
+				foreach ( $value as $dim => $dim_val ) {
+					update_option( "{$option_name}{$dim}", $dim_val );
+				}
+
+				$value = null;
+			}
+		} elseif ( 'shiptastic_search_shipping_provider' === $option['type'] ) {
+			$value = wc_clean( $value );
 		}
 
 		return $value;
@@ -426,43 +458,6 @@ class Admin {
 		<?php
 	}
 
-	public static function sanitize_dimensions_field( $value, $option, $raw_value ) {
-		$option = wp_parse_args(
-			$option,
-			array(
-				'type'       => '',
-				'field_name' => '',
-				'id'         => '',
-				'store_as'   => 'separate',
-			)
-		);
-
-		if ( 'dimensions' === $option['type'] ) {
-			$value       = wp_parse_args(
-				(array) $value,
-				array(
-					'length' => 0,
-					'width'  => 0,
-					'height' => 0,
-				)
-			);
-			$value       = wc_clean( $value );
-			$option_name = ! empty( $option['field_name'] ) ? $option['field_name'] : $option['id'];
-
-			if ( 'separate' === $option['store_as'] ) {
-				$option_name = str_replace( 'dimensions', '', $option_name );
-
-				foreach ( $value as $dim => $dim_val ) {
-					update_option( "{$option_name}{$dim}", $dim_val );
-				}
-
-				$value = null;
-			}
-		}
-
-		return $value;
-	}
-
 	public static function oauth_field( $value ) {
 		$value = wp_parse_args(
 			$value,
@@ -513,6 +508,51 @@ class Admin {
 						<a class="button button-primary" href="<?php echo esc_url( $connect_url ); ?>"><?php printf( esc_html_x( 'Connect to %s', 'shipments', 'shiptastic-for-woocommerce' ), esc_html( $api->get_title() ) ); ?></a>
 					<?php endif; ?>
 				</fieldset>
+			</td>
+		</tr>
+		<?php
+	}
+
+	public static function search_shipping_provider_field( $value ) {
+		// Description handling.
+		$field_description_data = \WC_Admin_Settings::get_field_description( $value );
+		$original_provider      = null;
+
+		if ( ! empty( $value['value'] ) ) {
+			$original_providers = \Vendidero\Shiptastic\ShippingProvider\Helper::instance()->get_known_shipping_providers();
+
+			if ( array_key_exists( $value['value'], $original_providers ) ) {
+				$original_provider = $original_providers[ $value['value'] ];
+			}
+		}
+		?>
+		<tr class="shiptastic_search_shipping_provider <?php echo esc_attr( $value['row_class'] ); ?>">
+			<th scope="row" class="titledesc">
+				<label for="<?php echo esc_attr( $value['id'] ); ?>"><?php echo esc_html( $value['title'] ); ?> <?php echo wp_kses_post( $field_description_data['tooltip_html'] ); ?></label>
+			</th>
+			<td class="forminp forminp-<?php echo esc_attr( sanitize_title( $value['type'] ) ); ?>">
+				<select
+					name="<?php echo esc_attr( $value['field_name'] ); ?>"
+					id="<?php echo esc_attr( $value['id'] ); ?>"
+					style="<?php echo esc_attr( $value['css'] ); ?>"
+					class="stc-search-shipping-provider <?php echo esc_attr( $value['class'] ); ?>"
+					<?php
+					if ( ! empty( $value['custom_attributes'] ) && is_array( $value['custom_attributes'] ) ) {
+						foreach ( $value['custom_attributes'] as $attribute => $attribute_value ) {
+							echo esc_attr( $attribute ) . '="' . esc_attr( $attribute_value ) . '" ';
+						}
+					}
+					?>
+					data-placeholder="<?php echo esc_attr_x( 'Search for a shipping provider&hellip;', 'shipments', 'shiptastic-for-woocommerce' ); ?>"
+					data-allow_clear="true"
+				>
+					<option value=""></option>
+					<?php if ( $original_provider ) { ?>
+						<option value="<?php echo esc_attr( $original_provider->get_original_name() ); ?>" selected="selected">
+							<?php echo wp_strip_all_tags( $original_provider->get_title() ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+						</option>
+					<?php } ?>
+				</select>
 			</td>
 		</tr>
 		<?php
@@ -2024,7 +2064,9 @@ class Admin {
 
 	private static function get_admin_settings_params() {
 		$params = array(
-			'packaging_types' => wc_stc_get_packaging_types(),
+			'packaging_types'                 => wc_stc_get_packaging_types(),
+			'ajax_url'                        => admin_url( 'admin-ajax.php' ),
+			'search_shipping_providers_nonce' => wp_create_nonce( 'search-shipping-providers' ),
 		);
 
 		if ( self::is_shipping_settings_request() ) {

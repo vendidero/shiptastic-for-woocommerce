@@ -6,6 +6,7 @@ use Automattic\WooCommerce\Utilities\I18nUtil;
 use Exception;
 use Vendidero\Shiptastic\Registry\Container;
 use Vendidero\Shiptastic\ShippingMethod\MethodHelper;
+use Vendidero\Shiptastic\ShippingProvider\Helper;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -890,6 +891,10 @@ class Package {
 			\Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility( 'custom_order_tables', trailingslashit( self::get_path() ) . 'shiptastic-for-woocommerce.php', true );
 			\Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility( 'cart_checkout_blocks', trailingslashit( self::get_path() ) . 'shiptastic-for-woocommerce.php', true );
 		}
+	}
+
+	public static function woo_supports_providers() {
+		return defined( 'WC_ABSPATH' ) && file_exists( WC_ABSPATH . 'src/internal/Fulfillments/ShippingProviders.php' );
 	}
 
 	public static function register_data_stores( $stores ) {
