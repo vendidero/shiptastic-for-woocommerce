@@ -18,6 +18,12 @@ class ShipmentError extends \WP_Error {
 		$this->set_is_soft_error();
 	}
 
+	public function add_data( $data, $code = '' ) {
+		parent::add_data( $data, $code );
+
+		$this->set_is_soft_error();
+	}
+
 	public function get_error_messages_by_type() {
 		$errors = $this->get_error_messages();
 		$soft   = $this->get_soft_error_messages();
