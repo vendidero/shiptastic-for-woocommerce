@@ -30,12 +30,15 @@ class AddressSplitter {
 		$address = str_replace( ',', ', ', $address );
 
 		/**
-		 * Special case for street names containing numbers, e.g. Straße 50 in Berlin.
-		 * Replace the original street name with a placeholder to prevent mixing up house numbers.
+		 * Special case 1: For street names containing numbers, e.g. Straße 50 in Berlin. Replace the original street name with a placeholder to prevent mixing up house numbers.
+		 * Special case 2: Street names starting with a number, e.g. 10. Oktoberstrasse
 		 */
-		if ( 1 === preg_match( '/^(Str\.|Strasse|Straße|Street)\s+[0-9]+/', $address, $matches ) ) {
+		if ( 1 === preg_match( '/^(str\.|strasse|straße|street)\s+[0-9]+/i', $address, $matches ) ) {
 			$fixed_street_name = $matches[0];
-			$address           = preg_replace( '/^(Str\.|Strasse|Straße|Street)\s+([0-9]+)/', 'Sample Street', $address );
+			$address           = preg_replace( '/^(str\.|strasse|straße|street)\s+([0-9]+)/i', 'Sample Street', $address );
+		} elseif ( 1 === preg_match( '/^[0-9]*[.-]+(\s*)([\w]*(\s*)(str\.|strasse|straße|street))/i', $address, $matches ) ) {
+			$fixed_street_name = $matches[0];
+			$address           = preg_replace( '/^[0-9]*[.-]+(\s*)([\w]*(\s*)(str\.|strasse|straße|street))/i', 'Sample Street', $address );
 		}
 
 		/* Matching this group signifies the following text is part of

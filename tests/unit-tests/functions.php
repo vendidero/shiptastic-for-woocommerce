@@ -224,6 +224,20 @@ class Functions extends \Vendidero\Shiptastic\Tests\Framework\UnitTestCase {
 		), wc_stc_split_shipment_street( 'Straße 50 8' ) );
 
 		$this->assertEquals( array(
+			'street'     => '10. Oktoberstrasse',
+			'number'     => '34',
+			'addition'   => '',
+			'addition_2' => '',
+		), wc_stc_split_shipment_street( '10. Oktoberstrasse 34' ) );
+
+		$this->assertEquals( array(
+			'street'     => '10.Oktoberstraße',
+			'number'     => '34',
+			'addition'   => '',
+			'addition_2' => '',
+		), wc_stc_split_shipment_street( '10.Oktoberstraße 34' ) );
+
+		$this->assertEquals( array(
 			'street'     => 'Konrad-Adenauer-Allee',
 			'number'     => '50',
 			'addition'   => '4 OG',
