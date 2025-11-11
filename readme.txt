@@ -3,7 +3,7 @@ Contributors: vendidero, vdwoocommercesupport
 Tags: shipping, woocommerce, shipments, rules, woo
 Requires at least: 5.4
 Tested up to: 6.8
-Stable tag: 4.8.1
+Stable tag: 4.8.2
 Requires PHP: 5.6
 License: GPLv3
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
@@ -71,6 +71,10 @@ We recommend installing Shiptastic for WooCommerce through the WordPress Backend
 6. Manage returns
 
 == Changelog ==
+= 4.8.2 =
+* Improvement: Add bridging to Woo bundled shipping provider list to improve defaults
+* Fix: Address splitter edge cases
+
 = 4.8.1 =
 * Fix: Pickup location select for existing customers
 * Fix: Reset shipper return address in case not used
