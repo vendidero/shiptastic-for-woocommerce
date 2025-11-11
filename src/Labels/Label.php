@@ -862,8 +862,9 @@ class Label extends WC_Data implements ShipmentLabel {
 				array(
 					'description'         => wc_shiptastic_substring( wc_shiptastic_get_alphanumeric_string( apply_filters( "{$this->get_general_hook_prefix()}item_description", $single_item_description, $item, $this, $shipment ) ), 0, $max_desc_length ),
 					'category'            => wc_shiptastic_get_alphanumeric_string( apply_filters( "{$this->get_general_hook_prefix()}item_category", $category, $item, $this, $shipment ) ),
-					'origin_code'         => ( $shipment_product && $shipment_product->get_manufacture_country() ) ? $shipment_product->get_manufacture_country() : Package::get_base_country(),
-					'tariff_number'       => $shipment_product ? $shipment_product->get_hs_code() : '',
+					'origin_code'         => $item->get_manufacture_country(),
+					'tariff_number'       => $item->get_hs_code(),
+					'mid'                 => $item->get_mid_code(),
 					'quantity'            => intval( $item->get_quantity() ),
 					'weight_in_kg'        => $this->round_customs_item_weight( (float) wc_get_weight( $item_weights[ $key ], 'kg', 'g' ), 3 ),
 					'weight_in_g'         => $item_weights[ $key ],

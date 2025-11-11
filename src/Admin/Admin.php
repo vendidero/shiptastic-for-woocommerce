@@ -1061,6 +1061,16 @@ class Admin {
 			)
 		);
 
+		woocommerce_wp_text_input(
+			array(
+				'id'          => '_mid_code',
+				'label'       => _x( 'MID-Code', 'shipments', 'shiptastic-for-woocommerce' ),
+				'desc_tip'    => true,
+				'description' => _x( 'The Manufacturer Identification Code (MID) is a standardized alphanumeric identifier created by the CBP. It serves as a unique “fingerprint” for the foreign manufacturer, producer, or exporter of the goods being imported into the U.S.', 'shipments', 'shiptastic-for-woocommerce' ),
+				'value'       => $shipments_product->get_mid_code( 'edit' ),
+			)
+		);
+
 		woocommerce_wp_select(
 			array(
 				'options'     => $countries,
@@ -1096,6 +1106,7 @@ class Admin {
 		$shipments_product = wc_shiptastic_get_product( $product );
 
 		$shipments_product->set_hs_code( isset( $_POST['_hs_code'] ) ? wc_clean( wp_unslash( $_POST['_hs_code'] ) ) : '' ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
+		$shipments_product->set_mid_code( isset( $_POST['_mid_code'] ) ? wc_clean( wp_unslash( $_POST['_mid_code'] ) ) : '' ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
 		$shipments_product->set_customs_description( isset( $_POST['_customs_description'] ) ? wc_clean( wp_unslash( $_POST['_customs_description'] ) ) : '' ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
 		$shipments_product->set_manufacture_country( isset( $_POST['_manufacture_country'] ) ? wc_clean( wp_unslash( $_POST['_manufacture_country'] ) ) : '' ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
 		$shipments_product->set_is_non_returnable( isset( $_POST['_is_non_returnable'] ) ? wc_clean( wp_unslash( $_POST['_is_non_returnable'] ) ) : '' ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
@@ -1217,7 +1228,7 @@ class Admin {
 
 				if ( $return_count ) {
 					foreach ( $submenu['woocommerce'] as $key => $menu_item ) {
-						if ( 0 === strpos( $menu_item[0], _x( 'Returns', 'shipments', 'shiptastic-for-woocommerce' ) ) ) {
+						if ( isset( $menu_item[2] ) && 'wc-stc-return-shipments' === $menu_item[2] ) {
 							$submenu['woocommerce'][ $key ][0] .= ' <span class="awaiting-mod update-plugins count-' . esc_attr( $return_count ) . '"><span class="requested-count">' . number_format_i18n( $return_count ) . '</span></span>'; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
 							break;
 						}

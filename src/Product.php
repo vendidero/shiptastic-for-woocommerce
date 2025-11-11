@@ -139,6 +139,16 @@ class Product {
 		return $data;
 	}
 
+	public function get_mid_code( $context = 'view' ) {
+		$data = $this->get_forced_parent_product()->get_meta( '_mid_code', true, $context );
+
+		if ( '' === $data && ! empty( $legacy_data ) ) {
+			$data = $legacy_data;
+		}
+
+		return $data;
+	}
+
 	public function get_manufacture_country( $context = 'view' ) {
 		$legacy_data = $this->get_forced_parent_product()->get_meta( '_dhl_manufacture_country', true, $context );
 		$data        = $this->get_forced_parent_product()->get_meta( '_manufacture_country', true, $context );
@@ -176,6 +186,10 @@ class Product {
 
 	public function set_hs_code( $code ) {
 		$this->product->update_meta_data( '_hs_code', $code );
+	}
+
+	public function set_mid_code( $code ) {
+		$this->product->update_meta_data( '_mid_code', $code );
 	}
 
 	public function set_manufacture_country( $country ) {

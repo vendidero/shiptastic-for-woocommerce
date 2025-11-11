@@ -14,6 +14,7 @@ if ( defined( 'WC_SHIPTASTIC_REMOVE_ALL_DATA' ) && true === WC_SHIPTASTIC_REMOVE
 		'_shipping_width',
 		'_shipping_height',
 		'_hs_code',
+		'_mid_code',
 		'_manufacture_country',
 		'_customs_description',
 		'_is_non_returnable',

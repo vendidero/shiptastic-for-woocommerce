@@ -45,6 +45,7 @@ class ShipmentItem extends WC_Data {
 		'total'               => 0,
 		'subtotal'            => 0,
 		'hs_code'             => '',
+		'mid_code'            => '',
 		'customs_description' => '',
 		'manufacture_country' => '',
 		'attributes'          => array(),
@@ -278,13 +279,18 @@ class ShipmentItem extends WC_Data {
 	}
 
 	public function get_customs_description( $context = 'view' ) {
-		$customs_description = $this->get_prop( 'customs_description', $context );
+		$prop = $this->get_prop( 'customs_description', $context );
 
-		if ( 'view' === $context && empty( $customs_description ) ) {
-			$customs_description = $this->get_name( $context );
+		if ( 'view' === $context && empty( $prop ) ) {
+			$prop = $this->get_name( $context );
+
+			if ( $product = $this->get_product() ) {
+				$stc_product = wc_shiptastic_get_product( $product );
+				$prop        = $stc_product->get_customs_description() ? $stc_product->get_customs_description() : $prop;
+			}
 		}
 
-		return $customs_description;
+		return $prop;
 	}
 
 	public function get_hs_code( $context = 'view' ) {
@@ -293,6 +299,26 @@ class ShipmentItem extends WC_Data {
 
 		if ( '' === $prop && ! empty( $legacy ) ) {
 			$prop = $legacy;
+		}
+
+		if ( 'view' === $context && empty( $prop ) ) {
+			if ( $product = $this->get_product() ) {
+				$stc_product = wc_shiptastic_get_product( $product );
+				$prop        = $stc_product->get_hs_code();
+			}
+		}
+
+		return $prop;
+	}
+
+	public function get_mid_code( $context = 'view' ) {
+		$prop = $this->get_prop( 'mid_code', $context );
+
+		if ( 'view' === $context && empty( $prop ) ) {
+			if ( $product = $this->get_product() ) {
+				$stc_product = wc_shiptastic_get_product( $product );
+				$prop        = $stc_product->get_mid_code();
+			}
 		}
 
 		return $prop;
@@ -308,6 +334,11 @@ class ShipmentItem extends WC_Data {
 
 		if ( 'view' === $context && empty( $prop ) ) {
 			$prop = Package::get_base_country();
+
+			if ( $product = $this->get_product() ) {
+				$stc_product = wc_shiptastic_get_product( $product );
+				$prop        = $stc_product->get_manufacture_country();
+			}
 		}
 
 		return $prop;
@@ -457,6 +488,7 @@ class ShipmentItem extends WC_Data {
 					'width'               => $product ? wc_get_dimension( (float) $product->get_shipping_width(), $shipment->get_dimension_unit() ) : '',
 					'height'              => $product ? wc_get_dimension( (float) $product->get_shipping_height(), $shipment->get_dimension_unit() ) : '',
 					'hs_code'             => $product ? $product->get_hs_code() : '',
+					'mid_code'            => $product ? $product->get_mid_code() : '',
 					'customs_description' => $product ? $product->get_customs_description() : '',
 					'manufacture_country' => $product ? $product->get_manufacture_country() : '',
 					'attributes'          => $attributes,
@@ -760,6 +792,10 @@ class ShipmentItem extends WC_Data {
 
 	public function set_hs_code( $code ) {
 		$this->set_prop( 'hs_code', $code );
+	}
+
+	public function set_mid_code( $code ) {
+		$this->set_prop( 'mid_code', $code );
 	}
 
 	public function set_customs_description( $description ) {

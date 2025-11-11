@@ -667,6 +667,7 @@ class ShipmentsController extends \WC_REST_Controller {
 			'subtotal',
 			'weight',
 			'hs_code',
+			'mid_code',
 			'customs_description',
 			'manufacture_country',
 			'return_reason_code',
@@ -1174,6 +1175,7 @@ class ShipmentsController extends \WC_REST_Controller {
 					'height' => wc_format_decimal( $item->get_height( $context ), $dp ),
 				),
 				'hs_code'             => $item->get_hs_code( $context ),
+				'mid_code'            => $item->get_mid_code( $context ),
 				'customs_description' => $item->get_customs_description( $context ),
 				'manufacture_country' => $item->get_manufacture_country( $context ),
 				'parent_id'           => $item->get_parent_id( $context ),
@@ -1814,6 +1816,11 @@ class ShipmentsController extends \WC_REST_Controller {
 							),
 							'hs_code'             => array(
 								'description' => _x( 'Item HS Code.', 'shipments', 'shiptastic-for-woocommerce' ),
+								'type'        => 'string',
+								'context'     => array( 'view', 'edit' ),
+							),
+							'mid_code'            => array(
+								'description' => _x( 'Item MID Code.', 'shipments', 'shiptastic-for-woocommerce' ),
 								'type'        => 'string',
 								'context'     => array( 'view', 'edit' ),
 							),
