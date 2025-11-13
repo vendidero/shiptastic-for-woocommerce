@@ -483,7 +483,7 @@ class ShipmentItem extends WC_Data {
 					'sku'                 => $product ? $product->get_sku() : '',
 					'total'               => $total + $tax_total,
 					'subtotal'            => $subtotal + $tax_subtotal,
-					'weight'              => $product ? wc_get_weight( $product->get_weight(), $shipment->get_weight_unit() ) : '',
+					'weight'              => $product ? wc_get_weight( (float) $product->get_shipping_weight(), $shipment->get_weight_unit() ) : '',
 					'length'              => $product ? wc_get_dimension( (float) $product->get_shipping_length(), $shipment->get_dimension_unit() ) : '',
 					'width'               => $product ? wc_get_dimension( (float) $product->get_shipping_width(), $shipment->get_dimension_unit() ) : '',
 					'height'              => $product ? wc_get_dimension( (float) $product->get_shipping_height(), $shipment->get_dimension_unit() ) : '',

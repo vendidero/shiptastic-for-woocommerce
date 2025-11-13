@@ -68,7 +68,7 @@ $new_provider = new \Vendidero\Shiptastic\ShippingProvider\Simple();
 						$settings,
 						array(
 							array(
-								'title'    => _x( 'Shipping Provider', 'shipments', 'shiptastic-for-woocommerce' ),
+								'title'    => _x( 'Shipping Service Provider', 'shipments', 'shiptastic-for-woocommerce' ),
 								'desc_tip' => _x( 'Start from a known shipping provider or provide the settings yourself.', 'shipments', 'shiptastic-for-woocommerce' ),
 								'id'       => 'shipping_provider_original_name',
 								'default'  => '',

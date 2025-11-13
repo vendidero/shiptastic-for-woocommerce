@@ -471,7 +471,7 @@ class Order {
 					$width  = ( empty( $product->get_shipping_width() ) ? 0 : (float) wc_format_decimal( $product->get_shipping_width() ) ) * $quantity;
 					$length = ( empty( $product->get_shipping_length() ) ? 0 : (float) wc_format_decimal( $product->get_shipping_length() ) ) * $quantity;
 					$height = ( empty( $product->get_shipping_height() ) ? 0 : (float) wc_format_decimal( $product->get_shipping_height() ) ) * $quantity;
-					$weight = ( empty( $product->get_weight() ) ? 0 : (float) wc_format_decimal( $product->get_weight() ) ) * $quantity;
+					$weight = ( empty( $product->get_shipping_weight() ) ? 0 : (float) wc_format_decimal( $product->get_shipping_weight() ) ) * $quantity;
 
 					$package_data['weight'] += $weight;
 					$package_data['volume'] += ( $width * $length * $height );
@@ -2135,7 +2135,7 @@ class Order {
 					$args['max_dimensions']['height'] = $dimensions['height'];
 				}
 
-				$weight = empty( $product->get_weight() ) ? 0 : (float) wc_format_decimal( $product->get_weight() );
+				$weight = empty( $product->get_shipping_weight() ) ? 0 : (float) wc_format_decimal( $product->get_shipping_weight() );
 				$weight = (float) wc_get_weight( $weight, wc_stc_get_packaging_weight_unit() );
 
 				if ( $weight > $args['max_weight'] ) {

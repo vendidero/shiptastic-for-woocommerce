@@ -235,7 +235,7 @@ class MethodHelper {
 				$width    = ( empty( $s_product->get_shipping_width() ) ? 0 : (float) wc_format_decimal( $s_product->get_shipping_width() ) ) * $quantity;
 				$length   = ( empty( $s_product->get_shipping_length() ) ? 0 : (float) wc_format_decimal( $s_product->get_shipping_length() ) ) * $quantity;
 				$height   = ( empty( $s_product->get_shipping_height() ) ? 0 : (float) wc_format_decimal( $s_product->get_shipping_height() ) ) * $quantity;
-				$weight   = ( empty( $product->get_weight() ) ? 0 : (float) wc_format_decimal( $product->get_weight() ) ) * $quantity;
+				$weight   = ( empty( $s_product->get_shipping_weight() ) ? 0 : (float) wc_format_decimal( $s_product->get_shipping_weight() ) ) * $quantity;
 
 				$package_data['total']      += $line_total;
 				$package_data['subtotal']   += $line_subtotal;

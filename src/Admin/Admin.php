@@ -957,12 +957,32 @@ class Admin {
 
 		$_parent_product          = wc_get_product( $variation_object->get_parent_id() );
 		$shipments_parent_product = wc_shiptastic_get_product( $_parent_product );
+		$shipments_product        = wc_shiptastic_get_product( $variation_object );
+
+		if ( wc_product_weight_enabled() ) {
+			$parent_weight = $shipments_parent_product ? wc_format_localized_decimal( $shipments_parent_product->get_shipping_weight() ) : '';
+			$label         = sprintf(
+				/* translators: WooCommerce weight unit */
+				esc_html_x( 'Shipping weight (%s)', 'shipments', 'shiptastic-for-woocommerce' ),
+				esc_html( Package::get_weight_unit_label( get_option( 'woocommerce_weight_unit' ) ) )
+			);
+
+			woocommerce_wp_text_input(
+				array(
+					'id'          => "_variable_shipping_weight_{$loop}",
+					'name'        => "variable_shipping_weight[{$loop}]",
+					'label'       => $label,
+					'value'       => wc_format_localized_decimal( $shipments_product->get_shipping_weight( 'edit' ) ),
+					'placeholder' => $parent_weight ? $parent_weight : wc_format_localized_decimal( $variation_object->get_weight() ),
+					'data_type'   => 'decimal',
+				)
+			);
+		}
 
 		if ( wc_product_dimensions_enabled() ) {
-			$shipments_product = wc_shiptastic_get_product( $variation_object );
-			$parent_length     = $shipments_parent_product ? wc_format_localized_decimal( $shipments_parent_product->get_shipping_length() ) : '';
-			$parent_width      = $shipments_parent_product ? wc_format_localized_decimal( $shipments_parent_product->get_shipping_width() ) : '';
-			$parent_height     = $shipments_parent_product ? wc_format_localized_decimal( $shipments_parent_product->get_shipping_height() ) : '';
+			$parent_length = $shipments_parent_product ? wc_format_localized_decimal( $shipments_parent_product->get_shipping_length() ) : '';
+			$parent_width  = $shipments_parent_product ? wc_format_localized_decimal( $shipments_parent_product->get_shipping_width() ) : '';
+			$parent_height = $shipments_parent_product ? wc_format_localized_decimal( $shipments_parent_product->get_shipping_height() ) : '';
 			?>
 			<p class="form-field form-row dimensions_field shipping_dimensions_field hide_if_variation_virtual form-row-first">
 				<label for="product_shipping_length">
@@ -992,8 +1012,27 @@ class Admin {
 		$shipments_product = wc_shiptastic_get_product( $_product );
 		$countries         = WC()->countries->get_countries();
 		$countries         = array_merge( array( '0' => _x( 'Select a country', 'shipments', 'shiptastic-for-woocommerce' ) ), $countries );
-		?>
-		<?php if ( wc_product_dimensions_enabled() ) : ?>
+
+		if ( wc_product_weight_enabled() ) {
+			$label = sprintf(
+				/* translators: WooCommerce weight unit */
+				esc_html_x( 'Shipping weight (%s)', 'shipments', 'shiptastic-for-woocommerce' ),
+				esc_html( Package::get_weight_unit_label( get_option( 'woocommerce_weight_unit' ) ) )
+			);
+
+			woocommerce_wp_text_input(
+				array(
+					'id'          => '_shipping_weight',
+					'label'       => $label,
+					'value'       => wc_format_localized_decimal( $shipments_product->get_shipping_weight( 'edit' ) ),
+					'data_type'   => 'decimal',
+					'placeholder' => wc_format_localized_decimal( $_product->get_weight() ),
+				)
+			);
+		}
+
+		if ( wc_product_dimensions_enabled() ) :
+			?>
 			<p class="form-field dimensions_field shipping_dimensions_field">
 				<label for="product_shipping_length">
 					<?php
@@ -1093,6 +1132,7 @@ class Admin {
 	 */
 	public static function save_variation_product( $variation, $i ) {
 		if ( $shipments_product = wc_shiptastic_get_product( $variation ) ) {
+			$shipments_product->set_shipping_weight( isset( $_POST['variable_shipping_weight'][ $i ] ) ? wc_clean( wp_unslash( $_POST['variable_shipping_weight'][ $i ] ) ) : '' ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
 			$shipments_product->set_shipping_length( isset( $_POST['variable_shipping_length'][ $i ] ) ? wc_clean( wp_unslash( $_POST['variable_shipping_length'][ $i ] ) ) : '' ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
 			$shipments_product->set_shipping_width( isset( $_POST['variable_shipping_width'][ $i ] ) ? wc_clean( wp_unslash( $_POST['variable_shipping_width'][ $i ] ) ) : '' ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
 			$shipments_product->set_shipping_height( isset( $_POST['variable_shipping_height'][ $i ] ) ? wc_clean( wp_unslash( $_POST['variable_shipping_height'][ $i ] ) ) : '' ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
@@ -1112,6 +1152,7 @@ class Admin {
 		$shipments_product->set_is_non_returnable( isset( $_POST['_is_non_returnable'] ) ? wc_clean( wp_unslash( $_POST['_is_non_returnable'] ) ) : '' ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
 		$shipments_product->set_ship_separately_via( isset( $_POST['_ship_separately_via'] ) ? wc_clean( wp_unslash( $_POST['_ship_separately_via'] ) ) : array() ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
 
+		$shipments_product->set_shipping_weight( isset( $_POST['_shipping_weight'] ) ? wc_clean( wp_unslash( $_POST['_shipping_weight'] ) ) : '' ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
 		$shipments_product->set_shipping_length( isset( $_POST['_shipping_length'] ) ? wc_clean( wp_unslash( $_POST['_shipping_length'] ) ) : '' ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
 		$shipments_product->set_shipping_width( isset( $_POST['_shipping_width'] ) ? wc_clean( wp_unslash( $_POST['_shipping_width'] ) ) : '' ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
 		$shipments_product->set_shipping_height( isset( $_POST['_shipping_height'] ) ? wc_clean( wp_unslash( $_POST['_shipping_height'] ) ) : '' ); // phpcs:ignore WordPress.Security.NonceVerification.Missing

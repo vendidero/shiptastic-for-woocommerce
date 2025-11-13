@@ -25,6 +25,7 @@ class Api {
 		add_filter( 'woocommerce_rest_product_variation_schema', array( __CLASS__, 'product_variation_schema' ) );
 
 		add_filter( 'woocommerce_rest_pre_insert_product_object', array( __CLASS__, 'update_product' ), 10, 2 );
+		add_filter( 'woocommerce_rest_pre_insert_product_variation_object', array( __CLASS__, 'update_product' ), 10, 2 );
 
 		add_filter( 'woocommerce_rest_prepare_product_object', array( __CLASS__, 'prepare_product' ), 10, 3 );
 		add_filter( 'woocommerce_rest_prepare_product_variation_object', array( __CLASS__, 'prepare_product' ), 10, 3 );
@@ -48,6 +49,7 @@ class Api {
 			$data['mid_code']            = $shipments_product->get_mid_code( $context );
 			$data['customs_description'] = $shipments_product->get_customs_description( $context );
 			$data['manufacture_country'] = $shipments_product->get_manufacture_country( $context );
+			$data['shipping_weight']     = $shipments_product->get_shipping_weight( $context );
 			$data['shipping_dimensions'] = array(
 				'length' => $shipments_product->get_shipping_length( $context ),
 				'width'  => $shipments_product->get_shipping_width( $context ),
@@ -84,10 +86,16 @@ class Api {
 
 			// Virtual.
 			if ( isset( $request['virtual'] ) && true === $request['virtual'] ) {
+				$shipments_product->set_shipping_weight( '' );
 				$shipments_product->set_shipping_length( '' );
 				$shipments_product->set_shipping_width( '' );
 				$shipments_product->set_shipping_height( '' );
 			} else {
+				// Weight.
+				if ( isset( $request['shipping_weight'] ) ) {
+					$shipments_product->set_shipping_weight( $request['shipping_weight'] );
+				}
+
 				// Height.
 				if ( isset( $request['shipping_dimensions']['height'] ) ) {
 					$shipments_product->set_shipping_height( $request['shipping_dimensions']['height'] );
@@ -143,6 +151,14 @@ class Api {
 			'type'        => 'string',
 			'context'     => array( 'view', 'edit' ),
 			'readonly'    => true,
+		);
+
+		$weight_unit_label = Package::get_weight_unit_label( get_option( 'woocommerce_weight_unit', 'kg' ) );
+
+		$schema_properties['shipping_weight'] = array(
+			'description' => sprintf( _x( 'Shipping weight (%s).', 'shipments', 'shiptastic-for-woocommerce' ), $weight_unit_label ),
+			'type'        => 'string',
+			'context'     => array( 'view', 'edit' ),
 		);
 
 		$dimension_unit_label = Package::get_dimensions_unit_label( get_option( 'woocommerce_dimension_unit', 'cm' ) );
@@ -205,6 +221,14 @@ class Api {
 
 		$schema_properties['manufacture_country'] = array(
 			'description' => _x( 'Country of manufacture (Customs)', 'shipments', 'shiptastic-for-woocommerce' ),
+			'type'        => 'string',
+			'context'     => array( 'view', 'edit' ),
+		);
+
+		$weight_unit_label = Package::get_weight_unit_label( get_option( 'woocommerce_weight_unit', 'kg' ) );
+
+		$schema_properties['shipping_weight'] = array(
+			'description' => sprintf( _x( 'Shipping weight (%s).', 'shipments', 'shiptastic-for-woocommerce' ), $weight_unit_label ),
 			'type'        => 'string',
 			'context'     => array( 'view', 'edit' ),
 		);

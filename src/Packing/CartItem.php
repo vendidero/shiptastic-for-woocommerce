@@ -36,7 +36,7 @@ class CartItem extends Item {
 			'depth'  => (int) wc_get_dimension( $depth, 'mm' ),
 		);
 
-		$weight        = empty( $this->get_product()->get_weight() ) ? 0 : (float) wc_format_decimal( $this->get_product()->get_weight() );
+		$weight        = empty( $this->get_product()->get_shipping_weight() ) ? 0 : (float) wc_format_decimal( $this->get_product()->get_shipping_weight() );
 		$quantity      = (int) ceil( (float) $item['quantity'] );
 		$line_total    = (int) wc_add_number_precision( $this->item['line_total'] );
 		$line_subtotal = (int) wc_add_number_precision( $this->item['line_subtotal'] );

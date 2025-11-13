@@ -623,6 +623,10 @@ class Package {
 		return class_exists( 'Automattic\WooCommerce\Utilities\I18nUtil' ) ? I18nUtil::get_dimensions_unit_label( $unit ) : $unit;
 	}
 
+	public static function get_weight_unit_label( $unit ) {
+		return class_exists( 'Automattic\WooCommerce\Utilities\I18nUtil' ) ? I18nUtil::get_weight_unit_label( $unit ) : $unit;
+	}
+
 	/**
 	 * Generate a unique key.
 	 *

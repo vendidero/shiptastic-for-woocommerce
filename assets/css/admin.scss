@@ -218,6 +218,7 @@ span.woocommerce-shiptastic-input-toggle {
   background-color: var(--wp-admin-theme-color, #007cba);
   display: inline-block;
   text-indent: -9999px;
+  box-sizing: content-box;
   border-radius: 10em;
   position: relative;
   margin-top: -1px;

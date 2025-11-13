@@ -36,7 +36,7 @@ class OrderItem extends Item {
 				'depth'  => (int) ceil( (float) wc_get_dimension( $depth, 'mm' ) ),
 			);
 
-			$weight       = empty( $this->product->get_weight() ) ? 0 : (float) wc_format_decimal( $this->product->get_weight() );
+			$weight       = empty( $s_product->get_shipping_weight() ) ? 0 : (float) wc_format_decimal( $s_product->get_shipping_weight() );
 			$this->weight = (int) ceil( (float) wc_get_weight( $weight, 'g' ) );
 		}
 
