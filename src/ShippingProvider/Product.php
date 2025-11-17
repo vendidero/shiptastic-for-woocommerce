@@ -142,6 +142,10 @@ class Product {
 		return $this->id;
 	}
 
+	public function set_id( $id ) {
+		$this->id = $id;
+	}
+
 	public function get_internal_id() {
 		return $this->internal_id;
 	}
@@ -182,6 +186,10 @@ class Product {
 		} else {
 			return $default_value;
 		}
+	}
+
+	public function update_meta_data( $key, $value ) {
+		$this->meta[ $key ] = $value;
 	}
 
 	public function supports_country( $country, $postcode = '' ) {

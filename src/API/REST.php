@@ -34,9 +34,25 @@ abstract class REST extends \Vendidero\Shiptastic\API\Api {
 		}
 
 		if ( 'application/json' === $content_type ) {
-			return wp_json_encode( $body_args, JSON_PRETTY_PRINT );
+			$current_precision = false;
+
+			/**
+			 * Prevent full precision for floats in json.
+			 * @see https://stackoverflow.com/questions/42981409/php7-1-json-encode-float-issue
+			 */
+			if ( version_compare( PHP_VERSION, '7.1', '>=' ) ) {
+				$current_precision = ini_get( 'serialize_precision' );
+
+				@ini_set( 'serialize_precision', -1 ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, WordPress.PHP.IniSet.Risky
+			}
+
+			$body_args = wp_json_encode( $body_args, JSON_PRETTY_PRINT );
+
+			if ( $current_precision ) {
+				@ini_set( 'serialize_precision', $current_precision ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, WordPress.PHP.IniSet.Risky
+			}
 		} elseif ( 'application/x-www-form-urlencoded' === $content_type ) {
-			return http_build_query( $body_args );
+			$body_args = http_build_query( $body_args );
 		}
 
 		return $body_args;
@@ -272,6 +288,8 @@ abstract class REST extends \Vendidero\Shiptastic\API\Api {
 	protected function encode_body( $body_args ) {
 		if ( is_array( $body_args ) ) {
 			return array_map( array( $this, 'encode_body' ), $body_args );
+		} elseif ( is_numeric( $body_args ) ) {
+			return $body_args;
 		} elseif ( is_scalar( $body_args ) ) {
 			return $this->encode( $body_args );
 		} else {
