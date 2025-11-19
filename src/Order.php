@@ -181,6 +181,21 @@ class Order {
 		return false;
 	}
 
+	public function has_differing_shipping_address() {
+		$has_differing = false;
+
+		if ( $this->get_order()->has_shipping_address() ) {
+			$fields_to_check    = array_flip( array( 'postcode', 'country', 'address_1', 'address_2', 'first_name', 'last_name', 'company' ) );
+			$billing            = array_intersect_key( (array) $this->get_order()->get_address( 'billing' ), $fields_to_check );
+			$shipping           = array_intersect_key( (array) $this->get_order()->get_address( 'shipping' ), $fields_to_check );
+			$formatted_billing  = WC()->countries->get_formatted_address( $billing, ', ' );
+			$formatted_shipping = WC()->countries->get_formatted_address( $shipping, ', ' );
+			$has_differing      = $formatted_billing !== $formatted_shipping;
+		}
+
+		return apply_filters( 'woocommerce_shiptastic_shipment_order_has_differing_shipping_address', $has_differing, $this );
+	}
+
 	public function get_current_shipping_status() {
 		$status                  = 'not-shipped';
 		$shipments               = $this->get_simple_shipments();

@@ -23,6 +23,7 @@ class AddressSplitter {
 	 */
 	public static function split_address( $address ) {
 		$fixed_street_name = '';
+		$address           = is_null( $address ) ? '' : $address;
 
 		/**
 		 * Enforce whitespace after comma to improve parsing.

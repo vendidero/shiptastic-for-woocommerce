@@ -34,6 +34,7 @@ class Shipment extends WC_Data_Store_WP implements WC_Object_Data_Store_Interfac
 		'_packaging_weight',
 		'_packaging_title',
 		'_address',
+		'_billing_address',
 		'_total',
 		'_subtotal',
 		'_additional_total',

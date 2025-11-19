@@ -432,6 +432,10 @@ class ShipmentsController extends \WC_REST_Controller {
 			}
 		}
 
+		if ( isset( $request['billing_address'] ) && is_array( $request['billing_address'] ) ) {
+			$shipment->set_billing_address( wc_clean( wp_unslash( $request['billing_address'] ) ) );
+		}
+
 		if ( isset( $request['total'] ) ) {
 			$shipment->set_total( wc_clean( wp_unslash( $request['total'] ) ) );
 		}
@@ -1228,6 +1232,7 @@ class ShipmentsController extends \WC_REST_Controller {
 			),
 			'dimension_unit'          => $shipment->get_dimension_unit( $context ),
 			'address'                 => $shipment->get_address( $context ),
+			'billing_address'         => $shipment->get_billing_address( $context ),
 			'sender_address'          => 'return' === $shipment->get_type() ? $shipment->get_sender_address( $context ) : array(),
 			'is_customer_requested'   => 'return' === $shipment->get_type() ? $shipment->get_is_customer_requested( $context ) : false,
 			'items'                   => $item_data,
@@ -1539,6 +1544,16 @@ class ShipmentsController extends \WC_REST_Controller {
 							'type'        => 'string',
 							'context'     => array( 'view', 'edit' ),
 						),
+						'phone'                    => array(
+							'description' => _x( 'Phone number.', 'shipments', 'shiptastic-for-woocommerce' ),
+							'type'        => 'string',
+							'context'     => array( 'view', 'edit' ),
+						),
+						'email'                    => array(
+							'description' => _x( 'E-Mail address.', 'shipments', 'shiptastic-for-woocommerce' ),
+							'type'        => 'string',
+							'context'     => array( 'view', 'edit' ),
+						),
 						'customs_reference_number' => array(
 							'description' => _x( 'Customs reference number.', 'shipments', 'shiptastic-for-woocommerce' ),
 							'type'        => 'string',
@@ -1728,8 +1743,80 @@ class ShipmentsController extends \WC_REST_Controller {
 							'type'        => 'string',
 							'context'     => array( 'view', 'edit' ),
 						),
+						'phone'                    => array(
+							'description' => _x( 'Phone number.', 'shipments', 'shiptastic-for-woocommerce' ),
+							'type'        => 'string',
+							'context'     => array( 'view', 'edit' ),
+						),
+						'email'                    => array(
+							'description' => _x( 'E-Mail address.', 'shipments', 'shiptastic-for-woocommerce' ),
+							'type'        => 'string',
+							'context'     => array( 'view', 'edit' ),
+						),
 						'customs_reference_number' => array(
 							'description' => _x( 'Customs reference number.', 'shipments', 'shiptastic-for-woocommerce' ),
+							'type'        => 'string',
+							'context'     => array( 'view', 'edit' ),
+						),
+					),
+				),
+				'billing_address'         => array(
+					'description' => _x( 'Billing address.', 'shipments', 'shiptastic-for-woocommerce' ),
+					'type'        => 'object',
+					'context'     => array( 'view', 'edit' ),
+					'properties'  => array(
+						'first_name' => array(
+							'description' => _x( 'First name.', 'shipments', 'shiptastic-for-woocommerce' ),
+							'type'        => 'string',
+							'context'     => array( 'view', 'edit' ),
+						),
+						'last_name'  => array(
+							'description' => _x( 'Last name.', 'shipments', 'shiptastic-for-woocommerce' ),
+							'type'        => 'string',
+							'context'     => array( 'view', 'edit' ),
+						),
+						'company'    => array(
+							'description' => _x( 'Company name.', 'shipments', 'shiptastic-for-woocommerce' ),
+							'type'        => 'string',
+							'context'     => array( 'view', 'edit' ),
+						),
+						'address_1'  => array(
+							'description' => _x( 'Address line 1', 'shipments', 'shiptastic-for-woocommerce' ),
+							'type'        => 'string',
+							'context'     => array( 'view', 'edit' ),
+						),
+						'address_2'  => array(
+							'description' => _x( 'Address line 2', 'shipments', 'shiptastic-for-woocommerce' ),
+							'type'        => 'string',
+							'context'     => array( 'view', 'edit' ),
+						),
+						'city'       => array(
+							'description' => _x( 'City name.', 'shipments', 'shiptastic-for-woocommerce' ),
+							'type'        => 'string',
+							'context'     => array( 'view', 'edit' ),
+						),
+						'state'      => array(
+							'description' => _x( 'ISO code or name of the state, province or district.', 'shipments', 'shiptastic-for-woocommerce' ),
+							'type'        => 'string',
+							'context'     => array( 'view', 'edit' ),
+						),
+						'postcode'   => array(
+							'description' => _x( 'Postal code.', 'shipments', 'shiptastic-for-woocommerce' ),
+							'type'        => 'string',
+							'context'     => array( 'view', 'edit' ),
+						),
+						'country'    => array(
+							'description' => _x( 'Country code in ISO 3166-1 alpha-2 format.', 'shipments', 'shiptastic-for-woocommerce' ),
+							'type'        => 'string',
+							'context'     => array( 'view', 'edit' ),
+						),
+						'phone'      => array(
+							'description' => _x( 'Phone number.', 'shipments', 'shiptastic-for-woocommerce' ),
+							'type'        => 'string',
+							'context'     => array( 'view', 'edit' ),
+						),
+						'email'      => array(
+							'description' => _x( 'E-Mail address.', 'shipments', 'shiptastic-for-woocommerce' ),
 							'type'        => 'string',
 							'context'     => array( 'view', 'edit' ),
 						),

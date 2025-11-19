@@ -132,6 +132,14 @@ class SimpleShipment extends Shipment {
 				$address_data['phone'] = $order->get_shipping_phone();
 			}
 
+			$billing_address = $order_shipment->has_differing_shipping_address() ? array_merge(
+				$order->get_address( 'billing' ),
+				array(
+					'email' => $order->get_billing_email(),
+					'phone' => $order->get_billing_phone(),
+				)
+			) : array();
+
 			/**
 			 * Fix to make sure that we are not syncing formatted customer titles (e.g. Herr)
 			 * which prevents shipment addresses from being translated.
@@ -162,6 +170,7 @@ class SimpleShipment extends Shipment {
 					'shipping_method'                 => $this->get_shipping_method( 'edit' ) ? $this->get_shipping_method( 'edit' ) : $order_shipment->get_shipping_method_id(),
 					'packaging_id'                    => $this->get_packaging_id( 'edit' ),
 					'address'                         => $address_data,
+					'billing_address'                 => $billing_address,
 					'country'                         => $country,
 					'weight'                          => $this->get_weight( 'edit' ),
 					'packaging_weight'                => $this->get_packaging_weight( 'edit' ),

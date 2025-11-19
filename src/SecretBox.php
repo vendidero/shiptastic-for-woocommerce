@@ -65,6 +65,10 @@ class SecretBox {
 			$result['key'] = sodium_hex2bin( constant( self::get_encryption_key_constant( $encryption_type ) ) );
 		} else {
 			try {
+				if ( ! defined( 'LOGGED_IN_KEY' ) ) {
+					throw new \Exception( 'Missing LOGGED_IN_KEY constant.' );
+				}
+
 				$pw            = LOGGED_IN_KEY;
 				$result['key'] = sodium_crypto_pwhash(
 					SODIUM_CRYPTO_SECRETBOX_KEYBYTES,

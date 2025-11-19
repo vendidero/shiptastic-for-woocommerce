@@ -288,6 +288,16 @@ class ReturnShipment extends Shipment {
 	}
 
 	/**
+	 * Returns the billing address properties.
+	 *
+	 * @param  string $context What the value is for. Valid values are 'view' and 'edit'.
+	 * @return string[]
+	 */
+	public function get_billing_address( $context = 'view' ) {
+		return $this->get_sender_address( $context );
+	}
+
+	/**
 	 * @param $context
 	 *
 	 * @return string
@@ -452,30 +462,7 @@ class ReturnShipment extends Shipment {
 	 * @return null|string
 	 */
 	protected function get_sender_address_prop( $prop, $context = 'view' ) {
-		$value = null;
-
-		if ( isset( $this->changes['sender_address'][ $prop ] ) || isset( $this->data['sender_address'][ $prop ] ) ) {
-			$value = isset( $this->changes['sender_address'][ $prop ] ) ? $this->changes['sender_address'][ $prop ] : $this->data['sender_address'][ $prop ];
-
-			if ( 'view' === $context ) {
-				/**
-				 * Filter to adjust a Shipment's return sender address property e.g. first_name.
-				 *
-				 * The dynamic portion of this hook, `$this->get_hook_prefix()` is used to construct a
-				 * unique hook for a shipment type. `$prop` refers to the actual address property e.g. first_name.
-				 *
-				 * Example hook name: woocommerce_shiptastic_return_shipment_get_sender_address_first_name
-				 *
-				 * @param string                                   $value The address property value.
-				 * @param Shipment $this The shipment object.
-				 *
-				 * @package Vendidero/Shiptastic
-				 */
-				$value = apply_filters( "{$this->get_hook_prefix()}sender_address_{$prop}", $value, $this );
-			}
-		}
-
-		return $value;
+		return $this->get_address_prop_by_type( $prop, 'sender_address', $context );
 	}
 
 	/**
@@ -503,7 +490,7 @@ class ReturnShipment extends Shipment {
 			$return_address      = wc_stc_get_shipment_return_address( $order_shipment );
 			$order               = $order_shipment->get_order();
 			$sender_address_data = array_merge(
-				( $order->has_shipping_address() ? $order->get_address( 'shipping' ) : $order->get_address( 'billing' ) ),
+				$order->get_address( 'billing' ),
 				array(
 					'email' => $order->get_billing_email(),
 					'phone' => $order->get_billing_phone(),
