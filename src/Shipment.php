@@ -3249,6 +3249,12 @@ abstract class Shipment extends WC_Data {
 		if ( $label = $this->get_label() ) {
 			$this->set_tracking_id( $label->get_number() );
 
+			$label_tracking_url = $label->get_tracking_url();
+
+			if ( ! empty( $label_tracking_url ) ) {
+				$this->set_tracking_url( $label_tracking_url );
+			}
+
 			/**
 			 * Action for shipping providers to adjust the shipment before updating it after a label has
 			 * been successfully generated.
@@ -3474,6 +3480,8 @@ abstract class Shipment extends WC_Data {
 				}
 			}
 
+			$changes = $this->get_changes();
+
 			if ( $this->data_store ) {
 				// Trigger action before saving to the DB. Allows you to adjust object props before save.
 				do_action( 'woocommerce_before_' . $this->object_type . '_object_save', $this, $this->data_store );
@@ -3520,10 +3528,11 @@ abstract class Shipment extends WC_Data {
 			 *
 			 * @param Shipment $shipment The shipment object being saved.
 			 * @param boolean  $is_new Indicator to determine whether this is a new shipment or not.
+			 * @param mixed[]  $changes Changes to be persisted.
 			 *
 			 * @package Vendidero/Shiptastic
 			 */
-			do_action( "woocommerce_shiptastic_{$hook_postfix}shipment_after_save", $this, $is_new );
+			do_action( "woocommerce_shiptastic_{$hook_postfix}shipment_after_save", $this, $is_new, $changes );
 
 			$this->status_transition();
 			$this->reset_content_data();

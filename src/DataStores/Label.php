@@ -39,6 +39,7 @@ class Label extends WC_Data_Store_WP implements WC_Object_Data_Store_Interface {
 	 */
 	protected $internal_meta_keys = array(
 		'_services',
+		'_file_types',
 		'_weight',
 		'_net_weight',
 		'_width',
@@ -48,6 +49,7 @@ class Label extends WC_Data_Store_WP implements WC_Object_Data_Store_Interface {
 		'_created_via',
 		'_print_format',
 		'_export_reference_number',
+		'_tracking_url',
 	);
 
 	/*

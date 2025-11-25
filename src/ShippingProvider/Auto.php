@@ -1244,7 +1244,7 @@ abstract class Auto extends Simple implements ShippingProviderAuto {
 
 	public function get_label_service_fields( $shipment ) {
 		$service_fields = array();
-		$services       = $this->get_services( array( 'shipment' => $shipment ) );
+		$services       = $this->get_available_label_services( $shipment );
 		$default_props  = $this->get_default_label_props( $shipment );
 
 		if ( ! empty( $services ) ) {
@@ -1376,12 +1376,7 @@ abstract class Auto extends Simple implements ShippingProviderAuto {
 		$dimensions = wc_stc_get_shipment_label_dimensions( $shipment );
 		$default    = array_merge( $default, $dimensions );
 
-		foreach ( $this->get_services(
-			array(
-				'shipment'   => $shipment,
-				'product_id' => $default['product_id'],
-			)
-		) as $service ) {
+		foreach ( $this->get_available_label_services( $shipment, $default['product_id'] ) as $service ) {
 			if ( $service->book_as_default( $shipment ) ) {
 				$default['services'][] = $service->get_id();
 
@@ -1461,10 +1456,10 @@ abstract class Auto extends Simple implements ShippingProviderAuto {
 			$shipment
 		);
 
-		/**
-		 * Neither allow invalid service configuration from automatic nor manual requests.
-		 */
-		foreach ( $this->get_services() as $service ) {
+		$available_services = $this->get_available_label_services( $shipment, $props['product_id'] );
+		$all_services       = $this->get_services();
+
+		foreach ( $available_services as $service ) {
 			$label_field_id = $service->get_label_field_id();
 
 			/**
@@ -1492,38 +1487,29 @@ abstract class Auto extends Simple implements ShippingProviderAuto {
 					}
 				}
 			}
+		}
 
-			/**
-			 * Remove services + service meta in case the service is not available or not booked.
-			 */
-			if ( ! $service->supports(
-				array(
-					'shipment' => $shipment,
-					'product'  => $props['product_id'],
-				)
-			) || ! in_array( $service->get_id(), $props['services'], true ) ) {
-				$props['services'] = array_diff( $props['services'], array( $service->get_id() ) );
+		foreach ( $props['services'] as $service_id ) {
+			$service = $available_services->get( $service_id );
 
-				foreach ( $service->get_label_fields( $shipment ) as $setting ) {
-					$setting_id = $setting['id'];
+			if ( ! $service ) {
+				$props['services'] = array_diff( $props['services'], array( $service_id ) );
 
-					if ( strstr( $setting_id, '[' ) ) {
-						$setting_parts = explode( '[', $setting_id );
-						$setting_id    = $setting_parts[0];
-					}
+				if ( $org_service = $all_services->get( $service_id ) ) {
+					foreach ( $org_service->get_label_fields( $shipment ) as $setting ) {
+						$setting_id = $setting['id'];
 
-					if ( array_key_exists( $setting_id, $props ) ) {
-						unset( $props[ $setting_id ] );
+						if ( strstr( $setting_id, '[' ) ) {
+							$setting_parts = explode( '[', $setting_id );
+							$setting_id    = $setting_parts[0];
+						}
+
+						if ( array_key_exists( $setting_id, $props ) ) {
+							unset( $props[ $setting_id ] );
+						}
 					}
 				}
-
-				if ( array_key_exists( $label_field_id, $props ) ) {
-					unset( $props[ $label_field_id ] );
-					continue;
-				}
-			}
-
-			if ( in_array( $service->get_id(), $props['services'], true ) ) {
+			} else {
 				$valid = $service->validate_label_request( $props, $shipment );
 
 				if ( is_wp_error( $valid ) ) {
@@ -1701,15 +1687,17 @@ abstract class Auto extends Simple implements ShippingProviderAuto {
 
 	/**
 	 * @param \Vendidero\Shiptastic\Shipment $shipment
+	 * @param string $product_id
+	 *
+	 * @return ServiceList
 	 */
-	public function get_available_label_services( $shipment ) {
-		$services = array();
-
-		foreach ( $this->get_services( array( 'shipment' => $shipment ) ) as $service ) {
-			$services[] = $service->get_id();
-		}
-
-		return $services;
+	public function get_available_label_services( $shipment, $product_id = '' ) {
+		return $this->get_services(
+			array(
+				'shipment'   => $shipment,
+				'product_id' => $product_id,
+			)
+		);
 	}
 
 	/**

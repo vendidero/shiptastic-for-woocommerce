@@ -15,6 +15,8 @@ class Service {
 
 	protected $products = array();
 
+	protected $exclude_if_checked = null;
+
 	protected $id = '';
 
 	protected $internal_id = '';
@@ -43,6 +45,8 @@ class Service {
 
 	protected $locations = array();
 
+	protected $meta = array();
+
 	protected $long_description = '';
 
 	public function __construct( $shipping_provider, $args = array() ) {
@@ -66,9 +70,11 @@ class Service {
 				'excluded_locations' => array(),
 				'options'            => array(),
 				'products'           => null,
+				'exclude_if_checked' => null,
 				'shipment_types'     => array( 'simple' ),
 				'countries'          => null,
 				'zones'              => array_keys( wc_stc_get_shipping_label_zones() ),
+				'meta'               => array(),
 			)
 		);
 
@@ -87,11 +93,14 @@ class Service {
 		$this->long_description = $args['long_description'];
 		$this->option_type      = $args['option_type'];
 		$this->default_value    = $args['default_value'];
+		$this->meta             = (array) $args['meta'];
 		$this->options          = array_filter( (array) $args['options'] );
 		$this->locations        = array_diff( wc_stc_get_shipping_provider_service_locations(), array_filter( (array) $args['excluded_locations'] ) );
-		$this->products         = is_null( $args['products'] ) ? null : array_filter( (array) $args['products'] );
 		$this->shipment_types   = array_filter( (array) $args['shipment_types'] );
 		$this->countries        = is_null( $args['countries'] ) ? null : array_filter( (array) $args['countries'] );
+
+		$this->set_products_supported( is_null( $args['products'] ) ? null : array_filter( (array) $args['products'] ) );
+		$this->set_exclude_if_checked( is_null( $args['exclude_if_checked'] ) ? null : array_filter( (array) $args['exclude_if_checked'] ) );
 
 		if ( ! empty( $this->countries ) ) {
 			if ( 1 === count( $this->countries ) && Package::get_base_country() === $this->countries[0] ) {
@@ -137,6 +146,10 @@ class Service {
 
 	public function get_products() {
 		return is_null( $this->products ) ? array() : $this->products;
+	}
+
+	public function get_exclude_if_checked() {
+		return is_null( $this->exclude_if_checked ) ? array() : $this->exclude_if_checked;
 	}
 
 	public function get_locations() {
@@ -208,6 +221,56 @@ class Service {
 
 	public function get_zones() {
 		return $this->zones;
+	}
+
+	public function get_meta( $prop = null, $default_value = false ) {
+		if ( is_null( $prop ) ) {
+			return $this->meta;
+		} elseif ( array_key_exists( $prop, $this->meta ) ) {
+			return $this->meta[ $prop ];
+		} else {
+			return $default_value;
+		}
+	}
+
+	public function update_meta_data( $key, $value ) {
+		$this->meta[ $key ] = $value;
+	}
+
+	public function set_products_supported( $products ) {
+		$this->products = $products;
+	}
+
+	public function set_exclude_if_checked( $services ) {
+		$this->exclude_if_checked = $services;
+	}
+
+	public function add_products_supported( $product ) {
+		if ( is_null( $this->products ) ) {
+			$this->products = array();
+		}
+
+		if ( is_array( $product ) ) {
+			$this->products = array_merge( $this->products, $product );
+		} else {
+			$this->products[] = $product;
+		}
+
+		$this->products = array_unique( $this->products );
+	}
+
+	public function add_exclude_if_checked( $service_id ) {
+		if ( is_null( $this->exclude_if_checked ) ) {
+			$this->exclude_if_checked = array();
+		}
+
+		if ( is_array( $service_id ) ) {
+			$this->exclude_if_checked = array_merge( $this->exclude_if_checked, $service_id );
+		} else {
+			$this->exclude_if_checked[] = $service_id;
+		}
+
+		$this->exclude_if_checked = array_unique( $this->exclude_if_checked );
 	}
 
 	public function supports_country( $country, $postcode = '' ) {
@@ -408,13 +471,17 @@ class Service {
 	}
 
 	protected function get_show_if_attributes() {
+		$show_if = array();
+
 		if ( ! empty( $this->get_products() ) ) {
-			return array(
-				'data-products-supported' => implode( ',', $this->get_products() ),
-			);
-		} else {
-			return array();
+			$show_if['data-products-supported'] = implode( ',', $this->get_products() );
 		}
+
+		if ( ! empty( $this->get_exclude_if_checked() ) ) {
+			$show_if['data-exclude-if-checked'] = implode( ',', $this->get_exclude_if_checked() );
+		}
+
+		return $show_if;
 	}
 
 	/**

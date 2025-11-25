@@ -13,6 +13,43 @@ window.shiptastic.admin = window.shiptastic.admin || {};
             var self = shipments.admin.shipment_label;
 
             $( document ).on( 'change', '.shipments-create-label #product_id', self.onChangeLabelProductId );
+            $( document ).on( 'change', '.label-service-list input[type=checkbox]', self.onChangeLabelService );
+        },
+
+        onChangeLabelService: function() {
+            var $wrapper  = $( '.shipments-create-label' ),
+                $fields   = $wrapper.find( 'p.form-field :input[data-exclude-if-checked]' ),
+                servicesSelected = [],
+                $currentField = $( this );
+
+            $( '.label-service-list input[type=checkbox]:checked' ).each( function() {
+                let serviceName = $( this ).attr( 'name' );
+
+                if ( serviceName.includes( 'service_' ) ) {
+                    servicesSelected.push( serviceName.replace( 'service_', '' ) );
+                }
+            } );
+
+            $fields.each( function() {
+                var $field    = $( this ),
+                    exclusive = $field.data( 'exclude-if-checked' );
+
+                if ( $currentField.get( 0 ) === $field.get( 0 ) ) {
+                    return null;
+                }
+
+                if ( exclusive.length > 0 ) {
+                    let excludedServices = exclusive.split( ',' ).filter( Boolean );
+                    let commonServices = servicesSelected.filter( value => excludedServices.includes( value ) );
+
+                    if ( commonServices.length > 0 ) {
+                        $field.prop("checked", false );
+                        $field.parents( '.form-field' ).hide();
+                    } else {
+                        $field.parents( '.form-field' ).show();
+                    }
+                }
+            } );
         },
 
         onChangeLabelProductId: function() {

@@ -855,12 +855,6 @@ class Simple extends WC_Data implements ShippingProvider {
 	 * @return array
 	 */
 	public function get_tracking_placeholders( $shipment = false ) {
-		$label = false;
-
-		if ( $shipment ) {
-			$label = $shipment->get_label();
-		}
-
 		/**
 		 * This filter may be used to add or manipulate tracking placeholder data
 		 * for a certain shipping provider.
@@ -876,26 +870,36 @@ class Simple extends WC_Data implements ShippingProvider {
 		 *
 		 * @package Vendidero/Shiptastic
 		 */
-		return apply_filters(
-			"{$this->get_hook_prefix()}tracking_placeholders",
-			array(
-				'{tracking_id}'       => $shipment ? $shipment->get_tracking_id() : '',
-				'{postcode}'          => $shipment ? $shipment->get_postcode() : '',
-				'{shipment_number}'   => $shipment ? $shipment->get_shipment_number() : '',
-				'{order_number}'      => $shipment ? $shipment->get_order_number() : '',
-				'{date_sent_day}'     => $shipment && $shipment->get_date_sent() ? $shipment->get_date_sent()->format( 'd' ) : '',
-				'{date_sent_month}'   => $shipment && $shipment->get_date_sent() ? $shipment->get_date_sent()->format( 'm' ) : '',
-				'{date_sent_year}'    => $shipment && $shipment->get_date_sent() ? $shipment->get_date_sent()->format( 'Y' ) : '',
-				'{date_day}'          => $shipment && $shipment->get_date_created() ? $shipment->get_date_created()->format( 'd' ) : '',
-				'{date_month}'        => $shipment && $shipment->get_date_created() ? $shipment->get_date_created()->format( 'm' ) : '',
-				'{date_year}'         => $shipment && $shipment->get_date_created() ? $shipment->get_date_created()->format( 'Y' ) : '',
-				'{label_date_day}'    => $label ? $label->get_date_created()->format( 'd' ) : '',
-				'{label_date_month}'  => $label ? $label->get_date_created()->format( 'm' ) : '',
-				'{label_date_year}'   => $label ? $label->get_date_created()->format( 'Y' ) : '',
-				'{shipping_provider}' => $this->get_title(),
-			),
-			$this,
-			$shipment
+		return apply_filters( "{$this->get_hook_prefix()}tracking_placeholders", $this->get_tracking_raw_placeholders( $shipment ), $this, $shipment );
+	}
+
+	/**
+	 * @param bool|Shipment $shipment
+	 *
+	 * @return array
+	 */
+	protected function get_tracking_raw_placeholders( $shipment = false ) {
+		$label = false;
+
+		if ( $shipment ) {
+			$label = $shipment->get_label();
+		}
+
+		return array(
+			'{tracking_id}'       => $shipment ? $shipment->get_tracking_id() : '',
+			'{postcode}'          => $shipment ? $shipment->get_postcode() : '',
+			'{shipment_number}'   => $shipment ? $shipment->get_shipment_number() : '',
+			'{order_number}'      => $shipment ? $shipment->get_order_number() : '',
+			'{date_sent_day}'     => $shipment && $shipment->get_date_sent() ? $shipment->get_date_sent()->format( 'd' ) : '',
+			'{date_sent_month}'   => $shipment && $shipment->get_date_sent() ? $shipment->get_date_sent()->format( 'm' ) : '',
+			'{date_sent_year}'    => $shipment && $shipment->get_date_sent() ? $shipment->get_date_sent()->format( 'Y' ) : '',
+			'{date_day}'          => $shipment && $shipment->get_date_created() ? $shipment->get_date_created()->format( 'd' ) : '',
+			'{date_month}'        => $shipment && $shipment->get_date_created() ? $shipment->get_date_created()->format( 'm' ) : '',
+			'{date_year}'         => $shipment && $shipment->get_date_created() ? $shipment->get_date_created()->format( 'Y' ) : '',
+			'{label_date_day}'    => $label ? $label->get_date_created()->format( 'd' ) : '',
+			'{label_date_month}'  => $label ? $label->get_date_created()->format( 'm' ) : '',
+			'{label_date_year}'   => $label ? $label->get_date_created()->format( 'Y' ) : '',
+			'{shipping_provider}' => $this->get_title(),
 		);
 	}
 
