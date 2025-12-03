@@ -51,6 +51,8 @@ class Shipment extends WC_Data_Store_WP implements WC_Object_Data_Store_Interfac
 		'_tracking_url',
 		'_tracking_instruction',
 		'_shipping_provider_title',
+		'_packing_slip_path',
+		'_commercial_invoice_path',
 	);
 
 	protected $core_props = array(

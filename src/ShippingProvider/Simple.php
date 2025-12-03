@@ -194,6 +194,10 @@ class Simple extends WC_Data implements ShippingProvider {
 		return false;
 	}
 
+	public function get_available_incoterms() {
+		return array();
+	}
+
 	/**
 	 * Some providers (e.g. DHL) create return labels automatically and the return
 	 * address is chosen dynamically depending on the country. For that reason the return address
@@ -513,6 +517,10 @@ class Simple extends WC_Data implements ShippingProvider {
 
 	public function get_shipper_customs_uk_vat_id() {
 		return $this->get_address_prop( 'customs_uk_vat_id' );
+	}
+
+	public function get_shipper_vat_id() {
+		return $this->get_address_prop( 'vat_id' );
 	}
 
 	public function get_shipper_country() {

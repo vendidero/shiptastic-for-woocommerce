@@ -3,7 +3,7 @@ Contributors: vendidero, vdwoocommercesupport
 Tags: shipping, woocommerce, shipments, rules, woo
 Requires at least: 5.4
 Tested up to: 6.9
-Stable tag: 4.8.3
+Stable tag: 4.8.4
 Requires PHP: 5.6
 License: GPLv3
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
@@ -71,6 +71,12 @@ We recommend installing Shiptastic for WooCommerce through the WordPress Backend
 6. Manage returns
 
 == Changelog ==
+= 4.8.4 =
+* Improvement: Store alternate billing address in shipment
+* Improvement: Use billing address as default return shipper address
+* Improvement: WooCommerce Shipment Tracking compatibility
+* Fix: Default shipping provider list + tracking url
+
 = 4.8.3 =
 * Improvement: Add optional shipping weight
 * Improvement: Add US customs MID-code

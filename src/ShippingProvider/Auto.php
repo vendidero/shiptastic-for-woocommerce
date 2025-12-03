@@ -90,6 +90,10 @@ abstract class Auto extends Simple implements ShippingProviderAuto {
 		return '';
 	}
 
+	protected function get_default_label_incoterms() {
+		return '';
+	}
+
 	/**
 	 * Returns the minimum weight applied to the label. Defaults to 1g.
 	 *
@@ -1162,6 +1166,27 @@ abstract class Auto extends Simple implements ShippingProviderAuto {
 			}
 		}
 
+		$available_incoterms = $this->get_available_incoterms();
+
+		if ( ! empty( $available_incoterms ) && 'shipping_provider' === $configuration_set->get_setting_type() && 'int' === $configuration_set->get_zone() ) {
+			$settings = array_merge(
+				$settings,
+				array(
+					array(
+						'title'    => _x( 'Default Incoterms', 'shipments', 'shiptastic-for-woocommerce' ),
+						'type'     => 'select',
+						'default'  => $this->get_default_label_incoterms(),
+						'id'       => 'label_default_incoterms',
+						'value'    => $this->get_setting( 'label_default_incoterms', $this->get_default_label_incoterms() ),
+						'desc'     => _x( 'Please select a default incoterms option.', 'shipments', 'shiptastic-for-woocommerce' ),
+						'desc_tip' => true,
+						'options'  => $available_incoterms,
+						'class'    => 'wc-enhanced-select',
+					),
+				)
+			);
+		}
+
 		return $settings;
 	}
 
@@ -1333,6 +1358,26 @@ abstract class Auto extends Simple implements ShippingProviderAuto {
 			);
 		}
 
+		if ( $shipment->is_shipping_international() ) {
+			$available_incoterms = $this->get_available_incoterms();
+
+			if ( ! empty( $available_incoterms ) ) {
+				$settings = array_merge(
+					$settings,
+					array(
+						array(
+							'id'          => 'incoterms',
+							'label'       => _x( 'Incoterms', 'shipments', 'shiptastic-for-woocommerce' ),
+							'description' => '',
+							'value'       => isset( $defaults['incoterms'] ) ? $defaults['incoterms'] : '',
+							'options'     => $this->get_available_incoterms(),
+							'type'        => 'select',
+						),
+					)
+				);
+			}
+		}
+
 		return $settings;
 	}
 
@@ -1375,6 +1420,14 @@ abstract class Auto extends Simple implements ShippingProviderAuto {
 
 		$dimensions = wc_stc_get_shipment_label_dimensions( $shipment );
 		$default    = array_merge( $default, $dimensions );
+
+		if ( $shipment->is_shipping_international() ) {
+			$available_incoterms = $this->get_available_incoterms();
+
+			if ( ! empty( $available_incoterms ) ) {
+				$default['incoterms'] = $this->get_default_incoterms( $shipment );
+			}
+		}
 
 		foreach ( $this->get_available_label_services( $shipment, $default['product_id'] ) as $service ) {
 			if ( $service->book_as_default( $shipment ) ) {
@@ -1757,6 +1810,17 @@ abstract class Auto extends Simple implements ShippingProviderAuto {
 			return $this->get_label_print_format();
 		} else {
 			return $this->get_default_label_default_print_format();
+		}
+	}
+
+	/**
+	 * @param \Vendidero\Shiptastic\Shipment $shipment
+	 */
+	public function get_default_incoterms( $shipment ) {
+		if ( array_key_exists( $shipment->get_incoterms(), $this->get_available_incoterms() ) ) {
+			return $shipment->get_incoterms();
+		} else {
+			return $this->get_default_label_incoterms();
 		}
 	}
 

@@ -598,12 +598,64 @@ class Encoding {
 		self::SUPPLEMENTARY_PRIVATE_USE_AREA_B        => array( 0x100000, 0x10FFFF ),
 	);
 
+	/**
+	 * Override the default remove_accents function as this function
+	 * checks the current locale for special chars (e.g. ä = ae) which may not match.
+	 *
+	 * @param $text
+	 *
+	 * @return mixed|string
+	 */
+	public static function remove_accents( $text ) {
+		if ( ! preg_match( '/[\x80-\xff]/', $text ) ) {
+			return $text;
+		}
+
+		if ( wp_is_valid_utf8( $text ) ) {
+
+			/*
+			 * Unicode sequence normalization from NFD (Normalization Form Decomposed)
+			 * to NFC (Normalization Form [Pre]Composed), the encoding used in this function.
+			 */
+			if ( function_exists( 'normalizer_is_normalized' )
+				&& function_exists( 'normalizer_normalize' )
+			) {
+				if ( ! normalizer_is_normalized( $text ) ) {
+					$text = normalizer_normalize( $text );
+				}
+			}
+
+			$chars = array();
+
+			$chars['Ä']   = 'Ae';
+			$chars['ä']   = 'ae';
+			$chars['Ö']   = 'Oe';
+			$chars['ö']   = 'oe';
+			$chars['Ü']   = 'Ue';
+			$chars['ü']   = 'ue';
+			$chars['ß']   = 'ss';
+			$chars['Æ']   = 'Ae';
+			$chars['æ']   = 'ae';
+			$chars['Ø']   = 'Oe';
+			$chars['ø']   = 'oe';
+			$chars['Å']   = 'Aa';
+			$chars['å']   = 'aa';
+			$chars['l·l'] = 'll';
+			$chars['Đ']   = 'DJ';
+			$chars['đ']   = 'dj';
+
+			$text = strtr( $text, $chars );
+		}
+
+		return remove_accents( $text );
+	}
+
 	public static function to_alphanumeric( $str ) {
 		if ( is_array( $str ) ) {
 			return array_map( array( __CLASS__, 'to_alphanumeric' ), $str );
 		} elseif ( is_scalar( $str ) ) {
 			$str = self::decode_html( $str );
-			$str = remove_accents( $str );
+			$str = self::remove_accents( $str );
 			$str = preg_replace( '/[^ \w-]/', ' ', $str );
 			$str = preg_replace( '/\s+/', ' ', $str );
 

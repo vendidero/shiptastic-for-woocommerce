@@ -71,6 +71,7 @@ class Label extends WC_Data implements ShipmentLabel {
 		'services'                => array(),
 		'print_format'            => '',
 		'export_reference_number' => '',
+		'incoterms'               => '',
 	);
 
 	public function __construct( $data = 0 ) {
@@ -200,6 +201,18 @@ class Label extends WC_Data implements ShipmentLabel {
 
 	public function get_export_reference_number( $context = 'view' ) {
 		return $this->get_prop( 'export_reference_number', $context );
+	}
+
+	public function get_incoterms( $context = 'view' ) {
+		$incoterms = $this->get_prop( 'incoterms', $context );
+
+		if ( 'view' === $context && empty( $incoterms ) ) {
+			if ( $shipment = $this->get_shipment() ) {
+				$incoterms = $shipment->get_incoterms();
+			}
+		}
+
+		return $incoterms;
 	}
 
 	public function has_number() {
@@ -370,6 +383,10 @@ class Label extends WC_Data implements ShipmentLabel {
 		$this->set_prop( 'export_reference_number', $ref_number );
 	}
 
+	public function set_incoterms( $value ) {
+		$this->set_prop( 'incoterms', $value );
+	}
+
 	public function set_shipping_provider( $slug ) {
 		$this->set_prop( 'shipping_provider', $slug );
 	}
@@ -488,9 +505,7 @@ class Label extends WC_Data implements ShipmentLabel {
 	}
 
 	public function get_additional_file_types() {
-		return array(
-			'plain',
-		);
+		return array_merge( (array) $this->get_file_types(), array( 'plain' ) );
 	}
 
 	public function get_plain_file() {
@@ -510,12 +525,12 @@ class Label extends WC_Data implements ShipmentLabel {
 	}
 
 	public function get_stream( $file_type = '' ) {
-		if ( ! $this->get_file( $file_type ) ) {
+		if ( ! $file = $this->get_file( $file_type ) ) {
 			return '';
 		}
 
 		try {
-			$result = file_get_contents( $this->get_path( $file_type ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
+			$result = file_get_contents( $file ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
 		} catch ( \Exception $e ) {
 			$result = '';
 		}
@@ -558,14 +573,7 @@ class Label extends WC_Data implements ShipmentLabel {
 	}
 
 	protected function get_file_by_path( $file ) {
-		// If the file is relative, prepend upload dir.
-		if ( $file && 0 !== strpos( $file, '/' ) && ( ( $uploads = Package::get_upload_dir() ) && false === $uploads['error'] ) ) {
-			$file = $uploads['basedir'] . "/$file";
-
-			return $file;
-		} else {
-			return false;
-		}
+		return Package::get_file_by_path( $file );
 	}
 
 	public function set_shipment_id( $shipment_id ) {
@@ -934,11 +942,18 @@ class Label extends WC_Data implements ShipmentLabel {
 			array(
 				'shipment_id'                   => $shipment->get_id(),
 				'additional_fee'                => wc_format_decimal( $shipment->get_additional_total(), 2 ),
+				'additional_totals'             => array(
+					'insurance' => 0.0,
+					'shipping'  => wc_format_decimal( $shipment->get_additional_total(), 2 ),
+					'other'     => 0.0,
+				),
 				'place_of_commital'             => $shipment->get_sender_city(),
 				'export_reference_number'       => $this->get_export_reference_number(),
 				// e.g. EORI number
 				'sender_customs_ref_number'     => $shipment->get_sender_customs_reference_number(),
+				'sender_vat_id'                 => $shipment->get_sender_vat_id(),
 				'receiver_customs_ref_number'   => $shipment->get_customs_reference_number(),
+				'receiver_vat_id'               => $shipment->get_billing_vat_id(),
 				// Customs UK VAT ID (HMRC) for totals <= 135 GBP
 				'sender_customs_uk_vat_id'      => $shipment->get_sender_customs_uk_vat_id(),
 				'items'                         => $customs_items,
@@ -947,9 +962,12 @@ class Label extends WC_Data implements ShipmentLabel {
 				'item_total_gross_weight_in_kg' => $this->round_customs_item_weight( (float) wc_get_weight( $total_gross_weight, 'kg', 'g' ), 3 ),
 				'item_total_gross_weight_in_g'  => $total_gross_weight,
 				'item_total_value'              => $total_value,
+				'total_value'                   => wc_format_decimal( $shipment->get_additional_total() + $total_value, 2 ),
 				'currency'                      => $order ? $order->get_currency() : get_woocommerce_currency(),
-				'invoice_number'                => '',
-				'incoterms'                     => $shipment->get_incoterms(),
+				'invoice_number'                => $shipment->get_shipment_number(),
+				'is_proforma'                   => false,
+				'invoice_date'                  => $shipment->get_date_created()->date_i18n( 'Y-m-d' ),
+				'incoterms'                     => $this->get_incoterms(),
 				'export_type'                   => '',
 				'export_reason_description'     => $item_description,
 				'export_type_description'       => $item_description,

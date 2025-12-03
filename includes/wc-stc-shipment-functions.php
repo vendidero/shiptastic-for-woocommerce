@@ -1052,6 +1052,7 @@ function wc_stc_get_shipment_setting_default_address_fields( $type = 'shipper' )
 		'phone'                    => _x( 'Phone', 'shipments', 'shiptastic-for-woocommerce' ),
 		'email'                    => _x( 'Email', 'shipments', 'shiptastic-for-woocommerce' ),
 		'customs_reference_number' => _x( 'Customs Reference Number', 'shipments', 'shiptastic-for-woocommerce' ),
+		'vat_id'                   => _x( 'VAT ID (EU)', 'shipments', 'shiptastic-for-woocommerce' ),
 		'customs_uk_vat_id'        => _x( 'UK VAT ID (HMRC)', 'shipments', 'shiptastic-for-woocommerce' ),
 	);
 
@@ -1092,7 +1093,7 @@ function wc_stc_get_shipment_setting_address_fields( $address_type = 'shipper' )
 			if ( array_key_exists( $prop, $default_address_data ) && ! in_array( $prop, array( 'state' ), true ) ) {
 				$value = $default_address_data[ $prop ];
 			} else {
-				$value = '';
+				$value = apply_filters( "woocommerce_shiptastic_shipment_{$address_type}_address_default_field_value", $value, $prop );
 			}
 		}
 

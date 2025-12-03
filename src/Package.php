@@ -6,7 +6,6 @@ use Automattic\WooCommerce\Utilities\I18nUtil;
 use Exception;
 use Vendidero\Shiptastic\Registry\Container;
 use Vendidero\Shiptastic\ShippingMethod\MethodHelper;
-use Vendidero\Shiptastic\ShippingProvider\Helper;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -19,7 +18,7 @@ class Package {
 	 *
 	 * @var string
 	 */
-	const VERSION = '4.8.3';
+	const VERSION = '4.8.4';
 
 	public static $upload_dir_suffix = '';
 
@@ -481,6 +480,30 @@ class Package {
 		return apply_filters( 'woocommerce_shiptastic_base_country_supports_export_reference_number', self::country_belongs_to_eu_customs_area( $base_country ) );
 	}
 
+	public static function get_available_incoterms() {
+		return apply_filters(
+			'woocommerce_shiptastic_available_incoterms',
+			array(
+				'DAP' => _x( 'Delivered at Place (DAP)', 'shipments', 'shiptastic-for-woocommerce' ),
+				'DPU' => _x( 'Delivered at Place Unloaded (DPU)', 'shipments', 'shiptastic-for-woocommerce' ),
+				'DDP' => _x( 'Delivered Duty Paid (DDP)', 'shipments', 'shiptastic-for-woocommerce' ),
+				'DDU' => _x( 'Delivered Duty Unpaid (DDU)', 'shipments', 'shiptastic-for-woocommerce' ),
+				'EXW' => _x( 'ExWorks (EXW)', 'shipments', 'shiptastic-for-woocommerce' ),
+				'FCA' => _x( 'Free Carrier (FCA)', 'shipments', 'shiptastic-for-woocommerce' ),
+				'CPT' => _x( 'Carriage Paid To (CPT)', 'shipments', 'shiptastic-for-woocommerce' ),
+				'CIP' => _x( 'Carriage and Insurance Paid To (CIP)', 'shipments', 'shiptastic-for-woocommerce' ),
+				'FAS' => _x( 'Free Alongside Ship (FAS)', 'shipments', 'shiptastic-for-woocommerce' ),
+				'FOB' => _x( 'Free on Board (FOB)', 'shipments', 'shiptastic-for-woocommerce' ),
+				'CFR' => _x( 'Cost and Freight (CFR)', 'shipments', 'shiptastic-for-woocommerce' ),
+				'CIF' => _x( 'Cost, Insurance and Freight (CIF)', 'shipments', 'shiptastic-for-woocommerce' ),
+				'DAF' => _x( 'Delivered at Frontier (DAF)', 'shipments', 'shiptastic-for-woocommerce' ),
+				'DAT' => _x( 'Delivered at Terminal (DAT)', 'shipments', 'shiptastic-for-woocommerce' ),
+				'DEQ' => _x( 'Delivery ex Quay (DEQ)', 'shipments', 'shiptastic-for-woocommerce' ),
+				'DES' => _x( 'Delivered ex Ship (DES)', 'shipments', 'shiptastic-for-woocommerce' ),
+			)
+		);
+	}
+
 	public static function get_shipping_zone( $country, $args = array() ) {
 		$zone = 'int';
 
@@ -898,7 +921,7 @@ class Package {
 	}
 
 	public static function woo_supports_providers() {
-		return defined( 'WC_ABSPATH' ) && file_exists( WC_ABSPATH . 'src/internal/Fulfillments/ShippingProviders.php' );
+		return defined( 'WC_ABSPATH' ) && file_exists( WC_ABSPATH . 'src/Internal/Fulfillments/ShippingProviders.php' );
 	}
 
 	public static function register_data_stores( $stores ) {

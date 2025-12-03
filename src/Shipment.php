@@ -172,6 +172,8 @@ abstract class Shipment extends WC_Data {
 		'est_delivery_date'               => null,
 		'packaging_id'                    => 0,
 		'version'                         => '',
+		'packing_slip_path'               => '',
+		'commercial_invoice_path'         => '',
 	);
 
 	/**
@@ -831,9 +833,29 @@ abstract class Shipment extends WC_Data {
 			if ( $customer_number = $this->get_pickup_location_customer_number() ) {
 				$address['pickup_location_customer_number'] = $customer_number;
 			}
+
+			$address = wp_parse_args( $address, $this->get_default_address_fields() );
 		}
 
 		return $address;
+	}
+
+	protected function get_default_address_fields( $type = 'default' ) {
+		return array(
+			'first_name'               => '',
+			'last_name'                => '',
+			'company'                  => '',
+			'address_1'                => '',
+			'address_2'                => '',
+			'city'                     => '',
+			'state'                    => '',
+			'postcode'                 => '',
+			'country'                  => '',
+			'phone'                    => '',
+			'email'                    => '',
+			'customs_reference_number' => '',
+			'vat_id'                   => '',
+		);
 	}
 
 	/**
@@ -845,8 +867,12 @@ abstract class Shipment extends WC_Data {
 	public function get_billing_address( $context = 'view' ) {
 		$address = (array) $this->get_prop( 'billing_address', $context );
 
-		if ( 'view' === $context && empty( $address['country'] ) ) {
-			$address = $this->get_address( $context );
+		if ( 'view' === $context ) {
+			if ( empty( $address['country'] ) ) {
+				$address = $this->get_address( $context );
+			}
+
+			$address = wp_parse_args( $address, $this->get_default_address_fields( 'billing' ) );
 		}
 
 		return $address;
@@ -1655,6 +1681,26 @@ abstract class Shipment extends WC_Data {
 	}
 
 	/**
+	 * Returns the shipment address vat id.
+	 *
+	 * @param  string $context What the value is for. Valid values are 'view' and 'edit'.
+	 * @return string
+	 */
+	public function get_vat_id( $context = 'view' ) {
+		return $this->get_address_prop( 'vat_id', $context ) ? $this->get_address_prop( 'vat_id', $context ) : '';
+	}
+
+	/**
+	 * Returns the shipment billing address vat id.
+	 *
+	 * @param  string $context What the value is for. Valid values are 'view' and 'edit'.
+	 * @return string
+	 */
+	public function get_billing_vat_id( $context = 'view' ) {
+		return $this->get_billing_address_prop( 'vat_id', $context ) ? $this->get_billing_address_prop( 'vat_id', $context ) : '';
+	}
+
+	/**
 	 * Returns the shipment address state.
 	 *
 	 * @param  string $context What the value is for. Valid values are 'view' and 'edit'.
@@ -1788,15 +1834,19 @@ abstract class Shipment extends WC_Data {
 		return apply_filters(
 			"{$this->get_hook_prefix()}sender_address",
 			array(
-				'company'    => $this->get_sender_company( $context ),
-				'first_name' => $this->get_sender_first_name( $context ),
-				'last_name'  => $this->get_sender_last_name( $context ),
-				'address_1'  => $this->get_sender_address_1( $context ),
-				'address_2'  => $this->get_sender_address_2( $context ),
-				'postcode'   => $this->get_sender_postcode( $context ),
-				'city'       => $this->get_sender_city( $context ),
-				'country'    => $this->get_sender_country( $context ),
-				'state'      => $this->get_sender_state( $context ),
+				'company'                  => $this->get_sender_company( $context ),
+				'first_name'               => $this->get_sender_first_name( $context ),
+				'last_name'                => $this->get_sender_last_name( $context ),
+				'address_1'                => $this->get_sender_address_1( $context ),
+				'address_2'                => $this->get_sender_address_2( $context ),
+				'postcode'                 => $this->get_sender_postcode( $context ),
+				'city'                     => $this->get_sender_city( $context ),
+				'country'                  => $this->get_sender_country( $context ),
+				'state'                    => $this->get_sender_state( $context ),
+				'email'                    => $this->get_sender_email( $context ),
+				'phone'                    => $this->get_sender_phone( $context ),
+				'customs_reference_number' => $this->get_sender_customs_reference_number( $context ),
+				'vat_id'                   => $this->get_sender_vat_id( $context ),
 			),
 			$this
 		);
@@ -1974,6 +2024,16 @@ abstract class Shipment extends WC_Data {
 	 */
 	public function get_sender_customs_uk_vat_id( $context = 'view' ) {
 		return $this->get_sender_address_prop( 'customs_uk_vat_id', $context ) ? $this->get_sender_address_prop( 'customs_uk_vat_id', $context ) : '';
+	}
+
+	/**
+	 * Returns the sender address vat id.
+	 *
+	 * @param  string $context What the value is for. Valid values are 'view' and 'edit'.
+	 * @return string
+	 */
+	public function get_sender_vat_id( $context = 'view' ) {
+		return $this->get_sender_address_prop( 'vat_id', $context ) ? $this->get_sender_address_prop( 'vat_id', $context ) : '';
 	}
 
 	public function get_formatted_sender_state() {
@@ -2384,6 +2444,24 @@ abstract class Shipment extends WC_Data {
 	 */
 	public function set_version( $version ) {
 		$this->set_prop( 'version', $version );
+	}
+
+	/**
+	 * Set packing slip path.
+	 *
+	 * @param string $path The path.
+	 */
+	public function set_packing_slip_path( $path ) {
+		$this->set_prop( 'packing_slip_path', $path );
+	}
+
+	/**
+	 * Set packing slip path.
+	 *
+	 * @param string $path The path.
+	 */
+	public function set_commercial_invoice_path( $path ) {
+		$this->set_prop( 'commercial_invoice_path', $path );
 	}
 
 	/**
@@ -2962,6 +3040,38 @@ abstract class Shipment extends WC_Data {
 	 */
 	public function get_version( $context = 'view' ) {
 		return $this->get_prop( 'version', $context );
+	}
+
+	/**
+	 * Returns packing slip path.
+	 *
+	 * @param  string $context What the value is for. Valid values are 'view' and 'edit'.
+	 * @return integer
+	 */
+	public function get_packing_slip_path( $context = 'view' ) {
+		$path = $this->get_prop( 'packing_slip_path', $context );
+
+		if ( 'view' === $context && ! empty( $path ) ) {
+			$path = Package::get_file_by_path( $path );
+		}
+
+		return $path;
+	}
+
+	/**
+	 * Returns commercial invoice path.
+	 *
+	 * @param  string $context What the value is for. Valid values are 'view' and 'edit'.
+	 * @return integer
+	 */
+	public function get_commercial_invoice_path( $context = 'view' ) {
+		$path = $this->get_prop( 'commercial_invoice_path', $context );
+
+		if ( 'view' === $context && ! empty( $path ) ) {
+			$path = Package::get_file_by_path( $path );
+		}
+
+		return $path;
 	}
 
 	/**

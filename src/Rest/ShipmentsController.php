@@ -400,6 +400,14 @@ class ShipmentsController extends \WC_REST_Controller {
 			$shipment->set_tracking_instruction( wp_kses_post( wp_unslash( $request['tracking_instruction'] ) ) );
 		}
 
+		if ( isset( $request['packing_slip_path'] ) ) {
+			$shipment->set_packing_slip_path( wc_clean( wp_unslash( $request['packing_slip_path'] ) ) );
+		}
+
+		if ( isset( $request['commercial_invoice_path'] ) ) {
+			$shipment->set_commercial_invoice_path( wc_clean( wp_unslash( $request['commercial_invoice_path'] ) ) );
+		}
+
 		if ( isset( $request['dimensions'] ) ) {
 			if ( isset( $request['dimensions']['length'] ) ) {
 				$shipment->set_length( wc_clean( wp_unslash( $request['dimensions']['length'] ) ) );
@@ -1215,6 +1223,8 @@ class ShipmentsController extends \WC_REST_Controller {
 			'tracking_instruction'    => $shipment->get_tracking_instruction( $context ),
 			'shipping_provider'       => $shipment->get_shipping_provider( $context ),
 			'shipping_provider_title' => $shipment->get_shipping_provider_title( $context ),
+			'packing_slip_path'       => $shipment->get_packing_slip_path( $context ),
+			'commercial_invoice_path' => $shipment->get_commercial_invoice_path( $context ),
 			'content_dimensions'      => array(
 				'length' => wc_format_decimal( $shipment->get_content_length(), $dp ),
 				'width'  => wc_format_decimal( $shipment->get_content_width(), $dp ),
@@ -1233,7 +1243,7 @@ class ShipmentsController extends \WC_REST_Controller {
 			'dimension_unit'          => $shipment->get_dimension_unit( $context ),
 			'address'                 => $shipment->get_address( $context ),
 			'billing_address'         => $shipment->get_billing_address( $context ),
-			'sender_address'          => 'return' === $shipment->get_type() ? $shipment->get_sender_address( $context ) : array(),
+			'sender_address'          => $shipment->get_sender_address( $context ),
 			'is_customer_requested'   => 'return' === $shipment->get_type() ? $shipment->get_is_customer_requested( $context ) : false,
 			'items'                   => $item_data,
 			'meta_data'               => $shipment->get_meta_data(),
@@ -1449,6 +1459,16 @@ class ShipmentsController extends \WC_REST_Controller {
 					'type'        => 'string',
 					'context'     => array( 'view', 'edit' ),
 				),
+				'packing_slip_path'       => array(
+					'description' => _x( 'Shipment packing slip path.', 'shipments', 'shiptastic-for-woocommerce' ),
+					'type'        => 'string',
+					'context'     => array( 'view', 'edit' ),
+				),
+				'commercial_invoice_path' => array(
+					'description' => _x( 'Shipment commercial invoice path.', 'shipments', 'shiptastic-for-woocommerce' ),
+					'type'        => 'string',
+					'context'     => array( 'view', 'edit' ),
+				),
 				'date_created'            => array(
 					'description' => _x( "The date the shipment was created, in the site's timezone.", 'shipments', 'shiptastic-for-woocommerce' ),
 					'type'        => 'date-time',
@@ -1556,6 +1576,11 @@ class ShipmentsController extends \WC_REST_Controller {
 						),
 						'customs_reference_number' => array(
 							'description' => _x( 'Customs reference number.', 'shipments', 'shiptastic-for-woocommerce' ),
+							'type'        => 'string',
+							'context'     => array( 'view', 'edit' ),
+						),
+						'vat_id'                   => array(
+							'description' => _x( 'VAT ID.', 'shipments', 'shiptastic-for-woocommerce' ),
 							'type'        => 'string',
 							'context'     => array( 'view', 'edit' ),
 						),
@@ -1758,6 +1783,11 @@ class ShipmentsController extends \WC_REST_Controller {
 							'type'        => 'string',
 							'context'     => array( 'view', 'edit' ),
 						),
+						'vat_id'                   => array(
+							'description' => _x( 'VAT ID.', 'shipments', 'shiptastic-for-woocommerce' ),
+							'type'        => 'string',
+							'context'     => array( 'view', 'edit' ),
+						),
 					),
 				),
 				'billing_address'         => array(
@@ -1817,6 +1847,11 @@ class ShipmentsController extends \WC_REST_Controller {
 						),
 						'email'      => array(
 							'description' => _x( 'E-Mail address.', 'shipments', 'shiptastic-for-woocommerce' ),
+							'type'        => 'string',
+							'context'     => array( 'view', 'edit' ),
+						),
+						'vat_id'     => array(
+							'description' => _x( 'VAT ID.', 'shipments', 'shiptastic-for-woocommerce' ),
 							'type'        => 'string',
 							'context'     => array( 'view', 'edit' ),
 						),

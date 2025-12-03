@@ -99,7 +99,7 @@ class Ajax {
 					'text'         => esc_html( $provider->get_title() ),
 					'slug'         => esc_html( $slug ),
 					'icon'         => esc_url_raw( $provider->get_icon() ),
-					'tracking_url' => esc_url_raw( $provider->get_default_tracking_url_placeholder() ),
+					'tracking_url' => $provider->get_default_tracking_url_placeholder(), // Cannot use esc_url_raw here as it strips the placeholders
 				);
 			}
 		}

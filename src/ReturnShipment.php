@@ -284,7 +284,13 @@ class ReturnShipment extends Shipment {
 	 * @return string[]
 	 */
 	public function get_sender_address( $context = 'view' ) {
-		return $this->get_prop( 'sender_address', $context );
+		$address = $this->get_prop( 'sender_address', $context );
+
+		if ( 'view' === $context ) {
+			$address = wp_parse_args( $address, $this->get_default_address_fields( 'sender' ) );
+		}
+
+		return $address;
 	}
 
 	/**

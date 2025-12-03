@@ -44,6 +44,7 @@ class ShipmentTracking implements Compatibility {
 				'tracking_number'          => '',
 				'custom_tracking_provider' => '',
 				'tracking_provider'        => '',
+				'custom_tracking_link'     => '',
 			)
 		);
 
@@ -60,10 +61,16 @@ class ShipmentTracking implements Compatibility {
 						$provider = Helper::instance()->get_shipping_provider_by_title( $provider_title );
 					}
 
+					if ( ! empty( $tracking_item['custom_tracking_link'] ) ) {
+						$shipment->set_tracking_url( esc_url_raw( $tracking_item['custom_tracking_link'] ) );
+					}
+
 					$provider = apply_filters( 'woocommerce_shiptastic_shipment_tracking_item_shipping_provider', $provider, $provider_title, $tracking_item );
 
 					if ( $provider ) {
 						$shipment->set_shipping_provider( $provider->get_name() );
+					} else {
+						$shipment->set_shipping_provider_title( $provider_title );
 					}
 
 					$shipment->update_status( 'shipped' );

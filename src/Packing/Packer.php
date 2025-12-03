@@ -10,6 +10,13 @@ class Packer {
 
 	public function __construct() {
 		$this->packer = new \DVDoug\BoxPacker\InfalliblePacker();
+
+		if ( apply_filters( 'woocommerce_shiptastic_enable_logging_for_packing', false ) ) {
+			try {
+				$this->packer->setLogger( new Logger() );
+			} catch ( \Exception $e ) { // phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedCatch
+			}
+		}
 	}
 
 	public function set_max_boxes_to_balance_weight( $max_boxes ) {

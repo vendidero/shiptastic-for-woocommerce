@@ -139,8 +139,8 @@ class Helper {
 		if ( is_null( $this->known_providers ) ) {
 			$this->known_providers = $this->get_available_shipping_provider_integrations();
 
-			if ( defined( 'WC_ABSPATH' ) && file_exists( WC_ABSPATH . 'src/internal/Fulfillments/ShippingProviders.php' ) ) {
-				$woo_known_providers = include WC_ABSPATH . 'src/internal/Fulfillments/ShippingProviders.php';
+			if ( defined( 'WC_ABSPATH' ) && file_exists( WC_ABSPATH . 'src/Internal/Fulfillments/ShippingProviders.php' ) ) {
+				$woo_known_providers = include WC_ABSPATH . 'src/Internal/Fulfillments/ShippingProviders.php';
 				ksort( $woo_known_providers );
 
 				foreach ( $woo_known_providers as $slug => $provider ) {
@@ -160,8 +160,16 @@ class Helper {
 							continue; // Skip if the provider class cannot be instantiated.
 						}
 
+						$provider_title           = $woo_provider_instance->get_name();
+						$provider_icon            = $woo_provider_instance->get_icon();
 						$tracking_url_placeholder = $woo_provider_instance->get_tracking_url( '1234' );
 						$tracking_url_placeholder = str_replace( '1234', '{tracking_id}', $tracking_url_placeholder );
+
+						if ( 'dhl' === $slug && 'DE' === Package::get_base_country() ) {
+							$slug           = 'dhl_express';
+							$provider_title = _x( 'DHL Express', 'shipments', 'shiptastic-for-woocommerce' );
+							$provider_icon  = Package::get_url( 'assets/icons/dhl.svg' );
+						}
 
 						/**
 						 * In case the provider exists as an integration, register a fallback icon but skip override.
@@ -174,9 +182,9 @@ class Helper {
 						$provider_instance = new Placeholder(
 							0,
 							array(
-								'title'                    => $woo_provider_instance->get_name(),
+								'title'                    => $provider_title,
 								'tracking_url_placeholder' => $tracking_url_placeholder,
-								'icon'                     => $woo_provider_instance->get_icon(),
+								'icon'                     => $provider_icon,
 								'countries_supported'      => $woo_provider_instance->get_shipping_from_countries(),
 							)
 						);
@@ -466,7 +474,7 @@ class Helper {
 			if ( $provider_title === $title ) {
 				$the_provider = $provider;
 				break;
-			} elseif ( strstr( $provider_title, $title ) ) {
+			} elseif ( strstr( $provider_title, $title ) || strstr( $title, $provider_title ) ) {
 				$alternate_match = $provider;
 			}
 		}
