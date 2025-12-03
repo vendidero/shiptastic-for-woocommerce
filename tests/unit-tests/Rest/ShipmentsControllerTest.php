@@ -230,17 +230,19 @@ class ShipmentsControllerTest extends \Vendidero\Shiptastic\Tests\Framework\Unit
 			'height' => '5',
 		), $shipment['dimensions'] );
 		$this->assertEquals( array(
-			'first_name' => 'Max',
-			'last_name'  => 'Mustermann',
-			'company'    => '',
-			'address_1'  => 'Musterstr. 12',
-			'address_2'  => '',
-			'city'       => 'Berlin',
-			'state'      => '',
-			'postcode'   => '12222',
-			'country'    => 'DE',
-			'phone'      => '555-32123',
-			'email'      => 'admin@example.org',
+			'first_name'               => 'Max',
+			'last_name'                => 'Mustermann',
+			'company'                  => '',
+			'address_1'                => 'Musterstr. 12',
+			'address_2'                => '',
+			'city'                     => 'Berlin',
+			'state'                    => '',
+			'postcode'                 => '12222',
+			'country'                  => 'DE',
+			'phone'                    => '555-32123',
+			'email'                    => 'admin@example.org',
+			'customs_reference_number' => '',
+			'vat_id'                   => '',
 		), $shipment['address'] );
 		$this->assertEquals( 1, count( $shipment['items'] ) );
 		$this->assertEquals( 'Dummy Product', $shipment['items'][0]['name'] );
