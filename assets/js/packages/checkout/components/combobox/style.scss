@@ -39,7 +39,7 @@
       width: 100%;
       opacity: initial;
       border-radius: $universal-border-radius;
-      height: 50px;
+      height: 3.125em;
 
       &[aria-expanded="true"],
       &:focus {
@@ -127,7 +127,6 @@
       transform: translateY(em($gap));
       line-height: 1.25; // =20px when font-size is 16px.
       left: em($gap-smaller);
-      top: -2px;
       transform-origin: top left;
       transition: all 200ms ease;
       color: $universal-body-low-emphasis;
