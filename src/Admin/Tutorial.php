@@ -62,7 +62,8 @@ class Tutorial {
 		$pointers = rawurlencode( wp_json_encode( $pointers ) );
 		wp_enqueue_style( 'wp-pointer' );
 		wp_enqueue_script( 'wp-pointer' );
-		wc_enqueue_js(
+		wp_add_inline_script(
+			'wp-pointer',
 			"jQuery( function( $ ) {
 				var wc_pointers = JSON.parse( decodeURIComponent( '{$pointers}' ) );
 

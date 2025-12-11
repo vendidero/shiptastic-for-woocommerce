@@ -611,8 +611,11 @@ class Encoding {
 			return $text;
 		}
 
-		if ( wp_is_valid_utf8( $text ) ) {
+		if ( ! function_exists( 'wp_is_valid_utf8' ) ) {
+			return remove_accents( $text );
+		}
 
+		if ( wp_is_valid_utf8( $text ) ) {
 			/*
 			 * Unicode sequence normalization from NFD (Normalization Form Decomposed)
 			 * to NFC (Normalization Form [Pre]Composed), the encoding used in this function.
