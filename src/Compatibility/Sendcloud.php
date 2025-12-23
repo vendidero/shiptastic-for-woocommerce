@@ -4,6 +4,7 @@ namespace Vendidero\Shiptastic\Compatibility;
 
 use Vendidero\Shiptastic\Extensions;
 use Vendidero\Shiptastic\Interfaces\Compatibility;
+use Vendidero\Shiptastic\Package;
 use Vendidero\Shiptastic\ShippingProvider\Helper;
 
 defined( 'ABSPATH' ) || exit;
@@ -49,6 +50,8 @@ class Sendcloud implements Compatibility {
 			if ( $shipment_order = wc_stc_get_shipment_order( $note_details['order_id'] ) ) {
 				preg_match( '/shipment is: ?([^\s]+)/', $data['comment_content'], $matches );
 
+				Package::log( "Found new SendCloud order note for order {$shipment_order->get_order()->get_id()}", "info", "sendcloud" );
+
 				if ( 2 === count( $matches ) ) {
 					$tracking_number = $matches[1];
 					$tracking_number = strtoupper( $tracking_number );
@@ -68,7 +71,11 @@ class Sendcloud implements Compatibility {
 				}
 
 				if ( ! empty( $tracking_number ) ) {
+					Package::log( "Tracking number for SendCloud order is {$tracking_number}", "info", "sendcloud" );
+
 					if ( $shipment = $shipment_order->get_last_shipment_without_tracking() ) {
+						Package::log( "Found valid shipment without tracking {$shipment->get_id()}", "info", "sendcloud" );
+
 						$shipment->set_shipping_provider( '' );
 						$shipment->set_tracking_id( $tracking_number );
 
@@ -82,10 +89,10 @@ class Sendcloud implements Compatibility {
 							$shipment->set_shipping_provider( $provider->get_name() );
 						} elseif ( ! empty( $shipping_provider_title ) ) {
 							$shipment->set_shipping_provider_title( $shipping_provider_title );
+						}
 
-							if ( ! empty( $tracking_url ) ) {
-								$shipment->set_tracking_url( $tracking_url );
-							}
+						if ( ! empty( $tracking_url ) ) {
+							$shipment->set_tracking_url( $tracking_url );
 						}
 
 						if ( apply_filters( 'woocommerce_shiptastic_sencloud_mark_shipment_as_shipped', false, $shipment ) ) {
