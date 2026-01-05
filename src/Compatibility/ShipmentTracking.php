@@ -73,7 +73,9 @@ class ShipmentTracking implements Compatibility {
 						$shipment->set_shipping_provider_title( $provider_title );
 					}
 
-					$shipment->update_status( 'shipped' );
+					if ( apply_filters( 'woocommerce_shiptastic_shipment_tracking_mark_as_shipped', true, $shipment, $tracking_item ) ) {
+						$shipment->update_status( 'shipped' );
+					}
 				}
 			}
 		}

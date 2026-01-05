@@ -50,7 +50,7 @@ class Sendcloud implements Compatibility {
 			if ( $shipment_order = wc_stc_get_shipment_order( $note_details['order_id'] ) ) {
 				preg_match( '/shipment is: ?([^\s]+)/', $data['comment_content'], $matches );
 
-				Package::log( "Found new SendCloud order note for order {$shipment_order->get_order()->get_id()}", "info", "sendcloud" );
+				Package::log( "Found new SendCloud order note for order {$shipment_order->get_order()->get_id()}", 'info', 'sendcloud' );
 
 				if ( 2 === count( $matches ) ) {
 					$tracking_number = $matches[1];
@@ -71,10 +71,10 @@ class Sendcloud implements Compatibility {
 				}
 
 				if ( ! empty( $tracking_number ) ) {
-					Package::log( "Tracking number for SendCloud order is {$tracking_number}", "info", "sendcloud" );
+					Package::log( "Tracking number for SendCloud order is {$tracking_number}", 'info', 'sendcloud' );
 
 					if ( $shipment = $shipment_order->get_last_shipment_without_tracking() ) {
-						Package::log( "Found valid shipment without tracking {$shipment->get_id()}", "info", "sendcloud" );
+						Package::log( "Found valid shipment without tracking {$shipment->get_id()}", 'info', 'sendcloud' );
 
 						$shipment->set_shipping_provider( '' );
 						$shipment->set_tracking_id( $tracking_number );

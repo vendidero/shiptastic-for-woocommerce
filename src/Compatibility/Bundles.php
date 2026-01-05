@@ -212,6 +212,10 @@ class Bundles implements Compatibility {
 
 		if ( wc_pb_is_bundle_container_order_item( $item, $order ) ) {
 			if ( $product->needs_shipping() ) {
+				/**
+				 * That's the total weight of the bundle (container) including all it's children.
+				 * This meta key does only exist for assembled container items.
+				 */
 				if ( $bundle_weight = $item->get_meta( '_bundle_weight', true ) ) {
 					if ( is_null( $bundle_weight ) ) {
 						$bundle_weight = '';
@@ -227,32 +231,6 @@ class Bundles implements Compatibility {
 			if ( ! $product->needs_shipping() || ! self::order_item_is_shipped_individually( $item ) ) {
 				$reset_weight     = true;
 				$reset_dimensions = true;
-			}
-
-			/**
-			 * Force resetting product dimensions/weight for assembled bundle children to make sure
-			 * that the content weight/dimensions matches the actual bundle data.
-			 */
-			if ( ! self::order_item_is_shipped_individually( $item ) ) {
-				$shipment_order = wc_stc_get_shipment_order( $order );
-
-				if ( $container = wc_pb_get_bundled_order_item_container( $item, $order, false ) ) {
-					if ( self::order_item_is_assembled_bundle( $container, $shipment_order ) ) {
-						$aggregate_weight = false;
-						$reset_dimensions = true;
-						$reset_weight     = false;
-
-						if ( $parent_product = $shipment_order->get_order_item_product( $container ) ) {
-							if ( is_a( $parent_product->get_product(), 'WC_Product_Bundle' ) && is_callable( array( $parent_product->get_product(), 'get_aggregate_weight' ) ) ) {
-								$aggregate_weight = $parent_product->get_product()->get_aggregate_weight();
-							}
-						}
-
-						if ( ! $aggregate_weight ) {
-							$reset_weight = true;
-						}
-					}
-				}
 			}
 		}
 
