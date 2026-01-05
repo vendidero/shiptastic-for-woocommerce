@@ -3,7 +3,7 @@ Contributors: vendidero, vdwoocommercesupport
 Tags: shipping, woocommerce, shipments, rules, woo
 Requires at least: 5.4
 Tested up to: 6.9
-Stable tag: 4.8.5
+Stable tag: 4.8.6
 Requires PHP: 5.6
 License: GPLv3
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
@@ -71,6 +71,11 @@ We recommend installing Shiptastic for WooCommerce through the WordPress Backend
 6. Manage returns
 
 == Changelog ==
+= 4.8.6 =
+* Improvement: Do not fire order shipped actions when order is in bad state, e.g. failed, cancelled
+* Fix: Bundle weight calculation for assembled bundles
+* Fix: Order status UI update when saving shipments
+
 = 4.8.5 =
 * Improvement: Woo 10.4 wc_enqueue_js replacement
 * Fix: Fallback compatibility for wp_is_valid_utf8

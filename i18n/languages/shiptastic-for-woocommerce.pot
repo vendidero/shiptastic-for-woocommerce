@@ -1,15 +1,15 @@
-# Copyright (C) 2025 vendidero
+# Copyright (C) 2026 vendidero
 # This file is distributed under the GPLv3.
 msgid ""
 msgstr ""
-"Project-Id-Version: Shiptastic for WooCommerce 4.8.4\n"
+"Project-Id-Version: Shiptastic for WooCommerce 4.8.6\n"
 "Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/shiptastic-for-woocommerce\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2025-12-03T10:36:26+00:00\n"
+"POT-Creation-Date: 2026-01-05T09:50:14+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 
@@ -483,7 +483,7 @@ msgstr ""
 #: includes/admin/views/label/html-shipment-label.php:25
 #: includes/wc-stc-shipment-functions.php:1747
 #: src/Admin/Table.php:921
-#: src/Ajax.php:427
+#: src/Ajax.php:429
 #: templates/shipment/shipment-return-instructions.php:28
 msgctxt "shipments"
 msgid "Download label"
@@ -2005,7 +2005,7 @@ msgid "Filter by shipping service provider"
 msgstr ""
 
 #: src/Admin/Table.php:692
-#: src/Ajax.php:1171
+#: src/Ajax.php:1175
 #, php-format
 msgctxt "shipments"
 msgid "Order #%s"
@@ -2525,17 +2525,17 @@ msgctxt "shipments"
 msgid "Click on a tab to adjust the settings related to a specific section."
 msgstr ""
 
-#: src/Admin/Tutorial.php:94
+#: src/Admin/Tutorial.php:95
 msgctxt "shipments"
 msgid "Dismiss"
 msgstr ""
 
-#: src/Admin/Tutorial.php:95
+#: src/Admin/Tutorial.php:96
 msgctxt "shipments"
 msgid "Next"
 msgstr ""
 
-#: src/Admin/Tutorial.php:102
+#: src/Admin/Tutorial.php:103
 msgctxt "shipments"
 msgid "Let's go"
 msgstr ""
@@ -2576,107 +2576,107 @@ msgctxt "shipments"
 msgid "There was an error processing the label."
 msgstr ""
 
-#: src/Ajax.php:439
+#: src/Ajax.php:441
 msgctxt "shipments"
 msgid "There was an error while trying to save the shipping service provider status."
 msgstr ""
 
-#: src/Ajax.php:477
+#: src/Ajax.php:479
 msgctxt "shipments"
 msgid "There was an error while trying to delete the shipping service provider."
 msgstr ""
 
-#: src/Ajax.php:549
+#: src/Ajax.php:551
 msgctxt "shipments"
 msgid "Installed successfully"
 msgstr ""
 
-#: src/Ajax.php:553
+#: src/Ajax.php:555
 #, php-format
 msgctxt "shipments"
 msgid "There was an error while automatically installing %1$s. %2$s"
 msgstr ""
 
-#: src/Ajax.php:572
+#: src/Ajax.php:574
 msgctxt "shipments-returns-page-slug"
 msgid "returns"
 msgstr ""
 
-#: src/Ajax.php:572
+#: src/Ajax.php:574
 msgctxt "shipments-returns-page-slug"
 msgid "Returns"
 msgstr ""
 
-#: src/Ajax.php:577
+#: src/Ajax.php:579
 msgctxt "shipments"
 msgid "Page created successfully"
 msgstr ""
 
-#: src/Ajax.php:623
+#: src/Ajax.php:625
 msgctxt "shipments"
 msgid "There was an error while bulk processing shipments."
 msgstr ""
 
-#: src/Ajax.php:745
-#: src/Ajax.php:923
-#: src/Ajax.php:1000
-#: src/Ajax.php:1037
-#: src/Ajax.php:1264
-#: src/Ajax.php:1310
-#: src/Ajax.php:1386
-#: src/Ajax.php:1419
-#: src/Ajax.php:1478
-#: src/Ajax.php:1548
-#: src/Ajax.php:1588
-#: src/Ajax.php:1643
-#: src/Ajax.php:1687
+#: src/Ajax.php:747
+#: src/Ajax.php:925
+#: src/Ajax.php:1002
+#: src/Ajax.php:1041
+#: src/Ajax.php:1269
+#: src/Ajax.php:1315
+#: src/Ajax.php:1394
+#: src/Ajax.php:1427
+#: src/Ajax.php:1486
+#: src/Ajax.php:1556
+#: src/Ajax.php:1596
+#: src/Ajax.php:1651
+#: src/Ajax.php:1695
 msgctxt "shipments"
 msgid "There was an error processing the shipment"
 msgstr ""
 
-#: src/Ajax.php:798
+#: src/Ajax.php:800
 msgctxt "shipments"
 msgid "There was an error while adding the shipment"
 msgstr ""
 
-#: src/Ajax.php:819
+#: src/Ajax.php:821
 msgctxt "shipments"
 msgid "This order contains enough shipments already."
 msgstr ""
 
-#: src/Ajax.php:874
+#: src/Ajax.php:876
 msgctxt "shipments"
 msgid "There was an error processing the refund."
 msgstr ""
 
-#: src/Ajax.php:942
+#: src/Ajax.php:944
 msgctxt "shipments"
 msgid "This order contains enough returns already."
 msgstr ""
 
-#: src/Ajax.php:1221
+#: src/Ajax.php:1226
 msgctxt "shipments"
 msgid "Status:"
 msgstr ""
 
-#: src/Ajax.php:1226
+#: src/Ajax.php:1231
 msgctxt "shipments"
 msgid "Customer payment page &rarr;"
 msgstr ""
 
-#: src/Ajax.php:1813
+#: src/Ajax.php:1821
 #: src/FormHandler.php:200
 msgctxt "shipments"
 msgid "You are not allowed to add returns to that order."
 msgstr ""
 
-#: src/Ajax.php:1819
+#: src/Ajax.php:1827
 #: src/FormHandler.php:205
 msgctxt "shipments"
 msgid "Sorry, but this order does not support returns any longer."
 msgstr ""
 
-#: src/Ajax.php:1825
+#: src/Ajax.php:1833
 #: src/FormHandler.php:210
 #: src/FormHandler.php:233
 #: src/Order.php:691
@@ -2684,12 +2684,12 @@ msgctxt "shipments"
 msgid "Please choose one or more items from the list."
 msgstr ""
 
-#: src/Ajax.php:1851
+#: src/Ajax.php:1859
 msgctxt "shipments"
 msgid "Your return is free of charge."
 msgstr ""
 
-#: src/Ajax.php:1851
+#: src/Ajax.php:1859
 #: templates/emails/email-return-shipment-costs.php:22
 #: templates/emails/plain/email-return-shipment-costs.php:19
 #, php-format
