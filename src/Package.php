@@ -66,6 +66,61 @@ class Package {
 		add_action( 'init', array( __CLASS__, 'check_version' ), 10 );
 		add_action( 'init', array( __CLASS__, 'load_plugin_textdomain' ) );
 		add_action( 'init', array( __CLASS__, 'load_fallback_compatibility' ) );
+
+		/**
+		 * Webhooks
+		 */
+		add_filter( 'woocommerce_webhook_topic_hooks', array( __CLASS__, 'register_webhooks' ), 10, 2 );
+		add_filter( 'woocommerce_webhook_topics', array( __CLASS__, 'register_webhook_topics' ), 10, 2 );
+	}
+
+	public static function register_webhook_topics( $topics ) {
+		foreach ( wc_stc_get_shipment_type_data() as $shipment_type => $shipment_type_data ) {
+			$hook_suffix = "{$shipment_type}_";
+
+			if ( 'simple' === $shipment_type ) {
+				$hook_suffix = '';
+			}
+
+			$labels = $shipment_type_data['labels'];
+
+			$topics[ "{$hook_suffix}shipment.deleted" ] = sprintf( _x( 'Deleted %s', 'shipments-webhook-topic', 'shiptastic-for-woocommerce' ), $labels['singular'] );
+			$topics[ "{$hook_suffix}shipment.created" ] = sprintf( _x( 'Created %s', 'shipments-webhook-topic', 'shiptastic-for-woocommerce' ), $labels['singular'] );
+			$topics[ "{$hook_suffix}shipment.updated" ] = sprintf( _x( 'Updated %s', 'shipments-webhook-topic', 'shiptastic-for-woocommerce' ), $labels['singular'] );
+
+			$topics[ "{$hook_suffix}shipment_label.created" ] = sprintf( _x( 'Created %s label', 'shipments-webhook-topic', 'shiptastic-for-woocommerce' ), $labels['singular'] );
+			$topics[ "{$hook_suffix}shipment_label.deleted" ] = sprintf( _x( 'Deleted %s label', 'shipments-webhook-topic', 'shiptastic-for-woocommerce' ), $labels['singular'] );
+		}
+
+		return $topics;
+	}
+
+	public static function register_webhooks( $topic_hooks, $webhook_handler ) {
+		foreach ( wc_stc_get_shipment_type_data() as $shipment_type => $shipment_type_data ) {
+			$hook_suffix = "{$shipment_type}_";
+
+			if ( 'simple' === $shipment_type ) {
+				$hook_suffix = '';
+			}
+
+			$topic_hooks[ "{$hook_suffix}shipment.deleted" ]       = array(
+				"woocommerce_shiptastic_{$hook_suffix}shipment_deleted",
+			);
+			$topic_hooks[ "{$hook_suffix}shipment.updated" ]       = array(
+				"woocommerce_shiptastic_{$hook_suffix}shipment_updated",
+			);
+			$topic_hooks[ "{$hook_suffix}shipment.created" ]       = array(
+				"woocommerce_shiptastic_new_{$hook_suffix}shipment",
+			);
+			$topic_hooks[ "{$hook_suffix}shipment_label.created" ] = array(
+				"woocommerce_shiptastic_{$hook_suffix}shipment_created_label",
+			);
+			$topic_hooks[ "{$hook_suffix}shipment_label.deleted" ] = array(
+				"woocommerce_shiptastic_{$hook_suffix}shipment_deleted_label",
+			);
+		}
+
+		return $topic_hooks;
 	}
 
 	public static function load_plugin_textdomain() {

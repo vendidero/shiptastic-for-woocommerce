@@ -3396,14 +3396,18 @@ abstract class Shipment extends WC_Data {
 	}
 
 	public function delete_label( $force = false ) {
-		$result = false;
+		$result    = false;
+		$old_label = false;
 
 		if ( $this->supports_label() && $this->get_label() ) {
-			$result = true;
+			$old_label = $this->get_label();
+			$result    = true;
 		}
 
 		$this->remove_tracking();
 		$this->save();
+
+		do_action( "{$this->get_general_hook_prefix()}deleted_label", $this, $old_label );
 
 		return $result;
 	}

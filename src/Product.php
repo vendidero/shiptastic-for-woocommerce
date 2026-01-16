@@ -52,18 +52,38 @@ class Product {
 		return $this->get_product()->is_type( 'variation' );
 	}
 
-	protected function get_forced_parent_product() {
+	/**
+	 * Returns the variation's parent product, if available, else the current product instance.
+	 *
+	 * @return WC_Product
+	 */
+	protected function get_parent_product_if_available() {
+		if ( $parent = $this->get_parent_product() ) {
+			return $parent;
+		}
+
+		return $this->product;
+	}
+
+	/**
+	 * Returns the parent product, if available.
+	 *
+	 * @return false|WC_Product
+	 */
+	protected function get_parent_product() {
+		$parent = false;
+
 		if ( $this->is_variation() ) {
 			if ( $parent = wc_get_product( $this->product->get_parent_id() ) ) {
 				return $parent;
 			}
 		}
 
-		return $this->product;
+		return $parent;
 	}
 
 	public function get_ship_separately_via( $context = 'view' ) {
-		$data = $this->get_forced_parent_product()->get_meta( '_ship_separately_via', true, $context );
+		$data = $this->get_parent_product_if_available()->get_meta( '_ship_separately_via', true, $context );
 
 		return $data;
 	}
@@ -81,7 +101,9 @@ class Product {
 			$weight = $this->get_product()->get_weight();
 
 			if ( $this->is_variation() && '' === $weight ) {
-				$weight = wc_shiptastic_get_product( $this->get_forced_parent_product() )->get_shipping_weight( $context );
+				if ( $parent = $this->get_parent_product() ) {
+					$weight = wc_shiptastic_get_product( $parent )->get_shipping_weight( $context );
+				}
 			}
 		}
 
@@ -95,7 +117,9 @@ class Product {
 			$length = $this->get_product()->get_length();
 
 			if ( $this->is_variation() && '' === $length ) {
-				$length = wc_shiptastic_get_product( $this->get_forced_parent_product() )->get_shipping_length( $context );
+				if ( $parent = $this->get_parent_product() ) {
+					$length = wc_shiptastic_get_product( $parent )->get_shipping_length( $context );
+				}
 			}
 		}
 
@@ -109,7 +133,9 @@ class Product {
 			$width = $this->get_product()->get_width();
 
 			if ( $this->is_variation() && '' === $width ) {
-				$width = wc_shiptastic_get_product( $this->get_forced_parent_product() )->get_shipping_width( $context );
+				if ( $parent = $this->get_parent_product() ) {
+					$width = wc_shiptastic_get_product( $parent )->get_shipping_width( $context );
+				}
 			}
 		}
 
@@ -123,7 +149,9 @@ class Product {
 			$height = $this->get_product()->get_height();
 
 			if ( $this->is_variation() && '' === $height ) {
-				$height = wc_shiptastic_get_product( $this->get_forced_parent_product() )->get_shipping_height( $context );
+				if ( $parent = $this->get_parent_product() ) {
+					$height = wc_shiptastic_get_product( $parent )->get_shipping_height( $context );
+				}
 			}
 		}
 
@@ -131,20 +159,20 @@ class Product {
 	}
 
 	public function get_customs_description( $context = 'view' ) {
-		$data = $this->get_forced_parent_product()->get_meta( '_customs_description', true, $context );
+		$data = $this->get_parent_product_if_available()->get_meta( '_customs_description', true, $context );
 
 		return $data;
 	}
 
 	public function is_non_returnable( $context = 'view' ) {
-		$is_non_returnable = wc_string_to_bool( $this->get_forced_parent_product()->get_meta( '_is_non_returnable', true, $context ) );
+		$is_non_returnable = wc_string_to_bool( $this->get_parent_product_if_available()->get_meta( '_is_non_returnable', true, $context ) );
 
 		return $is_non_returnable;
 	}
 
 	public function get_hs_code( $context = 'view' ) {
-		$legacy_data = $this->get_forced_parent_product()->get_meta( '_dhl_hs_code', true, $context );
-		$data        = $this->get_forced_parent_product()->get_meta( '_hs_code', true, $context );
+		$legacy_data = $this->get_parent_product_if_available()->get_meta( '_dhl_hs_code', true, $context );
+		$data        = $this->get_parent_product_if_available()->get_meta( '_hs_code', true, $context );
 
 		if ( '' === $data && ! empty( $legacy_data ) ) {
 			$data = $legacy_data;
@@ -154,7 +182,7 @@ class Product {
 	}
 
 	public function get_mid_code( $context = 'view' ) {
-		$data = $this->get_forced_parent_product()->get_meta( '_mid_code', true, $context );
+		$data = $this->get_parent_product_if_available()->get_meta( '_mid_code', true, $context );
 
 		if ( '' === $data && ! empty( $legacy_data ) ) {
 			$data = $legacy_data;
@@ -164,8 +192,8 @@ class Product {
 	}
 
 	public function get_manufacture_country( $context = 'view' ) {
-		$legacy_data = $this->get_forced_parent_product()->get_meta( '_dhl_manufacture_country', true, $context );
-		$country     = $this->get_forced_parent_product()->get_meta( '_manufacture_country', true, $context );
+		$legacy_data = $this->get_parent_product_if_available()->get_meta( '_dhl_manufacture_country', true, $context );
+		$country     = $this->get_parent_product_if_available()->get_meta( '_manufacture_country', true, $context );
 
 		if ( empty( $country ) && ! empty( $legacy_data ) ) {
 			$country = $legacy_data;
@@ -182,7 +210,7 @@ class Product {
 	}
 
 	public function get_main_category() {
-		$ids       = $this->get_forced_parent_product()->get_category_ids();
+		$ids       = $this->get_parent_product_if_available()->get_category_ids();
 		$term_name = '';
 
 		if ( ! empty( $ids ) ) {
