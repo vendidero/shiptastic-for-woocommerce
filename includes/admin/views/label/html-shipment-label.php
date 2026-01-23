@@ -56,7 +56,7 @@ if ( $label ) {
 
 ?>
 <div class="wc-stc-shipment-label wc-stc-shipment-action-wrapper column col-auto column-spaced show-if show-if-provider show-if-provider-<?php echo esc_attr( $shipment->get_shipping_provider() ); ?>" data-shipment="<?php echo esc_attr( $shipment->get_id() ); ?>">
-	<h4><?php printf( esc_html_x( '%s Label', 'shipments', 'shiptastic-for-woocommerce' ), esc_html( wc_stc_get_shipping_provider_title( $shipment->get_shipping_provider() ) ) ); ?> <?php echo ( ( $shipment->has_label() && $shipment->get_tracking_id() ) ? wp_kses_post( Admin::get_shipment_tracking_html( $shipment ) ) : '' ); ?></h4>
+	<h4><?php printf( esc_html_x( '%s Label', 'shipments', 'shiptastic-for-woocommerce' ), esc_html( wc_stc_get_shipping_provider_title( $shipment->get_shipping_provider() ) ) ); ?> <?php echo ( $shipment->get_tracking_url() ? wp_kses_post( Admin::get_shipment_tracking_html( $shipment ) ) : '' ); ?></h4>
 
 	<div class="wc-stc-shipment-label-content">
 		<div class="shipment-label-actions shipment-inner-actions">

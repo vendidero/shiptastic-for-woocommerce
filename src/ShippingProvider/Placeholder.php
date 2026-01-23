@@ -75,8 +75,14 @@ class Placeholder extends Auto {
 		return '_' . sanitize_key( $this->placeholder_args['name'] );
 	}
 
-	public function is_base_country_supported() {
-		return empty( $this->placeholder_args['supported_countries'] ) || in_array( Package::get_base_country(), $this->placeholder_args['supported_countries'], true );
+	protected function get_available_base_countries() {
+		$base_countries = parent::get_available_base_countries();
+
+		if ( ! empty( $this->placeholder_args['supported_countries'] ) ) {
+			$base_countries = (array) $this->placeholder_args['supported_countries'];
+		}
+
+		return $base_countries;
 	}
 
 	public function get_extension_name() {

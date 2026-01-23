@@ -143,6 +143,7 @@ abstract class Shipment extends WC_Data {
 	 */
 	protected $data = array(
 		'date_created'                    => null,
+		'date_modified'                   => null,
 		'date_sent'                       => null,
 		'status'                          => '',
 		'weight'                          => '',
@@ -174,6 +175,7 @@ abstract class Shipment extends WC_Data {
 		'version'                         => '',
 		'packing_slip_path'               => '',
 		'commercial_invoice_path'         => '',
+		'is_locked'                       => false,
 	);
 
 	/**
@@ -348,7 +350,6 @@ abstract class Shipment extends WC_Data {
 		$status = $this->get_prop( 'status', $context );
 
 		if ( empty( $status ) && 'view' === $context ) {
-
 			/**
 			 * Filters the default Shipment status used as fallback.
 			 *
@@ -394,6 +395,16 @@ abstract class Shipment extends WC_Data {
 	 */
 	public function get_date_created( $context = 'view' ) {
 		return $this->get_prop( 'date_created', $context );
+	}
+
+	/**
+	 * Return the date this shipment was modified.
+	 *
+	 * @param  string $context What the value is for. Valid values are 'view' and 'edit'.
+	 * @return WC_DateTime|null object if the date is set or null if there is no date.
+	 */
+	public function get_date_modified( $context = 'view' ) {
+		return $this->get_prop( 'date_modified', $context );
 	}
 
 	/**
@@ -2328,6 +2339,15 @@ abstract class Shipment extends WC_Data {
 	}
 
 	/**
+	 * Set the date this shipment was created.
+	 *
+	 * @param  string|integer|null $date UTC timestamp, or ISO 8601 DateTime. If the DateTime string has no timezone or offset, WordPress site timezone will be assumed. Null if their is no date.
+	 */
+	public function set_date_modified( $date = null ) {
+		$this->set_date_prop( 'date_modified', $date );
+	}
+
+	/**
 	 * Set the date this shipment was sent.
 	 *
 	 * @param  string|integer|null $date UTC timestamp, or ISO 8601 DateTime. If the DateTime string has no timezone or offset, WordPress site timezone will be assumed. Null if their is no date.
@@ -2802,7 +2822,7 @@ abstract class Shipment extends WC_Data {
 		// Unset and remove later.
 		$this->items_to_delete[] = $item;
 
-		unset( $this->items[ $item->get_id() ] );
+		unset( $this->items[ $item_id ] );
 
 		if ( $item->has_children() ) {
 			foreach ( $item->get_children() as $child ) {
@@ -3460,6 +3480,8 @@ abstract class Shipment extends WC_Data {
 			$needs_label = false;
 		}
 
+		$needs_label = apply_filters( "{$this->get_general_hook_prefix()}needs_label", $needs_label, $this );
+
 		/**
 		 * Filter for shipping providers to decide whether the shipment needs a label or not.
 		 *
@@ -3554,6 +3576,7 @@ abstract class Shipment extends WC_Data {
 	}
 
 	public function delete( $force_delete = false ) {
+		$this->set_status( 'deleted' );
 		$this->delete_label( $force_delete );
 
 		return parent::delete( $force_delete );

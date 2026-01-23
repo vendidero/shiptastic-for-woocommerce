@@ -151,6 +151,30 @@ class Simple extends WC_Data implements ShippingProvider {
 		);
 	}
 
+	public function get_shipping_from_countries() {
+		$countries = array();
+
+		if ( function_exists( 'WC' ) && WC()->countries ) {
+			$countries = WC()->countries->get_countries();
+		}
+
+		return $countries;
+	}
+
+	public function get_shipping_to_countries() {
+		$countries = array();
+
+		if ( function_exists( 'WC' ) && WC()->countries ) {
+			$countries = WC()->countries->get_countries();
+		}
+
+		return $countries;
+	}
+
+	public function is_base_country_supported() {
+		return in_array( Package::get_base_country(), $this->get_shipping_from_countries(), true );
+	}
+
 	public function get_section_help_link( $section ) {
 		return '';
 	}

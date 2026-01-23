@@ -63,6 +63,8 @@ class Shipment extends WC_Data_Store_WP implements WC_Object_Data_Store_Interfac
 		'tracking_id',
 		'date_created',
 		'date_created_gmt',
+		'date_modified',
+		'date_modified_gmt',
 		'date_sent',
 		'date_sent_gmt',
 		'est_delivery_date',
@@ -94,6 +96,10 @@ class Shipment extends WC_Data_Store_WP implements WC_Object_Data_Store_Interfac
 		$shipment->set_weight_unit( get_option( 'woocommerce_weight_unit', 'kg' ) );
 		$shipment->set_dimension_unit( get_option( 'woocommerce_dimension_unit', 'cm' ) );
 
+		if ( ! $shipment->get_date_modified( 'edit' ) ) {
+			$shipment->set_date_modified( time() );
+		}
+
 		$data = array(
 			'shipment_country'           => $shipment->get_country(),
 			'shipment_order_id'          => is_callable( array( $shipment, 'get_order_id' ) ) ? $shipment->get_order_id() : 0,
@@ -107,6 +113,8 @@ class Shipment extends WC_Data_Store_WP implements WC_Object_Data_Store_Interfac
 			'shipment_shipping_method'   => $shipment->get_shipping_method(),
 			'shipment_date_created'      => gmdate( 'Y-m-d H:i:s', $shipment->get_date_created( 'edit' )->getOffsetTimestamp() ),
 			'shipment_date_created_gmt'  => gmdate( 'Y-m-d H:i:s', $shipment->get_date_created( 'edit' )->getTimestamp() ),
+			'shipment_date_modified'     => gmdate( 'Y-m-d H:i:s', $shipment->get_date_modified( 'edit' )->getOffsetTimestamp() ),
+			'shipment_date_modified_gmt' => gmdate( 'Y-m-d H:i:s', $shipment->get_date_modified( 'edit' )->getTimestamp() ),
 			'shipment_version'           => Package::get_version(),
 		);
 
@@ -188,6 +196,10 @@ class Shipment extends WC_Data_Store_WP implements WC_Object_Data_Store_Interfac
 		$changed_props = array_keys( $shipment->get_changes() );
 		$shipment_data = array();
 
+		if ( ! isset( $changed_props['date_modified'] ) ) {
+			$shipment->set_date_modified( time() );
+		}
+
 		if ( '' === $shipment->get_weight_unit( 'edit' ) ) {
 			$shipment->set_weight_unit( get_option( 'woocommerce_weight_unit', 'kg' ) );
 		}
@@ -232,6 +244,7 @@ class Shipment extends WC_Data_Store_WP implements WC_Object_Data_Store_Interfac
 					break;
 				case 'date_created':
 				case 'date_sent':
+				case 'date_modified':
 				case 'est_delivery_date':
 					if ( is_callable( array( $shipment, 'get_' . $prop ) ) ) {
 						$shipment_data[ 'shipment_' . $prop ]          = $shipment->{'get_' . $prop}( 'edit' ) ? gmdate( 'Y-m-d H:i:s', $shipment->{'get_' . $prop}( 'edit' )->getOffsetTimestamp() ) : null;
@@ -339,6 +352,7 @@ class Shipment extends WC_Data_Store_WP implements WC_Object_Data_Store_Interfac
 					'shipping_method'   => $data->shipment_shipping_method,
 					'packaging_id'      => $data->shipment_packaging_id,
 					'date_created'      => Package::is_valid_mysql_date( $data->shipment_date_created_gmt ) ? wc_string_to_timestamp( $data->shipment_date_created_gmt ) : null,
+					'date_modified'     => Package::is_valid_mysql_date( $data->shipment_date_modified_gmt ) ? wc_string_to_timestamp( $data->shipment_date_modified_gmt ) : null,
 					'date_sent'         => Package::is_valid_mysql_date( $data->shipment_date_sent_gmt ) ? wc_string_to_timestamp( $data->shipment_date_sent_gmt ) : null,
 					'est_delivery_date' => Package::is_valid_mysql_date( $data->shipment_est_delivery_date_gmt ) ? wc_string_to_timestamp( $data->shipment_est_delivery_date_gmt ) : null,
 					'status'            => $this->parse_status( $data->shipment_status ),
@@ -639,6 +653,12 @@ class Shipment extends WC_Data_Store_WP implements WC_Object_Data_Store_Interfac
 	protected function get_wp_query_args( $query_vars ) {
 		global $wpdb;
 
+		$query_vars    = wp_parse_args(
+			$query_vars,
+			array(
+				'meta_query' => array(), // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query
+			)
+		);
 		$wp_query_args = parent::get_wp_query_args( $query_vars );
 
 		// Force type to be existent
@@ -654,9 +674,12 @@ class Shipment extends WC_Data_Store_WP implements WC_Object_Data_Store_Interfac
 			$wp_query_args['meta_query'] = array(); // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query
 		}
 
+		$wp_query_args['meta_query'] = array_merge( $wp_query_args['meta_query'], $query_vars['meta_query'] ); // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query
+
 		// Allow Woo to treat these props as date query compatible
 		$date_queries = array(
 			'date_created',
+			'date_modified',
 			'date_sent',
 			'est_delivery_date',
 		);

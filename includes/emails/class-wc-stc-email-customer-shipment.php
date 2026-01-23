@@ -49,6 +49,8 @@ if ( ! class_exists( 'WC_STC_Email_Customer_Shipment', false ) ) :
 
 		public $cur_position = 1;
 
+		public $is_update = false;
+
 		/**
 		 * Constructor.
 		 */
@@ -72,6 +74,8 @@ if ( ! class_exists( 'WC_STC_Email_Customer_Shipment', false ) ) :
 				'{current_shipment_num}' => '',
 				'{total_shipments}'      => '',
 			);
+
+			add_action( 'woocommerce_shiptastic_shipment_notify_customer', array( $this, 'trigger' ), 10, 2 );
 
 			// Triggers for this email.
 			if ( 'yes' === Package::get_setting( 'notify_enable' ) ) {
@@ -201,10 +205,11 @@ if ( ! class_exists( 'WC_STC_Email_Customer_Shipment', false ) ) :
 		 *
 		 * @param int  $shipment_id Shipment ID.
 		 */
-		public function trigger( $shipment_id ) {
+		public function trigger( $shipment_id, $is_update = false ) {
 			$this->setup_locale();
 
 			$this->partial_shipment = false;
+			$this->is_update        = $is_update;
 
 			if ( $this->shipment = wc_stc_get_shipment( $shipment_id ) ) {
 				$this->placeholders['{shipment_number}'] = $this->shipment->get_shipment_number();
@@ -273,6 +278,7 @@ if ( ! class_exists( 'WC_STC_Email_Customer_Shipment', false ) ) :
 					'partial_shipment'   => $this->partial_shipment,
 					'cur_position'       => $this->cur_position,
 					'total_shipments'    => $this->total_shipments,
+					'is_update'          => $this->is_update,
 					'email_heading'      => $this->get_heading(),
 					'additional_content' => $this->get_additional_content(),
 					'sent_to_admin'      => false,
@@ -296,6 +302,7 @@ if ( ! class_exists( 'WC_STC_Email_Customer_Shipment', false ) ) :
 					'partial_shipment'   => $this->partial_shipment,
 					'cur_position'       => $this->cur_position,
 					'total_shipments'    => $this->total_shipments,
+					'is_update'          => $this->is_update,
 					'email_heading'      => $this->get_heading(),
 					'additional_content' => $this->get_additional_content(),
 					'sent_to_admin'      => false,

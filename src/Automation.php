@@ -46,7 +46,7 @@ class Automation {
 		}
 
 		if ( 'yes' === Package::get_setting( 'auto_order_shipped_completed_enable' ) ) {
-			add_action( 'woocommerce_shiptastic_order_shipped', array( __CLASS__, 'mark_order_completed' ), 10 );
+			add_action( 'woocommerce_shiptastic_order_shipped', array( __CLASS__, 'mark_order_completed' ), 10, 2 );
 		}
 
 		if ( 'yes' === Package::get_setting( 'auto_order_completed_shipped_enable' ) ) {
@@ -135,40 +135,39 @@ class Automation {
 	 * Mark the order as completed if the order is fully shipped.
 	 *
 	 * @param $order_id
+	 * @param WC_Order $order
 	 */
-	public static function mark_order_completed( $order_id ) {
-		if ( $order = wc_get_order( $order_id ) ) {
-			/**
-			 * Do not mark orders (paid via invoice) as completed after shipped as
-			 * the order will be shipped before the invoice was paid.
-			 */
-			$mark_as_completed = ! in_array( $order->get_payment_method(), array( 'invoice' ), true ) ? true : false;
+	public static function mark_order_completed( $order_id, $order ) {
+		/**
+		 * Do not mark orders (paid via invoice) as completed after shipped as
+		 * the order will be shipped before the invoice was paid.
+		 */
+		$mark_as_completed = ! in_array( $order->get_payment_method(), array( 'invoice' ), true ) ? true : false;
 
-			/**
-			 * Filter that allows to conditionally disable automatic
-			 * order completion after the shipments are marked as shipped.
-			 *
-			 * @param boolean $mark_as_completed Whether to mark the order as completed or not.
-			 * @param integer $order_id The order id.
-			 *
-			 * @package Vendidero/Shiptastic
-			 */
-			if ( ! apply_filters( 'woocommerce_shiptastic_shipment_order_mark_as_completed', $mark_as_completed, $order_id ) ) {
-				return;
-			}
-
-			/**
-			 * Filter to adjust the new status of an order after all it's required
-			 * shipments have been marked as shipped. Does only take effect if the automation option has been set
-			 * within the shipment settings.
-			 *
-			 * @param string  $status The order status to be used.
-			 * @param integer $order_id The order id.
-			 *
-			 * @package Vendidero/Shiptastic
-			 */
-			$order->update_status( apply_filters( 'woocommerce_shiptastic_shipment_order_completed_status', 'completed', $order_id ), _x( 'Order is fully shipped.', 'shipments', 'shiptastic-for-woocommerce' ) );
+		/**
+		 * Filter that allows to conditionally disable automatic
+		 * order completion after the shipments are marked as shipped.
+		 *
+		 * @param boolean $mark_as_completed Whether to mark the order as completed or not.
+		 * @param integer $order_id The order id.
+		 *
+		 * @package Vendidero/Shiptastic
+		 */
+		if ( ! apply_filters( 'woocommerce_shiptastic_shipment_order_mark_as_completed', $mark_as_completed, $order_id ) ) {
+			return;
 		}
+
+		/**
+		 * Filter to adjust the new status of an order after all it's required
+		 * shipments have been marked as shipped. Does only take effect if the automation option has been set
+		 * within the shipment settings.
+		 *
+		 * @param string  $status The order status to be used.
+		 * @param integer $order_id The order id.
+		 *
+		 * @package Vendidero/Shiptastic
+		 */
+		$order->update_status( apply_filters( 'woocommerce_shiptastic_shipment_order_completed_status', 'completed', $order_id ), _x( 'Order is fully shipped.', 'shipments', 'shiptastic-for-woocommerce' ) );
 	}
 
 	/**

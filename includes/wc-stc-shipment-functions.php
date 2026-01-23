@@ -428,6 +428,7 @@ function wc_stc_get_shipment_statuses() {
 		'shipped'            => _x( 'Shipped', 'shipments', 'shiptastic-for-woocommerce' ),
 		'delivered'          => _x( 'Delivered', 'shipments', 'shiptastic-for-woocommerce' ),
 		'requested'          => _x( 'Requested', 'shipments', 'shiptastic-for-woocommerce' ),
+		'deleted'            => _x( 'Deleted', 'shipments', 'shiptastic-for-woocommerce' ),
 	);
 
 	/**
@@ -451,6 +452,8 @@ function wc_stc_get_shipment_selectable_statuses( $shipment ) {
 	if ( ! $shipment->has_status( 'requested' ) && isset( $shipment_statuses['requested'] ) ) {
 		unset( $shipment_statuses['requested'] );
 	}
+
+	unset( $shipment_statuses['deleted'] );
 
 	/**
 	 * Add or remove selectable shipment statuses for a certain shipment and/or shipment type.
@@ -1265,6 +1268,24 @@ function wc_stc_get_shipment_sent_statuses() {
 		array(
 			'shipped',
 			'delivered',
+		)
+	);
+}
+
+function wc_stc_get_shipment_order_shipping_sent_statuses() {
+	/**
+	 * Filter to adjust which Shipment order statuses should be considered as sent.
+	 *
+	 * @param array $statuses An array of statuses considered as shipped,
+	 *
+	 * @package Vendidero/Shiptastic
+	 */
+	return apply_filters(
+		'woocommerce_shiptastic_shipment_order_shipping_sent_statuses',
+		array(
+			'shipped',
+			'delivered',
+			'partially-delivered',
 		)
 	);
 }

@@ -1190,6 +1190,10 @@ abstract class Auto extends Simple implements ShippingProviderAuto {
 		return $settings;
 	}
 
+	public function get_shipping_from_countries() {
+		return $this->get_available_base_countries();
+	}
+
 	protected function get_available_base_countries() {
 		$countries = array();
 

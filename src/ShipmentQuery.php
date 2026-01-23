@@ -68,6 +68,7 @@ class ShipmentQuery extends WC_Object_Query {
 			'has_tracking'      => '',
 			'search'            => '',
 			'search_columns'    => array(),
+			'meta_query'        => array(), // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query
 		);
 	}
 

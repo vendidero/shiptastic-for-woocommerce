@@ -26,6 +26,10 @@ class Install {
 		self::maybe_create_packaging();
 		self::update_providers();
 
+		if ( ! $current_version ) {
+			self::maybe_sync_fulfillments();
+		}
+
 		if ( self::is_new_install() && ! Package::is_integration() ) {
 			set_transient( '_wc_shiptastic_setup_wizard_redirect', 1, 60 * 60 );
 		}
@@ -221,6 +225,21 @@ class Install {
 				$packaging = new Packaging();
 				$packaging->set_props( $default );
 				$packaging->save();
+			}
+		}
+	}
+
+	public static function maybe_sync_fulfillments() {
+		if ( \Vendidero\Shiptastic\Fulfillments\Helper::has_fulfillments_feature_enabled() ) {
+			$existing_fulfillments = \Vendidero\Shiptastic\Fulfillments\Helper::get_fulfillments( 1 );
+
+			if ( ! empty( $existing_fulfillments ) ) {
+				WC()->queue()->schedule_single(
+					time() + MINUTE_IN_SECONDS * 5,
+					'woocommerce_shiptastic_sync_fulfillments_callback',
+					array( 'offset' => 0 ),
+					'woocommerce-shiptastic-fulfillment-sync'
+				);
 			}
 		}
 	}
@@ -547,6 +566,8 @@ CREATE TABLE {$wpdb->prefix}woocommerce_stc_shipments (
   shipment_id bigint(20) unsigned NOT NULL auto_increment,
   shipment_date_created datetime default NULL,
   shipment_date_created_gmt datetime default NULL,
+  shipment_date_modified datetime default NULL,
+  shipment_date_modified_gmt datetime default NULL,
   shipment_date_sent datetime default NULL,
   shipment_date_sent_gmt datetime default NULL,
   shipment_est_delivery_date datetime default NULL,

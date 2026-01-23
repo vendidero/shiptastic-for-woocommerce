@@ -287,8 +287,11 @@ class SimpleShipment extends Shipment {
 			}
 
 			foreach ( $this->get_items() as $item ) {
+				$item_is_missing_from_sync = ! empty( $args['items'] ) && ! isset( $args['items'][ $item->get_order_item_id() ] );
+				$order_item_is_missing     = ! $order->get_item( $item->get_order_item_id() );
+
 				// Remove non-existent items
-				if ( ! $order_item = $order->get_item( $item->get_order_item_id() ) ) {
+				if ( $order_item_is_missing || $item_is_missing_from_sync ) {
 					$this->remove_item( $item->get_id() );
 				}
 			}

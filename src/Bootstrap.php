@@ -66,6 +66,17 @@ class Bootstrap {
 				);
 			}
 		}
+
+		add_action(
+			'init',
+			function () {
+				if ( Fulfillments\Helper::has_fulfillments_feature_enabled() ) {
+					$this->container->get( Fulfillments\Helper::class )::init();
+				}
+			},
+			11,
+			0
+		);
 	}
 
 	protected function load_blocks() {
@@ -135,6 +146,12 @@ class Bootstrap {
 			Api::class,
 			function ( $container ) {
 				return Api::class;
+			}
+		);
+		$this->container->register(
+			Fulfillments\Helper::class,
+			function ( $container ) {
+				return Fulfillments\Helper::class;
 			}
 		);
 		$this->container->register(

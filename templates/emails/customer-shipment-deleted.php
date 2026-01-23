@@ -1,8 +1,8 @@
 <?php
 /**
- * Customer Shipment
+ * Customer Shipment Deleted
  *
- * This template can be overridden by copying it to yourtheme/shiptastic/emails/customer-shipment.php.
+ * This template can be overridden by copying it to yourtheme/shiptastic/emails/customer-shipment-deleted.php.
  *
  * HOWEVER, on occasion Shiptastic will need to update template files and you
  * (the theme developer) will need to copy the new files to your theme to
@@ -27,16 +27,8 @@ do_action( 'woocommerce_email_header', $email_heading, $email ); ?>
 
 	<p>
 		<?php
-		if ( $is_update ) {
 			/* translators: %s: Site title */
-			printf( esc_html_x( 'Shipping information for your order on %1$s has been updated. Find details below for your reference:', 'shipments', 'shiptastic-for-woocommerce' ), esc_html( wp_specialchars_decode( get_option( 'blogname' ), ENT_QUOTES ) ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
-		} elseif ( $partial_shipment ) {
-			/* translators: %s: Site title */
-			printf( esc_html_x( 'Your order on %1$s has been partially shipped via %2$s. Find details below for your reference:', 'shipments', 'shiptastic-for-woocommerce' ), esc_html( wp_specialchars_decode( get_option( 'blogname' ), ENT_QUOTES ) ), esc_html( wc_stc_get_shipment_shipping_provider_title( $shipment ) ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
-		} else {
-			/* translators: %s: Site title */
-			printf( esc_html_x( 'Your order on %1$s has been shipped via %2$s. Find details below for your reference:', 'shipments', 'shiptastic-for-woocommerce' ), esc_html( wp_specialchars_decode( get_option( 'blogname' ), ENT_QUOTES ) ), esc_html( wc_stc_get_shipment_shipping_provider_title( $shipment ) ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
-		}
+			printf( esc_html_x( 'We wanted to let you know that one of your previously fulfilled shipments on %1$s has been removed from our system. This may have been due to a correction or an update in our fulfillment records. Don’t worry — this won’t affect any items you’ve already received.', 'shipments', 'shiptastic-for-woocommerce' ), esc_html( wp_specialchars_decode( get_option( 'blogname' ), ENT_QUOTES ) ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 		?>
 	</p>
 <?php

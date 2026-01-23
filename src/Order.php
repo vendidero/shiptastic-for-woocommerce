@@ -147,14 +147,10 @@ class Order {
 		return apply_filters( 'woocommerce_shiptastic_shipment_order_last_tracking_id', $tracking_id, $this );
 	}
 
-	public function set_shipping_status( $new_status ) {
-		if ( in_array( $new_status, array_keys( wc_stc_get_shipment_order_shipping_statuses() ), true ) ) {
-			$this->get_order()->update_meta_data( '_shipping_status', $new_status );
-		}
-	}
-
 	public function update_shipping_status( $new_status, $save = true ) {
-		if ( $new_status !== $this->get_shipping_status( 'edit' ) && in_array( $new_status, array_keys( wc_stc_get_shipment_order_shipping_statuses() ), true ) ) {
+		$old_shipping_status = $this->get_shipping_status( 'edit' );
+
+		if ( apply_filters( 'woocommerce_shiptastic_shipment_order_update_shipping_status', $new_status !== $old_shipping_status, $this, $new_status, $old_shipping_status ) && in_array( $new_status, array_keys( wc_stc_get_shipment_order_shipping_statuses() ), true ) ) {
 			$this->get_order()->update_meta_data( '_shipping_status', $new_status );
 
 			if ( 'shipped' === $new_status ) {
@@ -170,6 +166,16 @@ class Order {
 			if ( ! in_array( $new_status, array( 'delivered', 'partially-delivered', 'shipped' ), true ) ) {
 				$this->get_order()->delete_meta_data( '_date_shipped' );
 			}
+
+			$this->get_order()->update_meta_data(
+				'_shipping_status_transition',
+				array(
+					'from' => $old_shipping_status,
+					'to'   => $new_status,
+				)
+			);
+
+			do_action( 'woocommerce_shiptastic_order_update_shipping_status', $this->get_order(), $new_status, $old_shipping_status );
 
 			if ( $save ) {
 				$this->get_order()->save();
@@ -253,7 +259,9 @@ class Order {
 	}
 
 	public function update_return_status( $new_status, $save = true ) {
-		if ( $new_status !== $this->get_return_status( 'edit' ) && in_array( $new_status, array_keys( wc_stc_get_shipment_order_return_statuses() ), true ) ) {
+		$old_return_status = $this->get_return_status( 'edit' );
+
+		if ( apply_filters( 'woocommerce_shiptastic_shipment_order_update_return_status', $new_status !== $old_return_status, $this, $new_status, $old_return_status ) && in_array( $new_status, array_keys( wc_stc_get_shipment_order_return_statuses() ), true ) ) {
 			$this->get_order()->update_meta_data( '_return_status', $new_status );
 
 			if ( 'returned' === $new_status ) {
@@ -263,6 +271,16 @@ class Order {
 			if ( ! in_array( $new_status, array( 'returned' ), true ) ) {
 				$this->get_order()->delete_meta_data( '_date_returned' );
 			}
+
+			$this->get_order()->update_meta_data(
+				'_return_status_transition',
+				array(
+					'from' => $old_return_status,
+					'to'   => $new_status,
+				)
+			);
+
+			do_action( 'woocommerce_shiptastic_order_update_return_status', $this->get_order(), $new_status, $old_return_status );
 
 			if ( $save ) {
 				$this->get_order()->save();
