@@ -33,7 +33,7 @@ class MethodHelper {
 		add_filter( 'woocommerce_generate_shipping_provider_method_configuration_sets_html', array( __CLASS__, 'render_method_configuration_sets' ), 10 );
 
 		add_filter( 'woocommerce_cart_shipping_packages', array( __CLASS__, 'split_cart_packages' ), 1 );
-		add_filter( 'woocommerce_cart_shipping_packages', array( __CLASS__, 'register_cart_items_to_pack' ) );
+		add_filter( 'woocommerce_cart_shipping_packages', array( __CLASS__, 'register_cart_items_to_pack' ), 1000 );
 		add_filter( 'woocommerce_shipping_methods', array( __CLASS__, 'register_shipping_methods' ) );
 		add_filter( 'woocommerce_hidden_order_itemmeta', array( __CLASS__, 'set_shipping_order_meta_hidden' ) );
 
@@ -196,16 +196,37 @@ class MethodHelper {
 			return $packages;
 		}
 
+		$cart_data = array(
+			'total'                        => 0.0,
+			'subtotal'                     => 0.0,
+			'weight'                       => 0.0,
+			'volume'                       => 0.0,
+			'products'                     => array(),
+			'shipping_classes'             => array(),
+			'has_missing_shipping_classes' => false,
+			'item_count'                   => 0,
+		);
+
+		$package_subtotal = 0.0;
+
 		foreach ( $packages as $index => $package_details ) {
 			$package_data = array(
-				'total'                        => 0.0,
-				'subtotal'                     => 0.0,
-				'weight'                       => 0.0,
-				'volume'                       => 0.0,
-				'products'                     => array(),
-				'shipping_classes'             => array(),
-				'has_missing_shipping_classes' => false,
-				'item_count'                   => 0,
+				'total'                             => 0.0,
+				'subtotal'                          => 0.0,
+				'weight'                            => 0.0,
+				'volume'                            => 0.0,
+				'products'                          => array(),
+				'shipping_classes'                  => array(),
+				'has_missing_shipping_classes'      => false,
+				'item_count'                        => 0,
+				'shipping_package_total'            => 0.0,
+				'shipping_package_subtotal'         => 0.0,
+				'shipping_package_weight'           => 0.0,
+				'shipping_package_volume'           => 0.0,
+				'shipping_package_products'         => array(),
+				'shipping_package_shipping_classes' => array(),
+				'shipping_package_has_missing_shipping_classes' => false,
+				'shipping_package_item_count'       => 0,
 			);
 
 			$items = new ItemList();
@@ -236,55 +257,80 @@ class MethodHelper {
 				$length   = ( empty( $s_product->get_shipping_length() ) ? 0 : (float) wc_format_decimal( $s_product->get_shipping_length() ) ) * $quantity;
 				$height   = ( empty( $s_product->get_shipping_height() ) ? 0 : (float) wc_format_decimal( $s_product->get_shipping_height() ) ) * $quantity;
 				$weight   = ( empty( $s_product->get_shipping_weight() ) ? 0 : (float) wc_format_decimal( $s_product->get_shipping_weight() ) ) * $quantity;
+				$volume   = ( $width * $length * $height );
 
-				$package_data['total']      += $line_total;
-				$package_data['subtotal']   += $line_subtotal;
-				$package_data['weight']     += $weight;
-				$package_data['volume']     += ( $width * $length * $height );
-				$package_data['item_count'] += $quantity;
+				$package_data['shipping_package_total']      += $line_total;
+				$package_data['shipping_package_subtotal']   += $line_subtotal;
+				$package_data['shipping_package_weight']     += $weight;
+				$package_data['shipping_package_volume']     += $volume;
+				$package_data['shipping_package_item_count'] += $quantity;
 
-				if ( $product && ! array_key_exists( $product->get_id(), $package_data['products'] ) ) {
-					$package_data['products'][ $product->get_id() ] = $product;
+				if ( $product && ! array_key_exists( $product->get_id(), $package_data['shipping_package_products'] ) ) {
+					$package_data['shipping_package_products'][ $product->get_id() ] = $product;
+
+					if ( ! array_key_exists( $product->get_id(), $cart_data['products'] ) ) {
+						$cart_data['products'][ $product->get_id() ] = $product;
+					}
 
 					if ( ! empty( $product->get_shipping_class_id() ) ) {
-						$package_data['shipping_classes'][] = $product->get_shipping_class_id();
+						$package_data['shipping_package_shipping_classes'][] = $product->get_shipping_class_id();
+						$cart_data['shipping_classes'][]                     = $product->get_shipping_class_id();
 					} else {
-						$package_data['has_missing_shipping_classes'] = true;
+						$package_data['shipping_package_has_missing_shipping_classes'] = true;
+						$cart_data['has_missing_shipping_classes']                     = true;
 					}
 				}
+
+				$cart_data['total']      += $line_total;
+				$cart_data['subtotal']   += $line_subtotal;
+				$cart_data['weight']     += $weight;
+				$cart_data['volume']     += $volume;
+				$cart_data['item_count'] += $quantity;
 
 				$cart_item = new CartItem( $item, wc()->cart->display_prices_including_tax() );
 				$items->insert( $cart_item, $quantity );
 			}
 
-			$package_data['shipping_classes'] = array_unique( $package_data['shipping_classes'] );
+			/**
+			 * There can only exist one cart subtotal - most packages won't probably contain custom calculated cart subtotal.
+			 */
+			if ( isset( $package_details['cart_subtotal'] ) && 0 !== $package_details['cart_subtotal'] ) {
+				$package_subtotal = (float) $package_details['cart_subtotal'];
+			}
+
+			$package_data['shipping_package_shipping_classes'] = array_unique( $package_data['shipping_package_shipping_classes'] );
 
 			do_action( 'woocommerce_shiptastic_after_prepare_cart_contents' );
 
-			/**
-			 * In case prices have already been calculated, maybe prefer the official
-			 * Woo API for improved compatibility with extensions, e.g. unassembled, individually priced bundled items.
-			 *
-			 * This may cause problems with plugins that add additional carts and calculate shipping (e.g. Subscriptions) based on these separate carts
-			 * as Woo does not pass the current $cart object to the filter used here. Within the shipping package data there is unfortunately
-			 * no item total amount (incl taxes) available.
-			 */
-			if ( isset( $package_details['cart_subtotal'] ) && 0 !== $package_details['cart_subtotal'] && apply_filters( 'shiptastic_prefer_cart_totals_over_cart_item_totals', false, $packages ) ) {
-				$cart  = WC()->cart;
-				$total = (float) $cart->get_cart_contents_total();
+			$packages[ $index ]['items_to_pack'] = $items;
+			$packages[ $index ]['package_data']  = $package_data;
+		}
 
-				if ( $cart->display_prices_including_tax() ) {
-					$total += (float) $cart->get_cart_contents_tax();
-				} else {
-					$total = (float) $package_details['contents_cost']; // this is excl tax
-				}
+		/**
+		 * In case prices have already been calculated, maybe prefer the official
+		 * Woo API for improved compatibility with extensions, e.g. unassembled, individually priced bundled items.
+		 *
+		 * This may cause problems with plugins that add additional carts and calculate shipping (e.g. Subscriptions) based on these separate carts
+		 * as Woo does not pass the current $cart object to the filter used here. Within the shipping package data there is unfortunately
+		 * no item total amount (incl taxes) available.
+		 */
+		if ( 0.0 !== $package_subtotal && apply_filters( 'shiptastic_prefer_cart_totals_over_cart_item_totals', false, $packages ) ) {
+			$cart  = WC()->cart;
+			$total = (float) $cart->get_cart_contents_total();
 
-				$package_data['total']    = NumberUtil::round_to_precision( $total ); // item total after discounts
-				$package_data['subtotal'] = NumberUtil::round_to_precision( (float) $package_details['cart_subtotal'] ); // item total before discounts
+			if ( $cart->display_prices_including_tax() ) {
+				$total += (float) $cart->get_cart_contents_tax();
 			}
 
-			$packages[ $index ]['package_data']  = $package_data;
-			$packages[ $index ]['items_to_pack'] = $items;
+			$cart_data['total']    = NumberUtil::round_to_precision( $total ); // item total after discounts
+			$cart_data['subtotal'] = NumberUtil::round_to_precision( (float) $package_subtotal ); // item total before discounts
+		}
+
+		$cart_data['shipping_classes'] = array_unique( $cart_data['shipping_classes'] );
+
+		foreach ( $packages as $index => $package ) {
+			$package_data                       = array_merge( (array) $package['package_data'], $cart_data );
+			$packages[ $index ]['package_data'] = $package_data;
 		}
 
 		return $packages;

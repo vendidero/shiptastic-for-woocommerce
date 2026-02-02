@@ -123,9 +123,17 @@ class ShippingMethod extends \WC_Shipping_Method {
 	}
 
 	public function admin_options() {
-		$locale        = localeconv();
-		$decimal_point = isset( $locale['decimal_point'] ) ? $locale['decimal_point'] : '.';
-		$decimal       = ( ! empty( wc_get_price_decimal_separator() ) ) ? wc_get_price_decimal_separator() : $decimal_point;
+		$locale           = localeconv();
+		$decimal_point    = isset( $locale['decimal_point'] ) ? $locale['decimal_point'] : '.';
+		$decimal          = ( ! empty( wc_get_price_decimal_separator() ) ) ? wc_get_price_decimal_separator() : $decimal_point;
+		$product_mappings = array();
+		$product_ids      = $this->get_cache( 'product_ids', array() );
+
+		foreach ( $product_ids as $product_id ) {
+			if ( $product = wc_get_product( $product_id ) ) {
+				$product_mappings[ $product_id ] = $product->get_formatted_name();
+			}
+		}
 
 		wp_localize_script(
 			'wc-shiptastic-admin-shipping-rules',
@@ -133,6 +141,7 @@ class ShippingMethod extends \WC_Shipping_Method {
 			array(
 				'rules'                   => $this->get_shipping_rules(),
 				'packaging'               => $this->get_packaging(),
+				'product_mappings'        => $product_mappings,
 				'decimal_separator'       => $decimal,
 				'price_decimal_separator' => wc_get_price_decimal_separator(),
 				'default_shipping_rule'   => array(
@@ -299,18 +308,56 @@ class ShippingMethod extends \WC_Shipping_Method {
 		);
 	}
 
-	public function get_condition_types() {
+	public function get_condition_type_group( $group ) {
+		$groups = $this->get_condition_type_groups();
+
+		return array_key_exists( $group, $groups ) ? $groups[ $group ] : '';
+	}
+
+	public function get_condition_type_groups() {
 		return apply_filters(
+			'woocommerce_shiptastic_shipping_method_rule_condition_type_groups',
+			array(
+				''                 => _x( 'General', 'shipments', 'shiptastic-for-woocommerce' ),
+				'cart'             => _x( 'Cart', 'shipments', 'shiptastic-for-woocommerce' ),
+				'box'              => _x( 'Box', 'shipments', 'shiptastic-for-woocommerce' ),
+				'shipping_package' => _x( 'Shipping package', 'shipments', 'shiptastic-for-woocommerce' ),
+			)
+		);
+	}
+
+	public function get_condition_types( $grouped = false ) {
+		$condition_types = apply_filters(
 			'woocommerce_shiptastic_shipping_method_rule_condition_types',
 			array(
-				'always'                   => array(
+				'always'                            => array(
 					'label'     => _x( 'Always', 'shipments', 'shiptastic-for-woocommerce' ),
 					'fields'    => array(),
 					'operators' => array(),
 					'is_global' => true,
+					'group'     => '',
 				),
-				'package_weight'           => array(
-					'label'     => _x( 'Package weight', 'shipments', 'shiptastic-for-woocommerce' ),
+				'total'                             => array(
+					'label'     => _x( 'Total', 'shipments', 'shiptastic-for-woocommerce' ),
+					'fields'    => array(
+						'total_from' => array(
+							'type'      => 'text',
+							'data_type' => 'price',
+							'label'     => _x( 'from', 'shipments', 'shiptastic-for-woocommerce' ),
+						),
+						'total_to'   => array(
+							'type'        => 'text',
+							'data_type'   => 'price',
+							'label'       => _x( 'to', 'shipments', 'shiptastic-for-woocommerce' ),
+							'description' => get_woocommerce_currency_symbol(),
+						),
+					),
+					'operators' => array( 'is', 'is_not' ),
+					'is_global' => true,
+					'group'     => 'cart',
+				),
+				'weight'                            => array(
+					'label'     => _x( 'Weight', 'shipments', 'shiptastic-for-woocommerce' ),
 					'fields'    => array(
 						'weight_from' => array(
 							'type'            => 'text',
@@ -327,9 +374,62 @@ class ShippingMethod extends \WC_Shipping_Method {
 						),
 					),
 					'operators' => array( 'is', 'is_not' ),
+					'is_global' => true,
+					'group'     => 'cart',
 				),
-				'weight'                   => array(
-					'label'     => _x( 'Cart weight', 'shipments', 'shiptastic-for-woocommerce' ),
+				'subtotal'                          => array(
+					'label'     => _x( 'Subtotal (before discounts)', 'shipments', 'shiptastic-for-woocommerce' ),
+					'fields'    => array(
+						'total_from' => array(
+							'type'      => 'text',
+							'data_type' => 'price',
+							'label'     => _x( 'from', 'shipments', 'shiptastic-for-woocommerce' ),
+						),
+						'total_to'   => array(
+							'type'        => 'text',
+							'data_type'   => 'price',
+							'label'       => _x( 'to', 'shipments', 'shiptastic-for-woocommerce' ),
+							'description' => get_woocommerce_currency_symbol(),
+						),
+					),
+					'operators' => array( 'is', 'is_not' ),
+					'is_global' => true,
+					'group'     => 'cart',
+				),
+				'shipping_classes'                  => array(
+					'label'     => _x( 'Shipping class', 'shipments', 'shiptastic-for-woocommerce' ),
+					'fields'    => array(
+						'classes' => array(
+							'type'      => 'multiselect',
+							'data_type' => 'array',
+							'class'     => 'wc-enhanced-select',
+							'label'     => _x( 'Class', 'shipments', 'shiptastic-for-woocommerce' ),
+							'options'   => function () {
+								return Package::get_shipping_classes();
+							},
+						),
+					),
+					'operators' => array( 'any_of', 'none_of', 'exactly' ),
+					'is_global' => true,
+					'group'     => 'cart',
+				),
+				'products'                          => array(
+					'label'     => _x( 'Products', 'shipments', 'shiptastic-for-woocommerce' ),
+					'fields'    => array(
+						'product_ids' => array(
+							'type'      => 'multiselect',
+							'data_type' => 'array',
+							'class'     => 'wc-product-search',
+							'label'     => _x( 'Product', 'shipments', 'shiptastic-for-woocommerce' ),
+							'options'   => array(),
+						),
+					),
+					'operators' => array( 'any_of', 'none_of', 'exactly' ),
+					'is_global' => true,
+					'group'     => 'cart',
+				),
+				'package_weight'                    => array(
+					'label'     => _x( 'Weight', 'shipments', 'shiptastic-for-woocommerce' ),
 					'fields'    => array(
 						'weight_from' => array(
 							'type'            => 'text',
@@ -346,10 +446,10 @@ class ShippingMethod extends \WC_Shipping_Method {
 						),
 					),
 					'operators' => array( 'is', 'is_not' ),
-					'is_global' => true,
+					'group'     => 'box',
 				),
-				'package_total'            => array(
-					'label'     => _x( 'Package total', 'shipments', 'shiptastic-for-woocommerce' ),
+				'package_total'                     => array(
+					'label'     => _x( 'Total', 'shipments', 'shiptastic-for-woocommerce' ),
 					'fields'    => array(
 						'total_from' => array(
 							'type'      => 'text',
@@ -364,9 +464,10 @@ class ShippingMethod extends \WC_Shipping_Method {
 						),
 					),
 					'operators' => array( 'is', 'is_not' ),
+					'group'     => 'box',
 				),
-				'package_subtotal'         => array(
-					'label'     => _x( 'Package subtotal (before discounts)', 'shipments', 'shiptastic-for-woocommerce' ),
+				'package_subtotal'                  => array(
+					'label'     => _x( 'Subtotal (before discounts)', 'shipments', 'shiptastic-for-woocommerce' ),
 					'fields'    => array(
 						'total_from' => array(
 							'type'      => 'text',
@@ -381,45 +482,10 @@ class ShippingMethod extends \WC_Shipping_Method {
 						),
 					),
 					'operators' => array( 'is', 'is_not' ),
+					'group'     => 'box',
 				),
-				'total'                    => array(
-					'label'     => _x( 'Cart total', 'shipments', 'shiptastic-for-woocommerce' ),
-					'fields'    => array(
-						'total_from' => array(
-							'type'      => 'text',
-							'data_type' => 'price',
-							'label'     => _x( 'from', 'shipments', 'shiptastic-for-woocommerce' ),
-						),
-						'total_to'   => array(
-							'type'        => 'text',
-							'data_type'   => 'price',
-							'label'       => _x( 'to', 'shipments', 'shiptastic-for-woocommerce' ),
-							'description' => get_woocommerce_currency_symbol(),
-						),
-					),
-					'operators' => array( 'is', 'is_not' ),
-					'is_global' => true,
-				),
-				'subtotal'                 => array(
-					'label'     => _x( 'Cart subtotal (before discounts)', 'shipments', 'shiptastic-for-woocommerce' ),
-					'fields'    => array(
-						'total_from' => array(
-							'type'      => 'text',
-							'data_type' => 'price',
-							'label'     => _x( 'from', 'shipments', 'shiptastic-for-woocommerce' ),
-						),
-						'total_to'   => array(
-							'type'        => 'text',
-							'data_type'   => 'price',
-							'label'       => _x( 'to', 'shipments', 'shiptastic-for-woocommerce' ),
-							'description' => get_woocommerce_currency_symbol(),
-						),
-					),
-					'operators' => array( 'is', 'is_not' ),
-					'is_global' => true,
-				),
-				'shipping_classes'         => array(
-					'label'     => _x( 'Cart shipping class', 'shipments', 'shiptastic-for-woocommerce' ),
+				'package_shipping_classes'          => array(
+					'label'     => _x( 'Shipping class', 'shipments', 'shiptastic-for-woocommerce' ),
 					'fields'    => array(
 						'classes' => array(
 							'type'      => 'multiselect',
@@ -432,10 +498,81 @@ class ShippingMethod extends \WC_Shipping_Method {
 						),
 					),
 					'operators' => array( 'any_of', 'none_of', 'exactly' ),
-					'is_global' => true,
+					'group'     => 'box',
 				),
-				'package_shipping_classes' => array(
-					'label'     => _x( 'Package shipping class', 'shipments', 'shiptastic-for-woocommerce' ),
+				'package_products'                  => array(
+					'label'     => _x( 'Products', 'shipments', 'shiptastic-for-woocommerce' ),
+					'fields'    => array(
+						'product_ids' => array(
+							'type'      => 'multiselect',
+							'data_type' => 'array',
+							'class'     => 'wc-product-search',
+							'label'     => _x( 'Product', 'shipments', 'shiptastic-for-woocommerce' ),
+							'options'   => array(),
+						),
+					),
+					'operators' => array( 'any_of', 'none_of', 'exactly' ),
+					'is_global' => true,
+					'group'     => 'box',
+				),
+				'shipping_package_weight'           => array(
+					'label'     => _x( 'Weight', 'shipments', 'shiptastic-for-woocommerce' ),
+					'fields'    => array(
+						'weight_from' => array(
+							'type'            => 'text',
+							'data_type'       => 'decimal',
+							'data_validation' => 'weight',
+							'label'           => _x( 'from', 'shipments', 'shiptastic-for-woocommerce' ),
+						),
+						'weight_to'   => array(
+							'type'            => 'text',
+							'data_type'       => 'decimal',
+							'data_validation' => 'weight',
+							'label'           => _x( 'to', 'shipments', 'shiptastic-for-woocommerce' ),
+							'description'     => class_exists( '\Automattic\WooCommerce\Utilities\I18nUtil' ) ? \Automattic\WooCommerce\Utilities\I18nUtil::get_weight_unit_label( get_option( 'woocommerce_weight_unit', 'kg' ) ) : get_option( 'woocommerce_weight_unit', 'kg' ),
+						),
+					),
+					'operators' => array( 'is', 'is_not' ),
+					'group'     => 'shipping_package',
+				),
+				'shipping_package_total'            => array(
+					'label'     => _x( 'Total', 'shipments', 'shiptastic-for-woocommerce' ),
+					'fields'    => array(
+						'total_from' => array(
+							'type'      => 'text',
+							'data_type' => 'price',
+							'label'     => _x( 'from', 'shipments', 'shiptastic-for-woocommerce' ),
+						),
+						'total_to'   => array(
+							'type'        => 'text',
+							'data_type'   => 'price',
+							'label'       => _x( 'to', 'shipments', 'shiptastic-for-woocommerce' ),
+							'description' => get_woocommerce_currency_symbol(),
+						),
+					),
+					'operators' => array( 'is', 'is_not' ),
+					'group'     => 'shipping_package',
+				),
+				'shipping_package_subtotal'         => array(
+					'label'     => _x( 'Subtotal (before discounts)', 'shipments', 'shiptastic-for-woocommerce' ),
+					'fields'    => array(
+						'total_from' => array(
+							'type'      => 'text',
+							'data_type' => 'price',
+							'label'     => _x( 'from', 'shipments', 'shiptastic-for-woocommerce' ),
+						),
+						'total_to'   => array(
+							'type'        => 'text',
+							'data_type'   => 'price',
+							'label'       => _x( 'to', 'shipments', 'shiptastic-for-woocommerce' ),
+							'description' => get_woocommerce_currency_symbol(),
+						),
+					),
+					'operators' => array( 'is', 'is_not' ),
+					'group'     => 'shipping_package',
+				),
+				'shipping_package_shipping_classes' => array(
+					'label'     => _x( 'Shipping class', 'shipments', 'shiptastic-for-woocommerce' ),
 					'fields'    => array(
 						'classes' => array(
 							'type'      => 'multiselect',
@@ -448,9 +585,38 @@ class ShippingMethod extends \WC_Shipping_Method {
 						),
 					),
 					'operators' => array( 'any_of', 'none_of', 'exactly' ),
+					'group'     => 'shipping_package',
+				),
+				'shipping_package_products'         => array(
+					'label'     => _x( 'Products', 'shipments', 'shiptastic-for-woocommerce' ),
+					'fields'    => array(
+						'product_ids' => array(
+							'type'      => 'multiselect',
+							'data_type' => 'array',
+							'class'     => 'wc-product-search',
+							'label'     => _x( 'Product', 'shipments', 'shiptastic-for-woocommerce' ),
+							'options'   => array(),
+						),
+					),
+					'operators' => array( 'any_of', 'none_of', 'exactly' ),
+					'is_global' => true,
+					'group'     => 'shipping_package',
 				),
 			)
 		);
+
+		if ( $grouped ) {
+			$grouped_condition_types = array();
+
+			foreach ( $this->get_condition_type_groups() as $condition_group => $title ) {
+				$grouped_condition_types[ $condition_group ] = wp_list_filter( $condition_types, array( 'group' => $condition_group ) );
+
+			}
+
+			$condition_types = $grouped_condition_types;
+		}
+
+		return $condition_types;
 	}
 
 	public function get_conditional_operator( $operator ) {
@@ -496,6 +662,7 @@ class ShippingMethod extends \WC_Shipping_Method {
 			$this->get_option( 'cache', array() ),
 			array(
 				'packaging_ids'                    => array(),
+				'product_ids'                      => array(),
 				'costs'                            => null,
 				'global_rules'                     => null,
 				'global_packaging_single_use_only' => 'no',
@@ -977,6 +1144,11 @@ class ShippingMethod extends \WC_Shipping_Method {
 	protected function rule_applies( $rule, $package_data, $global_only = false ) {
 		$rule_applies = true;
 		$rule         = $this->parse_rule( $rule );
+		/**
+		 * Data prefixed with package_ refer to data of the current packaging, e.g. Cardboard XY.
+		 * Data prefixed with shipping_package_ refer to the actual shipping package in case the cart has been split.
+		 * Data without prefix, e.g. weight refer to cart-wide data.
+		 */
 		$package_data = wp_parse_args(
 			$package_data,
 			array(
@@ -993,6 +1165,14 @@ class ShippingMethod extends \WC_Shipping_Method {
 				'subtotal'                             => 0.0,
 				'products'                             => array(),
 				'shipping_classes'                     => array(),
+				'has_missing_shipping_classes'         => false,
+				'shipping_package_weight'              => 0.0,
+				'shipping_package_volume'              => 0.0,
+				'shipping_package_total'               => 0.0,
+				'shipping_package_subtotal'            => 0.0,
+				'shipping_package_products'            => array(),
+				'shipping_package_shipping_classes'    => array(),
+				'shipping_package_has_missing_shipping_classes' => false,
 			)
 		);
 
@@ -1021,7 +1201,7 @@ class ShippingMethod extends \WC_Shipping_Method {
 					$condition_applies = apply_filters( "woocommerce_shiptastic_shipping_method_rule_condition_{$condition_type_name}_applies", $package_data, $rule, $condition, $this );
 				} elseif ( 'always' === $condition_type_name ) {
 					$condition_applies = true;
-				} elseif ( 'weight' === $condition_type_name || 'package_weight' === $condition_type_name ) {
+				} elseif ( in_array( $condition_type_name, array( 'weight', 'package_weight', 'shipping_package_weight' ), true ) ) {
 					$from = isset( $condition['weight_from'] ) && ! empty( $condition['weight_from'] ) ? (float) wc_format_decimal( $condition['weight_from'] ) : 0.0;
 					$to   = isset( $condition['weight_to'] ) && ! empty( $condition['weight_to'] ) ? (float) wc_format_decimal( $condition['weight_to'] ) : 0.0;
 
@@ -1032,7 +1212,7 @@ class ShippingMethod extends \WC_Shipping_Method {
 							$condition_applies = false;
 						}
 					}
-				} elseif ( in_array( $condition_type_name, array( 'total', 'package_total', 'subtotal', 'package_subtotal' ), true ) ) {
+				} elseif ( in_array( $condition_type_name, array( 'total', 'package_total', 'subtotal', 'package_subtotal', 'shipping_package_total', 'shipping_package_subtotal' ), true ) ) {
 					$from = isset( $condition['total_from'] ) && ! empty( $condition['total_from'] ) ? (float) wc_format_decimal( $condition['total_from'] ) : 0.0;
 					$to   = isset( $condition['total_to'] ) && ! empty( $condition['total_to'] ) ? (float) wc_format_decimal( $condition['total_to'] ) : 0.0;
 
@@ -1043,13 +1223,28 @@ class ShippingMethod extends \WC_Shipping_Method {
 							$condition_applies = false;
 						}
 					}
-				} elseif ( 'shipping_classes' === $condition_type_name || 'package_shipping_classes' === $condition_type_name ) {
+				} elseif ( in_array( $condition_type_name, array( 'shipping_classes', 'package_shipping_classes', 'shipping_package_shipping_classes' ), true ) ) {
 					$classes = isset( $condition['classes'] ) && ! empty( $condition['classes'] ) ? apply_filters( 'woocommerce_shiptastic_shipping_method_shipping_classes', array_map( 'absint', (array) $condition['classes'] ) ) : array();
 
+					$condition_type_prefix = str_replace( 'shipping_class', '', $condition_type_name );
+
 					if ( 'exactly' === $operator_name ) {
-						$has_missing_shipping_classes = 'package_shipping_classes' === $condition_type_name ? $package_data['package_has_missing_shipping_classes'] : $package_data['has_missing_shipping_classes'];
+						$has_missing_shipping_classes = array_key_exists( "{$condition_type_prefix}has_missing_shipping_classes", $package_data ) ? $package_data[ "{$condition_type_prefix}has_missing_shipping_classes" ] : false;
 						$condition_applies            = ! $has_missing_shipping_classes && $package_data[ $condition_type_name ] === $classes;
 					} elseif ( array_intersect( $package_data[ $condition_type_name ], $classes ) ) {
+						if ( 'any_of' === $operator_name ) {
+							$condition_applies = true;
+						} elseif ( 'none_of' === $operator_name ) {
+							$condition_applies = false;
+						}
+					}
+				} elseif ( in_array( $condition_type_name, array( 'products', 'package_products', 'shipping_package_products' ), true ) ) {
+					$product_ids      = ! empty( $condition['product_ids'] ) ? array_unique( (array) apply_filters( 'woocommerce_shiptastic_shipping_method_product_ids', array_map( 'absint', (array) $condition['product_ids'] ) ) ) : array();
+					$package_products = array_unique( array_map( 'absint', array_keys( (array) $package_data[ $condition_type_name ] ) ) );
+
+					if ( 'exactly' === $operator_name ) {
+						$condition_applies = $package_products === $product_ids;
+					} elseif ( array_intersect( $package_products, $product_ids ) ) {
 						if ( 'any_of' === $operator_name ) {
 							$condition_applies = true;
 						} elseif ( 'none_of' === $operator_name ) {
@@ -1118,6 +1313,7 @@ class ShippingMethod extends \WC_Shipping_Method {
 		$rules                            = $this->get_option( 'shipping_rules', array() );
 		$packaging                        = $this->get_option( 'packaging', array() );
 		$global_rules                     = array();
+		$product_ids                      = array();
 		$costs                            = array();
 		$global_packaging_single_use_only = 'no';
 
@@ -1151,6 +1347,10 @@ class ShippingMethod extends \WC_Shipping_Method {
 							$is_global = false;
 							break;
 						}
+					}
+
+					if ( in_array( $condition['type'], array( 'products', 'package_products', 'shipping_package_products' ), true ) ) {
+						$product_ids = array_merge( (array) $condition['product_ids'], $product_ids );
 					}
 				}
 
@@ -1188,6 +1388,7 @@ class ShippingMethod extends \WC_Shipping_Method {
 			'global_rules'                     => $global_rules,
 			'global_packaging_single_use_only' => $global_packaging_single_use_only,
 			'costs'                            => $costs,
+			'product_ids'                      => array_unique( $product_ids ),
 		);
 
 		return $cache;
@@ -1323,9 +1524,9 @@ class ShippingMethod extends \WC_Shipping_Method {
 
 	protected function generate_shipping_rules_html( $option_name, $option ) {
 		ob_start();
-		$field_key           = $this->get_field_key( 'shipping_rules' );
-		$packaging_field_key = $this->get_field_key( 'packaging' );
-		$condition_types     = $this->get_condition_types();
+		$field_key               = $this->get_field_key( 'shipping_rules' );
+		$packaging_field_key     = $this->get_field_key( 'packaging' );
+		$condition_types_grouped = $this->get_condition_types( true );
 		?>
 		<table class="widefat wc-shiptastic-shipping-rules">
 			<thead>
@@ -1442,15 +1643,19 @@ class ShippingMethod extends \WC_Shipping_Method {
 						<p class="form-field">
 							<label><?php echo esc_html_x( 'When', 'shipments', 'shiptastic-for-woocommerce' ); ?></label>
 							<select name="<?php echo esc_attr( $field_key ); ?>[conditions][{{ data.rule_id }}][{{ data.condition_id }}][type]" class="shipping-rules-condition-type" data-attribute="type">
-								<?php foreach ( $condition_types as $condition_type => $condition_type_data ) : ?>
-									<option value="<?php echo esc_attr( $condition_type ); ?>"><?php echo esc_html( $condition_type_data['label'] ); ?></option>
+								<?php foreach ( $condition_types_grouped as $group => $condition_types ) : ?>
+									<optgroup label="<?php echo esc_html( $this->get_condition_type_group( $group ) ); ?>">
+										<?php foreach ( $condition_types as $condition_type => $condition_type_data ) : ?>
+											<option value="<?php echo esc_attr( $condition_type ); ?>"><?php echo esc_html( $condition_type_data['label'] ); ?></option>
+										<?php endforeach; ?>
+									</optgroup>
 								<?php endforeach; ?>
 							</select>
 						</p>
 					</div>
 
 					<?php
-					foreach ( $condition_types as $condition_type => $condition_type_data ) :
+					foreach ( $this->get_condition_types() as $condition_type => $condition_type_data ) :
 						$operators = $condition_type_data['operators'];
 						?>
 						<?php if ( ! empty( $operators ) ) : ?>

@@ -129,6 +129,7 @@
                     view.initRow( rowData );
                 },
                 initFields: function( $tr, rowData ) {
+                    var view = this;
                     $( document.body ).trigger( 'wc-enhanced-select-init' );
 
                     // Support select2 select boxes
@@ -142,11 +143,31 @@
                         var selected  = Array.isArray( rowData[ attribute ] ) ? rowData[ attribute ] : Array( String( rowData[ attribute ] ) ),
                             $select = $( this );
 
+                        if ( 'product_ids' === attribute ) {
+                            var mappings = view.model.get( 'product_mappings' );
+
+                            $.each( selected, function( i, sel ) {
+                                $isSelected = $select.find( 'option[value="' + String( sel ) + '"]' );
+
+                                if ( $isSelected.length > 0 ) {
+                                    $isSelected.prop( 'selected', true );
+                                } else {
+
+                                }
+                            } );
+                        }
+
                         $.each( selected, function( i, sel ) {
                             $isSelected = $select.find( 'option[value="' + String( sel ) + '"]' );
 
                             if ( $isSelected.length > 0 ) {
                                 $isSelected.prop( 'selected', true );
+                            } else if ( 'product_ids' === attribute ) {
+                                var mappings = view.model.get( 'product_mappings' );
+
+                                if ( mappings.hasOwnProperty( String( sel ) ) ) {
+                                    $select.append( '<option value="' + sel +'" selected="selected">' + mappings[ String( sel ) ] + '</option>' )
+                                }
                             }
                         } );
 
@@ -315,6 +336,7 @@
         shippingRule = new ShippingRule({
             rules: data.rules,
             packaging: data.packaging,
+            product_mappings: data.product_mappings,
         } ),
 
         // Backbone view
