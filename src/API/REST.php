@@ -74,6 +74,12 @@ abstract class REST extends \Vendidero\Shiptastic\API\Api {
 		if ( $this->is_auth_request( $url ) ) {
 			$is_auth_request = true;
 		} elseif ( $this->get_auth_api()->is_connected() && ! $this->get_auth_api()->has_auth() ) {
+			$queue_args = array(
+				'api' => $this->get_setting_name(),
+			);
+
+			WC()->queue()->cancel_all( 'woocommerce_shiptastic_oauth_refresh_token', $queue_args, 'woocommerce-shiptastic-api' );
+
 			$auth_response = $this->get_auth_api()->auth();
 		}
 

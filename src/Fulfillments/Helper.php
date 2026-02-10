@@ -19,6 +19,38 @@ class Helper {
 		add_action( 'woocommerce_shiptastic_order_update_shipping_status', array( __CLASS__, 'sync_fulfillment_order_status' ), 10, 2 );
 		add_filter( 'woocommerce_email_classes', array( __CLASS__, 'deregister_fulfillment_notifications' ), 99 );
 		add_action( 'woocommerce_shiptastic_sync_fulfillments_callback', array( __CLASS__, 'sync_fulfillments' ), 10, 1 );
+
+		/**
+		 * Remove the additional columns for now as we cannot filter FulfillmentsDataStore::read_fulfillments
+		 */
+		add_filter( 'manage_woocommerce_page_wc-orders_columns', array( __CLASS__, 'remove_fulfillment_columns' ), 50 );
+		add_filter( 'manage_edit-shop_order_columns', array( __CLASS__, 'remove_fulfillment_columns' ), 50 );
+
+		/**
+		 * Remove fulfillment emails
+		 */
+		add_filter( 'woocommerce_email_classes', array( __CLASS__, 'remove_fulfillment_emails' ) );
+	}
+
+	public static function remove_fulfillment_emails( $emails ) {
+		return array_diff_key(
+			$emails,
+			array(
+				'WC_Email_Customer_Fulfillment_Created' => '',
+				'WC_Email_Customer_Fulfillment_Updated' => '',
+				'WC_Email_Customer_Fulfillment_Deleted' => '',
+			)
+		);
+	}
+
+	public static function remove_fulfillment_columns( $columns ) {
+		return array_diff_key(
+			$columns,
+			array(
+				'shipment_tracking' => '',
+				'shipment_provider' => '',
+			)
+		);
 	}
 
 	public static function has_fulfillments_feature_enabled() {

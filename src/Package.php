@@ -4,6 +4,7 @@ namespace Vendidero\Shiptastic;
 
 use Automattic\WooCommerce\Utilities\I18nUtil;
 use Exception;
+use Vendidero\Shiptastic\API\Helper;
 use Vendidero\Shiptastic\Registry\Container;
 use Vendidero\Shiptastic\ShippingMethod\MethodHelper;
 
@@ -72,6 +73,16 @@ class Package {
 		 */
 		add_filter( 'woocommerce_webhook_topic_hooks', array( __CLASS__, 'register_webhooks' ), 10, 2 );
 		add_filter( 'woocommerce_webhook_topics', array( __CLASS__, 'register_webhook_topics' ), 10, 2 );
+
+		add_action( 'woocommerce_shiptastic_oauth_refresh_token', array( __CLASS__, 'refresh_oauth_token' ), 10 );
+	}
+
+	public static function refresh_oauth_token( $api_name ) {
+		if ( $api = Helper::get_api( $api_name ) ) {
+			if ( $auth = $api->get_auth_api() ) {
+				$auth->auth();
+			}
+		}
 	}
 
 	public static function register_webhook_topics( $topics ) {

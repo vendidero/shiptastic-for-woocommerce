@@ -91,6 +91,23 @@ abstract class OAuth extends RESTAuth {
 			$expires_in
 		);
 
+		$queue_args = array(
+			'api' => $this->get_api()->get_setting_name(),
+		);
+
+		WC()->queue()->cancel_all( 'woocommerce_shiptastic_oauth_refresh_token', $queue_args, 'woocommerce-shiptastic-api' );
+
+		if ( ! WC()->queue()->get_next( 'woocommerce_shiptastic_oauth_refresh_token', $queue_args, 'woocommerce-shiptastic-api' ) ) {
+			$schedule_at = time() + ( $expires_in - MINUTE_IN_SECONDS * 10 );
+
+			WC()->queue()->schedule_single(
+				$schedule_at,
+				'woocommerce_shiptastic_oauth_refresh_token',
+				$queue_args,
+				'woocommerce-shiptastic-api'
+			);
+		}
+
 		if ( ! empty( $token_data['refresh_token'] ) ) {
 			set_transient(
 				"woocommerce_stc_{$this->get_api()->get_setting_name()}_refresh_token",
@@ -105,6 +122,12 @@ abstract class OAuth extends RESTAuth {
 
 	public function invalidate() {
 		delete_transient( "woocommerce_stc_{$this->get_api()->get_setting_name()}_access_token" );
+
+		$queue_args = array(
+			'api' => $this->get_api()->get_setting_name(),
+		);
+
+		WC()->queue()->cancel_all( 'woocommerce_shiptastic_oauth_refresh_token', $queue_args, 'woocommerce-shiptastic-api' );
 	}
 
 	public function revoke() {

@@ -841,6 +841,10 @@ class ShippingMethod extends \WC_Shipping_Method {
 					$shipping_classes             = array();
 					$has_missing_shipping_classes = false;
 
+					if ( apply_filters( 'woocommerce_shiptastic_shipping_method_include_box_weight', true ) ) {
+						$total_weight += wc_get_weight( $packaging->getEmptyWeight(), strtolower( get_option( 'woocommerce_weight_unit' ) ), 'g' );
+					}
+
 					foreach ( $items as $item ) {
 						$cart_item = $item->getItem();
 						$total    += $cart_item->get_total();

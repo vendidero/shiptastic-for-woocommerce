@@ -549,7 +549,7 @@ class MethodHelper {
 
 	public static function method_is_excluded( $method ) {
 		$is_excluded = false;
-		$excluded    = apply_filters( 'woocommerce_shiptastic_get_methods_excluded_from_provider_settings', array_merge( array( 'pr_dhl_paket', 'flexible_shipping_info' ), self::get_local_pickup_methods() ) );
+		$excluded    = apply_filters( 'woocommerce_shiptastic_get_methods_excluded_from_provider_settings', array_merge( array( 'pr_dhl_paket', 'flexible_shipping_info', 'flexible_shipping_ups' ), self::get_local_pickup_methods() ) );
 
 		if ( in_array( $method, $excluded, true ) ) {
 			$is_excluded = true;
