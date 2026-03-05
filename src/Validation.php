@@ -42,7 +42,7 @@ class Validation {
 					if ( ! empty( $shipping_status_transition['to'] ) ) {
 						do_action( 'woocommerce_shiptastic_order_shipping_status_' . $shipping_status_transition['to'], $order->get_id(), $order );
 
-						$order_is_locked = in_array( $order->get_status(), array( 'failed', 'cancelled', 'refunded' ), true );
+						$order_is_locked = in_array( $order->get_status(), self::get_order_cancelled_statuses(), true );
 
 						/**
 						 * Prevent locked orders (e.g. failed, cancelled orders) from being marked as shipped which may lead
@@ -176,10 +176,14 @@ class Validation {
 		);
 
 		add_action( 'woocommerce_delete_order', array( __CLASS__, 'delete_order' ), 10, 1 );
-
-		foreach ( array( 'cancelled', 'failed', 'refunded' ) as $cancelled_status ) {
-			add_action( "woocommerce_order_status_{$cancelled_status}", array( __CLASS__, 'maybe_cancel_shipments' ), 10, 2 );
-		}
+		add_action(
+			'init',
+			function () {
+				foreach ( self::get_order_cancelled_statuses() as $cancelled_status ) {
+					add_action( "woocommerce_order_status_{$cancelled_status}", array( __CLASS__, 'maybe_cancel_shipments' ), 10, 2 );
+				}
+			}
+		);
 
 		add_filter( 'woocommerce_pre_delete_order_refund', array( __CLASS__, 'before_delete_refund' ), 9999, 3 );
 		add_action( 'woocommerce_shiptastic_deleted_refund_order', array( __CLASS__, 'delete_refund_order' ), 10, 2 );
@@ -215,6 +219,14 @@ class Validation {
 		if ( $default_provider === $provider->get_name() ) {
 			update_option( 'woocommerce_shiptastic_default_shipping_provider', '' );
 		}
+	}
+
+	public static function get_order_cancelled_statuses() {
+		return apply_filters( 'woocommerce_shiptastic_order_cancelled_statuses', array( 'cancelled', 'failed', 'refunded' ) );
+	}
+
+	public static function cancelled_order_status_supports_returns( $status ) {
+		return apply_filters( 'woocommerce_shiptastic_cancelled_order_status_supports_returns', 'refunded' === $status, $status );
 	}
 
 	/**
@@ -253,7 +265,7 @@ class Validation {
 			/**
 			 * Do not auto-delete returns when refunding an order
 			 */
-			if ( 'refunded' === $order->get_status() && 'return' === $shipment->get_type() ) {
+			if ( 'return' === $shipment->get_type() && self::cancelled_order_status_supports_returns( $order->get_status() ) ) {
 				$is_deletable = false;
 			}
 

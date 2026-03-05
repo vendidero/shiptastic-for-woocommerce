@@ -2593,7 +2593,11 @@ abstract class Shipment extends WC_Data {
 		$this->set_tracking_instruction( '' );
 
 		if ( $this->supports_label() && ( $label = $this->get_label() ) ) {
+			do_action( "{$this->get_general_hook_prefix()}before_delete_label", $this, $label );
+
 			$label->delete( true );
+
+			do_action( "{$this->get_general_hook_prefix()}after_delete_label", $this, $label );
 		}
 	}
 

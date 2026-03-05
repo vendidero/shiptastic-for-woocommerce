@@ -221,7 +221,7 @@ class Bundles implements Compatibility {
 						$bundle_weight = '';
 					}
 
-					$product->set_weight( $bundle_weight );
+					$product->set_shipping_weight( $bundle_weight );
 				}
 			} else {
 				$reset_weight     = true;
@@ -241,7 +241,7 @@ class Bundles implements Compatibility {
 		}
 
 		if ( $reset_weight ) {
-			$product->set_weight( 0 );
+			$product->set_shipping_weight( 0 );
 		}
 
 		return $product;

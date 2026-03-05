@@ -30,7 +30,7 @@ class Order {
 	/**
 	 * The actual order item object
 	 *
-	 * @var object
+	 * @var WC_Order
 	 */
 	protected $order;
 
@@ -348,9 +348,37 @@ class Order {
 		return $return_status;
 	}
 
-	public function supports_third_party_email_transmission() {
-		$supports_email_transmission = Package::base_country_belongs_to_eu_customs_area() ? false : true;
+	public function get_shipping_to_country( $context = 'view' ) {
+		if ( $this->get_order()->has_shipping_address() ) {
+			$country = $this->get_order()->get_shipping_country();
+		} else {
+			$country = $this->get_order()->get_billing_country();
+		}
 
+		return $country;
+	}
+
+	public function get_shipping_to_postcode( $context = 'view' ) {
+		if ( $this->get_order()->has_shipping_address() ) {
+			$country = $this->get_order()->get_shipping_postcode();
+		} else {
+			$country = $this->get_order()->get_billing_postcode();
+		}
+
+		return $country;
+	}
+
+	public function supports_third_party_email_transmission() {
+		$supports_email_transmission = true;
+		$is_third_country            = Package::is_shipping_international( $this->get_shipping_to_country(), array( 'postcode' => $this->get_shipping_to_postcode() ) );
+
+		if ( Package::base_country_belongs_to_eu_customs_area() && ! $is_third_country ) {
+			$supports_email_transmission = false;
+		}
+
+		/**
+		 * Opted-in
+		 */
 		if ( 'yes' === $this->get_order()->get_meta( '_parcel_delivery_opted_in' ) ) {
 			$supports_email_transmission = true;
 		}

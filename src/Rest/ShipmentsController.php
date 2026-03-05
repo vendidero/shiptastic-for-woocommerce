@@ -675,6 +675,7 @@ class ShipmentsController extends \WC_REST_Controller {
 			'name',
 			'product_id',
 			'sku',
+			'global_unique_id',
 			'total',
 			'subtotal',
 			'weight',
@@ -1177,6 +1178,7 @@ class ShipmentsController extends \WC_REST_Controller {
 				'order_item_id'       => $item->get_order_item_id( $context ),
 				'product_id'          => $item->get_product_id( $context ),
 				'sku'                 => $item->get_sku( $context ),
+				'global_unique_id'    => $item->get_global_unique_id( $context ),
 				'quantity'            => $item->get_quantity( $context ),
 				'total'               => wc_format_decimal( $item->get_total( $context ), $dp ),
 				'subtotal'            => wc_format_decimal( $item->get_subtotal( $context ), $dp ),
@@ -1923,6 +1925,11 @@ class ShipmentsController extends \WC_REST_Controller {
 							),
 							'sku'                 => array(
 								'description' => _x( 'Item SKU.', 'shipments', 'shiptastic-for-woocommerce' ),
+								'type'        => 'string',
+								'context'     => array( 'view', 'edit' ),
+							),
+							'global_unique_id'    => array(
+								'description' => _x( 'Item Global Unique ID.', 'shipments', 'shiptastic-for-woocommerce' ),
 								'type'        => 'string',
 								'context'     => array( 'view', 'edit' ),
 							),

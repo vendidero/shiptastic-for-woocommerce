@@ -41,6 +41,7 @@ class ShipmentItem extends WC_Data {
 		'length'              => '',
 		'height'              => '',
 		'sku'                 => '',
+		'global_unique_id'    => '',
 		'name'                => '',
 		'total'               => 0,
 		'subtotal'            => 0,
@@ -215,12 +216,21 @@ class ShipmentItem extends WC_Data {
 	}
 
 	/**
-	 * Get quantity.
+	 * Get SKU.
 	 *
-	 * @return int
+	 * @return string
 	 */
 	public function get_sku( $context = 'view' ) {
 		return $this->get_prop( 'sku', $context );
+	}
+
+	/**
+	 * Get global unique id.
+	 *
+	 * @return string
+	 */
+	public function get_global_unique_id( $context = 'view' ) {
+		return $this->get_prop( 'global_unique_id', $context );
 	}
 
 	/**
@@ -481,6 +491,7 @@ class ShipmentItem extends WC_Data {
 					'quantity'            => 1,
 					'name'                => $item->get_name(),
 					'sku'                 => $product ? $product->get_sku() : '',
+					'global_unique_id'    => $product ? $product->get_global_unique_id() : '',
 					'total'               => $total + $tax_total,
 					'subtotal'            => $subtotal + $tax_subtotal,
 					'weight'              => $product ? wc_get_weight( (float) $product->get_shipping_weight(), $shipment->get_weight_unit() ) : '',
@@ -716,6 +727,10 @@ class ShipmentItem extends WC_Data {
 
 	public function set_sku( $sku ) {
 		$this->set_prop( 'sku', $sku );
+	}
+
+	public function set_global_unique_id( $id ) {
+		$this->set_prop( 'global_unique_id', $id );
 	}
 
 	/**

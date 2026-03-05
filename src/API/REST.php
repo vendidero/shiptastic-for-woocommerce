@@ -70,6 +70,9 @@ abstract class REST extends \Vendidero\Shiptastic\API\Api {
 	protected function get_response( $url, $type = 'GET', $body_args = array(), $headers = array(), $is_retry = false ) {
 		$response        = false;
 		$is_auth_request = false;
+		$response_obj    = false;
+
+		do_action( "woocommerce_shiptastic_before_{$this->get_setting_name()}_api_request", $url, $type, $body_args, $headers, $is_retry, $this );
 
 		if ( $this->is_auth_request( $url ) ) {
 			$is_auth_request = true;
@@ -156,22 +159,24 @@ abstract class REST extends \Vendidero\Shiptastic\API\Api {
 					return $this->get_response( $url, $type, $body_args, $headers, true );
 				}
 
-				$response = $this->parse_error( $response_obj );
+				$response_obj = $this->parse_error( $response_obj );
 
-				if ( $response->is_error() && Package::is_debug_mode() ) {
-					Package::log( sprintf( '%s error during REST (%s) call to %s:', $response->get_code(), $type, $url ), 'info', $this->get_title() );
-					Package::log( wc_print_r( $response->get_error()->get_error_messages(), true ), 'info', $this->get_title() );
+				if ( $response_obj->is_error() && Package::is_debug_mode() ) {
+					Package::log( sprintf( '%s error during REST (%s) call to %s:', $response_obj->get_code(), $type, $url ), 'info', $this->get_title() );
+					Package::log( wc_print_r( $response_obj->get_error()->get_error_messages(), true ), 'info', $this->get_title() );
 					Package::log( 'Body:', 'info', $this->get_title() );
 					Package::log( wc_print_r( $body_args, true ), 'info', $this->get_title() );
 				}
-
-				return $response;
 			}
-
-			return $response_obj;
 		}
 
-		return new Response( 500, array(), array(), new ShipmentError( 'rest-error', sprintf( _x( 'Error while trying to perform REST request to %s', 'shipments', 'shiptastic-for-woocommerce' ), $url ) ) );
+		if ( ! is_a( $response_obj, '\Vendidero\Shiptastic\API\Response' ) ) {
+			$response_obj = new Response( 500, array(), array(), new ShipmentError( 'rest-error', sprintf( _x( 'Error while trying to perform REST request to %s', 'shipments', 'shiptastic-for-woocommerce' ), $url ) ) );
+		}
+
+		do_action( "woocommerce_shiptastic_after_{$this->get_setting_name()}_api_request", $url, $type, $body_args, $headers, $is_retry, $this );
+
+		return $response_obj;
 	}
 
 	/**

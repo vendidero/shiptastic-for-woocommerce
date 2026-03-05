@@ -30,6 +30,7 @@ class ShipmentItem extends WC_Data_Store_WP implements WC_Object_Data_Store_Inte
 		'_total',
 		'_subtotal',
 		'_sku',
+		'_global_unique_id',
 		'_return_reason_code',
 		'_hs_code',
 		'_mid_code',

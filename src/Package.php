@@ -251,11 +251,12 @@ class Package {
 		$compatibilities = apply_filters(
 			'woocommerce_shiptastic_compatibilities',
 			array(
-				'bundles'           => '\Vendidero\Shiptastic\Compatibility\Bundles',
-				'shipment-tracking' => '\Vendidero\Shiptastic\Compatibility\ShipmentTracking',
-				'wpml'              => '\Vendidero\Shiptastic\Compatibility\WPML',
-				'translatepress'    => '\Vendidero\Shiptastic\Compatibility\TranslatePress',
-				'sendcloud'         => '\Vendidero\Shiptastic\Compatibility\Sendcloud',
+				'bundles'                 => '\Vendidero\Shiptastic\Compatibility\Bundles',
+				'shipment-tracking'       => '\Vendidero\Shiptastic\Compatibility\ShipmentTracking',
+				'wpml'                    => '\Vendidero\Shiptastic\Compatibility\WPML',
+				'translatepress'          => '\Vendidero\Shiptastic\Compatibility\TranslatePress',
+				'sendcloud'               => '\Vendidero\Shiptastic\Compatibility\Sendcloud',
+				'order-withdrawal-button' => '\Vendidero\Shiptastic\Compatibility\OrderWithdrawalButton',
 			)
 		);
 

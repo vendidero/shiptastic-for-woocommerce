@@ -1,8 +1,6 @@
 <?php
 namespace Vendidero\Shiptastic\Interfaces;
 
-use Vendidero\Shiptastic\API\Auth\Auth;
-
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -20,9 +18,14 @@ interface Api {
 	public function get_setting_name();
 
 	/**
-	 * @return false|Auth
+	 * @return false|ApiAuth
 	 */
 	public function get_auth_api();
+
+	/**
+	 * @param $auth null|ApiAuth
+	 */
+	public function set_auth_api( $auth );
 
 	public function get_url();
 }

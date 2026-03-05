@@ -204,6 +204,7 @@ class MethodHelper {
 			'products'                     => array(),
 			'shipping_classes'             => array(),
 			'has_missing_shipping_classes' => false,
+			'has_calculated_totals'        => false,
 			'item_count'                   => 0,
 		);
 
@@ -243,13 +244,18 @@ class MethodHelper {
 					continue;
 				}
 
-				$s_product     = wc_shiptastic_get_product( $product );
-				$line_total    = (float) $item['line_total'];
-				$line_subtotal = (float) $item['line_subtotal'];
+				$s_product = wc_shiptastic_get_product( $product );
+
+				if ( isset( $item['line_total'] ) ) {
+					$cart_data['has_calculated_totals'] = true;
+				}
+
+				$line_total    = (float) isset( $item['line_total'] ) ? $item['line_total'] : 0.0;
+				$line_subtotal = (float) isset( $item['line_subtotal'] ) ? $item['line_total'] : 0.0;
 
 				if ( wc()->cart->display_prices_including_tax() ) {
-					$line_total    += (float) $item['line_tax'];
-					$line_subtotal += (float) $item['line_subtotal_tax'];
+					$line_total    += (float) isset( $item['line_tax'] ) ? $item['line_tax'] : 0.0;
+					$line_subtotal += (float) isset( $item['line_subtotal_tax'] ) ? $item['line_subtotal_tax'] : 0.0;
 				}
 
 				$quantity = (int) ceil( (float) $item['quantity'] );

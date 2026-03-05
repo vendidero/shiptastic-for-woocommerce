@@ -969,12 +969,13 @@ class Admin {
 
 			woocommerce_wp_text_input(
 				array(
-					'id'          => "_variable_shipping_weight_{$loop}",
-					'name'        => "variable_shipping_weight[{$loop}]",
-					'label'       => $label,
-					'value'       => wc_format_localized_decimal( $shipments_product->get_shipping_weight( 'edit' ) ),
-					'placeholder' => $parent_weight ? $parent_weight : wc_format_localized_decimal( $variation_object->get_weight() ),
-					'data_type'   => 'decimal',
+					'id'            => "_variable_shipping_weight_{$loop}",
+					'name'          => "variable_shipping_weight[{$loop}]",
+					'label'         => $label,
+					'value'         => wc_format_localized_decimal( $shipments_product->get_shipping_weight( 'edit' ) ),
+					'placeholder'   => $parent_weight ? $parent_weight : wc_format_localized_decimal( $variation_object->get_weight() ),
+					'data_type'     => 'decimal',
+					'wrapper_class' => 'form-row form-row-first hide_if_variation_virtual',
 				)
 			);
 		}
@@ -984,7 +985,7 @@ class Admin {
 			$parent_width  = $shipments_parent_product ? wc_format_localized_decimal( $shipments_parent_product->get_shipping_width() ) : '';
 			$parent_height = $shipments_parent_product ? wc_format_localized_decimal( $shipments_parent_product->get_shipping_height() ) : '';
 			?>
-			<p class="form-field form-row dimensions_field shipping_dimensions_field hide_if_variation_virtual form-row-first">
+			<p class="form-field form-row dimensions_field shipping_dimensions_field hide_if_variation_virtual form-row-last">
 				<label for="product_shipping_length">
 					<?php
 					printf(
@@ -996,9 +997,9 @@ class Admin {
 				</label>
 				<?php echo wc_help_tip( _x( 'Length x width x height in decimal form', 'shipments', 'shiptastic-for-woocommerce' ) ); ?>
 				<span class="wrap">
-					<input id="product_shipping_length" placeholder="<?php echo $parent_length ? esc_attr( $parent_length ) : esc_attr( wc_format_localized_decimal( $variation_object->get_length() ) ); ?>" class="input-text wc_input_decimal" size="6" type="text" name="variable_shipping_length[<?php echo esc_attr( $loop ); ?>]" value="<?php echo esc_attr( wc_format_localized_decimal( $shipments_product->get_shipping_length( 'edit' ) ) ); ?>" />
-					<input placeholder="<?php echo $parent_width ? esc_attr( $parent_width ) : esc_attr( wc_format_localized_decimal( $variation_object->get_width() ) ); ?>" class="input-text wc_input_decimal" size="6" type="text" name="variable_shipping_width[<?php echo esc_attr( $loop ); ?>]" value="<?php echo esc_attr( wc_format_localized_decimal( $shipments_product->get_shipping_width( 'edit' ) ) ); ?>" />
-					<input placeholder="<?php echo $parent_height ? esc_attr( $parent_height ) : esc_attr( wc_format_localized_decimal( $variation_object->get_height() ) ); ?>" class="input-text wc_input_decimal last" size="6" type="text" name="variable_shipping_height[<?php echo esc_attr( $loop ); ?>]" value="<?php echo esc_attr( wc_format_localized_decimal( $shipments_product->get_shipping_height( 'edit' ) ) ); ?>" />
+					<input id="product_shipping_length" placeholder="<?php echo $parent_length ? esc_attr( $parent_length ) : ( $variation_object->get_length() ? esc_attr( wc_format_localized_decimal( $variation_object->get_length() ) ) : esc_attr_x( 'Length', 'shipments', 'shiptastic-for-woocommerce' ) ); ?>" class="input-text wc_input_decimal" size="6" type="text" name="variable_shipping_length[<?php echo esc_attr( $loop ); ?>]" value="<?php echo esc_attr( wc_format_localized_decimal( $shipments_product->get_shipping_length( 'edit' ) ) ); ?>" />
+					<input placeholder="<?php echo $parent_width ? esc_attr( $parent_width ) : ( $variation_object->get_width() ? esc_attr( wc_format_localized_decimal( $variation_object->get_width() ) ) : esc_attr_x( 'Width', 'shipments', 'shiptastic-for-woocommerce' ) ); ?>" class="input-text wc_input_decimal" size="6" type="text" name="variable_shipping_width[<?php echo esc_attr( $loop ); ?>]" value="<?php echo esc_attr( wc_format_localized_decimal( $shipments_product->get_shipping_width( 'edit' ) ) ); ?>" />
+					<input placeholder="<?php echo $parent_height ? esc_attr( $parent_height ) : ( $variation_object->get_height() ? esc_attr( wc_format_localized_decimal( $variation_object->get_height() ) ) : esc_attr_x( 'Height', 'shipments', 'shiptastic-for-woocommerce' ) ); ?>" class="input-text wc_input_decimal last" size="6" type="text" name="variable_shipping_height[<?php echo esc_attr( $loop ); ?>]" value="<?php echo esc_attr( wc_format_localized_decimal( $shipments_product->get_shipping_height( 'edit' ) ) ); ?>" />
 				</span>
 			</p>
 			<?php

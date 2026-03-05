@@ -94,6 +94,10 @@ class Product {
 		return ! empty( $separate );
 	}
 
+	public function get_global_unique_id( $context = 'view' ) {
+		return is_callable( array( $this->product, 'get_global_unique_id' ) ) ? $this->product->get_global_unique_id( $context ) : '';
+	}
+
 	public function get_shipping_weight( $context = 'view' ) {
 		$weight = $this->get_product()->get_meta( '_shipping_weight', true, $context );
 

@@ -34,10 +34,19 @@ abstract class Api implements \Vendidero\Shiptastic\Interfaces\Api {
 	 */
 	public function get_auth_api() {
 		if ( is_null( $this->auth ) ) {
-			$this->auth = $this->get_auth_instance();
+			$this->set_auth_api( $this->get_auth_instance() );
 		}
 
 		return $this->auth;
+	}
+
+	/**
+	 * @param ApiAuth|null $auth
+	 *
+	 * @return void
+	 */
+	public function set_auth_api( $auth ) {
+		$this->auth = $auth;
 	}
 
 	/**
