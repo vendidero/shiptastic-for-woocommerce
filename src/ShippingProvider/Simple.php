@@ -1249,7 +1249,7 @@ class Simple extends WC_Data implements ShippingProvider {
 
 				array(
 					'title'             => _x( 'Return instructions', 'shipments', 'shiptastic-for-woocommerce' ),
-					'desc'              => '<div class="wc-shiptastic-additional-desc">' . _x( 'Provide your customer with instructions on how to return the shipment after a return request has been confirmed e.g. explain how to prepare the return for shipment. In case a label cannot be generated automatically, make sure to provide your customer with information on how to obain a return label.', 'shipments', 'shiptastic-for-woocommerce' ) . '</div>',
+					'desc'              => '<div class="wc-shiptastic-additional-desc">' . _x( 'Provide your customer with instructions on how to return the shipment after a return request has been confirmed e.g. explain how to prepare the shipment for return. In case a label cannot be generated automatically, make sure to provide your customer with information on how to obtain a return label.', 'shipments', 'shiptastic-for-woocommerce' ) . '</div>',
 					'id'                => 'return_instructions',
 					'placeholder'       => '',
 					'value'             => $this->get_return_instructions( 'edit' ),

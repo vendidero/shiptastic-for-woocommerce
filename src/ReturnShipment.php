@@ -42,11 +42,13 @@ class ReturnShipment extends Shipment {
 	private $refund_order = null;
 
 	protected $extra_data = array(
-		'order_id'              => 0,
-		'is_customer_requested' => false,
-		'refund_order_id'       => 0,
-		'sender_address'        => array(),
-		'return_costs'          => '',
+		'order_id'                 => 0,
+		'is_customer_requested'    => false,
+		'is_self_arranged'         => false,
+		'refund_order_id'          => 0,
+		'request_rejection_reason' => '',
+		'sender_address'           => array(),
+		'return_costs'             => '',
 	);
 
 	/**
@@ -90,6 +92,20 @@ class ReturnShipment extends Shipment {
 
 	public function is_customer_requested() {
 		return $this->get_is_customer_requested();
+	}
+
+	/**
+	 * Returns whether the current return is self-arranged or not.
+	 *
+	 * @param  string $context What the value is for. Valid values are 'view' and 'edit'.
+	 * @return boolean
+	 */
+	public function get_is_self_arranged( $context = 'view' ) {
+		return $this->get_prop( 'is_self_arranged', $context );
+	}
+
+	public function is_self_arranged() {
+		return $this->get_is_self_arranged();
 	}
 
 	public function needs_refund() {
@@ -265,6 +281,31 @@ class ReturnShipment extends Shipment {
 		return false;
 	}
 
+	public function reject_customer_request( $reason = '' ) {
+		if ( $this->is_customer_requested() && $this->has_status( 'requested' ) ) {
+			$this->set_request_rejection_reason( $reason );
+			$this->set_status( 'rejected' );
+
+			if ( $this->save() ) {
+				/**
+				 * Action that fires after a return request has been rejected to the customer.
+				 *
+				 * @param integer        $shipment_id The return shipment id.
+				 * @param ReturnShipment $shipment The return shipment object.
+				 *
+				 * @package Vendidero/Shiptastic
+				 */
+				do_action( 'woocommerce_shiptastic_return_shipment_customer_request_rejected', $this->get_id(), $this );
+
+				return true;
+			} else {
+				return false;
+			}
+		}
+
+		return false;
+	}
+
 	public function hide_return_address() {
 		$hide_return_address = ! $this->has_status( 'processing' );
 
@@ -308,6 +349,15 @@ class ReturnShipment extends Shipment {
 	 *
 	 * @return string
 	 */
+	public function get_request_rejection_reason( $context = 'view' ) {
+		return $this->get_prop( 'request_rejection_reason', $context );
+	}
+
+	/**
+	 * @param $context
+	 *
+	 * @return string
+	 */
 	public function get_return_costs( $context = 'view' ) {
 		$costs = $this->get_prop( 'return_costs', $context );
 
@@ -330,22 +380,36 @@ class ReturnShipment extends Shipment {
 		}
 	}
 
+	public function needs_label( $check_status = true ) {
+		$needs_label = parent::needs_label( $check_status );
+
+		if ( $this->is_self_arranged() ) {
+			$needs_label = false;
+		}
+
+		return $needs_label;
+	}
+
 	public function calculate_return_costs() {
 		$costs         = 0.0;
 		$applied_costs = false;
 
-		if ( $method = $this->get_shipping_method_instance() ) {
-			if ( $method->has_return_costs() ) {
-				$costs         = (float) $method->get_return_costs();
-				$applied_costs = true;
+		if ( ! $this->is_self_arranged() ) {
+			if ( $method = $this->get_shipping_method_instance() ) {
+				if ( $method->has_return_costs() ) {
+					$costs         = (float) $method->get_return_costs();
+					$applied_costs = true;
+				}
+			}
+
+			if ( ! $applied_costs && ( $provider = $this->get_shipping_provider_instance() ) ) {
+				$costs = (float) $provider->get_return_costs();
 			}
 		}
 
-		if ( ! $applied_costs && ( $provider = $this->get_shipping_provider_instance() ) ) {
-			$costs = (float) $provider->get_return_costs();
-		}
+		$costs = apply_filters( "{$this->get_general_hook_prefix()}calculated_return_costs", wc_format_decimal( $costs, wc_get_price_decimals() ), $this );
 
-		$this->set_return_costs( apply_filters( "{$this->get_general_hook_prefix()}calculated_return_costs", wc_format_decimal( $costs, wc_get_price_decimals() ), $this ) );
+		$this->set_return_costs( $costs );
 	}
 
 	/**
@@ -376,6 +440,10 @@ class ReturnShipment extends Shipment {
 		$this->set_prop( 'return_costs', wc_format_decimal( $return_costs, wc_get_price_decimals() ) );
 	}
 
+	public function set_request_rejection_reason( $reason ) {
+		$this->set_prop( 'request_rejection_reason', $reason );
+	}
+
 	/**
 	 * Set if the current return was requested by the customer or not.
 	 *
@@ -383,6 +451,15 @@ class ReturnShipment extends Shipment {
 	 */
 	public function set_is_customer_requested( $is_requested ) {
 		$this->set_prop( 'is_customer_requested', wc_string_to_bool( $is_requested ) );
+	}
+
+	/**
+	 * Set if the current return is self-arranged or not.
+	 *
+	 * @param string $is_requested Whether or not it is self-arranged.
+	 */
+	public function set_is_self_arranged( $is_self_arranged ) {
+		$this->set_prop( 'is_self_arranged', wc_string_to_bool( $is_self_arranged ) );
 	}
 
 	/**
@@ -511,17 +588,23 @@ class ReturnShipment extends Shipment {
 			$args = wp_parse_args(
 				$args,
 				array(
-					'order_id'        => $order->get_id(),
-					'country'         => $return_address['country'],
-					'shipping_method' => $this->get_shipping_method( 'edit' ) ? $this->get_shipping_method( 'edit' ) : $order_shipment->get_shipping_method_id(),
-					'address'         => $return_address,
-					'sender_address'  => $sender_address_data,
-					'weight'          => $this->get_weight( 'edit' ),
-					'length'          => $this->get_length( 'edit' ),
-					'width'           => $this->get_width( 'edit' ),
-					'height'          => $this->get_height( 'edit' ),
+					'order_id'                => $order->get_id(),
+					'country'                 => $return_address['country'],
+					'shipping_method'         => $this->get_shipping_method( 'edit' ) ? $this->get_shipping_method( 'edit' ) : $order_shipment->get_shipping_method_id(),
+					'address'                 => $return_address,
+					'sender_address'          => $sender_address_data,
+					'weight'                  => $this->get_weight( 'edit' ),
+					'length'                  => $this->get_length( 'edit' ),
+					'width'                   => $this->get_width( 'edit' ),
+					'height'                  => $this->get_height( 'edit' ),
+					'is_self_arranged'        => $this->get_is_self_arranged( 'edit' ),
+					'shipping_provider_title' => $this->get_shipping_provider_title( 'edit' ),
 				)
 			);
+
+			if ( true === $args['is_self_arranged'] ) {
+				$args['shipping_method'] = $this->get_shipping_method( 'edit' );
+			}
 
 			/**
 			 * Make sure that manually adjusted providers are not overridden by syncing.
@@ -533,7 +616,7 @@ class ReturnShipment extends Shipment {
 			$args = wp_parse_args(
 				$args,
 				array(
-					'shipping_provider' => ( ! empty( $provider ) ) ? $provider : $default_provider,
+					'shipping_provider' => ( ! empty( $provider ) || ! empty( $args['shipping_provider_title'] ) ) ? $provider : $default_provider,
 				)
 			);
 

@@ -11,12 +11,16 @@
  * the readme will list any important changes.
  *
  * @package Shiptastic/Templates/Emails/Plain
- * @version 4.3.0
+ * @version 5.0.0
  */
 defined( 'ABSPATH' ) || exit;
 
 $provider = $shipment->get_shipping_provider_instance();
 
-if ( $provider && $provider->has_return_instructions() ) {
+if ( $shipment->is_self_arranged() ) {
+	if ( $instructions = wc_stc_get_self_arranged_return_instructions( $shipment ) ) {
+		echo wp_kses_post( wpautop( wptexturize( $instructions ) ) . PHP_EOL );
+	}
+} elseif ( $provider && $provider->has_return_instructions() ) {
 	echo wp_kses_post( wpautop( wptexturize( $provider->get_return_instructions() ) ) . PHP_EOL );
 }

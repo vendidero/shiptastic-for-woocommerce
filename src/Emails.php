@@ -22,6 +22,7 @@ class Emails {
 			function ( $email_instance ) {
 				$returns = array(
 					'WC_STC_Email_Customer_Return_Shipment',
+					'WC_STC_Email_Customer_Return_Shipment_Rejected',
 					'WC_STC_Email_New_Return_Shipment_Request',
 					'WC_STC_Email_Customer_Return_Shipment_Delivered',
 				);
@@ -30,6 +31,11 @@ class Emails {
 					$email_instance->shipment = new \Vendidero\Shiptastic\Admin\Preview\Shipment();
 				} elseif ( in_array( get_class( $email_instance ), $returns, true ) ) {
 					$email_instance->shipment = new \Vendidero\Shiptastic\Admin\Preview\ReturnShipment();
+
+					if ( is_a( $email_instance, 'WC_STC_Email_Customer_Return_Shipment_Rejected' ) ) {
+						$email_instance->shipment->set_status( 'rejected' );
+						$email_instance->shipment->set_request_rejection_reason( _x( 'A custom rejection reason.', 'shipments-email-preview-rejection-reason', 'shiptastic-for-woocommerce' ) );
+					}
 				}
 
 				return $email_instance;
@@ -94,13 +100,22 @@ class Emails {
 		return $dir;
 	}
 
+	public static function get_emails() {
+		return array(
+			'WC_STC_Email_Customer_Shipment'           => 'customer_shipment',
+			'WC_STC_Email_Customer_Shipment_Deleted'   => 'customer_shipment_deleted',
+			'WC_STC_Email_Customer_Return_Shipment'    => 'customer_return_shipment',
+			'WC_STC_Email_Customer_Return_Shipment_Rejected' => 'customer_return_shipment_rejected',
+			'WC_STC_Email_Customer_Return_Shipment_Delivered' => 'customer_return_shipment_delivered',
+			'WC_STC_Email_Customer_Guest_Return_Shipment_Request' => 'customer_guest_return_shipment_request',
+			'WC_STC_Email_New_Return_Shipment_Request' => 'new_return_shipment_request',
+		);
+	}
+
 	public static function register_emails( $emails ) {
-		$emails['WC_STC_Email_Customer_Shipment']                      = include Package::get_path() . '/includes/emails/class-wc-stc-email-customer-shipment.php';
-		$emails['WC_STC_Email_Customer_Shipment_Deleted']              = include Package::get_path() . '/includes/emails/class-wc-stc-email-customer-shipment-deleted.php';
-		$emails['WC_STC_Email_Customer_Return_Shipment']               = include Package::get_path() . '/includes/emails/class-wc-stc-email-customer-return-shipment.php';
-		$emails['WC_STC_Email_Customer_Return_Shipment_Delivered']     = include Package::get_path() . '/includes/emails/class-wc-stc-email-customer-return-shipment-delivered.php';
-		$emails['WC_STC_Email_Customer_Guest_Return_Shipment_Request'] = include Package::get_path() . '/includes/emails/class-wc-stc-email-customer-guest-return-shipment-request.php';
-		$emails['WC_STC_Email_New_Return_Shipment_Request']            = include Package::get_path() . '/includes/emails/class-wc-stc-email-new-return-shipment-request.php';
+		foreach ( self::get_emails() as $email_class => $id ) {
+			$emails[ $email_class ] = include Package::get_path() . '/includes/emails/class-wc-stc-email-' . str_replace( '_', '-', $id ) . '.php';
+		}
 
 		return $emails;
 	}
@@ -130,6 +145,7 @@ class Emails {
 			'woocommerce_shiptastic_return_shipment_status_draft_to_shipped',
 			'woocommerce_shiptastic_return_shipment_status_draft_to_delivered',
 			'woocommerce_shiptastic_return_shipment_status_draft_to_requested',
+			'woocommerce_shiptastic_return_shipment_status_requested_to_rejected',
 			'woocommerce_shiptastic_return_shipment_status_processing_to_ready-for-shipping',
 			'woocommerce_shiptastic_return_shipment_status_processing_to_shipped',
 			'woocommerce_shiptastic_return_shipment_status_processing_to_delivered',
@@ -137,6 +153,7 @@ class Emails {
 			'woocommerce_shiptastic_return_shipment_status_ready-for-shipping_to_delivered',
 			'woocommerce_shiptastic_return_shipment_status_shipped_to_delivered',
 			'woocommerce_shiptastic_return_shipment_status_requested_to_processing',
+			'woocommerce_shiptastic_return_shipment_status_rejected_to_processing',
 			'woocommerce_shiptastic_return_shipment_status_requested_to_ready-for-shipping',
 			'woocommerce_shiptastic_return_shipment_status_requested_to_shipped',
 		);
@@ -155,7 +172,7 @@ class Emails {
 	 * @param string $email
 	 */
 	public static function email_return_costs( $shipment, $sent_to_admin = false, $plain_text = false, $email = '' ) {
-		if ( 'return' !== $shipment->get_type() || $shipment->has_status( 'deleted' ) || $shipment->has_status( 'delivered' ) ) {
+		if ( 'return' !== $shipment->get_type() || $shipment->has_status( 'deleted' ) || $shipment->has_status( 'delivered' ) || $shipment->has_status( 'rejected' ) ) {
 			return;
 		}
 
@@ -189,7 +206,7 @@ class Emails {
 	 * @param string $email
 	 */
 	public static function email_return_instructions( $shipment, $sent_to_admin = false, $plain_text = false, $email = '' ) {
-		if ( 'return' !== $shipment->get_type() || $shipment->has_status( 'delivered' ) || $shipment->has_status( 'deleted' ) || is_a( $email, 'WC_STC_Email_New_Return_Shipment_Request' ) ) {
+		if ( 'return' !== $shipment->get_type() || $shipment->has_status( 'delivered' ) || $shipment->has_status( 'deleted' ) || $shipment->has_status( 'rejected' ) || is_a( $email, 'WC_STC_Email_New_Return_Shipment_Request' ) ) {
 			return;
 		}
 
@@ -265,7 +282,7 @@ class Emails {
 			}
 		}
 
-		if ( 'deleted' === $shipment->get_status() ) {
+		if ( 'deleted' === $shipment->get_status() || 'rejected' === $shipment->get_status() ) {
 			return;
 		}
 

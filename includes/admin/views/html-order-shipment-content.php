@@ -85,7 +85,7 @@ defined( 'ABSPATH' ) || exit;
 							$provider_title = $shipment->get_shipping_provider_title();
 						}
 						?>
-						<option data-is-manual="<?php echo ( ( $provider_instance && $provider_instance->is_manual_integration() ) ? 'yes' : 'no' ); ?>" value="<?php echo esc_attr( $provider ); ?>" <?php selected( $provider, $shipment->get_shipping_provider(), true ); ?>><?php echo esc_html( $provider_title ); ?></option>
+						<option data-is-manual="<?php echo ( ( ( $provider_instance && $provider_instance->is_manual_integration() ) || ! $provider_instance ) ? 'yes' : 'no' ); ?>" value="<?php echo esc_attr( $provider ); ?>" <?php selected( $provider, $shipment->get_shipping_provider(), true ); ?>><?php echo esc_html( $provider_title ); ?></option>
 					<?php endforeach; ?>
 				</select>
 			</div>
@@ -268,6 +268,36 @@ defined( 'ABSPATH' ) || exit;
 					</a>
 				<?php elseif ( 'return' === $shipment->get_type() && $shipment->has_status( 'requested' ) ) : ?>
 					<a class="shipment-footer-action confirm-return-shipment" href="#" data-id="<?php echo esc_attr( $shipment->get_id() ); ?>"><?php echo wc_help_tip( _x( 'Confirm the return request to the customer. The customer receives an email notification possibly containing return instructions.', 'shipments', 'shiptastic-for-woocommerce' ) ); ?><?php echo esc_html_x( 'Confirm return request', 'shipments', 'shiptastic-for-woocommerce' ); ?></a>
+					<a class="shipment-footer-action decline-return-shipment has-shipment-modal" href="#" id="wc-stc-modal-decline-return-request-<?php echo esc_attr( $shipment->get_id() ); ?>" data-id="wc-stc-modal-decline-return-request" data-reference="<?php echo esc_attr( $shipment->get_id() ); ?>"><?php echo wc_help_tip( _x( 'Decline the return request. The customer receives an email notification.', 'shipments', 'shiptastic-for-woocommerce' ) ); ?><?php echo esc_html_x( 'Decline request', 'shipments', 'shiptastic-for-woocommerce' ); ?></a>
+
+					<script type="text/template" id="tmpl-wc-stc-modal-decline-return-request-<?php echo esc_attr( $shipment->get_id() ); ?>">
+						<div class="wc-backbone-modal wc-stc-admin-shipment-modal wc-stc-modal-decline-return-request">
+							<div class="wc-backbone-modal-content">
+								<section class="wc-backbone-modal-main" role="main">
+									<header class="wc-backbone-modal-header">
+										<h1><?php echo esc_html_x( 'Decline return request', 'shipments', 'shiptastic-for-woocommerce' ); ?></h1>
+										<button class="modal-close modal-close-link dashicons dashicons-no-alt">
+											<span class="screen-reader-text">Close modal panel</span>
+										</button>
+									</header>
+									<article>
+										<form action="" method="post">
+											<p class="form-field">
+												<label for="decline-return-request-reason-<?php echo esc_attr( $shipment->get_id() ); ?>"><?php echo esc_html_x( 'Reason for rejection', 'shipments', 'shiptastic-for-woocommerce' ); ?></label>
+												<textarea name="decline_return_request_reason" id="decline-return-request-reason-<?php echo esc_attr( $shipment->get_id() ); ?>"></textarea>
+											</p>
+										</form>
+									</article>
+									<footer>
+										<div class="inner">
+											<button id="btn-ok" class="button button-primary button-large"><?php echo esc_html_x( 'Decline request', 'shipments', 'shiptastic-for-woocommerce' ); ?></button>
+										</div>
+									</footer>
+								</section>
+							</div>
+						</div>
+						<div class="wc-backbone-modal-backdrop modal-close"></div>
+					</script>
 				<?php elseif ( 'return' === $shipment->get_type() && $shipment->has_status( 'delivered' ) && $shipment->needs_refund() ) : ?>
 					<a class="shipment-footer-action create-return-shipment-refund has-shipment-modal" id="wc-stc-modal-create-return-shipment-refund-<?php echo esc_attr( $shipment->get_id() ); ?>" href="#" data-id="wc-stc-modal-create-return-shipment-refund" data-reference="<?php echo esc_attr( $shipment->get_id() ); ?>"><?php echo wc_help_tip( _x( 'Create a refund linked to this return. Return costs will be automatically deducted from refund total.', 'shipments', 'shiptastic-for-woocommerce' ) ); ?><?php echo esc_html_x( 'Create refund', 'shipments', 'shiptastic-for-woocommerce' ); ?></a>
 

@@ -2,6 +2,7 @@
 
 namespace Vendidero\Shiptastic\Compatibility;
 
+use Vendidero\Shiptastic\Emails;
 use Vendidero\Shiptastic\Interfaces\Compatibility;
 use Vendidero\Shiptastic\Package;
 use Vendidero\Shiptastic\ShippingProvider\Helper;
@@ -80,6 +81,20 @@ class WPML implements Compatibility {
 				);
 
 				return $shipping_classes;
+			}
+		);
+
+		add_filter(
+			'woocommerce_shiptastic_shipping_method_product_ids',
+			function ( $product_ids ) {
+				$product_ids = array_map(
+					function ( $product_id ) {
+						return apply_filters( 'wpml_object_id', $product_id, get_post_type( $product_id ) );
+					},
+					$product_ids
+				);
+
+				return $product_ids;
 			}
 		);
 	}
@@ -206,12 +221,7 @@ class WPML implements Compatibility {
 	}
 
 	protected static function get_emails() {
-		return array(
-			'WC_STC_Email_Customer_Shipment'        => 'customer_shipment',
-			'WC_STC_Email_Customer_Return_Shipment' => 'customer_return_shipment',
-			'WC_STC_Email_Customer_Return_Shipment_Delivered' => 'customer_return_shipment_delivered',
-			'WC_STC_Email_Customer_Guest_Return_Shipment_Request' => 'customer_guest_return_shipment_request',
-		);
+		return Emails::get_emails();
 	}
 
 	protected static function get_email_options() {

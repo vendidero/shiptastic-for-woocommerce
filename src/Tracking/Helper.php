@@ -268,7 +268,7 @@ class Helper {
 			if ( null === $queue->get_next( 'woocommerce_shiptastic_shipments_tracking', array(), 'woocommerce_shiptastic_tracking' ) ) {
 				$timestamp = strtotime( 'now' );
 
-				$queue->cancel_all( 'woocommerce_shiptastic_shipments_tracking', array(), 'woocommerce_shiptastic' );
+				$queue->cancel_all( 'woocommerce_shiptastic_shipments_tracking', array(), 'woocommerce_shiptastic_tracking' );
 
 				$tracking_hour   = apply_filters( 'woocommerce_shiptastic_shipments_tracking_cron_hour', '20' );
 				$tracking_minute = apply_filters( 'woocommerce_shiptastic_shipments_tracking_cron_minute', '0' );

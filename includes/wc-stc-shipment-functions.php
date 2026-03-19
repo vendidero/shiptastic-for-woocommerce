@@ -245,6 +245,7 @@ function wc_stc_get_shipment_order_return_statuses() {
 		'returned'            => _x( 'Returned', 'shipments', 'shiptastic-for-woocommerce' ),
 		'partially-requested' => _x( 'Partially requested', 'shipments', 'shiptastic-for-woocommerce' ),
 		'requested'           => _x( 'Requested', 'shipments', 'shiptastic-for-woocommerce' ),
+		'rejected'            => _x( 'Rejected', 'shipments', 'shiptastic-for-woocommerce' ),
 		'no-return-needed'    => _x( 'No return needed', 'shipments', 'shiptastic-for-woocommerce' ),
 	);
 
@@ -428,6 +429,7 @@ function wc_stc_get_shipment_statuses() {
 		'shipped'            => _x( 'Shipped', 'shipments', 'shiptastic-for-woocommerce' ),
 		'delivered'          => _x( 'Delivered', 'shipments', 'shiptastic-for-woocommerce' ),
 		'requested'          => _x( 'Requested', 'shipments', 'shiptastic-for-woocommerce' ),
+		'rejected'           => _x( 'Rejected', 'shipments', 'shiptastic-for-woocommerce' ),
 		'deleted'            => _x( 'Deleted', 'shipments', 'shiptastic-for-woocommerce' ),
 	);
 
@@ -451,6 +453,10 @@ function wc_stc_get_shipment_selectable_statuses( $shipment ) {
 
 	if ( ! $shipment->has_status( 'requested' ) && isset( $shipment_statuses['requested'] ) ) {
 		unset( $shipment_statuses['requested'] );
+	}
+
+	if ( ! $shipment->has_status( 'rejected' ) && isset( $shipment_statuses['rejected'] ) ) {
+		unset( $shipment_statuses['rejected'] );
 	}
 
 	unset( $shipment_statuses['deleted'] );
@@ -702,7 +708,7 @@ function wc_stc_get_shipment_editable_statuses() {
 	 *
 	 * @package Vendidero/Shiptastic
 	 */
-	return apply_filters( 'woocommerce_shiptastic_shipment_editable_statuses', array( 'draft', 'requested', 'processing' ) );
+	return apply_filters( 'woocommerce_shiptastic_shipment_editable_statuses', array( 'draft', 'requested', 'processing', 'rejected' ) );
 }
 
 /**
@@ -1512,11 +1518,30 @@ function wc_stc_get_order_customer_add_return_url( $order ) {
 	 * Filter to adjust the URL the customer (or guest) might access to add a return to a certain order.
 	 *
 	 * @param string   $url The URL pointing to the add return page.
-	 * @param Order    $order The order object.
+	 * @param WC_Order $order The order object.
 	 *
 	 * @package Vendidero/Shiptastic
 	 */
 	return apply_filters( 'woocommerce_shiptastic_add_return_shipment_url', $url, $shipment_order->get_order() );
+}
+
+/**
+ * @param WC_Order $order
+ *
+ * @return integer
+ */
+function wc_stc_get_order_return_days_open( $order ) {
+	$maximum_days = absint( Package::get_setting( 'customer_return_open_days', 14 ) );
+
+	/**
+	 * Filter to adjust number of days the order is open for returns after being completed.
+	 *
+	 * @param integer  $days The number of days.
+	 * @param WC_Order $order The order object.
+	 *
+	 * @package Vendidero/Shiptastic
+	 */
+	return apply_filters( 'woocommerce_shiptastic_order_return_days_open', $maximum_days, $order );
 }
 
 /**
@@ -1544,48 +1569,8 @@ function wc_stc_order_is_customer_returnable( $order, $check_date = true ) {
 		$is_returnable = false;
 	}
 
-	// Check days left for return
-	$maximum_days = Package::get_setting( 'customer_return_open_days' );
-
-	if ( $check_date && ! empty( $maximum_days ) ) {
-		$maximum_days = absint( $maximum_days );
-
-		if ( ! empty( $maximum_days ) ) {
-			$completed_date = $shipment_order->get_order()->get_date_created();
-
-			if ( $shipment_order->get_date_delivered() ) {
-				$completed_date = $shipment_order->get_date_delivered();
-			} elseif ( $shipment_order->get_date_shipped() ) {
-				$completed_date = $shipment_order->get_date_shipped();
-			} elseif ( $shipment_order->get_order()->get_date_completed() ) {
-				$completed_date = $shipment_order->get_order()->get_date_completed();
-			}
-
-			/**
-			 * Filter to adjust the completed date of an order used to determine whether an order is
-			 * still returnable by the customer or not. The date is constructed by checking for existence in the following order:
-			 *
-			 * 1. The date the order was delivered completely
-			 * 2. The date the order was shipped completely
-			 * 3. The date the order was marked as completed
-			 * 4. The date the order was created
-			 *
-			 * @param WC_DateTime $completed_date The order completed date.
-			 * @param WC_Order    $order The order instance.
-			 *
-			 * @package Vendidero/Shiptastic
-			 */
-			$completed_date = apply_filters( 'woocommerce_shiptastic_order_return_completed_date', $completed_date, $shipment_order->get_order() );
-
-			if ( $completed_date ) {
-				$today = new WC_DateTime();
-				$diff  = $today->diff( $completed_date );
-
-				if ( $diff->days > $maximum_days ) {
-					$is_returnable = false;
-				}
-			}
-		}
+	if ( $check_date && ! wc_stc_order_return_request_is_in_date_range( $order ) ) {
+		$is_returnable = false;
 	}
 
 	/**
@@ -1598,6 +1583,82 @@ function wc_stc_order_is_customer_returnable( $order, $check_date = true ) {
 	 * @package Vendidero/Shiptastic
 	 */
 	return apply_filters( 'woocommerce_shiptastic_order_is_returnable_by_customer', $is_returnable, $shipment_order->get_order(), $check_date );
+}
+
+/**
+ * @param WC_Order $order
+ *
+ * @return boolean
+ */
+function wc_stc_order_return_request_is_in_date_range( $order ) {
+	$maximum_days = wc_stc_get_order_return_days_open( $order );
+	$is_in_range  = true;
+
+	if ( ! empty( $maximum_days ) ) {
+		$days = wc_stc_get_days_since_order_completed( $order );
+
+		if ( $days > $maximum_days ) {
+			$is_in_range = false;
+		}
+	}
+
+	return $is_in_range;
+}
+
+/**
+ * @param WC_Order $order
+ *
+ * @return integer
+ */
+function wc_stc_get_days_since_order_completed( $order ) {
+	$days = 0;
+
+	if ( ! $shipment_order = wc_stc_get_shipment_order( $order ) ) {
+		return false;
+	}
+
+	$completed_date = $shipment_order->get_order()->get_date_created();
+
+	if ( $shipment_order->get_date_delivered() ) {
+		$completed_date = $shipment_order->get_date_delivered();
+	} elseif ( $shipment_order->get_date_shipped() ) {
+		$completed_date = $shipment_order->get_date_shipped();
+	} elseif ( $shipment_order->get_order()->get_date_completed() ) {
+		$completed_date = $shipment_order->get_order()->get_date_completed();
+	}
+
+	if ( $completed_date ) {
+		/**
+		 * Allow cancellation requests until next day at 00:00:01.
+		 */
+		$completed_date->modify( 'midnight' );
+		$completed_date->modify( '+1 second' );
+		$completed_date->modify( '+1 day' );
+	}
+
+	/**
+	 * Filter to adjust the completed date of an order used to determine whether an order is
+	 * still returnable by the customer or not. The date is constructed by checking for existence in the following order:
+	 *
+	 * 1. The date the order was delivered completely
+	 * 2. The date the order was shipped completely
+	 * 3. The date the order was marked as completed
+	 * 4. The date the order was created
+	 *
+	 * @param WC_DateTime $completed_date The order completed date.
+	 * @param WC_Order    $order The order instance.
+	 *
+	 * @package Vendidero/Shiptastic
+	 */
+	$completed_date = apply_filters( 'woocommerce_shiptastic_order_return_completed_date', $completed_date, $shipment_order->get_order() );
+
+	if ( $completed_date ) {
+		$today = new WC_DateTime();
+		$diff  = $today->diff( $completed_date );
+		$days  = $diff->days;
+	}
+
+	return $days;
 }
 
 /**
@@ -1737,6 +1798,56 @@ function wc_stc_customer_return_needs_manual_confirmation( $order ) {
 	 * @package Vendidero/Shiptastic
 	 */
 	return apply_filters( 'woocommerce_shiptastic_customer_return_needs_manual_confirmation', $needs_manual_confirmation, $order );
+}
+
+/**
+ * @param WC_Order|integer $order
+ */
+function wc_stc_customer_allow_self_arranged_return( $order ) {
+	if ( is_numeric( $order ) ) {
+		$order = wc_get_order( $order );
+	}
+
+	if ( ! $order ) {
+		return false;
+	}
+
+	$allow_self_arranged = 'yes' === Package::get_setting( 'allow_customer_self_arranged_returns', 'yes' );
+
+	/**
+	 * Filter to decide whether to allow a self-arranged return for a certain order.
+	 *
+	 * @param bool     $allow_self_arranged Whether to allow self-arranged return or not.
+	 * @param WC_Order $order The order instance for which the return shall be created.
+	 *
+	 * @package Vendidero/Shiptastic
+	 */
+	return apply_filters( 'woocommerce_shiptastic_customer_allow_self_arranged_return', $allow_self_arranged, $order );
+}
+
+/**
+ * @param ReturnShipment|integer $shipment
+ */
+function wc_stc_get_self_arranged_return_instructions( $shipment ) {
+	if ( is_numeric( $shipment ) ) {
+		$shipment = wc_stc_get_shipment( $shipment );
+	}
+
+	if ( ! $shipment || ! is_a( $shipment, 'Vendidero\Shiptastic\ReturnShipment' ) ) {
+		return false;
+	}
+
+	$instructions = Package::get_setting( 'customer_self_arranged_return_instructions', '' );
+
+	/**
+	 * Filter for the self arranged return instructions.
+	 *
+	 * @param string   $instructions The instructions.
+	 * @param ReturnShipment $shipment The shipment instance.
+	 *
+	 * @package Vendidero/Shiptastic
+	 */
+	return apply_filters( 'woocommerce_shiptastic_self_arranged_return_instructions', $instructions, $shipment );
 }
 
 /**

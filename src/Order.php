@@ -608,8 +608,8 @@ class Order {
 	 *
 	 * @return float|\WP_Error
 	 */
-	public function get_return_costs( $items, $tax_display = '', $round = true ) {
-		$returns     = $this->create_returns_as_draft( $items );
+	public function get_return_costs( $items, $tax_display = '', $round = true, $self_arrange = false ) {
+		$returns     = $this->create_returns_as_draft( $items, array( 'is_self_arranged' => $self_arrange ) );
 		$tax_display = $tax_display ? $tax_display : get_option( 'woocommerce_tax_display_cart' );
 		$costs       = 0.0;
 
@@ -726,9 +726,19 @@ class Order {
 			$props,
 			array(
 				'is_customer_requested' => false,
+				'is_self_arranged'      => false,
 				'default_status'        => 'processing',
 			)
 		);
+
+		if ( true === $props['is_self_arranged'] ) {
+			$props = array_merge(
+				$props,
+				array(
+					'shipping_provider_title' => _x( 'Unknown', 'shipments-shipping-provider-title', 'shiptastic-for-woocommerce' ),
+				)
+			);
+		}
 
 		if ( $this->needs_return() ) {
 			$packages = $this->get_return_packages( $return_items );
@@ -797,7 +807,7 @@ class Order {
 										$props,
 										array(
 											'packaging_id' => $packaging->get_id(),
-											'shipping_method' => $this->get_shipping_method_id( $method_id ),
+											'shipping_method' => $props['is_self_arranged'] ? '' : $this->get_shipping_method_id( $method_id ),
 										)
 									),
 									'save'  => false,
@@ -838,7 +848,7 @@ class Order {
 							'props' => array_replace_recursive(
 								$props,
 								array(
-									'shipping_method' => $this->get_shipping_method_id( $method_id ),
+									'shipping_method' => $props['is_self_arranged'] ? '' : $this->get_shipping_method_id( $method_id ),
 								)
 							),
 							'items' => $shipment_items,

@@ -11,7 +11,7 @@
  * the readme will list any important changes.
  *
  * @package Shiptastic/Templates/Emails
- * @version 4.3.0
+ * @version 5.0.0
  */
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -19,7 +19,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 $provider = $shipment->get_shipping_provider_instance();
 ?>
-
-<?php if ( $provider && $provider->has_return_instructions() ) : ?>
-	<p><?php echo wp_kses_post( wpautop( wptexturize( $provider->get_return_instructions() ) ) . PHP_EOL ); ?></p>
+<?php if ( $shipment->is_self_arranged() ) : ?>
+	<?php if ( $instructions = wc_stc_get_self_arranged_return_instructions( $shipment ) ) : ?>
+		<p><?php echo wp_kses_post( wpautop( wptexturize( $instructions ) ) ); ?></p>
+	<?php endif; ?>
+<?php elseif ( $provider && $provider->has_return_instructions() ) : ?>
+	<p><?php echo wp_kses_post( wpautop( wptexturize( $provider->get_return_instructions() ) ) ); ?></p>
 <?php endif; ?>

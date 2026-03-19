@@ -53,6 +53,7 @@ class Package {
 
 		add_filter( 'woocommerce_locate_template', array( __CLASS__, 'filter_templates' ), 50, 3 );
 		add_filter( 'woocommerce_get_query_vars', array( __CLASS__, 'register_endpoints' ), 10, 1 );
+		add_action( 'wp_enqueue_scripts', array( __CLASS__, 'register_styles' ) );
 
 		if ( ! did_action( 'woocommerce_loaded' ) ) {
 			add_action( 'woocommerce_loaded', array( __CLASS__, 'inject_endpoints' ), 10 );
@@ -656,6 +657,24 @@ class Package {
 			'add-return-shipment',
 			'view-shipments',
 		);
+	}
+
+	public static function is_customer_return_page() {
+		$is_customer_return = function_exists( 'is_wc_endpoint_url' ) ? is_wc_endpoint_url( 'add-return-shipment' ) : false;
+
+		if ( function_exists( 'wc_post_content_has_shortcode' ) && wc_post_content_has_shortcode( 'shiptastic_return_request_form' ) ) {
+			$is_customer_return = true;
+		}
+
+		return $is_customer_return;
+	}
+
+	public static function register_styles() {
+		wp_register_style( 'woocommerce_shiptastic_returns', self::get_assets_url( 'static/returns-styles.css' ), array(), self::get_version() );
+
+		if ( self::is_customer_return_page() ) {
+			wp_enqueue_style( 'woocommerce_shiptastic_returns' );
+		}
 	}
 
 	public static function register_endpoints( $query_vars ) {

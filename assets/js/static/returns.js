@@ -13,6 +13,17 @@ window.shiptastic.returns = window.shiptastic.returns || {};
             self.params  = wc_shiptastic_returns_params;
 
             $( document ).on( 'change', '#add_return_shipment input.return-item-checkbox, #add_return_shipment input.qty', self.onChangeReturnForm );
+            $( document ).on( 'change', '#add_return_shipment input.arrange_return', self.onChangeArrangement );
+        },
+
+        onChangeArrangement: function() {
+            var self = shipments.returns,
+                $form = $( this ).parents( 'form' ),
+                $this = $( this );
+
+            if ( $form.find( 'input[name="items[]"]:checked' ).length > 0 ) {
+                self.onChangeReturnForm.call( $this );
+            }
         },
 
         onChangeReturnForm: function() {

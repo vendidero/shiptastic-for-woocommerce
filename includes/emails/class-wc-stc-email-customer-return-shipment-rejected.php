@@ -13,19 +13,19 @@ use Vendidero\Shiptastic\Package;
 use Vendidero\Shiptastic\Shipment;
 use Vendidero\Shiptastic\ReturnShipment;
 
-if ( ! class_exists( 'WC_STC_Email_Customer_Return_Shipment', false ) ) :
+if ( ! class_exists( 'WC_STC_Email_Customer_Return_Shipment_Rejected', false ) ) :
 
 	/**
 	 * Customer return shipment notification.
 	 *
-	 * Return shipment notifications are sent as soon as a return shipment is marked as processing.
+	 * Return request rejected shipment notifications are sent as soon as a return request has been rejected.
 	 *
-	 * @class    WC_STC_Email_Customer_Return_Shipment
+	 * @class    WC_STC_Email_Customer_Return_Shipment_Rejected
 	 * @version  1.0.0
 	 * @package  Vendidero/Shiptastic/Emails
 	 * @extends  WC_Email
 	 */
-	class WC_STC_Email_Customer_Return_Shipment extends WC_Email {
+	class WC_STC_Email_Customer_Return_Shipment_Rejected extends WC_Email {
 
 		/**
 		 * Shipment.
@@ -40,23 +40,16 @@ if ( ! class_exists( 'WC_STC_Email_Customer_Return_Shipment', false ) ) :
 		public $helper = null;
 
 		/**
-		 * Is this email a confirmation for the customer after manually reviewing the return?
-		 *
-		 * @var bool
-		 */
-		public $is_confirmation = false;
-
-		/**
 		 * Constructor.
 		 */
 		public function __construct() {
 			$this->customer_email = true;
-			$this->id             = 'customer_return_shipment';
-			$this->title          = _x( 'Order return', 'shipments', 'shiptastic-for-woocommerce' );
-			$this->description    = _x( 'Order return notifications are sent to the customer after a return shipment was marked as processing.', 'shipments', 'shiptastic-for-woocommerce' );
+			$this->id             = 'customer_return_shipment_rejected';
+			$this->title          = _x( 'Return request rejected', 'shipments', 'shiptastic-for-woocommerce' );
+			$this->description    = _x( 'Return request rejected notifications are sent to the customer after a return request has been declined.', 'shipments', 'shiptastic-for-woocommerce' );
 
-			$this->template_html  = 'emails/customer-return-shipment.php';
-			$this->template_plain = 'emails/plain/customer-return-shipment.php';
+			$this->template_html  = 'emails/customer-return-shipment-rejected.php';
+			$this->template_plain = 'emails/plain/customer-return-shipment-rejected.php';
 			$this->template_base  = Package::get_path() . '/templates/';
 			$this->helper         = wc_stc_get_email_locale_helper( $this );
 
@@ -69,9 +62,7 @@ if ( ! class_exists( 'WC_STC_Email_Customer_Return_Shipment', false ) ) :
 			);
 
 			// Triggers for this email.
-			add_action( 'woocommerce_shiptastic_return_shipment_status_draft_to_processing_notification', array( $this, 'trigger' ), 10 );
-			add_action( 'woocommerce_shiptastic_return_shipment_status_requested_to_processing_notification', array( $this, 'trigger' ), 10 );
-			add_action( 'woocommerce_shiptastic_return_shipment_status_rejected_to_processing_notification', array( $this, 'trigger' ), 10 );
+			add_action( 'woocommerce_shiptastic_return_shipment_status_requested_to_rejected_notification', array( $this, 'trigger' ), 10 );
 
 			// Call parent constructor.
 			parent::__construct();
@@ -83,7 +74,7 @@ if ( ! class_exists( 'WC_STC_Email_Customer_Return_Shipment', false ) ) :
 		 * @return string
 		 */
 		public function get_default_subject() {
-			return _x( 'Return to your order {order_number}', 'shipments', 'shiptastic-for-woocommerce' );
+			return _x( 'Your return request to order {order_number} has been rejected', 'shipments', 'shiptastic-for-woocommerce' );
 		}
 
 		/**
@@ -92,7 +83,7 @@ if ( ! class_exists( 'WC_STC_Email_Customer_Return_Shipment', false ) ) :
 		 * @return string
 		 */
 		public function get_default_heading() {
-			return _x( 'Return to your order: {order_number}', 'shipments', 'shiptastic-for-woocommerce' );
+			return _x( 'Return request to your order {order_number} has been rejected', 'shipments', 'shiptastic-for-woocommerce' );
 		}
 
 		public function setup_locale() {
@@ -116,16 +107,9 @@ if ( ! class_exists( 'WC_STC_Email_Customer_Return_Shipment', false ) ) :
 		public function trigger( $shipment_id, $is_confirmation = false ) {
 			$this->setup_locale();
 
-			$this->is_confirmation = $is_confirmation;
-
 			if ( $this->shipment = wc_stc_get_shipment( $shipment_id ) ) {
 				if ( 'return' !== $this->shipment->get_type() ) {
 					return;
-				}
-
-				// Check if this is a customer request.
-				if ( $this->shipment->is_customer_requested() ) {
-					$this->is_confirmation = true;
 				}
 
 				$this->placeholders['{shipment_number}'] = $this->shipment->get_shipment_number();
@@ -144,8 +128,6 @@ if ( ! class_exists( 'WC_STC_Email_Customer_Return_Shipment', false ) ) :
 					}
 				}
 			}
-
-			$this->id = 'customer_return_shipment';
 
 			if ( $this->is_enabled() && $this->get_recipient() ) {
 				$this->send( $this->get_recipient(), $this->get_subject(), $this->get_content(), $this->get_headers(), $this->get_attachments() );
@@ -181,7 +163,7 @@ if ( ! class_exists( 'WC_STC_Email_Customer_Return_Shipment', false ) ) :
 				array(
 					'shipment'           => $this->shipment,
 					'order'              => $this->object,
-					'is_confirmation'    => $this->is_confirmation,
+					'reason'             => $this->shipment->get_request_rejection_reason(),
 					'email_heading'      => $this->get_heading(),
 					'additional_content' => $this->get_additional_content(),
 					'sent_to_admin'      => false,
@@ -202,7 +184,7 @@ if ( ! class_exists( 'WC_STC_Email_Customer_Return_Shipment', false ) ) :
 				array(
 					'shipment'           => $this->shipment,
 					'order'              => $this->object,
-					'is_confirmation'    => $this->is_confirmation,
+					'reason'             => $this->shipment->get_request_rejection_reason(),
 					'email_heading'      => $this->get_heading(),
 					'additional_content' => $this->get_additional_content(),
 					'sent_to_admin'      => false,
@@ -210,20 +192,6 @@ if ( ! class_exists( 'WC_STC_Email_Customer_Return_Shipment', false ) ) :
 					'email'              => $this,
 				)
 			);
-		}
-
-		public function get_attachments() {
-			$attachments = array();
-
-			if ( $this->shipment->has_label() ) {
-				$label = $this->shipment->get_label();
-
-				if ( $file = $label->get_file() ) {
-					$attachments[] = $file;
-				}
-			}
-
-			return apply_filters( 'woocommerce_email_attachments', $attachments, $this->id, $this->object, $this );
 		}
 
 		/**
@@ -238,4 +206,4 @@ if ( ! class_exists( 'WC_STC_Email_Customer_Return_Shipment', false ) ) :
 
 endif;
 
-return new WC_STC_Email_Customer_Return_Shipment();
+return new WC_STC_Email_Customer_Return_Shipment_Rejected();

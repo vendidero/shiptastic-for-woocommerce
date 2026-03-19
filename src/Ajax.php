@@ -29,6 +29,7 @@ class Ajax {
 			'add_return_shipment_load',
 			'add_return_shipment_submit',
 			'create_return_shipment_refund_submit',
+			'decline_return_request_submit',
 			'add_shipment',
 			'remove_shipment',
 			'remove_shipment_item',
@@ -862,6 +863,40 @@ class Ajax {
 		);
 
 		self::send_json_success( $response, $order_shipment );
+	}
+
+	public static function decline_return_request_submit() {
+		check_ajax_referer( 'decline-return-request-submit', 'security' );
+
+		if ( ! current_user_can( 'edit_shop_orders' ) || ! isset( $_POST['reference_id'] ) ) {
+			wp_die( -1 );
+		}
+
+		$response_error = array(
+			'success' => false,
+			'message' => _x( 'There was an error processing the decline.', 'shipments', 'shiptastic-for-woocommerce' ),
+		);
+
+		$shipment_id = absint( $_POST['reference_id'] );
+		$reason      = sanitize_textarea_field( wp_unslash( isset( $_POST['decline_return_request_reason'] ) ? $_POST['decline_return_request_reason'] : '' ) );
+
+		if ( ! $return = wc_stc_get_shipment( $shipment_id ) ) {
+			wp_send_json( $response_error );
+		}
+
+		$order_shipment = $return->get_order_shipment();
+		$result         = $return->reject_customer_request( $reason );
+
+		if ( false === $result ) {
+			wp_send_json( $response_error );
+		} else {
+			wp_send_json(
+				array(
+					'success'   => true,
+					'fragments' => self::get_shipments_html( $order_shipment, $shipment_id ),
+				)
+			);
+		}
 	}
 
 	public static function create_return_shipment_refund_submit() {
@@ -1815,6 +1850,7 @@ class Ajax {
 		$order_id  = ! empty( $_POST['order_id'] ) ? absint( wp_unslash( $_POST['order_id'] ) ) : false;
 		$items     = ! empty( $_POST['items'] ) ? wc_clean( wp_unslash( $_POST['items'] ) ) : array();
 		$item_data = ! empty( $_POST['item'] ) ? wc_clean( wp_unslash( $_POST['item'] ) ) : array();
+		$arrange   = ! empty( $_POST['arrange_return'] ) ? wc_clean( wp_unslash( $_POST['arrange_return'] ) ) : 'shop';
 		$error     = new \WP_Error();
 
 		if ( ! ( $order = wc_get_order( $order_id ) ) || ( ! wc_stc_customer_can_add_return_shipment( $order_id ) ) ) {
@@ -1827,6 +1863,10 @@ class Ajax {
 			$error->add( 'return_not_allowed', _x( 'Sorry, but this order does not support returns any longer.', 'shipments', 'shiptastic-for-woocommerce' ) );
 
 			wp_send_json_error( $error, 500 );
+		}
+
+		if ( ! wc_stc_customer_allow_self_arranged_return( $order ) ) {
+			$arrange = 'shop';
 		}
 
 		if ( empty( $items ) ) {
@@ -1845,7 +1885,7 @@ class Ajax {
 			);
 		}
 
-		$result = $shipment_order->get_return_costs( $return_items );
+		$result = $shipment_order->get_return_costs( $return_items, '', true, 'self' === $arrange );
 
 		if ( is_wp_error( $result ) ) {
 			wp_send_json_error( $error, 500 );

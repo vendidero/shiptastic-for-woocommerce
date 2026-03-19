@@ -361,6 +361,24 @@ class General extends Tab {
 			),
 
 			array(
+				'title'   => _x( 'Self-arranged', 'shipments', 'shiptastic-for-woocommerce' ),
+				'desc'    => _x( 'Allow self-arranged returns which are free of charge.', 'shipments', 'shiptastic-for-woocommerce' ) . '<div class="wc-shiptastic-additional-desc">' . sprintf( _x( 'Allow customers to return items on their own and at no cost using a shipping carrier of their choice.', 'shipments', 'shiptastic-for-woocommerce' ), '<code>[shiptastic_return_request_form]</code>' ) . '</div>',
+				'id'      => 'woocommerce_shiptastic_allow_customer_self_arranged_returns',
+				'default' => 'yes',
+				'type'    => 'shiptastic_toggle',
+			),
+
+			array(
+				'title'       => _x( 'Self-arranged return instructions', 'shipments', 'shiptastic-for-woocommerce' ),
+				'desc'        => '<div class="wc-shiptastic-additional-desc">' . _x( 'Provide your customer with instructions on how to handle self-arranged returns after a return request has been confirmed e.g. explain how to prepare the shipment for return.', 'shipments', 'shiptastic-for-woocommerce' ) . '</div>',
+				'id'          => 'woocommerce_shiptastic_customer_self_arranged_return_instructions',
+				'placeholder' => '',
+				'default'     => '',
+				'type'        => 'textarea',
+				'css'         => 'width: 100%; min-height: 60px; margin-top: 1em;',
+			),
+
+			array(
 				'type' => 'sectionend',
 				'id'   => 'shipments_return_options',
 			),

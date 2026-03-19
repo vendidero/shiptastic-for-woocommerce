@@ -42,6 +42,8 @@ class Shipment extends WC_Data_Store_WP implements WC_Object_Data_Store_Interfac
 		'_weight_unit',
 		'_dimension_unit',
 		'_is_customer_requested',
+		'_is_self_arranged',
+		'_request_rejection_reason',
 		'_refund_order_id',
 		'_pickup_location_code',
 		'_pickup_location_customer_number',
@@ -509,6 +511,7 @@ class Shipment extends WC_Data_Store_WP implements WC_Object_Data_Store_Interfac
 
 			switch ( $prop ) {
 				case 'is_customer_requested':
+				case 'is_self_arranged':
 					$value = wc_bool_to_string( $value );
 					break;
 				case 'tracking_url':

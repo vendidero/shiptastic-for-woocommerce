@@ -147,7 +147,14 @@ if ( ! function_exists( 'woocommerce_shiptastic_template_add_return_shipment' ) 
 		}
 
 		if ( ! wc_stc_order_is_customer_returnable( $order_id ) ) {
-			echo '<div class="woocommerce-error">' . esc_html_x( 'Currently you cannot add new return requests to that order. If you have questions regarding the return of that order please contact us for further information.', 'shipments', 'shiptastic-for-woocommerce' ) . ( is_user_logged_in() ? ' <a href="' . esc_url( $order->get_view_order_url() ) . '" class="wc-forward">' . esc_html_x( 'View order', 'shipments', 'shiptastic-for-woocommerce' ) . '</a>' : '' ) . '</div>';
+			if ( ! wc_stc_order_return_request_is_in_date_range( $order ) ) {
+				$maximum_days = wc_stc_get_order_return_days_open( $order );
+
+				echo '<div class="woocommerce-error">' . sprintf( esc_html_x( 'This order cannot be returned because it was completed more than %d days ago.', 'shipments', 'shiptastic-for-woocommerce' ), esc_html( $maximum_days ) ) . ( is_user_logged_in() ? ' <a href="' . esc_url( $order->get_view_order_url() ) . '" class="wc-forward">' . esc_html_x( 'View order', 'shipments', 'shiptastic-for-woocommerce' ) . '</a>' : '' ) . '</div>';
+			} else {
+				echo '<div class="woocommerce-error">' . esc_html_x( 'This order is currently not eligible for returns. Please contact us for further details.', 'shipments', 'shiptastic-for-woocommerce' ) . ( is_user_logged_in() ? ' <a href="' . esc_url( $order->get_view_order_url() ) . '" class="wc-forward">' . esc_html_x( 'View order', 'shipments', 'shiptastic-for-woocommerce' ) . '</a>' : '' ) . '</div>';
+			}
+
 			return;
 		}
 

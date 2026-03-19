@@ -93,7 +93,13 @@ class FormHandler {
 				}
 
 				if ( ! wc_stc_order_is_customer_returnable( $order ) ) {
-					throw new Exception( '<strong>' . _x( 'Error:', 'shipments', 'shiptastic-for-woocommerce' ) . '</strong> ' . _x( 'This order is currently not eligible for returns. Please contact us for further details.', 'shipments', 'shiptastic-for-woocommerce' ) );
+					if ( ! wc_stc_order_return_request_is_in_date_range( $order ) ) {
+						$maximum_days = wc_stc_get_order_return_days_open( $order );
+
+						throw new Exception( '<strong>' . _x( 'Error:', 'shipments', 'shiptastic-for-woocommerce' ) . '</strong> ' . sprintf( _x( 'This order cannot be returned because it was completed more than %d days ago.', 'shipments', 'shiptastic-for-woocommerce' ), esc_html( $maximum_days ) ) );
+					} else {
+						throw new Exception( '<strong>' . _x( 'Error:', 'shipments', 'shiptastic-for-woocommerce' ) . '</strong> ' . _x( 'This order is currently not eligible for returns. Please contact us for further details.', 'shipments', 'shiptastic-for-woocommerce' ) );
+					}
 				}
 
 				$key = 'wc_stc_order_return_request_' . wp_generate_password( 13, false );
@@ -195,6 +201,7 @@ class FormHandler {
 		$order_id  = ! empty( $_POST['order_id'] ) ? absint( wp_unslash( $_POST['order_id'] ) ) : false;
 		$items     = ! empty( $_POST['items'] ) ? wc_clean( wp_unslash( $_POST['items'] ) ) : array();
 		$item_data = ! empty( $_POST['item'] ) ? wc_clean( wp_unslash( $_POST['item'] ) ) : array();
+		$arrange   = ! empty( $_POST['arrange_return'] ) ? wc_clean( wp_unslash( $_POST['arrange_return'] ) ) : 'shop';
 
 		if ( ! ( $order = wc_get_order( $order_id ) ) || ( ! wc_stc_customer_can_add_return_shipment( $order_id ) ) ) {
 			wc_add_notice( _x( 'You are not allowed to add returns to that order.', 'shipments', 'shiptastic-for-woocommerce' ), 'error' );
@@ -204,6 +211,10 @@ class FormHandler {
 		if ( ! wc_stc_order_is_customer_returnable( $order ) ) {
 			wc_add_notice( _x( 'Sorry, but this order does not support returns any longer.', 'shipments', 'shiptastic-for-woocommerce' ), 'error' );
 			return;
+		}
+
+		if ( ! wc_stc_customer_allow_self_arranged_return( $order ) ) {
+			$arrange = 'shop';
 		}
 
 		if ( empty( $items ) ) {
@@ -259,6 +270,7 @@ class FormHandler {
 				 */
 				'status'                => apply_filters( 'woocommerce_shiptastic_customer_new_return_shipment_request_status', $default_status, $order ),
 				'is_customer_requested' => true,
+				'is_self_arranged'      => 'self' === $arrange,
 			)
 		);
 

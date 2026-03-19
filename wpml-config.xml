@@ -1,0 +1,10 @@
+<wpml-config>
+    <admin-texts>
+        <key name="woocommerce_shiptastic_customer_self_arranged_return_instructions" />
+        <key name="woocommerce_shiptastic_return_reasons">
+            <key name="*">
+                <key name="reason" />
+            </key>
+        </key>
+    </admin-texts>
+</wpml-config>

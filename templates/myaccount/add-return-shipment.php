@@ -84,6 +84,20 @@ defined( 'ABSPATH' ) || exit;
 	do_action( 'woocommerce_shiptastic_add_return_shipment_details_after_shipment_table', $order );
 	?>
 
+	<?php if ( wc_stc_customer_allow_self_arranged_return( $order ) ) : ?>
+		<fieldset>
+			<legend><?php echo esc_html_x( 'Choose how to organize your return', 'shipments', 'shiptastic-for-woocommerce' ); ?></legend>
+			<div>
+				<input type="radio" name="arrange_return" id="self_arranged" value="self" class="arrange_return" />
+				<label for="self_arranged"><?php echo esc_html_x( 'I’ll take care of returning the items myself.', 'shipments', 'shiptastic-for-woocommerce' ); ?></label>
+			</div>
+			<div>
+				<input type="radio" name="arrange_return" id="shop_arranged" value="shop" class="arrange_return" checked="checked" />
+				<label for="shop_arranged"><?php echo esc_html_x( 'Please provide me with a return label.', 'shipments', 'shiptastic-for-woocommerce' ); ?></label>
+			</div>
+		</fieldset>
+	<?php endif; ?>
+
 	<div class="return-shipment-costs"></div>
 
 	<p>
