@@ -14,7 +14,7 @@ $is_active = ( isset( $is_active ) ) ? $is_active : false;
 			<mark class="shipment-status shipment-type-<?php echo esc_attr( $shipment->get_type() ); ?>-status status-<?php echo esc_attr( $shipment->get_status() ); ?>"><span><?php echo esc_html( wc_stc_get_shipment_status_name( $shipment->get_status() ) ); ?></span></mark>
 
 			<?php if ( 'return' === $shipment->get_type() && $shipment->is_self_arranged() ) : ?>
-				<span class="shipment-is-self-arranged"><?php echo esc_html_x( 'Self-arranged', 'shipments', 'shiptastic-for-woocommerce' ); ?></span>
+				<mark class="shipment-status shipment-status-secondary"><span><?php echo esc_html_x( 'Self-arranged', 'shipments', 'shiptastic-for-woocommerce' ); ?></span></mark>
 			<?php endif; ?>
 		</div>
 
