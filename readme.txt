@@ -2,8 +2,8 @@
 Contributors: vendidero, vdwoocommercesupport
 Tags: shipping, woocommerce, shipments, rules, woo
 Requires at least: 5.4
-Tested up to: 6.9
-Stable tag: 4.8.6
+Tested up to: 7.0
+Stable tag: 5.0.0
 Requires PHP: 5.6
 License: GPLv3
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
@@ -71,6 +71,17 @@ We recommend installing Shiptastic for WooCommerce through the WordPress Backend
 6. Manage returns
 
 == Changelog ==
+= 5.0.0 =
+* New: Option to allow self-arranged returns at no cost
+* New: Return request rejection UI
+* New: Support experimental WooCommerce Fulfillment feature
+* New: Register webhooks
+* New: Shipping rule condition to include/exclude certain products
+* Improvement: Order shipping status transition
+* Improvement: Bundles support
+* Improvement: OAuth heartbeat to prevent connection losses
+* Fix: Potential infinite loop in case (parent) product does not exist any longer
+
 = 4.8.6 =
 * Improvement: Do not fire order shipped actions when order is in bad state, e.g. failed, cancelled
 * Fix: Bundle weight calculation for assembled bundles

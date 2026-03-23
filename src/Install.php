@@ -16,7 +16,8 @@ defined( 'ABSPATH' ) || exit;
 class Install {
 
 	public static function install() {
-		$current_version = get_option( 'woocommerce_shiptastic_version', null );
+		$current_version    = get_option( 'woocommerce_shiptastic_version', null );
+		$current_db_version = get_option( 'woocommerce_shiptastic_db_version', null );
 
 		self::create_upload_dir();
 		self::create_tables();
@@ -34,10 +35,16 @@ class Install {
 			set_transient( '_wc_shiptastic_setup_wizard_redirect', 1, 60 * 60 );
 		}
 
+		if ( $current_db_version ) {
+			self::update( $current_db_version );
+		}
+
 		update_option( 'woocommerce_shiptastic_version', Package::get_version() );
 		update_option( 'woocommerce_shiptastic_db_version', Package::get_version() );
 
 		do_action( 'woocommerce_flush_rewrite_rules' );
+
+		do_action( 'shiptastic_installed' );
 	}
 
 	/**
@@ -76,6 +83,12 @@ class Install {
 
 			$provider->update_settings_with_defaults();
 			$provider->save();
+		}
+	}
+
+	private static function update( $db_version ) {
+		if ( version_compare( $db_version, '5.0.0', '<' ) ) {
+			update_option( 'woocommerce_shiptastic_allow_customer_self_arranged_returns', 'no' );
 		}
 	}
 
@@ -163,63 +176,114 @@ class Install {
 		$db_version = self::get_db_version();
 
 		if ( empty( $packaging ) && is_null( $db_version ) ) {
-			$defaults = array(
-				array(
-					'description'        => _x( 'Cardboard S', 'shipments', 'shiptastic-for-woocommerce' ),
-					'length'             => 25,
-					'width'              => 17.5,
-					'height'             => 10,
-					'weight'             => 0.14,
-					'max_content_weight' => 30,
-					'type'               => 'cardboard',
-					'weight_unit'        => 'kg',
-					'dimension_unit'     => 'cm',
-				),
-				array(
-					'description'        => _x( 'Cardboard M', 'shipments', 'shiptastic-for-woocommerce' ),
-					'length'             => 37.5,
-					'width'              => 30,
-					'height'             => 13.5,
-					'weight'             => 0.23,
-					'max_content_weight' => 30,
-					'type'               => 'cardboard',
-					'weight_unit'        => 'kg',
-					'dimension_unit'     => 'cm',
-				),
-				array(
-					'description'        => _x( 'Cardboard L', 'shipments', 'shiptastic-for-woocommerce' ),
-					'length'             => 45,
-					'width'              => 35,
-					'height'             => 20,
-					'weight'             => 0.3,
-					'max_content_weight' => 30,
-					'type'               => 'cardboard',
-					'weight_unit'        => 'kg',
-					'dimension_unit'     => 'cm',
-				),
-				array(
-					'description'        => _x( 'Letter C5/6', 'shipments', 'shiptastic-for-woocommerce' ),
-					'length'             => 22,
-					'width'              => 11,
-					'height'             => 1,
-					'weight'             => 0,
-					'max_content_weight' => 0.05,
-					'type'               => 'letter',
-					'weight_unit'        => 'kg',
-					'dimension_unit'     => 'cm',
-				),
-				array(
-					'description'        => _x( 'Letter C4', 'shipments', 'shiptastic-for-woocommerce' ),
-					'length'             => 32.4,
-					'width'              => 22.9,
-					'height'             => 2,
-					'weight'             => 0.01,
-					'max_content_weight' => 1,
-					'type'               => 'letter',
-					'weight_unit'        => 'kg',
-					'dimension_unit'     => 'cm',
-				),
-			);
+			$dimension_unit = wc_stc_get_packaging_dimension_unit();
+
+			if ( in_array( $dimension_unit, array( 'yd', 'in' ), true ) ) {
+				$defaults = array(
+					array(
+						'description'        => _x( 'Cardboard S', 'shipments', 'shiptastic-for-woocommerce' ),
+						'length'             => 10,
+						'width'              => 8,
+						'height'             => 6,
+						'weight'             => 0.375,
+						'max_content_weight' => 30,
+						'type'               => 'cardboard',
+						'weight_unit'        => 'lbs',
+						'dimension_unit'     => 'in',
+					),
+					array(
+						'description'        => _x( 'Cardboard M', 'shipments', 'shiptastic-for-woocommerce' ),
+						'length'             => 14,
+						'width'              => 10,
+						'height'             => 8,
+						'weight'             => 0.5,
+						'max_content_weight' => 30,
+						'type'               => 'cardboard',
+						'weight_unit'        => 'lbs',
+						'dimension_unit'     => 'in',
+					),
+					array(
+						'description'        => _x( 'Cardboard L', 'shipments', 'shiptastic-for-woocommerce' ),
+						'length'             => 18,
+						'width'              => 12,
+						'height'             => 12,
+						'weight'             => 0.6,
+						'max_content_weight' => 30,
+						'type'               => 'cardboard',
+						'weight_unit'        => 'lbs',
+						'dimension_unit'     => 'in',
+					),
+					array(
+						'description'        => _x( 'Envelope', 'shipments', 'shiptastic-for-woocommerce' ),
+						'length'             => 12.5,
+						'width'              => 9.5,
+						'height'             => 1,
+						'weight'             => 0.01,
+						'max_content_weight' => 1,
+						'type'               => 'letter',
+						'weight_unit'        => 'lbs',
+						'dimension_unit'     => 'in',
+					),
+				);
+			} else {
+				$defaults = array(
+					array(
+						'description'        => _x( 'Cardboard S', 'shipments', 'shiptastic-for-woocommerce' ),
+						'length'             => 25,
+						'width'              => 17.5,
+						'height'             => 10,
+						'weight'             => 0.14,
+						'max_content_weight' => 30,
+						'type'               => 'cardboard',
+						'weight_unit'        => 'kg',
+						'dimension_unit'     => 'cm',
+					),
+					array(
+						'description'        => _x( 'Cardboard M', 'shipments', 'shiptastic-for-woocommerce' ),
+						'length'             => 37.5,
+						'width'              => 30,
+						'height'             => 13.5,
+						'weight'             => 0.23,
+						'max_content_weight' => 30,
+						'type'               => 'cardboard',
+						'weight_unit'        => 'kg',
+						'dimension_unit'     => 'cm',
+					),
+					array(
+						'description'        => _x( 'Cardboard L', 'shipments', 'shiptastic-for-woocommerce' ),
+						'length'             => 45,
+						'width'              => 35,
+						'height'             => 20,
+						'weight'             => 0.3,
+						'max_content_weight' => 30,
+						'type'               => 'cardboard',
+						'weight_unit'        => 'kg',
+						'dimension_unit'     => 'cm',
+					),
+					array(
+						'description'        => _x( 'Letter C5/6', 'shipments', 'shiptastic-for-woocommerce' ),
+						'length'             => 22,
+						'width'              => 11,
+						'height'             => 1,
+						'weight'             => 0,
+						'max_content_weight' => 0.05,
+						'type'               => 'letter',
+						'weight_unit'        => 'kg',
+						'dimension_unit'     => 'cm',
+					),
+					array(
+						'description'        => _x( 'Letter C4', 'shipments', 'shiptastic-for-woocommerce' ),
+						'length'             => 32.4,
+						'width'              => 22.9,
+						'height'             => 2,
+						'weight'             => 0.01,
+						'max_content_weight' => 1,
+						'type'               => 'letter',
+						'weight_unit'        => 'kg',
+						'dimension_unit'     => 'cm',
+					),
+				);
+			}
 
 			foreach ( $defaults as $default ) {
 				$packaging = new Packaging();

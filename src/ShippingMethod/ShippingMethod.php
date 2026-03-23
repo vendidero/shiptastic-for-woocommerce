@@ -237,7 +237,7 @@ class ShippingMethod extends \WC_Shipping_Method {
 			'shipping_rules_title'                     => array(
 				'title'       => _x( 'Shipping Rules', 'shipments', 'shiptastic-for-woocommerce' ),
 				'type'        => 'title',
-				'id'          => 'shipping_rules_title',
+				'id'          => 'stc_shipping_rules_title',
 				'default'     => '',
 				'description' => sprintf( _x( 'Configure shipping costs per packaging option. Within cart, a rucksack algorithm will automatically fit the items in the packaging option(s) available and calculate it\'s cost.<br/> Some important hints on the calculation logic: <ol><li>The <i>from</i> value (e.g. 3) is expected to be inclusive (greater or equal 3). The <i>to</i> value (e.g. 5) is expected to be exclusive (smaller than 5).</li><li>Leave the <i>to</i> value empty for your last packaging rule to match all subsequent values.</li><li>All conditions must be met for the shipping rule to apply.</li><li>In case a free shipping rule is available, the conditional logic automatically stops.</li><li>The <i>all remaining packaging</i> rules will be used for available packaging options without custom rules and serve as fallback in case no applicable rule was found.</li><li>In case no <i>all remaining packaging</i> rule exists, only packaging options with custom rules will be used for packing.</li></ol>', 'shipments', 'shiptastic-for-woocommerce' ) ),
 			),
@@ -265,16 +265,16 @@ class ShippingMethod extends \WC_Shipping_Method {
 			),
 			'shipping_rules'                           => array(
 				'title'   => _x( 'Rules', 'shipments', 'shiptastic-for-woocommerce' ),
-				'type'    => 'shipping_rules',
+				'type'    => 'stc_shipping_rules',
 				'default' => array(),
 			),
 			'packaging'                                => array(
 				'title'   => _x( 'Packaging', 'shipments', 'shiptastic-for-woocommerce' ),
-				'type'    => 'packaging',
+				'type'    => 'stc_packaging',
 				'default' => array(),
 			),
 			'cache'                                    => array(
-				'type'    => 'cache',
+				'type'    => 'stc_cache',
 				'default' => array(),
 			),
 		);
@@ -1301,11 +1301,11 @@ class ShippingMethod extends \WC_Shipping_Method {
 		return $help_tip;
 	}
 
-	protected function generate_cache_html() {
+	protected function generate_stc_cache_html() {
 		return '';
 	}
 
-	protected function generate_packaging_html() {
+	protected function generate_stc_packaging_html() {
 		return '';
 	}
 
@@ -1526,7 +1526,7 @@ class ShippingMethod extends \WC_Shipping_Method {
 		return $rules;
 	}
 
-	protected function generate_shipping_rules_html( $option_name, $option ) {
+	protected function generate_stc_shipping_rules_html( $option_name, $option ) {
 		ob_start();
 		$field_key               = $this->get_field_key( 'shipping_rules' );
 		$packaging_field_key     = $this->get_field_key( 'packaging' );

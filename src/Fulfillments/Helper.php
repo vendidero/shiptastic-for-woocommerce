@@ -30,6 +30,24 @@ class Helper {
 		 * Remove fulfillment emails
 		 */
 		add_filter( 'woocommerce_email_classes', array( __CLASS__, 'remove_fulfillment_emails' ) );
+
+		if ( did_action( 'init' ) ) {
+			self::remove_fulfillments_from_account();
+		} else {
+			add_action( 'init', array( __CLASS__, 'remove_fulfillments_from_account' ) );
+		}
+	}
+
+	public static function remove_fulfillments_from_account() {
+		$container = wc_get_container();
+
+		try {
+			if ( $renderer = $container->get( 'Automattic\WooCommerce\Internal\Fulfillments\FulfillmentsRenderer' ) ) {
+				remove_filter( 'woocommerce_order_details_status', array( $renderer, 'render_fulfillment_status_text' ), 10 );
+				remove_filter( 'woocommerce_order_tracking_status', array( $renderer, 'render_fulfillment_status_text' ), 10 );
+			}
+		} catch ( \Exception $e ) {
+		}
 	}
 
 	public static function remove_fulfillment_emails( $emails ) {

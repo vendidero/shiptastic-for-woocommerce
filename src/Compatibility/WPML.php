@@ -216,7 +216,6 @@ class WPML implements Compatibility {
 	 * @param $emails
 	 */
 	public static function register_emails( $emails ) {
-
 		return $emails;
 	}
 
