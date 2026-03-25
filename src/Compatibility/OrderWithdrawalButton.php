@@ -15,6 +15,27 @@ class OrderWithdrawalButton implements Compatibility {
 	public static function init() {
 		add_action( 'eu_owb_woocommerce_withdrawal_request_confirmed', array( __CLASS__, 'on_request_confirmed' ), 10, 2 );
 		add_filter( 'eu_owb_woocommerce_order_item_is_withdrawable', array( __CLASS__, 'item_is_withdrawable' ), 10, 3 );
+		add_filter( 'eu_owb_woocommerce_order_date_delivered_raw', array( __CLASS__, 'date_delivered' ), 10, 2 );
+	}
+
+	/**
+	 * @param \WC_DateTime|null $date_completed
+	 * @param \WC_Order $order
+	 *
+	 * @return \WC_DateTime|null
+	 */
+	public static function date_delivered( $date_completed, $order ) {
+		if ( ! $shipment_order = wc_stc_get_shipment_order( $order ) ) {
+			return $date_completed;
+		}
+
+		if ( $shipment_order->get_date_delivered() ) {
+			$date_completed = $shipment_order->get_date_delivered();
+		} elseif ( $shipment_order->get_date_shipped() ) {
+			$date_completed = $shipment_order->get_date_shipped();
+		}
+
+		return $date_completed;
 	}
 
 	/**

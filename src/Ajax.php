@@ -1891,12 +1891,13 @@ class Ajax {
 			wp_send_json_error( $error, 500 );
 		} else {
 			$costs_formatted = wc_price( $result );
+			$html            = '<div class="woocommerce-info">' . wp_kses_post( 0.00 === $result ? _x( 'Your return is free of charge.', 'shipments', 'shiptastic-for-woocommerce' ) : sprintf( _x( 'The return shipping costs of %s will be automatically deducted from your refund amount.', 'shipments', 'shiptastic-for-woocommerce' ), $costs_formatted ) ) . '</div>';
 
 			wp_send_json(
 				array(
 					'cost_formatted' => $costs_formatted,
 					'cost'           => wc_format_decimal( $result ),
-					'cost_i18n'      => '<div class="woocommerce-info">' . wp_kses_post( 0.00 === $result ? _x( 'Your return is free of charge.', 'shipments', 'shiptastic-for-woocommerce' ) : sprintf( _x( 'The return shipping costs of %s will be automatically deducted from your refund amount.', 'shipments', 'shiptastic-for-woocommerce' ), $costs_formatted ) ) . '</div>',
+					'cost_i18n'      => apply_filters( 'woocommerce_shiptastic_return_costs_customer_notice_html', $html, $result ),
 				)
 			);
 		}

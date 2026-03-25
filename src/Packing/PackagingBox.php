@@ -63,10 +63,10 @@ class PackagingBox implements PackingBox {
 		$this->max_weight   = (int) floor( (float) wc_get_weight( $max_content_weight, 'g', wc_stc_get_packaging_weight_unit() ) );
 
 		/**
-		 * If no max weight was chosen - use 50kg as fallback
+		 * If no max weight was chosen - use 5000 kg as fallback
 		 */
 		if ( empty( $this->max_weight ) ) {
-			$this->max_weight = 50000;
+			$this->max_weight = apply_filters( 'shiptastic_packaging_box_empty_max_weight_default', 5000000, $this );
 		}
 	}
 

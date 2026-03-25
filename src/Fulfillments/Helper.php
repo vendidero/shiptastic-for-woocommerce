@@ -46,7 +46,7 @@ class Helper {
 				remove_filter( 'woocommerce_order_details_status', array( $renderer, 'render_fulfillment_status_text' ), 10 );
 				remove_filter( 'woocommerce_order_tracking_status', array( $renderer, 'render_fulfillment_status_text' ), 10 );
 			}
-		} catch ( \Exception $e ) {
+		} catch ( \Exception $e ) { // phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedCatch
 		}
 	}
 

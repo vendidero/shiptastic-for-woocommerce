@@ -42,7 +42,17 @@ class Install {
 		update_option( 'woocommerce_shiptastic_version', Package::get_version() );
 		update_option( 'woocommerce_shiptastic_db_version', Package::get_version() );
 
-		do_action( 'woocommerce_flush_rewrite_rules' );
+		/**
+		 * Need to flush rewrite rules after registering custom endpoints
+		 */
+		if ( function_exists( 'WC' ) && WC()->query ) {
+			add_filter( 'woocommerce_get_query_vars', array( 'Vendidero\Shiptastic\Package', 'register_endpoints' ), 10, 1 );
+
+			WC()->query->init_query_vars();
+			WC()->query->add_endpoints();
+
+			do_action( 'woocommerce_flush_rewrite_rules' );
+		}
 
 		do_action( 'shiptastic_installed' );
 	}
