@@ -172,7 +172,7 @@ class Simple extends WC_Data implements ShippingProvider {
 	}
 
 	public function is_base_country_supported() {
-		return in_array( Package::get_base_country(), $this->get_shipping_from_countries(), true );
+		return array_key_exists( Package::get_base_country(), $this->get_shipping_from_countries() );
 	}
 
 	public function get_section_help_link( $section ) {

@@ -6,7 +6,7 @@
  * Author: vendidero
  * Author URI: https://vendidero.com
  * Text Domain: shiptastic-for-woocommerce
- * Version: 5.0.1
+ * Version: 5.0.2
  * Requires at least: 5.4
  * Requires PHP: 5.6
  * License: GPLv3

@@ -3,7 +3,7 @@ Contributors: vendidero, vdwoocommercesupport
 Tags: shipping, woocommerce, shipments, rules, woo
 Requires at least: 5.4
 Tested up to: 7.0
-Stable tag: 5.0.1
+Stable tag: 5.0.2
 Requires PHP: 5.6
 License: GPLv3
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
@@ -71,6 +71,10 @@ We recommend installing Shiptastic for WooCommerce through the WordPress Backend
 6. Manage returns
 
 == Changelog ==
+= 5.0.2 =
+* Improvement: Order withdrawal button compatibility
+* Fix: Shipping provider placeholder availability
+
 = 5.0.1 =
 * Improvement: Register endpoints during install before flushing permalinks
 * Improvement: Allow filtering returns costs html
