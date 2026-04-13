@@ -3465,7 +3465,7 @@ abstract class Shipment extends WC_Data {
 			$provider = $provider . '_';
 		}
 
-		if ( $this->has_label() ) {
+		if ( $this->has_label() || $this->get_tracking_id() ) {
 			$needs_label = false;
 		}
 

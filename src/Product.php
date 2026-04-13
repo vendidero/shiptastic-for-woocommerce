@@ -104,7 +104,7 @@ class Product {
 		if ( 'view' === $context && '' === $weight ) {
 			$weight = $this->get_product()->get_weight();
 
-			if ( $this->is_variation() && '' === $weight ) {
+			if ( $this->is_variation() && '' === $this->get_product()->get_weight( 'edit' ) ) {
 				if ( $parent = $this->get_parent_product() ) {
 					$weight = wc_shiptastic_get_product( $parent )->get_shipping_weight( $context );
 				}
@@ -120,7 +120,7 @@ class Product {
 		if ( 'view' === $context && '' === $length ) {
 			$length = $this->get_product()->get_length();
 
-			if ( $this->is_variation() && '' === $length ) {
+			if ( $this->is_variation() && '' === $this->get_product()->get_length( 'edit' ) ) {
 				if ( $parent = $this->get_parent_product() ) {
 					$length = wc_shiptastic_get_product( $parent )->get_shipping_length( $context );
 				}
@@ -136,7 +136,7 @@ class Product {
 		if ( 'view' === $context && '' === $width ) {
 			$width = $this->get_product()->get_width();
 
-			if ( $this->is_variation() && '' === $width ) {
+			if ( $this->is_variation() && '' === $this->get_product()->get_width( 'edit' ) ) {
 				if ( $parent = $this->get_parent_product() ) {
 					$width = wc_shiptastic_get_product( $parent )->get_shipping_width( $context );
 				}
@@ -152,7 +152,7 @@ class Product {
 		if ( 'view' === $context && '' === $height ) {
 			$height = $this->get_product()->get_height();
 
-			if ( $this->is_variation() && '' === $height ) {
+			if ( $this->is_variation() && '' === $this->get_product()->get_height( 'edit' ) ) {
 				if ( $parent = $this->get_parent_product() ) {
 					$height = wc_shiptastic_get_product( $parent )->get_shipping_height( $context );
 				}

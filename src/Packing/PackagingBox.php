@@ -38,6 +38,15 @@ class PackagingBox implements PackingBox {
 		$length = empty( $this->packaging->get_length() ) ? 0 : (float) wc_format_decimal( $this->packaging->get_length() );
 		$depth  = empty( $this->packaging->get_height() ) ? 0 : (float) wc_format_decimal( $this->packaging->get_height() );
 
+		/**
+		 * The rucksack algorithm has issues with rotations in case depth/height is greater than width/length
+		 */
+		if ( $depth > $width && $depth > $length ) {
+			$tmp_width = $width;
+			$width     = $depth;
+			$depth     = $tmp_width;
+		}
+
 		$this->dimensions = array(
 			'width'  => (int) floor( (float) wc_get_dimension( $width, 'mm', wc_stc_get_packaging_dimension_unit() ) ),
 			'length' => (int) floor( (float) wc_get_dimension( $length, 'mm', wc_stc_get_packaging_dimension_unit() ) ),
@@ -48,6 +57,15 @@ class PackagingBox implements PackingBox {
 			$inner_width  = empty( $this->packaging->get_inner_width() ) ? 0 : (float) wc_format_decimal( $this->packaging->get_inner_width() );
 			$inner_length = empty( $this->packaging->get_inner_length() ) ? 0 : (float) wc_format_decimal( $this->packaging->get_inner_length() );
 			$inner_depth  = empty( $this->packaging->get_inner_height() ) ? 0 : (float) wc_format_decimal( $this->packaging->get_inner_height() );
+
+			/**
+			 * The rucksack algorithm has issues with rotations in case depth/height is greater than width/length
+			 */
+			if ( $inner_depth > $inner_width && $inner_depth > $inner_length ) {
+				$tmp_inner_width = $inner_width;
+				$inner_width     = $inner_depth;
+				$inner_depth     = $tmp_inner_width;
+			}
 
 			$this->inner_dimensions = array(
 				'width'  => (int) floor( (float) wc_get_dimension( $inner_width, 'mm', wc_stc_get_packaging_dimension_unit() ) ),

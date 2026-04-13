@@ -396,6 +396,24 @@ class ShippingMethod extends \WC_Shipping_Method {
 					'is_global' => true,
 					'group'     => 'cart',
 				),
+				'quantity'                          => array(
+					'label'     => _x( 'Quantity', 'shipments', 'shiptastic-for-woocommerce' ),
+					'fields'    => array(
+						'quantity_from' => array(
+							'type'      => 'text',
+							'data_type' => 'decimal',
+							'label'     => _x( 'from', 'shipments', 'shiptastic-for-woocommerce' ),
+						),
+						'quantity_to'   => array(
+							'type'      => 'text',
+							'data_type' => 'decimal',
+							'label'     => _x( 'to', 'shipments', 'shiptastic-for-woocommerce' ),
+						),
+					),
+					'operators' => array( 'is', 'is_not' ),
+					'is_global' => true,
+					'group'     => 'cart',
+				),
 				'shipping_classes'                  => array(
 					'label'     => _x( 'Shipping class', 'shipments', 'shiptastic-for-woocommerce' ),
 					'fields'    => array(
@@ -484,6 +502,23 @@ class ShippingMethod extends \WC_Shipping_Method {
 					'operators' => array( 'is', 'is_not' ),
 					'group'     => 'box',
 				),
+				'package_quantity'                  => array(
+					'label'     => _x( 'Quantity', 'shipments', 'shiptastic-for-woocommerce' ),
+					'fields'    => array(
+						'quantity_from' => array(
+							'type'      => 'text',
+							'data_type' => 'decimal',
+							'label'     => _x( 'from', 'shipments', 'shiptastic-for-woocommerce' ),
+						),
+						'quantity_to'   => array(
+							'type'      => 'text',
+							'data_type' => 'decimal',
+							'label'     => _x( 'to', 'shipments', 'shiptastic-for-woocommerce' ),
+						),
+					),
+					'operators' => array( 'is', 'is_not' ),
+					'group'     => 'box',
+				),
 				'package_shipping_classes'          => array(
 					'label'     => _x( 'Shipping class', 'shipments', 'shiptastic-for-woocommerce' ),
 					'fields'    => array(
@@ -566,6 +601,23 @@ class ShippingMethod extends \WC_Shipping_Method {
 							'data_type'   => 'price',
 							'label'       => _x( 'to', 'shipments', 'shiptastic-for-woocommerce' ),
 							'description' => get_woocommerce_currency_symbol(),
+						),
+					),
+					'operators' => array( 'is', 'is_not' ),
+					'group'     => 'shipping_package',
+				),
+				'shipping_package_quantity'         => array(
+					'label'     => _x( 'Quantity', 'shipments', 'shiptastic-for-woocommerce' ),
+					'fields'    => array(
+						'quantity_from' => array(
+							'type'      => 'text',
+							'data_type' => 'decimal',
+							'label'     => _x( 'from', 'shipments', 'shiptastic-for-woocommerce' ),
+						),
+						'quantity_to'   => array(
+							'type'      => 'text',
+							'data_type' => 'decimal',
+							'label'     => _x( 'to', 'shipments', 'shiptastic-for-woocommerce' ),
 						),
 					),
 					'operators' => array( 'is', 'is_not' ),
@@ -1160,6 +1212,7 @@ class ShippingMethod extends \WC_Shipping_Method {
 				'package_volume'                       => 0.0,
 				'package_total'                        => 0.0,
 				'package_subtotal'                     => 0.0,
+				'package_item_count'                   => 0.0,
 				'package_products'                     => array(),
 				'package_shipping_classes'             => array(),
 				'package_has_missing_shipping_classes' => false,
@@ -1167,6 +1220,7 @@ class ShippingMethod extends \WC_Shipping_Method {
 				'volume'                               => 0.0,
 				'total'                                => 0.0,
 				'subtotal'                             => 0.0,
+				'item_count'                           => 0.0,
 				'products'                             => array(),
 				'shipping_classes'                     => array(),
 				'has_missing_shipping_classes'         => false,
@@ -1174,6 +1228,7 @@ class ShippingMethod extends \WC_Shipping_Method {
 				'shipping_package_volume'              => 0.0,
 				'shipping_package_total'               => 0.0,
 				'shipping_package_subtotal'            => 0.0,
+				'shipping_package_item_count'          => 0.0,
 				'shipping_package_products'            => array(),
 				'shipping_package_shipping_classes'    => array(),
 				'shipping_package_has_missing_shipping_classes' => false,
@@ -1221,6 +1276,19 @@ class ShippingMethod extends \WC_Shipping_Method {
 					$to   = isset( $condition['total_to'] ) && ! empty( $condition['total_to'] ) ? (float) wc_format_decimal( $condition['total_to'] ) : 0.0;
 
 					if ( $package_data[ $condition_type_name ] >= $from && ( $package_data[ $condition_type_name ] < $to || 0.0 === $to ) ) {
+						if ( 'is' === $operator_name ) {
+							$condition_applies = true;
+						} elseif ( 'is_not' === $operator_name ) {
+							$condition_applies = false;
+						}
+					}
+				} elseif ( in_array( $condition_type_name, array( 'quantity', 'package_quantity', 'shipping_package_quantity' ), true ) ) {
+					$from = isset( $condition['quantity_from'] ) && ! empty( $condition['quantity_from'] ) ? (float) wc_format_decimal( $condition['quantity_from'] ) : 0.0;
+					$to   = isset( $condition['quantity_to'] ) && ! empty( $condition['quantity_to'] ) ? (float) wc_format_decimal( $condition['quantity_to'] ) : 0.0;
+
+					$custom_condition_type_name = str_replace( 'quantity', 'item_count', $condition_type_name );
+
+					if ( $package_data[ $custom_condition_type_name ] >= $from && ( $package_data[ $custom_condition_type_name ] < $to || 0.0 === $to ) ) {
 						if ( 'is' === $operator_name ) {
 							$condition_applies = true;
 						} elseif ( 'is_not' === $operator_name ) {

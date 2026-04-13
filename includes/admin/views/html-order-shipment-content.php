@@ -90,7 +90,7 @@ defined( 'ABSPATH' ) || exit;
 				</select>
 			</div>
 
-			<div class="form-row show-if show-if-provider show-if-provider-is-manual">
+			<div class="form-row <?php echo esc_attr( $shipment->has_label() ? 'show-if show-if-provider show-if-provider-is-manual' : '' ); ?>">
 				<label for="shipment-tracking-id-<?php echo esc_attr( $shipment->get_id() ); ?>"><?php echo esc_html_x( 'Tracking Number', 'shipments', 'shiptastic-for-woocommerce' ); ?></label>
 				<input type="text" value="<?php echo esc_attr( $shipment->get_tracking_id() ); ?>" name="shipment_tracking_id[<?php echo esc_attr( $shipment->get_id() ); ?>]" id="shipment-tracking-id-<?php echo esc_attr( $shipment->get_id() ); ?>" />
 			</div>

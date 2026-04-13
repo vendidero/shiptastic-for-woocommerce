@@ -570,8 +570,13 @@ class ReturnShipment extends Shipment {
 				throw new Exception( esc_html_x( 'Invalid shipment order', 'shipments', 'shiptastic-for-woocommerce' ) );
 			}
 
-			$return_address      = wc_stc_get_shipment_return_address( $order_shipment );
-			$order               = $order_shipment->get_order();
+			$return_address = wc_stc_get_shipment_return_address( $order_shipment );
+			$order          = $order_shipment->get_order();
+
+			/**
+			 * Use the billing address as sender address as this address is the main address
+			 * and may differ from the sole shipping address (e.g. to a pickup location).
+			 */
 			$sender_address_data = array_merge(
 				$order->get_address( 'billing' ),
 				array(

@@ -218,7 +218,11 @@ abstract class REST extends \Vendidero\Shiptastic\API\Api {
 			$endpoint = trailingslashit( $this->get_url() ) . $endpoint;
 		}
 
-		return add_query_arg( $query_args, $endpoint );
+		if ( ! empty( $query_args ) ) {
+			$endpoint = add_query_arg( $query_args, $endpoint );
+		}
+
+		return $endpoint;
 	}
 
 	/**

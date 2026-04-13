@@ -219,6 +219,14 @@ class ShipmentsController extends \WC_REST_Controller {
 			'count_total' => true,
 		);
 
+		if ( isset( $request['before'] ) && isset( $request['after'] ) ) {
+			$prepared_args['date_created'] = $request['after'] . '...' . $request['before'];
+		} elseif ( isset( $request['after'] ) ) {
+			$prepared_args['date_created'] = '>' . $request['after'];
+		} elseif ( isset( $request['before'] ) ) {
+			$prepared_args['date_created'] = '<' . $request['before'];
+		}
+
 		if ( ! empty( $prepared_args['search'] ) ) {
 			$prepared_args['search'] = '*' . $prepared_args['search'] . '*';
 		}
@@ -1379,6 +1387,18 @@ class ShipmentsController extends \WC_REST_Controller {
 			'enum'              => self::get_shipment_statuses(),
 			'sanitize_callback' => 'sanitize_key',
 			'type'              => 'string',
+			'validate_callback' => 'rest_validate_request_arg',
+		);
+		$params['after']    = array(
+			'description'       => _x( 'Limit response to shipments created after a given ISO8601 compliant date.', 'shipments', 'shiptastic-for-woocommerce' ),
+			'type'              => 'string',
+			'format'            => 'date-time',
+			'validate_callback' => 'rest_validate_request_arg',
+		);
+		$params['before']   = array(
+			'description'       => _x( 'Limit response to shipments created before a given ISO8601 compliant date.', 'shipments', 'shiptastic-for-woocommerce' ),
+			'type'              => 'string',
+			'format'            => 'date-time',
 			'validate_callback' => 'rest_validate_request_arg',
 		);
 		$params['type']     = array(

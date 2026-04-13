@@ -145,6 +145,7 @@ class FormHandler {
 		// Now lets try to find the order by a custom order number field
 		if ( empty( $orders ) ) {
 			add_filter( 'woocommerce_order_data_store_cpt_get_orders_query', array( __CLASS__, 'filter_query_by_order_number' ), 10, 2 );
+			add_filter( 'woocommerce_orders_table_datastore_get_orders_query', array( __CLASS__, 'filter_query_by_order_number_hpos' ), 10 );
 
 			$orders = wc_get_orders(
 				apply_filters(
@@ -159,6 +160,7 @@ class FormHandler {
 			);
 
 			remove_filter( 'woocommerce_order_data_store_cpt_get_orders_query', array( __CLASS__, 'filter_query_by_order_number' ), 10 );
+			remove_filter( 'woocommerce_orders_table_datastore_get_orders_query', array( __CLASS__, 'filter_query_by_order_number_hpos' ), 10 );
 		}
 
 		if ( ! empty( $orders ) ) {
@@ -174,12 +176,28 @@ class FormHandler {
 		if ( ! empty( $query_vars['order_number'] ) ) {
 			$query['meta_query'][] = array(
 				'key'     => $meta_field_name,
-				'value'   => esc_attr( wc_clean( $query_vars['order_number'] ) ),
+				'value'   => wc_clean( $query_vars['order_number'] ),
 				'compare' => '=',
 			);
 		}
 
 		return $query;
+	}
+
+	public static function filter_query_by_order_number_hpos( $query_vars ) {
+		$meta_field_name = apply_filters( 'woocommerce_shiptastic_return_request_customer_order_number_meta_key', '_order_number' );
+
+		if ( ! empty( $query_vars['order_number'] ) ) {
+			$query_vars['meta_query'][] = array(
+				'key'     => $meta_field_name,
+				'value'   => wc_clean( $query_vars['order_number'] ),
+				'compare' => '=',
+			);
+
+			unset( $query_vars['order_number'] );
+		}
+
+		return $query_vars;
 	}
 
 	/**

@@ -52,17 +52,18 @@ class Factory {
 			return false;
 		}
 
-		/**
-		 * Simple shipping provider do not support labels
-		 */
-		if ( ! is_a( $shipping_provider, '\Vendidero\Shiptastic\Interfaces\ShippingProviderAuto' ) ) {
-			return false;
+		$classname = '\Vendidero\Shiptastic\Labels\Label';
+
+		if ( 'return' === $label_type ) {
+			$classname = '\Vendidero\Shiptastic\Labels\ReturnLabel';
 		}
 
-		$classname = $shipping_provider->get_label_classname( $label_type );
+		if ( is_a( $shipping_provider, '\Vendidero\Shiptastic\Interfaces\ShippingProviderAuto' ) ) {
+			$classname = $shipping_provider->get_label_classname( $label_type );
+		}
 
 		/**
-		 * Filter that allows adjusting the default DHL label classname.
+		 * Filter that allows adjusting the default label classname.
 		 *
 		 * @param string  $classname The classname to be used.
 		 * @param integer $label_id The label id.
