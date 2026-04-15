@@ -3,7 +3,7 @@ Contributors: vendidero, vdwoocommercesupport
 Tags: shipping, woocommerce, shipments, rules, woo
 Requires at least: 5.4
 Tested up to: 7.0
-Stable tag: 5.0.2
+Stable tag: 5.0.3
 Requires PHP: 5.6
 License: GPLv3
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
@@ -71,6 +71,13 @@ We recommend installing Shiptastic for WooCommerce through the WordPress Backend
 6. Manage returns
 
 == Changelog ==
+= 5.0.3 =
+* New: WC 7.0 support
+* New: Item quantity shipping rule
+* Improvement: Allow manually adding tracking number even for automatic integrations
+* Fix: Box packing rotation issue when packaging height is greater than width/length
+* Fix: Variation shipping dimensions/weight fallback
+
 = 5.0.2 =
 * Improvement: Order withdrawal button compatibility
 * Fix: Shipping provider placeholder availability
