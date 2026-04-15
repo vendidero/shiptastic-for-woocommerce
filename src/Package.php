@@ -1007,7 +1007,7 @@ class Package {
 	}
 
 	public static function woo_supports_providers() {
-		return defined( 'WC_ABSPATH' ) && file_exists( WC_ABSPATH . 'src/Internal/Fulfillments/ShippingProviders.php' );
+		return defined( 'WC_ABSPATH' ) && ( file_exists( WC_ABSPATH . 'src/Internal/Fulfillments/ShippingProviders.php' ) || file_exists( WC_ABSPATH . 'src/Admin/Features/Fulfillments/ShippingProviders.php' ) );
 	}
 
 	public static function register_data_stores( $stores ) {
