@@ -6,7 +6,7 @@ use Vendidero\Shiptastic\SimpleShipment;
 
 defined( 'ABSPATH' ) || exit;
 
-class ShippingProvider extends \Automattic\WooCommerce\Internal\Fulfillments\Providers\AbstractShippingProvider {
+class ShippingProvider extends \Automattic\WooCommerce\Admin\Features\Fulfillments\Providers\AbstractShippingProvider {
 
 	/**
 	 * @var \Vendidero\Shiptastic\Interfaces\ShippingProvider

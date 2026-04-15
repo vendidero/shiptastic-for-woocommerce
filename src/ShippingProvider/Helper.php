@@ -138,9 +138,15 @@ class Helper {
 	public function get_known_shipping_providers() {
 		if ( is_null( $this->known_providers ) ) {
 			$this->known_providers = $this->get_available_shipping_provider_integrations();
+			$woo_known_providers   = array();
 
 			if ( defined( 'WC_ABSPATH' ) && file_exists( WC_ABSPATH . 'src/Internal/Fulfillments/ShippingProviders.php' ) ) {
 				$woo_known_providers = include WC_ABSPATH . 'src/Internal/Fulfillments/ShippingProviders.php';
+			} elseif ( defined( 'WC_ABSPATH' ) && file_exists( WC_ABSPATH . 'src/Admin/Features/Fulfillments/ShippingProviders.php' ) ) {
+				$woo_known_providers = include WC_ABSPATH . 'src/Admin/Features/Fulfillments/ShippingProviders.php';
+			}
+
+			if ( ! empty( $woo_known_providers ) ) {
 				ksort( $woo_known_providers );
 
 				foreach ( $woo_known_providers as $slug => $provider ) {

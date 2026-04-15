@@ -2,11 +2,10 @@
 
 namespace Vendidero\Shiptastic\Fulfillments;
 
-use Automattic\WooCommerce\Internal\Fulfillments\FulfillmentUtils;
 use Vendidero\Shiptastic\Shipment;
 use Vendidero\Shiptastic\SimpleShipment;
 
-class Fulfillment extends \Automattic\WooCommerce\Internal\Fulfillments\Fulfillment {
+class Fulfillment extends \Automattic\WooCommerce\Admin\Features\Fulfillments\Fulfillment {
 
 	/**
 	 * @var \Vendidero\Shiptastic\ReturnShipment|\Vendidero\Shiptastic\Shipment|SimpleShipment

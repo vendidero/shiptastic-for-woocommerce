@@ -2,15 +2,11 @@
 
 namespace Vendidero\Shiptastic\Fulfillments;
 
-use Automattic\WooCommerce\Internal\Fulfillments\OrderFulfillmentsRestController;
 use Automattic\WooCommerce\Internal\Admin\Settings\Exceptions\ApiException;
 use Vendidero\Shiptastic\Emails;
 use Vendidero\Shiptastic\SimpleShipment;
 
-class FulfillmentsRestController extends OrderFulfillmentsRestController {
-
-	public function register() {
-	}
+class FulfillmentsRestController extends \Automattic\WooCommerce\Admin\Features\Fulfillments\OrderFulfillmentsRestController {
 
 	/**
 	 * Get the fulfillments for the order.
@@ -72,7 +68,7 @@ class FulfillmentsRestController extends OrderFulfillmentsRestController {
 	 *
 	 * @return \WP_REST_Response The created fulfillment, or an error if the request fails.
 	 */
-	public function create_fulfillment( \WP_REST_Request $request ) {
+	public function create_fulfillment( \WP_REST_Request $request ): \WP_REST_Response {
 		$order_id        = (int) $request->get_param( 'order_id' );
 		$fulfillment_id  = (int) $request->get_param( 'id' );
 		$notify_customer = (bool) $request->get_param( 'notify_customer' );
@@ -231,7 +227,7 @@ class FulfillmentsRestController extends OrderFulfillmentsRestController {
 	 *
 	 * @return \WP_REST_Response The deleted fulfillment, or an error if the request fails.
 	 */
-	public function delete_fulfillment( \WP_REST_Request $request ) {
+	public function delete_fulfillment( \WP_REST_Request $request ): \WP_REST_Response {
 		$order_id        = (int) $request->get_param( 'order_id' );
 		$fulfillment_id  = (int) $request->get_param( 'fulfillment_id' );
 		$notify_customer = (bool) $request->get_param( 'notify_customer' );

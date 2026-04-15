@@ -42,7 +42,7 @@ class Helper {
 		$container = wc_get_container();
 
 		try {
-			if ( $renderer = $container->get( 'Automattic\WooCommerce\Internal\Fulfillments\FulfillmentsRenderer' ) ) {
+			if ( $renderer = $container->get( 'Automattic\WooCommerce\Admin\Features\Fulfillments\FulfillmentsRenderer' ) ) {
 				remove_filter( 'woocommerce_order_details_status', array( $renderer, 'render_fulfillment_status_text' ), 10 );
 				remove_filter( 'woocommerce_order_tracking_status', array( $renderer, 'render_fulfillment_status_text' ), 10 );
 			}
@@ -73,7 +73,7 @@ class Helper {
 
 	public static function has_fulfillments_feature_enabled() {
 		if ( class_exists( '\Automattic\WooCommerce\Utilities\FeaturesUtil' ) ) {
-			if ( \Automattic\WooCommerce\Utilities\FeaturesUtil::feature_is_enabled( 'fulfillments' ) ) {
+			if ( \Automattic\WooCommerce\Utilities\FeaturesUtil::feature_is_enabled( 'fulfillments' ) && class_exists( '\Automattic\WooCommerce\Admin\Features\Fulfillments\Fulfillment' ) ) {
 				return true;
 			}
 		}
@@ -106,14 +106,14 @@ class Helper {
 	public static function sync_fulfillments( $offset = 0 ) {
 		$fulfillments = self::get_fulfillments( 50, $offset );
 
-		if ( ! empty( $fulfillments ) && class_exists( '\Automattic\WooCommerce\Internal\Fulfillments\Fulfillment' ) ) {
+		if ( ! empty( $fulfillments ) && class_exists( '\Automattic\WooCommerce\Admin\Features\Fulfillments\Fulfillment' ) ) {
 			Emails::prevent_notifications();
 			add_filter( 'woocommerce_shiptastic_shipment_order_mark_as_completed', '__return_false', 9999 );
 			add_filter( 'woocommerce_shiptastic_shipment_needs_label', '__return_false', 9999 );
 			add_filter( 'woocommerce_shiptastic_shipment_order_update_shipping_status', '__return_false', 9999 );
 
 			foreach ( $fulfillments as $fulfillment ) {
-				$fulfillment = new \Automattic\WooCommerce\Internal\Fulfillments\Fulfillment( $fulfillment['fulfillment_id'] );
+				$fulfillment = new \Automattic\WooCommerce\Admin\Features\Fulfillments\Fulfillment( $fulfillment['fulfillment_id'] );
 
 				if ( $fulfillment->get_id() > 0 ) {
 					if ( ! self::get_shipment_by_fulfillment( $fulfillment ) ) {
@@ -162,7 +162,7 @@ class Helper {
 	 * @return void
 	 */
 	public static function sync_shipments( $data, $data_store ) {
-		if ( ! is_a( $data, 'Automattic\WooCommerce\Internal\Fulfillments\Fulfillment' ) || $data->get_id() <= 0 ) {
+		if ( ! is_a( $data, 'Automattic\WooCommerce\Admin\Features\Fulfillments\Fulfillment' ) || $data->get_id() <= 0 ) {
 			return;
 		}
 
@@ -170,7 +170,7 @@ class Helper {
 	}
 
 	/**
-	 * @param \Automattic\WooCommerce\Internal\Fulfillments\Fulfillment $fulfillment
+	 * @param \Automattic\WooCommerce\Admin\Features\Fulfillments\Fulfillment $fulfillment
 	 *
 	 * @return SimpleShipment|false
 	 */
@@ -197,7 +197,7 @@ class Helper {
 	}
 
 	/**
-	 * @param \Automattic\WooCommerce\Internal\Fulfillments\Fulfillment $fulfillment
+	 * @param \Automattic\WooCommerce\Admin\Features\Fulfillments\Fulfillment $fulfillment
 	 *
 	 * @return SimpleShipment|false
 	 */
@@ -318,7 +318,9 @@ class Helper {
 	}
 
 	public static function override_controllers( $controller ) {
-		$controller['wc/v3']['order_fulfillments'] = FulfillmentsRestController::class;
+		if ( class_exists( '\Automattic\WooCommerce\Admin\Features\Fulfillments\OrderFulfillmentsRestController' ) ) {
+			$controller['wc/v3']['order_fulfillments'] = FulfillmentsRestController::class;
+		}
 
 		return $controller;
 	}
