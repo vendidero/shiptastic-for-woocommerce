@@ -38,12 +38,12 @@ class CartItem extends Item {
 
 		$weight        = empty( $this->get_product()->get_shipping_weight() ) ? 0 : (float) wc_format_decimal( $this->get_product()->get_shipping_weight() );
 		$quantity      = (int) ceil( (float) $item['quantity'] );
-		$line_total    = (int) wc_add_number_precision( $this->item['line_total'] );
-		$line_subtotal = (int) wc_add_number_precision( $this->item['line_subtotal'] );
+		$line_total    = (int) wc_add_number_precision( (float) isset( $this->item['line_total'] ) ? $this->item['line_total'] : 0.0 );
+		$line_subtotal = (int) wc_add_number_precision( (float) isset( $this->item['line_subtotal'] ) ? $this->item['line_subtotal'] : 0.0 );
 
 		if ( $incl_taxes ) {
-			$line_total    += (int) wc_add_number_precision( $this->item['line_tax'] );
-			$line_subtotal += (int) wc_add_number_precision( $this->item['line_subtotal_tax'] );
+			$line_total    += (int) wc_add_number_precision( (float) isset( $this->item['line_tax'] ) ? $this->item['line_tax'] : 0.0 );
+			$line_subtotal += (int) wc_add_number_precision( (float) isset( $this->item['line_subtotal_tax'] ) ? $this->item['line_subtotal_tax'] : 0.0 );
 		}
 
 		$this->weight   = (int) wc_get_weight( $weight, 'g' );

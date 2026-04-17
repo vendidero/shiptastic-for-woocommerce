@@ -464,6 +464,10 @@ class Package {
 	}
 
 	public static function get_base_country() {
+		if ( ! function_exists( 'wc_get_base_location' ) ) {
+			return '';
+		}
+
 		$default_country  = wc_get_base_location()['country'];
 		$shipment_country = wc_format_country_state_string( self::get_setting( 'shipper_address_country' ) )['country'];
 

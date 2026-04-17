@@ -26,13 +26,16 @@ class Helper {
 		add_filter( 'manage_woocommerce_page_wc-orders_columns', array( __CLASS__, 'remove_fulfillment_columns' ), 50 );
 		add_filter( 'manage_edit-shop_order_columns', array( __CLASS__, 'remove_fulfillment_columns' ), 50 );
 
-		add_filter( 'woocommerce_get_sections_shipping', function( $sections ) {
-			if ( isset( $sections['fulfillment-providers'] ) ) {
-				unset( $sections['fulfillment-providers'] );
-			}
+		add_filter(
+			'woocommerce_get_sections_shipping',
+			function ( $sections ) {
+				if ( isset( $sections['fulfillment-providers'] ) ) {
+					unset( $sections['fulfillment-providers'] );
+				}
 
-			return $sections;
-		} );
+				return $sections;
+			}
+		);
 
 		/**
 		 * Remove fulfillment emails

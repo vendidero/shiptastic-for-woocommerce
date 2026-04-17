@@ -26,6 +26,10 @@ class PickupLocation {
 
 	protected $address_replacement_map = array();
 
+	protected $max_dimensions = array();
+
+	protected $max_weight = '';
+
 	protected $meta = array();
 
 	public function __construct( $args ) {
@@ -40,6 +44,8 @@ class PickupLocation {
 			'customer_number_is_mandatory' => false,
 			'address'                      => array(),
 			'address_replacement_map'      => array(),
+			'max_dimensions'               => array(),
+			'max_weight'                   => '',
 		);
 
 		$args = wp_parse_args( $args, $core_args );
@@ -66,6 +72,15 @@ class PickupLocation {
 		if ( empty( $args['address']['company'] ) ) {
 			$args['address']['company'] = $args['label'];
 		}
+
+		$args['max_dimensions'] = wp_parse_args(
+			(array) $args['max_dimensions'],
+			array(
+				'length' => '',
+				'width'  => '',
+				'height' => '',
+			)
+		);
 
 		if ( ! empty( $code_parts['shipping_provider'] ) ) {
 			$args['shipping_provider_name'] = $code_parts['shipping_provider'];
@@ -104,6 +119,22 @@ class PickupLocation {
 
 	public function set_label( $label ) {
 		$this->label = $label;
+	}
+
+	public function set_max_dimensions( $dimensions ) {
+		$this->max_dimensions = $dimensions;
+	}
+
+	public function get_max_dimensions() {
+		return $this->max_dimensions;
+	}
+
+	public function set_max_weight( $weight ) {
+		$this->max_weight = $weight;
+	}
+
+	public function get_max_weight() {
+		return $this->max_weight;
 	}
 
 	public function get_shipping_provider_name() {
@@ -180,12 +211,51 @@ class PickupLocation {
 		return $this->supports_dimensions( $cart_data['max_dimensions'] ) && $this->supports_weight( $cart_data['max_weight'] );
 	}
 
+	public function has_max_dimension( $dim = 'length' ) {
+		return array_key_exists( $dim, $this->max_dimensions ) && '' !== $this->max_dimensions[ $dim ];
+	}
+
 	/**
 	 * @param array $dimensions
 	 *
 	 * @return boolean
 	 */
 	public function supports_dimensions( $dimensions ) {
+		$dimensions = wp_parse_args(
+			$dimensions,
+			array(
+				'width'  => 0.0,
+				'height' => 0.0,
+				'length' => 0.0,
+			)
+		);
+
+		if ( $this->has_max_dimension( 'length' ) || $this->has_max_dimension( 'width' ) || $this->has_max_dimension( 'height' ) ) {
+			$max_dimensions  = array_values( $this->get_max_dimensions() );
+			$real_dimensions = array_values( $dimensions );
+
+			/**
+			 * Sort in ascending order
+			 */
+			sort( $max_dimensions );
+			sort( $real_dimensions );
+
+			$supports_dimensions = true;
+
+			foreach ( $max_dimensions as $k => $max_dimension ) {
+				if ( '' === $max_dimension || ! isset( $real_dimensions[ $k ] ) ) {
+					continue;
+				}
+
+				if ( $real_dimensions[ $k ] > $max_dimension ) {
+					$supports_dimensions = false;
+					break;
+				}
+			}
+
+			return $supports_dimensions;
+		}
+
 		return true;
 	}
 
@@ -195,6 +265,14 @@ class PickupLocation {
 	 * @return boolean
 	 */
 	public function supports_weight( $weight ) {
+		if ( '' !== $this->get_max_weight() ) {
+			$max_weight = (float) $this->get_max_weight();
+
+			if ( (float) $weight > $max_weight ) {
+				return false;
+			}
+		}
+
 		return true;
 	}
 
@@ -299,6 +377,8 @@ class PickupLocation {
 			'address_replacements'         => $this->get_address_replacements(),
 			'formatted_address'            => $this->get_formatted_address(),
 			'shipping_provider_name'       => $this->get_shipping_provider_name(),
+			'max_dimensions'               => $this->get_max_dimensions(),
+			'max_weight'                   => $this->get_max_weight(),
 		);
 
 		foreach ( $this->meta as $key => $value ) {
