@@ -2771,3 +2771,13 @@ table.wc-stc-shipping-providers {
     }
   }
 }
+
+.woocommerce_page_wc-settings-shipping {
+  p.wc-settings-marketplace-link {
+    display: none !important;
+  }
+
+  .woocommerce-recommended-shipping-extensions {
+    display: none !important;
+  }
+}

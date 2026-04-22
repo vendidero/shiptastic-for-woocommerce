@@ -3,8 +3,6 @@
 namespace Vendidero\Shiptastic\Packing;
 
 use DVDoug\BoxPacker\Box;
-use DVDoug\BoxPacker\BoxSorter;
-use DVDoug\BoxPacker\DefaultBoxSorter;
 use ArrayIterator;
 use Traversable;
 
@@ -20,7 +18,7 @@ class PackagingList extends \DVDoug\BoxPacker\BoxList {
 	private $sorter;
 
 	public function __construct( $sorter = null ) {
-		$this->sorter = new PackagingSorter();
+		$this->sorter = null === $sorter ? apply_filters( 'shiptastic_packing_packaging_sorter', new PackagingSorter() ) : $sorter;
 
 		parent::__construct( $sorter );
 	}
