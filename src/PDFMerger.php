@@ -29,13 +29,13 @@ class PDFMerger {
 	 * @param string $filename Filename of the source file
 	 * @param mixed $pages Range of files (if not set, all pages where imported)
 	 */
-	public function add( $filename, $pages = array(), $width = 210 ) {
+	public function add( $filename, $pages = array(), $width = 210, $rotation = 0 ) {
 		if ( file_exists( $filename ) ) {
 			$page_count = $this->_pdf->setSourceFile( $filename );
 
 			for ( $i = 1; $i <= $page_count; $i++ ) {
 				if ( $this->_isPageInRange( $i, $pages ) ) {
-					$this->_addPage( $i, $width );
+					$this->_addPage( $i, $width, $rotation );
 				}
 			}
 		}
@@ -81,13 +81,13 @@ class PDFMerger {
 	 *
 	 * @throws PdfReaderException
 	 */
-	private function _addPage( $page_number, $width = 210 ) { // phpcs:ignore PSR2.Methods.MethodDeclaration.Underscore,WordPress.NamingConventions.ValidFunctionName.MethodNameInvalid
+	private function _addPage( $page_number, $width = 210, $rotation = 0 ) { // phpcs:ignore PSR2.Methods.MethodDeclaration.Underscore,WordPress.NamingConventions.ValidFunctionName.MethodNameInvalid
 		$page_id = $this->_pdf->importPage( $page_number, PageBoundaries::CROP_BOX, false );
 		$size    = $this->_pdf->getTemplateSize( $page_id );
 
 		$orientation = isset( $size['orientation'] ) ? $size['orientation'] : '';
 
-		$this->_pdf->addPage( $orientation, $size );
+		$this->_pdf->addPage( $orientation, $size, $rotation );
 
 		if ( ! isset( $size['width'] ) || empty( $size['width'] ) ) {
 			$this->_pdf->useImportedPage( $page_id, 0, 0, $width, null, true );
