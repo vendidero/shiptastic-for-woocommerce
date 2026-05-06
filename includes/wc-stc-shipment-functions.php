@@ -774,6 +774,10 @@ function wc_stc_get_formatted_address_data( $address, $country ) {
 		)
 	);
 
+	if ( null === $address['address_2'] ) {
+		$address['address_2'] = '';
+	}
+
 	$format = Package::get_country_street_format( $country );
 
 	if ( $format && ! empty( $address['address_1'] ) ) {
@@ -1037,7 +1041,15 @@ function wc_shiptastic_upload_data( $filename, $bits, $relative = true ) {
 
 			return $path;
 		} else {
-			throw new Exception( esc_html_x( 'Error while uploading file.', 'shipments', 'shiptastic-for-woocommerce' ) );
+			$error_msg = '';
+
+			if ( isset( $tmp['error'] ) ) {
+				$error_msg = $tmp['error'];
+			}
+
+			Package::log( sprintf( 'Error while uploading file %1$s: %2$s', $filename, $error_msg ) );
+
+			throw new Exception( sprintf( esc_html_x( 'Error while uploading file: %1$s', 'shipments', 'shiptastic-for-woocommerce' ), esc_html( $error_msg ) ) );
 		}
 	} catch ( Exception $e ) {
 		return false;

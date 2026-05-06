@@ -10,8 +10,6 @@ class ImageToPDF extends \FPDF {
 		parent::__construct( $orientation, 'mm', $size );
 
 		$this->SetMargins( 0, 0 );
-
-		stream_wrapper_register( 'var', '\Vendidero\Shiptastic\Utilities\VariableStreamHandler' );
 	}
 
 	public function set_rotation( $rotation ) {
@@ -25,6 +23,14 @@ class ImageToPDF extends \FPDF {
 	}
 
 	public function import_image( $stream_or_file, $x = 0, $y = 0, $dpi = 72 ) {
+		$existed = in_array( 'var', stream_get_wrappers(), true );
+
+		if ( $existed ) {
+			stream_wrapper_unregister( 'var' );
+		}
+
+		stream_wrapper_register( 'var', '\Vendidero\Shiptastic\Utilities\VariableStreamHandler' );
+
 		if ( is_file( $stream_or_file ) ) {
 			$image_meta = wp_getimagesize( $stream_or_file ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
 
@@ -57,6 +63,10 @@ class ImageToPDF extends \FPDF {
 			$this->Image( 'var://' . $image_stream, 0, 0, $width, $height, $type );
 
 			unset( $GLOBALS[ $image_stream ] );
+		}
+
+		if ( $existed ) {
+			stream_wrapper_restore( 'var' );
 		}
 	}
 }

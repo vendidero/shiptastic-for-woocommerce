@@ -4,6 +4,7 @@ namespace Vendidero\Shiptastic\Admin\Tabs;
 
 use Vendidero\Shiptastic\Admin\Settings;
 use Vendidero\Shiptastic\Admin\Tutorial;
+use Vendidero\Shiptastic\Package;
 
 class General extends Tab {
 
@@ -254,6 +255,24 @@ class General extends Tab {
 		parent::after_save( $settings, $current_section );
 
 		if ( 'business_information' === $current_section ) {
+			$original_address_1 = get_option( 'woocommerce_shiptastic_shipper_address_address_1', '' );
+
+			/**
+			 * Make sure that first address field has a space between street name and house number in EU.
+			 */
+			if ( ! empty( $original_address_1 ) && Package::base_country_belongs_to_eu_customs_area() ) {
+				$parts = wc_stc_split_shipment_street( $original_address_1 );
+
+				if ( '' !== $parts['number'] && ! empty( $parts['street'] ) ) {
+					$formatted_address_1 = trim( str_replace( $parts['street'], ' ' . $parts['street'] . ' ', $original_address_1 ) ); // replace the street name tailored with whitespace
+					$formatted_address_1 = preg_replace( '/\s+/', ' ', $formatted_address_1 ); // Remove duplicate whitespace
+
+					if ( $formatted_address_1 !== $original_address_1 ) {
+						\WC_Admin_Settings::add_error( _x( 'Please check the first address field - it looks like there\'s a space missing between the street name and the house number.', 'shipments', 'shiptastic-for-woocommerce' ) );
+					}
+				}
+			}
+
 			if ( ! isset( $_POST['woocommerce_shiptastic_use_alternate_return'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Missing
 				$return_fields = wc_stc_get_shipment_setting_address_fields( 'return' );
 
