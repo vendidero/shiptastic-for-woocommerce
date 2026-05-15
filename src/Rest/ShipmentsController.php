@@ -1384,9 +1384,11 @@ class ShipmentsController extends \WC_REST_Controller {
 		);
 		$params['status']   = array(
 			'description'       => _x( 'Limit result set to shipments having a certain status.', 'shipments', 'shiptastic-for-woocommerce' ),
-			'enum'              => self::get_shipment_statuses(),
-			'sanitize_callback' => 'sanitize_key',
-			'type'              => 'string',
+			'type'              => 'array',
+			'items'             => array(
+				'type' => 'string',
+				'enum' => self::get_shipment_statuses(),
+			),
 			'validate_callback' => 'rest_validate_request_arg',
 		);
 		$params['after']    = array(

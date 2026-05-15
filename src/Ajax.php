@@ -1182,7 +1182,7 @@ class Ajax {
 		if ( Package::is_hpos_enabled() ) {
 			$ids = wc_get_orders( array( 's' => $term ) );
 		} elseif ( ! is_numeric( $term ) ) {
-				$ids = wc_get_orders( array( 's' => $term ) );
+			$ids = wc_get_orders( array( 's' => $term ) );
 		} else {
 			global $wpdb;
 
@@ -1194,7 +1194,8 @@ class Ajax {
 			);
 		}
 
-		$excluded = array();
+		$excluded     = array();
+		$found_orders = array();
 
 		if ( ! empty( $_GET['exclude'] ) ) {
 			$excluded = array_map( 'absint', (array) wp_unslash( $_GET['exclude'] ) );
