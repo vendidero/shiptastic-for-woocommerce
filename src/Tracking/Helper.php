@@ -18,6 +18,7 @@ class Helper {
 
 		add_action( 'rest_api_init', array( __CLASS__, 'register_tracking_event_endpoints' ) );
 		add_action( 'woocommerce_shiptastic_shipment_created_label', array( __CLASS__, 'subscribe_to_remote_events' ), 20, 2 );
+		add_action( 'woocommerce_shiptastic_return_shipment_created_label', array( __CLASS__, 'subscribe_to_remote_events' ), 20, 2 );
 	}
 
 	/**
@@ -205,7 +206,7 @@ class Helper {
 					array(
 						'shipping_provider' => $provider->get_name(),
 						'has_tracking'      => true,
-						'type'              => 'simple',
+						'type'              => array( 'simple', 'return' ),
 						'limit'             => $per_batch_run,
 						'orderby'           => 'date_created',
 						'order'             => 'ASC',

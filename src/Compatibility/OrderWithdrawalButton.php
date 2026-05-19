@@ -2,6 +2,7 @@
 
 namespace Vendidero\Shiptastic\Compatibility;
 
+use Vendidero\OrderWithdrawalButton\WithdrawalOrder;
 use Vendidero\Shiptastic\Interfaces\Compatibility;
 
 defined( 'ABSPATH' ) || exit;
@@ -65,25 +66,20 @@ class OrderWithdrawalButton implements Compatibility {
 
 	/**
 	 * @param \WC_Order $order
-	 * @param array $request
+	 * @param WithdrawalOrder $request
 	 *
 	 * @return void
 	 */
 	public static function on_request_updated( $order, $request ) {
+		if ( ! is_a( $request, '\Vendidero\OrderWithdrawalButton\WithdrawalOrder' ) ) {
+			return;
+		}
+
 		if ( $shipment_order = wc_stc_get_shipment_order( $order ) ) {
 			$shipments   = $shipment_order->get_simple_shipments();
 			$has_removed = false;
 
-			$request = wp_parse_args(
-				$request,
-				array(
-					'items'  => array(),
-					'status' => '',
-					'id'     => '',
-				)
-			);
-
-			if ( in_array( $request['status'], array( 'confirmed', 'rejected' ), true ) ) {
+			if ( $request->has_status( array( 'confirmed', 'rejected' ) ) ) {
 				foreach ( $shipments as $shipment ) {
 					if ( $shipment->is_editable() ) {
 						$shipment_order->remove_shipment( $shipment->get_id() );
@@ -96,21 +92,36 @@ class OrderWithdrawalButton implements Compatibility {
 				}
 			}
 
-			if ( 'confirmed' === $request['status'] && ! empty( $request['items'] ) ) {
-				$default_status = apply_filters( 'woocommerce_shiptastic_withdrawal_return_shipment_status', 'requested', $order );
+			$request_items = $request->get_items();
 
-				$result = $shipment_order->create_returns(
-					$request['items'],
-					array(
-						'status'                => $default_status,
-						'is_customer_requested' => 'requested' === $default_status ? true : false,
-					)
-				);
+			if ( $request->has_status( 'confirmed' ) && ! empty( $request_items ) ) {
+				$default_status   = apply_filters( 'woocommerce_shiptastic_withdrawal_return_shipment_status', 'requested', $order );
+				$request_item_map = array();
 
-				if ( ! is_wp_error( $result ) ) {
-					foreach ( $result as $return ) {
-						$return->update_meta_data( '_withdrawal_request', $request['id'] );
-						$return->save();
+				foreach ( $request_items as $item ) {
+					if ( empty( $item->get_parent_id() ) ) {
+						continue;
+					}
+
+					$request_item_map[ $item->get_parent_id() ] = array(
+						'quantity' => $item->get_quantity(),
+					);
+				}
+
+				if ( ! empty( $request_item_map ) ) {
+					$result = $shipment_order->create_returns(
+						$request_item_map,
+						array(
+							'status'                => $default_status,
+							'is_customer_requested' => 'requested' === $default_status ? true : false,
+						)
+					);
+
+					if ( ! is_wp_error( $result ) ) {
+						foreach ( $result as $return ) {
+							$return->update_meta_data( '_withdrawal_request', $request->get_id() );
+							$return->save();
+						}
 					}
 				}
 			}

@@ -259,7 +259,15 @@ class ReturnShipment extends Shipment {
 
 	public function confirm_customer_request() {
 		if ( $this->is_customer_requested() && $this->has_status( 'requested' ) ) {
-			$this->set_status( 'processing' );
+			/**
+			 * In case this shipment/provider does not support label creation (or already has tracking data)
+			 * use the status ready-for-shipping to trigger the confirmation email.
+			 */
+			if ( ! $this->supports_label() || $this->get_tracking_id() ) {
+				$this->set_status( 'ready-for-shipping' );
+			} else {
+				$this->set_status( 'processing' );
+			}
 
 			if ( $this->save() ) {
 				/**

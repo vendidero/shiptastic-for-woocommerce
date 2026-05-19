@@ -62,6 +62,7 @@ if ( ! class_exists( 'WC_STC_Email_Customer_Return_Shipment_Delivered', false ) 
 
 			// Triggers for this email.
 			add_action( 'woocommerce_shiptastic_return_shipment_status_processing_to_delivered_notification', array( $this, 'trigger' ), 10 );
+			add_action( 'woocommerce_shiptastic_return_shipment_status_ready-for-shipping_to_delivered_notification', array( $this, 'trigger' ), 10 );
 			add_action( 'woocommerce_shiptastic_return_shipment_status_shipped_to_delivered_notification', array( $this, 'trigger' ), 10 );
 
 			// Call parent constructor.

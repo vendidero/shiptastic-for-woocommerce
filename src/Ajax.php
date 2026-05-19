@@ -172,7 +172,6 @@ class Ajax {
 
 				if ( $shipment = wc_stc_get_shipment( $shipment_id ) ) {
 					if ( 'return' === $shipment->get_type() ) {
-
 						if ( $shipment->confirm_customer_request() ) {
 							$success = true;
 						}

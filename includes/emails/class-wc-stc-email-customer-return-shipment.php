@@ -53,7 +53,7 @@ if ( ! class_exists( 'WC_STC_Email_Customer_Return_Shipment', false ) ) :
 			$this->customer_email = true;
 			$this->id             = 'customer_return_shipment';
 			$this->title          = _x( 'Order return', 'shipments', 'shiptastic-for-woocommerce' );
-			$this->description    = _x( 'Order return notifications are sent to the customer after a return shipment was marked as processing.', 'shipments', 'shiptastic-for-woocommerce' );
+			$this->description    = _x( 'Order return notifications are sent to the customer after a return shipment was marked as ready-for-shipping.', 'shipments', 'shiptastic-for-woocommerce' );
 
 			$this->template_html  = 'emails/customer-return-shipment.php';
 			$this->template_plain = 'emails/plain/customer-return-shipment.php';
@@ -69,9 +69,10 @@ if ( ! class_exists( 'WC_STC_Email_Customer_Return_Shipment', false ) ) :
 			);
 
 			// Triggers for this email.
-			add_action( 'woocommerce_shiptastic_return_shipment_status_draft_to_processing_notification', array( $this, 'trigger' ), 10 );
-			add_action( 'woocommerce_shiptastic_return_shipment_status_requested_to_processing_notification', array( $this, 'trigger' ), 10 );
-			add_action( 'woocommerce_shiptastic_return_shipment_status_rejected_to_processing_notification', array( $this, 'trigger' ), 10 );
+			add_action( 'woocommerce_shiptastic_return_shipment_status_draft_to_ready-for-shipping_notification', array( $this, 'trigger' ), 10 );
+			add_action( 'woocommerce_shiptastic_return_shipment_status_processing_to_ready-for-shipping_notification', array( $this, 'trigger' ), 10 );
+			add_action( 'woocommerce_shiptastic_return_shipment_status_requested_to_ready-for-shipping_notification', array( $this, 'trigger' ), 10 );
+			add_action( 'woocommerce_shiptastic_return_shipment_status_rejected_to_ready-for-shipping_notification', array( $this, 'trigger' ), 10 );
 
 			// Call parent constructor.
 			parent::__construct();

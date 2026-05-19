@@ -26,6 +26,7 @@ class Automation {
 
 		// After a label has been successfully created - maybe update shipment status
 		add_action( 'woocommerce_shiptastic_shipment_created_label', array( __CLASS__, 'maybe_adjust_shipment_status' ), 10 );
+		add_action( 'woocommerce_shiptastic_return_shipment_created_label', array( __CLASS__, 'maybe_adjust_shipment_status' ), 10 );
 		add_action( 'woocommerce_shiptastic_label_auto_sync_callback', array( __CLASS__, 'auto_sync_callback' ) );
 
 		// Make sure the return label is being created before sending the return email to the customer
@@ -94,10 +95,12 @@ class Automation {
 	 */
 	public static function maybe_adjust_shipment_status( $shipment ) {
 		if ( $provider = $shipment->get_shipping_provider_instance() ) {
-			if ( $provider->automatically_set_shipment_status_shipped( $shipment ) ) {
+			if ( 'simple' === $shipment->get_type() && $provider->automatically_set_shipment_status_shipped( $shipment ) ) {
 				$shipment->set_status( 'shipped' );
 			} else {
-				$shipment->set_status( apply_filters( 'woocommerce_shiptastic_shipment_status_after_label_creation', 'ready-for-shipping', $shipment ) );
+				$hook_prefix = 'simple' === $shipment->get_type() ? '' : $shipment->get_type() . '_';
+
+				$shipment->set_status( apply_filters( "woocommerce_shiptastic_{$hook_prefix}shipment_status_after_label_creation", 'ready-for-shipping', $shipment ) );
 			}
 		}
 	}

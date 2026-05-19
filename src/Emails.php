@@ -286,6 +286,10 @@ class Emails {
 			return;
 		}
 
+		if ( apply_filters( 'woocommerce_shiptastic_hide_shipment_address_in_email', false, $email, $shipment, $sent_to_admin ) ) {
+			return;
+		}
+
 		if ( $plain_text ) {
 			wc_get_template(
 				'emails/plain/email-shipment-address.php',

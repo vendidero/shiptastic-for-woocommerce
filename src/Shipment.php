@@ -1233,7 +1233,7 @@ abstract class Shipment extends WC_Data {
 	public function get_formatted_address( $empty_content = '' ) {
 		$address = WC()->countries->get_formatted_address( $this->get_address() );
 
-		return $address ? $address : $empty_content;
+		return apply_filters( "{$this->get_hook_prefix()}formatted_address", $address ? $address : $empty_content, $this, $empty_content );
 	}
 
 	/**
@@ -1245,7 +1245,7 @@ abstract class Shipment extends WC_Data {
 	public function get_formatted_billing_address( $empty_content = '' ) {
 		$address = WC()->countries->get_formatted_address( $this->get_billing_address() );
 
-		return $address ? $address : $empty_content;
+		return apply_filters( "{$this->get_hook_prefix()}formatted_billing_address", $address ? $address : $empty_content, $this, $empty_content );
 	}
 
 	/**
@@ -1832,7 +1832,7 @@ abstract class Shipment extends WC_Data {
 	public function get_formatted_sender_address( $empty_content = '' ) {
 		$address = WC()->countries->get_formatted_address( $this->get_sender_address() );
 
-		return $address ? $address : $empty_content;
+		return apply_filters( "{$this->get_hook_prefix()}formatted_sender_address", $address ? $address : $empty_content, $this, $empty_content );
 	}
 
 	/**
