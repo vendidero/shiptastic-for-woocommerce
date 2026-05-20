@@ -1679,11 +1679,14 @@ class ShippingMethod extends \WC_Shipping_Method {
 					<input class="cb" name="<?php echo esc_attr( $field_key ); ?>[cb][{{ data.rule_id }}]" type="checkbox" value="{{ data.rule_id }}" data-attribute="cb" title="<?php echo esc_attr_x( 'Rule:', 'shipments', 'shiptastic-for-woocommerce' ); ?> {{ data.rule_id }}" />
 				</td>
 				<td class="packaging">
-					<select class="wc-enhanced-select shipping-packaging" name="<?php echo esc_attr( $field_key ); ?>[packaging][{{ data.rule_id }}]" data-attribute="packaging">
-						<?php foreach ( $this->get_packaging_list() as $name => $title ) : ?>
-							<option value="<?php echo esc_attr( $name ); ?>"><?php echo esc_html( $title ); ?></option>
-						<?php endforeach; ?>
-					</select>
+					<p class="form-field">
+						<label>&nbsp;</label>
+						<select class="wc-enhanced-select shipping-packaging" name="<?php echo esc_attr( $field_key ); ?>[packaging][{{ data.rule_id }}]" data-attribute="packaging">
+							<?php foreach ( $this->get_packaging_list() as $name => $title ) : ?>
+								<option value="<?php echo esc_attr( $name ); ?>"><?php echo esc_html( $title ); ?></option>
+							<?php endforeach; ?>
+						</select>
+					</p>
 				</td>
 				<td class="conditions">
 					<table class="inner-conditions">
