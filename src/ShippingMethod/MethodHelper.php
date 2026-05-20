@@ -251,7 +251,7 @@ class MethodHelper {
 				}
 
 				$line_total    = (float) isset( $item['line_total'] ) ? $item['line_total'] : 0.0;
-				$line_subtotal = (float) isset( $item['line_subtotal'] ) ? $item['line_total'] : 0.0;
+				$line_subtotal = (float) isset( $item['line_subtotal'] ) ? $item['line_subtotal'] : 0.0;
 
 				if ( wc()->cart->display_prices_including_tax() ) {
 					$line_total    += (float) isset( $item['line_tax'] ) ? $item['line_tax'] : 0.0;
