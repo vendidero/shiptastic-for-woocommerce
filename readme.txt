@@ -3,7 +3,7 @@ Contributors: vendidero, vdwoocommercesupport
 Tags: shipping, woocommerce, shipments, rules, woo
 Requires at least: 5.4
 Tested up to: 7.0
-Stable tag: 5.0.3
+Stable tag: 5.0.4
 Requires PHP: 5.6
 License: GPLv3
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
@@ -71,6 +71,16 @@ We recommend installing Shiptastic for WooCommerce through the WordPress Backend
 6. Manage returns
 
 == Changelog ==
+= 5.0.4 =
+* Improvement: Set ready-for-shipping after creating a return label
+* Improvement: Enable remote status tracking for returns too
+* Improvement: Order withdrawal compatibility refactoring
+* Improvement: Prevent warnings when cart totals have not yet been set
+* Improvement: Support weight/dimension limit for pickup locations
+* Improvement: Additional shipper address_1 setting validation
+* Improvement: Accept array status within REST controller
+* Fix: Line subtotal key usage within shipping method package
+
 = 5.0.3 =
 * New: WC 7.0 support
 * New: Item quantity shipping rule
