@@ -643,31 +643,14 @@ class Label extends WC_Data implements ShipmentLabel {
 	 * @return false|string
 	 */
 	public function upload_label_file( $stream, $file_type = '' ) {
-		try {
-			Package::set_upload_dir_filter();
-			$filename = $this->get_filename( $file_type );
+		$filename = $this->get_filename( $file_type );
+		$path     = wc_shiptastic_upload_data( $filename, $stream );
 
-			$GLOBALS['stc_unique_filename'] = $filename;
-			add_filter( 'wp_unique_filename', '_wc_shiptastic_keep_force_filename', 10, 1 );
+		if ( ! is_wp_error( $path ) ) {
+			$this->set_path( $path, $file_type );
 
-			$tmp = wp_upload_bits( $this->get_filename( $file_type ), null, $stream );
-
-			unset( $GLOBALS['stc_unique_filename'] );
-			remove_filter( 'wp_unique_filename', '_wc_shiptastic_keep_force_filename', 10 );
-
-			Package::unset_upload_dir_filter();
-
-			if ( isset( $tmp['file'] ) ) {
-				$path = $tmp['file'];
-				$path = Package::get_relative_upload_dir( $path );
-
-				$this->set_path( $path, $file_type );
-
-				return $path;
-			} else {
-				throw new Exception( _x( 'Error while uploading label.', 'shipments', 'shiptastic-for-woocommerce' ) );
-			}
-		} catch ( Exception $e ) {
+			return $path;
+		} else {
 			return false;
 		}
 	}

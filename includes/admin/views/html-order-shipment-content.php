@@ -135,6 +135,64 @@ defined( 'ABSPATH' ) || exit;
 				<div class="column col-6">
 					<div class="columns">
 						<?php
+						foreach ( $shipment->get_supported_attachment_types() as $attachment_type => $type_data ) :
+							$attachment   = $shipment->get_attachment( $attachment_type );
+							$needs_upload = false;
+							?>
+							<div class="wc-stc-shipment-<?php echo esc_attr( $attachment_type ); ?> wc-stc-shipment-action-wrapper column column-spaced col-auto">
+								<h4><?php echo esc_html( $attachment ? $attachment->get_title() : wc_stc_get_shipment_attachment_type_name( $type_data ) ); ?></h4>
+
+								<div class="wc-stc-shipment-attachment-content">
+									<div class="shipment-inner-actions shipment-inner-actions-attachment">
+										<?php
+										if ( $attachment ) {
+											$actions = array(
+												'download' => array(
+													'url'  => $attachment->get_download_url(),
+													'name' => sprintf( _x( 'Download %s', 'shipments-attachment', 'shiptastic-for-woocommerce' ), wc_stc_get_shipment_attachment_type_name( $type_data ) ),
+													'action' => 'download_attachment',
+													'classes' => 'download',
+													'target' => '_blank',
+												),
+												'delete'   => array(
+													'classes' => 'remove-attachment delete',
+													'name' => sprintf( _x( 'Delete %s', 'shipments-attachment', 'shiptastic-for-woocommerce' ), wc_stc_get_shipment_attachment_type_name( $type_data ) ),
+													'action' => 'delete_attachment',
+													'custom_attributes' => array(
+														'data-attachment'      => $attachment->get_id(),
+														'data-attachment-type' => $attachment->get_type(),
+													),
+												),
+											);
+										} else {
+											$needs_upload = true;
+
+											$actions = array(
+												'upload' => array(
+													'name' => sprintf( _x( 'Upload %s', 'shipments-attachment', 'shiptastic-for-woocommerce' ), wc_stc_get_shipment_attachment_type_name( $type_data ) ),
+													'action' => 'upload_attachment',
+													'classes' => 'upload',
+													'custom_attributes' => array(
+														'data-attachment-type' => $attachment_type,
+													),
+												),
+											);
+										}
+										?>
+
+										<div class="shipment-attachment-actions shipment-inner-actions-wrapper">
+											<?php if ( $needs_upload ) : ?>
+												<input type="file" id="upload_attachment_<?php echo esc_attr( $attachment_type ); ?>_<?php echo esc_attr( $shipment->get_id() ); ?>" class="wc-stc-shipment-upload-attachment hide-default" name="shipment_attachments[<?php echo esc_attr( $shipment->get_id() ); ?>][<?php echo esc_attr( $attachment_type ); ?>]" accept="<?php echo esc_attr( implode( ', ', $type_data['mime_types'] ) ); ?>" />
+											<?php endif; ?>
+
+											<?php echo wc_stc_render_shipment_action_buttons( $actions ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+										</div>
+									</div>
+								</div>
+							</div>
+						<?php endforeach; ?>
+
+						<?php
 						/**
 						 * Action that fires after the right column of a Shipment's meta box admin view.
 						 *

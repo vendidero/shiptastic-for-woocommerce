@@ -561,6 +561,26 @@ function wc_stc_create_shipment( $order_shipment, $args = array() ) {
 	return $shipment;
 }
 
+/**
+ * @param string $attachment_type
+ * @param Shipment $shipment
+ *
+ * @return \Vendidero\Shiptastic\ShipmentAttachment|WP_Error
+ */
+function wc_stc_create_shipment_attachment( $attachment_type ) {
+	try {
+		$attachment = ShipmentFactory::get_shipment_attachment( false, $attachment_type );
+
+		if ( ! $attachment ) {
+			throw new Exception( esc_html_x( 'Error while creating the shipment attachment instance', 'shipments', 'shiptastic-for-woocommerce' ) );
+		}
+
+		return $attachment;
+	} catch ( Exception $e ) {
+		return new WP_Error( 'error', $e->getMessage() );
+	}
+}
+
 function wc_stc_create_shipment_item( $shipment, $order_item, $args = array() ) {
 	try {
 		if ( ! $order_item || ! is_a( $order_item, 'WC_Order_Item' ) ) {
@@ -1020,16 +1040,22 @@ function _wc_shiptastic_keep_force_filename( $new_filename ) {
 	return isset( $GLOBALS['stc_unique_filename'] ) ? $GLOBALS['stc_unique_filename'] : $new_filename;
 }
 
-function wc_shiptastic_upload_data( $filename, $bits, $relative = true ) {
+function wc_shiptastic_upload_data( $filename, $bits, $relative = true, $force_override = true ) {
 	try {
 		Package::set_upload_dir_filter();
-		$GLOBALS['stc_unique_filename'] = $filename;
-		add_filter( 'wp_unique_filename', '_wc_shiptastic_keep_force_filename', 10, 1 );
+
+		if ( $force_override ) {
+			add_filter( 'wp_unique_filename', '_wc_shiptastic_keep_force_filename', 10, 1 );
+			$GLOBALS['stc_unique_filename'] = $filename;
+		}
 
 		$tmp = wp_upload_bits( $filename, null, $bits );
 
-		unset( $GLOBALS['stc_unique_filename'] );
-		remove_filter( 'wp_unique_filename', '_wc_shiptastic_keep_force_filename', 10 );
+		if ( $force_override ) {
+			unset( $GLOBALS['stc_unique_filename'] );
+			remove_filter( 'wp_unique_filename', '_wc_shiptastic_keep_force_filename', 10 );
+		}
+
 		Package::unset_upload_dir_filter();
 
 		if ( isset( $tmp['file'] ) ) {
@@ -1052,7 +1078,7 @@ function wc_shiptastic_upload_data( $filename, $bits, $relative = true ) {
 			throw new Exception( sprintf( esc_html_x( 'Error while uploading file: %1$s', 'shipments', 'shiptastic-for-woocommerce' ), esc_html( $error_msg ) ) );
 		}
 	} catch ( Exception $e ) {
-		return false;
+		return new WP_Error( 'file-upload', $e->getMessage() );
 	}
 }
 
@@ -2047,4 +2073,112 @@ function wc_shiptastic_decode_html( $str ) {
  */
 function wc_stc_get_email_locale_helper( $email ) {
 	return new \Vendidero\Shiptastic\EmailLocale( $email );
+}
+
+/**
+ * @param int $attachment_id
+ *
+ * @return bool|\Vendidero\Shiptastic\ShipmentAttachment
+ */
+function wc_stc_get_shipment_attachment( $attachment_id = 0, $attachment_type = 'other' ) {
+	return ShipmentFactory::get_shipment_attachment( $attachment_id, $attachment_type );
+}
+
+function wc_stc_get_shipment_attachment_type( $type, $shipment_type = 'simple' ) {
+}
+
+/**
+ * Get all available attachment types.
+ *
+ * @return array
+ */
+function wc_stc_get_shipment_attachment_types( $shipment_type = 'simple' ) {
+	$attachment_types = array(
+		'packing_slip'       => array(
+			'singular' => _x( 'Packing Slip', 'shipments-attachment-type-name', 'shiptastic-for-woocommerce' ),
+			'plural'   => _x( 'Packing Slips', 'shipments-attachment-type-name-plural', 'shiptastic-for-woocommerce' ),
+			'supports' => array(
+				'upload',
+			),
+		),
+		'commercial_invoice' => array(
+			'singular' => _x( 'Commercial Invoice', 'shipments-attachment-type-name', 'shiptastic-for-woocommerce' ),
+			'plural'   => _x( 'Commercial Invoices', 'shipments-attachment-type-name-plural', 'shiptastic-for-woocommerce' ),
+			'supports' => array(
+				'upload',
+			),
+		),
+	);
+
+	/**
+	 * Add or adjust available shipment attachment types.
+	 *
+	 * @param array $attachment_types The available shipment attachment types.
+	 * @param string $document_type The shipment type
+	 */
+	$attachment_types = apply_filters( 'woocommerce_shiptastic_shipment_attachment_types', $attachment_types, $shipment_type );
+
+	foreach ( $attachment_types as $type => $args ) {
+		$args = wp_parse_args(
+			$args,
+			array(
+				'singular'   => '',
+				'plural'     => '',
+				'supports'   => array( 'upload' ),
+				'mime_types' => array(
+					'application/pdf',
+				),
+			)
+		);
+
+		$attachment_types[ $type ] = $args;
+	}
+
+	return $attachment_types;
+}
+
+function wc_stc_get_shipment_attachment_type_data( $type, $shipment_type = 'simple' ) {
+	$types = wc_stc_get_shipment_attachment_types( $shipment_type );
+
+	return array_key_exists( $type, $types ) ? $types[ $type ] : array(
+		'singular'   => '',
+		'plural'     => '',
+		'supports'   => array( 'upload' ),
+		'mime_types' => array(
+			'application/pdf',
+		),
+	);
+}
+
+function wc_stc_get_shipment_attachment_type_name( $type, $shipment_type = 'simple', $plural = false ) {
+	$label_key = $plural ? 'plural' : 'singular';
+
+	if ( is_array( $type ) ) {
+		$type = wp_parse_args(
+			$type,
+			array(
+				'singular' => '',
+				'plural'   => '',
+			)
+		);
+	} else {
+		$type = wc_stc_get_shipment_attachment_type_data( $type, $shipment_type );
+	}
+
+	return $type[ $label_key ];
+}
+
+function wc_stc_get_shipment_attachment_type_supports( $type, $what, $shipment_type = 'simple' ) {
+	if ( is_array( $type ) ) {
+		$type = wp_parse_args(
+			$type,
+			array(
+				'supports' => array(),
+			)
+		);
+	} else {
+		$type = wc_stc_get_shipment_attachment_type_data( $type, $shipment_type );
+	}
+
+	return in_array( $type['supports'], $what, true );
 }

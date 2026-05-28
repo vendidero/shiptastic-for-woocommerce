@@ -890,6 +890,10 @@ a.button.wc-stc-shipment-action-button {
     content: "\f502";
   }
 
+  &.upload::after {
+    content: "\f317";
+  }
+
   &.refresh::after {
     content: "\f515";
   }

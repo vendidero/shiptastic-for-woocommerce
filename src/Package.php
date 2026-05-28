@@ -81,7 +81,9 @@ class Package {
 	public static function refresh_oauth_token( $api_name ) {
 		if ( $api = Helper::get_api( $api_name ) ) {
 			if ( $auth = $api->get_auth_api() ) {
-				$auth->auth();
+				if ( $auth->is_connected() ) {
+					$auth->auth();
+				}
 			}
 		}
 	}
@@ -981,16 +983,18 @@ class Package {
 
 		// List of tables without prefixes.
 		$tables = array(
-			'stc_shipment_itemmeta'     => 'woocommerce_stc_shipment_itemmeta',
-			'stc_shipmentmeta'          => 'woocommerce_stc_shipmentmeta',
-			'stc_shipments'             => 'woocommerce_stc_shipments',
-			'stc_shipment_labelmeta'    => 'woocommerce_stc_shipment_labelmeta',
-			'stc_shipment_labels'       => 'woocommerce_stc_shipment_labels',
-			'stc_shipment_items'        => 'woocommerce_stc_shipment_items',
-			'stc_shipping_provider'     => 'woocommerce_stc_shipping_provider',
-			'stc_shipping_providermeta' => 'woocommerce_stc_shipping_providermeta',
-			'stc_packaging'             => 'woocommerce_stc_packaging',
-			'stc_packagingmeta'         => 'woocommerce_stc_packagingmeta',
+			'stc_shipment_itemmeta'       => 'woocommerce_stc_shipment_itemmeta',
+			'stc_shipmentmeta'            => 'woocommerce_stc_shipmentmeta',
+			'stc_shipments'               => 'woocommerce_stc_shipments',
+			'stc_shipment_labelmeta'      => 'woocommerce_stc_shipment_labelmeta',
+			'stc_shipment_labels'         => 'woocommerce_stc_shipment_labels',
+			'stc_shipment_attachmentmeta' => 'woocommerce_stc_shipment_attachmentmeta',
+			'stc_shipment_attachments'    => 'woocommerce_stc_shipment_attachments',
+			'stc_shipment_items'          => 'woocommerce_stc_shipment_items',
+			'stc_shipping_provider'       => 'woocommerce_stc_shipping_provider',
+			'stc_shipping_providermeta'   => 'woocommerce_stc_shipping_providermeta',
+			'stc_packaging'               => 'woocommerce_stc_packaging',
+			'stc_packagingmeta'           => 'woocommerce_stc_packagingmeta',
 		);
 
 		foreach ( $tables as $name => $table ) {
@@ -1015,11 +1019,12 @@ class Package {
 	}
 
 	public static function register_data_stores( $stores ) {
-		$stores['shipment']          = 'Vendidero\Shiptastic\DataStores\Shipment';
-		$stores['shipment-label']    = 'Vendidero\Shiptastic\DataStores\Label';
-		$stores['packaging']         = 'Vendidero\Shiptastic\DataStores\Packaging';
-		$stores['shipment-item']     = 'Vendidero\Shiptastic\DataStores\ShipmentItem';
-		$stores['shipping-provider'] = 'Vendidero\Shiptastic\DataStores\ShippingProvider';
+		$stores['shipment']            = 'Vendidero\Shiptastic\DataStores\Shipment';
+		$stores['shipment-label']      = 'Vendidero\Shiptastic\DataStores\Label';
+		$stores['packaging']           = 'Vendidero\Shiptastic\DataStores\Packaging';
+		$stores['shipment-item']       = 'Vendidero\Shiptastic\DataStores\ShipmentItem';
+		$stores['shipping-provider']   = 'Vendidero\Shiptastic\DataStores\ShippingProvider';
+		$stores['shipment-attachment'] = 'Vendidero\Shiptastic\DataStores\ShipmentAttachment';
 
 		do_action( 'woocommerce_shiptastic_registered_data_stores' );
 

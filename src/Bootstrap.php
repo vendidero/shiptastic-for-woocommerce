@@ -44,7 +44,7 @@ class Bootstrap {
 		$this->container->get( MethodHelper::class )::init();
 		$this->container->get( Automation::class )::init();
 		$this->container->get( Labels\Automation::class )::init();
-		$this->container->get( Labels\DownloadHandler::class )::init();
+		$this->container->get( DownloadHandler::class )::init();
 		$this->container->get( Emails::class )::init();
 		$this->container->get( Validation::class )::init();
 		$this->container->get( Api::class )::init();
@@ -125,9 +125,9 @@ class Bootstrap {
 			}
 		);
 		$this->container->register(
-			Labels\DownloadHandler::class,
+			DownloadHandler::class,
 			function ( $container ) {
-				return Labels\DownloadHandler::class;
+				return DownloadHandler::class;
 			}
 		);
 		$this->container->register(

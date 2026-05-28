@@ -50,6 +50,8 @@ class Ajax {
 			'create_shipment_label_submit',
 			'preview_shipment_load',
 			'remove_shipment_label',
+			'upload_shipment_attachment',
+			'remove_shipment_attachment',
 			'send_return_shipment_notification_email',
 			'confirm_return_request',
 			'create_return_page',
@@ -273,6 +275,119 @@ class Ajax {
 			'shipment_id' => $shipment_id,
 			'success'     => true,
 		);
+
+		wp_send_json( $response );
+	}
+
+	public static function upload_shipment_attachment() {
+		check_ajax_referer( 'upload-shipment-attachment', 'security' );
+
+		if ( ! current_user_can( 'edit_shop_orders' ) || ! isset( $_POST['shipment_id'] ) || ! isset( $_FILES['shipment_attachments'] ) ) {
+			wp_die( -1 );
+		}
+
+		$shipment_id    = absint( $_POST['shipment_id'] );
+		$response       = array();
+		$response_error = array(
+			'success'  => false,
+			'messages' => array(),
+		);
+
+		if ( ! $shipment = wc_stc_get_shipment( $shipment_id ) ) {
+			wp_send_json( $response_error );
+		}
+
+		$attachments = (array) $_FILES['shipment_attachments']; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+		$files       = array();
+
+		require_once ABSPATH . 'wp-admin/includes/file.php';
+
+		foreach ( $attachments['name'][ $shipment_id ] as $attachment_type => $name ) {
+			$files[ $attachment_type ] = array(
+				'name'     => $name,
+				'type'     => $attachments['type'][ $shipment_id ][ $attachment_type ],
+				'tmp_name' => $attachments['tmp_name'][ $shipment_id ][ $attachment_type ],
+				'size'     => $attachments['size'][ $shipment_id ][ $attachment_type ],
+				'error'    => $attachments['error'][ $shipment_id ][ $attachment_type ],
+			);
+		}
+
+		foreach ( $files as $attachment_type => $file_data ) {
+			Package::set_upload_dir_filter();
+			$file = wp_handle_upload( $file_data, array( 'test_form' => false ) );
+			Package::unset_upload_dir_filter();
+
+			if ( isset( $file['error'] ) ) {
+				$response_error['messages'][] = sprintf( _x( 'There was an error uploading the %1$s: %2$s', 'shipments', 'shiptastic-for-woocommerce' ), wc_stc_get_shipment_attachment_type_name( $attachment_type, $shipment->get_type() ), $file['error'] );
+			} else {
+				$attachment = wc_stc_create_shipment_attachment( $attachment_type );
+
+				if ( ! is_wp_error( $attachment ) ) {
+					$attachment->set_relative_path( $file['file'] );
+					$attachment->set_extension( $file['type'] );
+
+					$shipment->add_attachment( $attachment );
+					$shipment->save();
+				}
+			}
+		}
+
+		if ( ! empty( $response_error['messages'] ) ) {
+			wp_send_json( $response_error );
+		} else {
+			$response = array(
+				'success'       => true,
+				'shipment_id'   => $shipment->get_id(),
+				'needs_refresh' => true,
+				'fragments'     => array(
+					'div#shipment-' . $shipment_id => self::get_shipment_html( $shipment ),
+				),
+			);
+
+			wp_send_json( $response );
+		}
+	}
+
+	public static function remove_shipment_attachment() {
+		check_ajax_referer( 'remove-shipment-attachment', 'security' );
+
+		if ( ! current_user_can( 'edit_shop_orders' ) || ! isset( $_POST['shipment_id'], $_POST['attachment_type'] ) ) {
+			wp_die( -1 );
+		}
+
+		$response       = array();
+		$response_error = array(
+			'success'  => false,
+			'messages' => array(
+				_x( 'There was an error deleting the attachment.', 'shipments', 'shiptastic-for-woocommerce' ),
+			),
+		);
+
+		$shipment_id     = absint( $_POST['shipment_id'] );
+		$attachment_type = wc_clean( wp_unslash( $_POST['attachment_type'] ) );
+
+		if ( ! $shipment = wc_stc_get_shipment( $shipment_id ) ) {
+			wp_send_json( $response_error );
+		}
+
+		if ( ! $attachment = $shipment->get_attachment( $attachment_type ) ) {
+			wp_send_json( $response_error );
+		}
+
+		if ( $shipment->remove_attachment( $attachment_type ) ) {
+			$shipment->save();
+
+			$response = array(
+				'success'       => true,
+				'shipment_id'   => $shipment->get_id(),
+				'needs_refresh' => true,
+				'fragments'     => array(
+					'div#shipment-' . $shipment_id => self::get_shipment_html( $shipment ),
+				),
+			);
+		} else {
+			wp_send_json( $response_error );
+		}
 
 		wp_send_json( $response );
 	}

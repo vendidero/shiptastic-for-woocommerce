@@ -1988,6 +1988,8 @@ class Admin {
 					'shipment_locked_excluded_fields'     => array( 'status' ),
 					'i18n_remove_shipment_notice'         => _x( 'Do you really want to delete the shipment?', 'shipments', 'shiptastic-for-woocommerce' ),
 					'remove_label_nonce'                  => wp_create_nonce( 'remove-shipment-label' ),
+					'upload_attachment_nonce'             => wp_create_nonce( 'upload-shipment-attachment' ),
+					'remove_attachment_nonce'             => wp_create_nonce( 'remove-shipment-attachment' ),
 					'edit_label_nonce'                    => wp_create_nonce( 'edit-shipment-label' ),
 					'send_return_notification_nonce'      => wp_create_nonce( 'send-return-shipment-notification' ),
 					'refresh_packaging_nonce'             => wp_create_nonce( 'refresh-shipment-packaging' ),
@@ -2001,6 +2003,7 @@ class Admin {
 					'create_shipment_label_load_nonce'    => wp_create_nonce( 'create-shipment-label-load' ),
 					'create_shipment_label_submit_nonce'  => wp_create_nonce( 'create-shipment-label-submit' ),
 					'i18n_remove_label_notice'            => _x( 'Do you really want to delete the label?', 'shipments', 'shiptastic-for-woocommerce' ),
+					'i18n_remove_attachment_notice'       => _x( 'Do you really want to delete the attachment?', 'shipments', 'shiptastic-for-woocommerce' ),
 					'i18n_save_before_create'             => _x( 'Please save the shipment first', 'shipments', 'shiptastic-for-woocommerce' ),
 				)
 			);

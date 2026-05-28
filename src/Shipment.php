@@ -74,11 +74,23 @@ abstract class Shipment extends WC_Data {
 	protected $items = null;
 
 	/**
+	 * @var null|ShipmentAttachment[]
+	 */
+	protected $attachments = null;
+
+	/**
 	 * List of items to be deleted on save.
 	 *
-	 * @var Shipment[]
+	 * @var ShipmentItem[]
 	 */
 	protected $items_to_delete = array();
+
+	/**
+	 * List of items to be deleted on save.
+	 *
+	 * @var ShipmentAttachment[]
+	 */
+	protected $attachments_to_delete = array();
 
 	protected $items_to_pack = null;
 
@@ -2719,6 +2731,113 @@ abstract class Shipment extends WC_Data {
 		return true;
 	}
 
+	public function get_supported_attachment_types() {
+		$types = wc_stc_get_shipment_attachment_types( $this->get_type() );
+
+		if ( array_key_exists( 'commercial_invoice', $types ) && ! $this->is_shipping_international() ) {
+			unset( $types['commercial_invoice'] );
+		}
+
+		return apply_filters( "{$this->get_hook_prefix()}supported_attachment_types", $types, $this );
+	}
+
+	/**
+	 * Return an array of attachments within this document.
+	 *
+	 * @return ShipmentAttachment[]
+	 */
+	public function get_attachments( $types = '' ) {
+		$supported_types = array_keys( $this->get_supported_attachment_types() );
+		$types           = array_filter( (array) ( empty( $types ) ? $supported_types : $types ) );
+		$types           = array_intersect( $types, $supported_types );
+		$attachments     = array();
+
+		if ( is_null( $this->attachments ) ) {
+			$this->attachments = $this->data_store->read_attachments( $this );
+		}
+
+		$this->attachments = (array) $this->attachments;
+
+		foreach ( $types as $type ) {
+			if ( ! empty( $this->attachments[ $type ] ) ) {
+				$attachments[] = $this->attachments[ $type ];
+			}
+		}
+
+		// Refresh document reference
+		foreach ( $attachments as $attachment ) {
+			$attachment->set_shipment( $this );
+		}
+
+		return apply_filters( "{$this->get_hook_prefix()}attachments", $attachments, $this, $types );
+	}
+
+	/**
+	 * Adds a shipment attachment to this shipment. The shipment attachment will not persist until save.
+	 *
+	 * @since 3.0.0
+	 * @param ShipmentAttachment $attachment Shipment attachment object.
+	 *
+	 * @return false|void
+	 */
+	public function add_attachment( $attachment ) {
+		if ( ! in_array( $attachment->get_type(), array_keys( $this->get_supported_attachment_types() ), true ) ) {
+			return false;
+		}
+
+		// Set parent.
+		$attachment->set_shipment( $this );
+
+		// Load existing attachments
+		$this->get_attachments();
+
+		/**
+		 * Remove existing attachment before overriding.
+		 */
+		if ( ! empty( $this->attachments[ $attachment->get_type() ] ) ) {
+			$this->remove_attachment( $attachment->get_type() );
+		}
+
+		$this->attachments[ $attachment->get_type() ] = $attachment;
+
+		do_action( "{$this->get_general_hook_prefix()}added_attachment", $attachment, $this );
+	}
+
+	/**
+	 * Get a attachment object.
+	 *
+	 * @param string $type Attachment type.
+	 *
+	 * @return ShipmentAttachment|false
+	 */
+	public function get_attachment( $type ) {
+		$attachments = $this->get_attachments( $type );
+
+		return ! empty( $attachments ) ? array_values( $attachments )[0] : false;
+	}
+
+	/**
+	 * Remove attachment from the document.
+	 *
+	 * @param string $type Type to delete
+	 *
+	 * @return boolean
+	 */
+	public function remove_attachment( $type ) {
+		$attachment = $this->get_attachment( $type );
+
+		if ( ! $attachment ) {
+			return false;
+		}
+
+		// Unset and remove later
+		$this->attachments_to_delete[] = $attachment;
+
+		unset( $this->attachments[ $attachment->get_type() ] );
+
+		return true;
+	}
+
 	/**
 	 * Return an array of items within this shipment.
 	 *
@@ -3008,6 +3127,11 @@ abstract class Shipment extends WC_Data {
 		$this->sync_packaging();
 	}
 
+	public function remove_attachments() {
+		$this->data_store->delete_attachments( $this );
+		$this->attachments = array();
+	}
+
 	/**
 	 * Save all items which are part of this shipment.
 	 */
@@ -3034,6 +3158,22 @@ abstract class Shipment extends WC_Data {
 
 				$items_changed = true;
 			}
+		}
+	}
+
+	/**
+	 * Save all attachments which are part of this shipment.
+	 */
+	protected function save_attachments() {
+		foreach ( $this->attachments_to_delete as $attachment ) {
+			$attachment->delete();
+		}
+
+		$this->attachments_to_delete = array();
+
+		foreach ( $this->get_attachments() as $attachment_key => $attachment ) {
+			$attachment->set_shipment_id( $this->get_id() );
+			$attachment->save();
 		}
 	}
 
@@ -3640,6 +3780,7 @@ abstract class Shipment extends WC_Data {
 			}
 
 			$this->save_items();
+			$this->save_attachments();
 
 			if ( $cache = Helper::get_cache_object( 'shipments' ) ) {
 				$cache->remove( $this->get_id() );

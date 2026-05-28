@@ -307,6 +307,7 @@ class Shipment extends WC_Data_Store_WP implements WC_Object_Data_Store_Interfac
 		$wpdb->delete( $wpdb->stc_shipmentmeta, array( 'stc_shipment_id' => $shipment->get_id() ), array( '%d' ) );
 
 		$this->delete_items( $shipment );
+		$this->delete_attachments( $shipment );
 		$this->clear_caches( $shipment );
 
 		$hook_postfix = $this->get_hook_postfix( $shipment );
@@ -392,6 +393,7 @@ class Shipment extends WC_Data_Store_WP implements WC_Object_Data_Store_Interfac
 	 */
 	protected function clear_caches( &$shipment ) {
 		wp_cache_delete( 'shipment-items-' . $shipment->get_id(), 'shiptastic-shipments' );
+		wp_cache_delete( 'shipment-attachments-' . $shipment->get_id(), 'shiptastic-shipments' );
 		wp_cache_delete( $shipment->get_id(), $this->meta_type . '_meta' );
 		wp_cache_delete( 'available-packaging-' . $shipment->get_id(), 'shiptastic-shipments' );
 		wp_cache_delete( 'shipment-type' . $shipment->get_id(), 'shiptastic-shipments' );
@@ -643,6 +645,70 @@ class Shipment extends WC_Data_Store_WP implements WC_Object_Data_Store_Interfac
 
 		$wpdb->query( $wpdb->prepare( "DELETE FROM itemmeta USING {$wpdb->stc_shipment_itemmeta} itemmeta INNER JOIN {$wpdb->stc_shipment_items} items WHERE itemmeta.stc_shipment_item_id = items.shipment_item_id and items.shipment_id = %d", $shipment->get_id() ) );
 		$wpdb->query( $wpdb->prepare( "DELETE FROM {$wpdb->stc_shipment_items} WHERE shipment_id = %d", $shipment->get_id() ) );
+
+		$this->clear_caches( $shipment );
+	}
+
+	/**
+	 * Read attachments from the database for this shipment.
+	 *
+	 * @param \Vendidero\Shiptastic\Shipment $shipment Shipment object.
+	 *
+	 * @return array
+	 */
+	public function read_attachments( $shipment ) {
+		global $wpdb;
+
+		// Get from cache if available.
+		$attachments = 0 < $shipment->get_id() ? wp_cache_get( 'shipment-attachments-' . $shipment->get_id(), 'shiptastic-shipments' ) : false;
+
+		if ( false === $attachments ) {
+			if ( $shipment->get_id() > 0 ) {
+				$attachments = $wpdb->get_results(
+					$wpdb->prepare( "SELECT * FROM {$wpdb->stc_shipment_attachments} WHERE attachment_shipment_id = %d ORDER BY attachment_id;", $shipment->get_id() )
+				);
+			} else {
+				$attachments = array();
+			}
+
+			foreach ( $attachments as $attachment ) {
+				wp_cache_set( 'attachment-' . $attachment->attachment_id, $attachment, 'shiptastic-shipment-attachments' );
+			}
+
+			if ( 0 < $shipment->get_id() ) {
+				wp_cache_set( 'shipment-attachments-' . $shipment->get_id(), $attachments, 'shiptastic-shipments' );
+			}
+		}
+
+		if ( ! empty( $attachments ) ) {
+			$attachments = array_map(
+				function ( $attachment_id ) use ( $shipment ) {
+					$attachment = wc_stc_get_shipment_attachment( $attachment_id, $attachment_id->attachment_type );
+
+					if ( $attachment ) {
+						$attachment->set_shipment( $shipment );
+					}
+
+					return $attachment;
+				},
+				array_combine( wp_list_pluck( $attachments, 'attachment_type' ), $attachments )
+			);
+		} else {
+			$attachments = array();
+		}
+
+		return $attachments;
+	}
+
+	/**
+	 * Remove all attachments from the shipment.
+	 *
+	 * @param \Vendidero\Shiptastic\Shipment $shipment Shipment object.
+	 */
+	public function delete_attachments( $shipment ) {
+		foreach ( $shipment->get_attachments() as $attachment ) {
+			$attachment->delete( true );
+		}
 
 		$this->clear_caches( $shipment );
 	}

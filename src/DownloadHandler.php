@@ -1,6 +1,6 @@
 <?php
 
-namespace Vendidero\Shiptastic\Labels;
+namespace Vendidero\Shiptastic;
 
 use Vendidero\Shiptastic\Admin\BulkLabel;
 use WC_Download_Handler;
@@ -13,7 +13,9 @@ defined( 'ABSPATH' ) || exit;
 class DownloadHandler {
 
 	public static function init() {
-		if ( isset( $_GET['action'], $_GET['shipment_id'], $_GET['_wpnonce'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		if ( isset( $_GET['action'], $_GET['attachment_id'], $_GET['_wpnonce'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+			add_action( 'init', array( __CLASS__, 'download_attachment' ) );
+		} elseif ( isset( $_GET['action'], $_GET['shipment_id'], $_GET['_wpnonce'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 			add_action( 'init', array( __CLASS__, 'download_label' ) );
 		}
 
@@ -69,6 +71,30 @@ class DownloadHandler {
 						if ( file_exists( $file ) ) {
 							self::download( $file, $filename, $args['force'] );
 						}
+					}
+				}
+			}
+		}
+	}
+
+	public static function download_attachment() {
+		if ( 'wc-stc-download-shipment-attachment' === $_GET['action'] && wp_verify_nonce( wc_clean( wp_unslash( $_REQUEST['_wpnonce'] ) ), 'download-shipment-attachment' ) ) { // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotValidated
+			$attachment_id  = absint( $_GET['attachment_id'] ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotValidated
+			$has_permission = current_user_can( 'edit_shop_orders' );
+
+			$args = self::parse_args(
+				array(
+					'force' => wc_string_to_bool( isset( $_GET['force'] ) ? wc_clean( wp_unslash( $_GET['force'] ) ) : false ),
+				)
+			);
+
+			if ( $has_permission ) {
+				if ( $attachment = wc_stc_get_shipment_attachment( $attachment_id ) ) {
+					$file     = $attachment->get_path();
+					$filename = $attachment->get_filename();
+
+					if ( file_exists( $file ) ) {
+						self::download( $file, $filename, $args['force'] );
 					}
 				}
 			}

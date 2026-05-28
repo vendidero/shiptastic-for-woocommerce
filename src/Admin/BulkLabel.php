@@ -199,8 +199,9 @@ class BulkLabel extends BulkActionHandler {
 					 */
 					$filename = apply_filters( 'woocommerce_shiptastic_shipment_labels_bulk_filename', 'export.pdf', $this );
 					$file     = $pdf->output( $filename, 'S' );
+					$path     = wc_shiptastic_upload_data( $filename, $file );
 
-					if ( $path = wc_shiptastic_upload_data( $filename, $file ) ) {
+					if ( ! is_wp_error( $path ) ) {
 						$this->update_file( $path );
 					}
 				}

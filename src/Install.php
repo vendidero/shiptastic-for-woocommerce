@@ -662,6 +662,27 @@ CREATE TABLE {$wpdb->prefix}woocommerce_stc_shipments (
   KEY shipment_packaging_id (shipment_packaging_id),
   KEY shipment_parent_id (shipment_parent_id)
 ) $collate;
+CREATE TABLE {$wpdb->prefix}woocommerce_stc_shipment_attachments (
+  attachment_id bigint(20) unsigned NOT NULL auto_increment,
+  attachment_type varchar(200) NOT NULL DEFAULT '',
+  attachment_relative_path varchar(260) NOT NULL DEFAULT '',
+  attachment_name text NOT NULL,
+  attachment_extension varchar(260) NOT NULL DEFAULT '',
+  attachment_date_created datetime default NULL,
+  attachment_date_created_gmt datetime default NULL,
+  attachment_shipment_id bigint(20) unsigned NOT NULL,
+  PRIMARY KEY  (attachment_id),
+  KEY attachment_shipment_id (attachment_shipment_id)
+) $collate;
+CREATE TABLE {$wpdb->prefix}woocommerce_stc_shipment_attachmentmeta (
+  meta_id bigint(20) unsigned NOT NULL auto_increment,
+  stc_shipment_attachment_id bigint(20) unsigned NOT NULL,
+  meta_key varchar(255) default NULL,
+  meta_value longtext NULL,
+  PRIMARY KEY  (meta_id),
+  KEY stc_shipment_attachment_id (stc_shipment_attachment_id),
+  KEY meta_key (meta_key(32))
+) $collate;
 CREATE TABLE {$wpdb->prefix}woocommerce_stc_shipment_labels (
   label_id bigint(20) unsigned NOT NULL auto_increment,
   label_date_created datetime default NULL,
