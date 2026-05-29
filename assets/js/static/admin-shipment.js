@@ -62,7 +62,6 @@ window.shiptastic.admin = window.shiptastic.admin || {};
             $( '#shipment-' + self.vars.id + ' #shipment-shipping-provider-' + self.vars.id ).off( '.wc-stc-shipment' );
             $( '#shipment-' + self.vars.id + ' #shipment-packaging-' + self.vars.id ).off( '.wc-stc-shipment' );
             $( '#shipment-' + self.vars.id + ' .wc-stc-shipment-label' ).off( '.wc-stc-shipment' );
-            $( '#shipment-' + self.vars.id + ' .wc-stc-shipment-attachment-content' ).off( '.wc-stc-shipment' );
 
             $( '#shipment-' + self.vars.id + ' #shipment-shipping-provider-' + self.vars.id ).on( 'change', self.onChangeProvider.bind( self ) );
             $( '#shipment-' + self.vars.id + ' #shipment-packaging-' + self.vars.id ).on( 'change', self.refreshDimensions.bind( self ) );
@@ -79,9 +78,6 @@ window.shiptastic.admin = window.shiptastic.admin || {};
                 .on( 'click.wc-stc-shipment', '.confirm-return-shipment', self.onConfirmReturnRequest.bind( self ) );
 
             $( '#shipment-' + self.vars.id + ' .wc-stc-shipment-label' ).on( 'click.wc-stc-shipment', '.remove-shipment-label', self.onRemoveLabel.bind( self ) );
-            $( '#shipment-' + self.vars.id + ' .wc-stc-shipment-attachment-content' ).on( 'click.wc-stc-shipment', '.upload_attachment', self.onUploadAttachment.bind( self ) );
-            $( '#shipment-' + self.vars.id + ' .wc-stc-shipment-attachment-content' ).on( 'change.wc-stc-shipment', '.wc-stc-shipment-upload-attachment', self.onChangeAttachment.bind( self ) );
-            $( '#shipment-' + self.vars.id + ' .wc-stc-shipment-attachment-content' ).on( 'click.wc-stc-shipment', '.delete_attachment', self.onRemoveAttachment.bind( self ) );
         };
 
         this.refreshDimensions = function() {
@@ -149,30 +145,6 @@ window.shiptastic.admin = window.shiptastic.admin || {};
             return false;
         };
 
-        this.onChangeAttachment = function( e ) {
-            var params = {
-                'action'       : 'woocommerce_stc_upload_shipment_attachment',
-                'shipment_id'  : this.getId(),
-                'security'     : shipments.admin.shipments.getParams().upload_attachment_nonce
-            };
-
-            this.block();
-            shipments.admin.shipments.doAjax( params, this.unblock.bind( this ), this.unblock.bind( this ) );
-
-            return false;
-        };
-
-        this.onUploadAttachment = function( e ) {
-            let $target = $( e.target ),
-                $wrapper = $target.parents( '.shipment-attachment-actions' ),
-                type = $target.data( 'attachment-type' );
-
-            $uploadBtn = $wrapper.find( '.wc-stc-shipment-upload-attachment' );
-            $uploadBtn.trigger( 'click' );
-
-            return false;
-        };
-
         this.onConfirmReturnRequest = function() {
             var params = {
                 'action'       : 'woocommerce_stc_confirm_return_request',
@@ -184,31 +156,6 @@ window.shiptastic.admin = window.shiptastic.admin || {};
             shipments.admin.shipments.doAjax( params, this.unblock.bind( this ), this.unblock.bind( this ) );
 
             return false;
-        };
-
-        this.onRemoveAttachment = function( e ) {
-            let $target = $( e.target ),
-                type = $target.data( 'attachment-type' );
-
-            var answer = window.confirm( shipments.admin.shipments.getParams().i18n_remove_attachment_notice );
-
-            if ( answer ) {
-                this.removeAttachment( type );
-            }
-
-            return false;
-        };
-
-        this.removeAttachment = function( attachmentType ) {
-            var params = {
-                'action'         : 'woocommerce_stc_remove_shipment_attachment',
-                'shipment_id'    : this.getId(),
-                'attachment_type': attachmentType,
-                'security'       : shipments.admin.shipments.getParams().remove_attachment_nonce
-            };
-
-            this.block();
-            shipments.admin.shipments.doAjax( params, this.unblock.bind( this ), this.unblock.bind( this ) );
         };
 
         this.onRemoveLabel = function() {

@@ -2756,11 +2756,11 @@ abstract class Shipment extends WC_Data {
 			$this->attachments = $this->data_store->read_attachments( $this );
 		}
 
-		$this->attachments = (array) $this->attachments;
+		$all_attachments = apply_filters( "{$this->get_hook_prefix()}attachments", (array) $this->attachments, $this );
 
 		foreach ( $types as $type ) {
-			if ( ! empty( $this->attachments[ $type ] ) ) {
-				$attachments[] = $this->attachments[ $type ];
+			if ( ! empty( $all_attachments[ $type ] ) ) {
+				$attachments[] = $all_attachments[ $type ];
 			}
 		}
 
@@ -2769,7 +2769,7 @@ abstract class Shipment extends WC_Data {
 			$attachment->set_shipment( $this );
 		}
 
-		return apply_filters( "{$this->get_hook_prefix()}attachments", $attachments, $this, $types );
+		return $attachments;
 	}
 
 	/**
@@ -3172,7 +3172,7 @@ abstract class Shipment extends WC_Data {
 		$this->attachments_to_delete = array();
 
 		foreach ( $this->get_attachments() as $attachment_key => $attachment ) {
-			$attachment->set_shipment_id( $this->get_id() );
+			$attachment->set_shipment( $this );
 			$attachment->save();
 		}
 	}

@@ -112,7 +112,7 @@ class ShipmentFactory {
 			$attachment_type = self::get_document_attachment_type( $attachment_id );
 		}
 
-		$classname = apply_filters( 'shiptastic_shipment_attachment_classname', '\Vendidero\Shiptastic\ShipmentAttachment', $attachment_id, $attachment_type );
+		$classname = apply_filters( 'woocommerce_shiptastic_shipment_attachment_classname', '\Vendidero\Shiptastic\ShipmentAttachment', $attachment_id, $attachment_type );
 
 		if ( $classname && class_exists( $classname ) ) {
 			try {

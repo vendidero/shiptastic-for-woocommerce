@@ -188,30 +188,6 @@ window.shiptastic.admin = window.shiptastic.admin || {};
                 data.append(index, item);
             } );
 
-            // $.extend( data, additionalData );
-
-            console.log(data);
-
-            /*
-            data = {};
-
-            additionalData = additionalData || {};
-
-            $.each( self.$wrapper.find( ':input[name]' ).serializeArray(), function( index, item ) {
-                if ( item.name.indexOf( '[]' ) !== -1 ) {
-                    item.name = item.name.replace( '[]', '' );
-                    data[ item.name ] = $.makeArray( data[ item.name ] );
-                    data[ item.name ].push( item.value );
-                } else {
-                    data[ item.name ] = item.value;
-                }
-            });
-
-            $.extend( data, additionalData );
-
-            console.log(data);
-             */
-
             return data;
         },
 

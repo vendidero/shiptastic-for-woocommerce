@@ -1958,9 +1958,10 @@ class Admin {
 
 		wp_register_script( 'wc-shiptastic-admin-shipment-modal', Package::get_assets_url( 'static/admin-shipment-modal.js' ), array( 'wc-shiptastic-admin', 'wc-backbone-modal' ), Package::get_version() ); // phpcs:ignore WordPress.WP.EnqueuedResourceParameters.NotInFooter
 		wp_register_script( 'wc-shiptastic-admin-shipment-label', Package::get_assets_url( 'static/admin-shipment-label.js' ), array( 'wc-shiptastic-admin' ), Package::get_version() ); // phpcs:ignore WordPress.WP.EnqueuedResourceParameters.NotInFooter
-		wp_register_script( 'wc-shiptastic-admin-shipment', Package::get_assets_url( 'static/admin-shipment.js' ), array( 'wc-shiptastic-admin-shipment-modal', 'wc-shiptastic-admin-shipment-label' ), Package::get_version() ); // phpcs:ignore WordPress.WP.EnqueuedResourceParameters.NotInFooter
+		wp_register_script( 'wc-shiptastic-admin-shipment-attachments', Package::get_assets_url( 'static/admin-shipment-attachments.js' ), array( 'wc-shiptastic-admin' ), Package::get_version() ); // phpcs:ignore WordPress.WP.EnqueuedResourceParameters.NotInFooter
+		wp_register_script( 'wc-shiptastic-admin-shipment', Package::get_assets_url( 'static/admin-shipment.js' ), array( 'wc-shiptastic-admin-shipment-modal', 'wc-shiptastic-admin-shipment-label', 'wc-shiptastic-admin-shipment-attachments' ), Package::get_version() ); // phpcs:ignore WordPress.WP.EnqueuedResourceParameters.NotInFooter
 		wp_register_script( 'wc-shiptastic-admin-shipments', Package::get_assets_url( 'static/admin-shipments.js' ), array( 'wc-admin-order-meta-boxes', 'wc-shiptastic-admin-shipment' ), Package::get_version() ); // phpcs:ignore WordPress.WP.EnqueuedResourceParameters.NotInFooter
-		wp_register_script( 'wc-shiptastic-admin-shipments-table', Package::get_assets_url( 'static/admin-shipments-table.js' ), array( 'wc-shiptastic-admin', 'wc-shiptastic-admin-shipment-modal', 'wc-shiptastic-admin-shipment-label' ), Package::get_version() ); // phpcs:ignore WordPress.WP.EnqueuedResourceParameters.NotInFooter
+		wp_register_script( 'wc-shiptastic-admin-shipments-table', Package::get_assets_url( 'static/admin-shipments-table.js' ), array( 'wc-shiptastic-admin', 'wc-shiptastic-admin-shipment-modal', 'wc-shiptastic-admin-shipment-label', 'wc-shiptastic-admin-shipment-attachments' ), Package::get_version() ); // phpcs:ignore WordPress.WP.EnqueuedResourceParameters.NotInFooter
 
 		wp_register_script( 'wc-shiptastic-admin-shipping-rules', Package::get_assets_url( '/static/admin-shipping-rules.js' ), array( 'wc-shiptastic-admin', 'jquery-ui-sortable', 'wp-util', 'underscore', 'backbone' ), Package::get_version() ); // phpcs:ignore WordPress.WP.EnqueuedResourceParameters.NotInFooter
 		wp_register_script( 'wc-shiptastic-admin-packaging', Package::get_assets_url( '/static/admin-packaging.js' ), array( 'wc-shiptastic-admin-settings' ), Package::get_version() ); // phpcs:ignore WordPress.WP.EnqueuedResourceParameters.NotInFooter
@@ -1985,10 +1986,11 @@ class Admin {
 					'ajax_url'                            => admin_url( 'admin-ajax.php' ),
 					'edit_shipments_nonce'                => wp_create_nonce( 'edit-shipments' ),
 					'order_id'                            => $order_order_post_id,
-					'shipment_locked_excluded_fields'     => array( 'status' ),
+					'shipment_locked_excluded_fields'     => array( 'status', 'attachments' ),
 					'i18n_remove_shipment_notice'         => _x( 'Do you really want to delete the shipment?', 'shipments', 'shiptastic-for-woocommerce' ),
 					'remove_label_nonce'                  => wp_create_nonce( 'remove-shipment-label' ),
 					'upload_attachment_nonce'             => wp_create_nonce( 'upload-shipment-attachment' ),
+					'create_attachment_nonce'             => wp_create_nonce( 'create-shipment-attachment' ),
 					'remove_attachment_nonce'             => wp_create_nonce( 'remove-shipment-attachment' ),
 					'edit_label_nonce'                    => wp_create_nonce( 'edit-shipment-label' ),
 					'send_return_notification_nonce'      => wp_create_nonce( 'send-return-shipment-notification' ),
@@ -2005,6 +2007,15 @@ class Admin {
 					'i18n_remove_label_notice'            => _x( 'Do you really want to delete the label?', 'shipments', 'shiptastic-for-woocommerce' ),
 					'i18n_remove_attachment_notice'       => _x( 'Do you really want to delete the attachment?', 'shipments', 'shiptastic-for-woocommerce' ),
 					'i18n_save_before_create'             => _x( 'Please save the shipment first', 'shipments', 'shiptastic-for-woocommerce' ),
+				)
+			);
+
+			wp_localize_script(
+				'wc-shiptastic-admin-shipments',
+				'wc_shiptastic_admin_shipment_attachment_params',
+				array(
+					'load_nonce'   => wp_create_nonce( 'create-shipment-attachment-load' ),
+					'submit_nonce' => wp_create_nonce( 'create-shipment-attachment-submit' ),
 				)
 			);
 		}

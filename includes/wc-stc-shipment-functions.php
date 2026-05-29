@@ -2168,7 +2168,7 @@ function wc_stc_get_shipment_attachment_type_name( $type, $shipment_type = 'simp
 	return $type[ $label_key ];
 }
 
-function wc_stc_get_shipment_attachment_type_supports( $type, $what, $shipment_type = 'simple' ) {
+function wc_stc_shipment_attachment_type_supports( $type, $what, $shipment_type = 'simple' ) {
 	if ( is_array( $type ) ) {
 		$type = wp_parse_args(
 			$type,
@@ -2180,5 +2180,98 @@ function wc_stc_get_shipment_attachment_type_supports( $type, $what, $shipment_t
 		$type = wc_stc_get_shipment_attachment_type_data( $type, $shipment_type );
 	}
 
-	return in_array( $type['supports'], $what, true );
+	return in_array( $what, (array) $type['supports'], true );
+}
+
+/**
+ * @param Shipment $shipment
+ * @param string $attachment_type
+ *
+ * @return array
+ */
+function wc_stc_get_shipment_attachment_actions( $shipment, $attachment_type = 'simple', $display_for = 'detail' ) {
+	$type_data  = wc_stc_get_shipment_attachment_type_data( $attachment_type, $shipment->get_type() );
+	$attachment = $shipment->get_attachment( $attachment_type );
+	$actions    = array();
+
+	if ( $attachment ) {
+		$actions['download'] = array(
+			'url'     => $attachment->get_download_url(),
+			'name'    => sprintf( _x( 'Download %s', 'shipments-attachment', 'shiptastic-for-woocommerce' ), wc_stc_get_shipment_attachment_type_name( $type_data ) ),
+			'action'  => 'download_attachment',
+			'classes' => 'download',
+			'target'  => '_blank',
+		);
+
+		if ( wc_stc_shipment_attachment_type_supports( $type_data, 'create' ) ) {
+			$actions['refresh'] = array(
+				'name'              => sprintf( _x( 'Refresh %s', 'shipments-attachment', 'shiptastic-for-woocommerce' ), wc_stc_get_shipment_attachment_type_name( $type_data ) ),
+				'action'            => 'create_attachment',
+				'classes'           => 'refresh',
+				'custom_attributes' => array(
+					'data-attachment-type' => $attachment_type,
+				),
+			);
+		}
+
+		$actions['delete'] = array(
+			'classes'           => 'remove-attachment delete',
+			'name'              => sprintf( _x( 'Delete %s', 'shipments-attachment', 'shiptastic-for-woocommerce' ), wc_stc_get_shipment_attachment_type_name( $type_data ) ),
+			'action'            => 'delete_attachment',
+			'custom_attributes' => array(
+				'data-attachment'      => $attachment->get_id(),
+				'data-attachment-type' => $attachment->get_type(),
+			),
+		);
+	} else {
+		if ( wc_stc_shipment_attachment_type_supports( $type_data, 'upload' ) ) {
+			$actions['upload'] = array(
+				'name'              => sprintf( _x( 'Upload %s', 'shipments-attachment', 'shiptastic-for-woocommerce' ), wc_stc_get_shipment_attachment_type_name( $type_data ) ),
+				'action'            => 'upload_attachment',
+				'classes'           => 'upload',
+				'custom_attributes' => array(
+					'data-attachment-type' => $attachment_type,
+				),
+			);
+		}
+
+		if ( wc_stc_shipment_attachment_type_supports( $type_data, 'create' ) ) {
+			$actions['create'] = array(
+				'name'              => sprintf( _x( 'Create %s', 'shipments-attachment', 'shiptastic-for-woocommerce' ), wc_stc_get_shipment_attachment_type_name( $type_data ) ),
+				'action'            => 'create_attachment',
+				'classes'           => 'create',
+				'custom_attributes' => array(
+					'data-attachment-type' => $attachment_type,
+				),
+			);
+		}
+	}
+
+	if ( wc_stc_shipment_attachment_type_supports( $type_data, 'create_modal' ) ) {
+		$action_key = 'create';
+
+		if ( array_key_exists( 'refresh', $actions ) ) {
+			$action_key = 'refresh';
+		}
+
+		if ( array_key_exists( $action_key, $actions ) ) {
+			$actions[ $action_key ]['has_modal']         = true;
+			$actions[ $action_key ]['action']            = 'create_attachment_modal';
+			$actions[ $action_key ]['classes']          .= ' has-shipment-modal';
+			$actions[ $action_key ]['custom_attributes'] = array_merge(
+				$actions[ $action_key ]['custom_attributes'],
+				array(
+					'id'                         => "wc-stc-create-attachment-modal-{$attachment_type}-{$shipment->get_id()}",
+					'data-reference'             => $shipment->get_id(),
+					'data-id'                    => "wc-stc-create-attachment-modal-{$attachment_type}",
+					'data-nonce-params'          => 'wc_shiptastic_admin_shipment_attachment_params',
+					'data-param_attachment_type' => $attachment_type,
+					'data-action'                => 'woocommerce_stc_create_shipment_attachment',
+					'data-load-async'            => true,
+				)
+			);
+		}
+	}
+
+	return apply_filters( 'woocommerce_shiptastic_shipment_attachment_actions', $actions, $shipment, $attachment_type, $display_for, $attachment );
 }

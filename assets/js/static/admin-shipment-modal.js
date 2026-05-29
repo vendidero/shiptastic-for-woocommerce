@@ -199,6 +199,18 @@ window.shiptastic.admin = window.shiptastic.admin || {};
         }
     };
 
+    AdminShipmentModal.prototype.getAdditionalParams = function() {
+        let params = {};
+
+        $.map( this.$modalTrigger.data(), function(v, k) {
+            if ( k.substring(0, 6) === 'param_' ) {
+                params[ k.substring(6).toLowerCase() ] = v;
+            }
+        } );
+
+        return params;
+    };
+
     AdminShipmentModal.prototype.onOpen = function( event, target ) {
         var self = event.data.adminShipmentModal;
 
@@ -254,6 +266,8 @@ window.shiptastic.admin = window.shiptastic.admin || {};
         if ( ! params.hasOwnProperty( 'reference_id' ) ) {
             params['reference_id'] = self.referenceId;
         }
+
+        params = $.extend( self.getAdditionalParams(), params );
 
         self.$modal.find( '.wc-backbone-modal-content' ).block({
             message: null,
@@ -407,18 +421,20 @@ window.shiptastic.admin = window.shiptastic.admin || {};
     };
 
     AdminShipmentModal.prototype.getNonceParams = function() {
-        return window.hasOwnProperty( this.nonceParams ) ? window[ this.nonceParams ] : {};
+        return window.hasOwnProperty( this.nonceParams ) ? window[ this.nonceParams ] : this.params;
     };
 
     AdminShipmentModal.prototype.getNonce = function( type ) {
         var nonceKey    = this.getCleanId( true ) + '_' + type + '_nonce',
             nonceParams = this.getNonceParams();
 
-        return nonceParams.hasOwnProperty( nonceKey ) ? nonceParams[ nonceKey ] : this.params[ type + '_nonce' ];
+        return nonceParams.hasOwnProperty( nonceKey ) ? nonceParams[ nonceKey ] : nonceParams[ type + '_nonce' ];
     };
 
     AdminShipmentModal.prototype.getAction = function( type ) {
-        return this.getCleanId().replace( 'wc_', 'woocommerce_' ) + '_' + type;
+        const action = this.$modalTrigger.data( 'action' ) ? this.$modalTrigger.data( 'action' ) : this.getCleanId().replace( 'wc_', 'woocommerce_' );
+
+        return action + '_' + type;
     };
 
     AdminShipmentModal.prototype.onKeyDown = function( event ) {

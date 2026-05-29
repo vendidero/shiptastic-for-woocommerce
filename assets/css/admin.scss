@@ -355,6 +355,12 @@ p.wc-stc-product-settings-subtitle {
     min-width: 600px;
   }
 
+  &.wc-stc-create-attachment-modal {
+    .wc-backbone-modal-content {
+      min-width: 70%;
+    }
+  }
+
   .notice-wrapper {
     max-width: 100%;
 
@@ -1527,7 +1533,7 @@ a.button.wc-stc-shipment-action-button {
       }
 
       .column-shipment-documents {
-
+        .wc-stc-shipment-attachment {}
       }
 
       .shipment-items {
