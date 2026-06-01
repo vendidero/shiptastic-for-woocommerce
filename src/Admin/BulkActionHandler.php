@@ -22,13 +22,11 @@ abstract class BulkActionHandler {
 
 	protected $ids = array();
 
-	protected $notices = array();
+	protected $notices = null;
 
 	protected $type = 'simple';
 
-	public function __construct() {
-		$this->notices = array_filter( (array) get_user_meta( get_current_user_id(), $this->get_notice_option_name(), true ) );
-	}
+	public function __construct() {}
 
 	protected function get_notice_option_name() {
 		$action = sanitize_key( $this->get_action() );
@@ -80,9 +78,17 @@ abstract class BulkActionHandler {
 	}
 
 	public function get_notices( $type = 'error' ) {
-		$notices = array_key_exists( $type, $this->notices ) ? $this->notices[ $type ] : array();
+		if ( is_null( $this->notices ) ) {
+			$this->notices = array_filter( (array) get_user_meta( get_current_user_id(), $this->get_notice_option_name(), true ) );
+		}
 
-		return $notices;
+		$all_notices = (array) $this->notices;
+
+		if ( empty( $type ) ) {
+			return $all_notices;
+		} else {
+			return array_key_exists( $type, $all_notices ) ? $all_notices[ $type ] : array();
+		}
 	}
 
 	public function get_success_message() {
@@ -96,6 +102,8 @@ abstract class BulkActionHandler {
 	}
 
 	public function add_notice( $notice, $type = 'error' ) {
+		$this->get_notices();
+
 		if ( ! isset( $this->notices[ $type ] ) ) {
 			$this->notices[ $type ] = array();
 		}
@@ -104,7 +112,7 @@ abstract class BulkActionHandler {
 	}
 
 	public function update_notices() {
-		update_user_meta( get_current_user_id(), $this->get_notice_option_name(), $this->notices );
+		update_user_meta( get_current_user_id(), $this->get_notice_option_name(), $this->get_notices( '' ) );
 	}
 
 	public function reset( $is_new = false ) {

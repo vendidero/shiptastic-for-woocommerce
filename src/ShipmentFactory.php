@@ -102,17 +102,23 @@ class ShipmentFactory {
 
 	/**
 	 * @param int $attachment_id Attachment ID if availabe. Leave empty to create new attachment.
+	 * @param string $attachment_type The attachment type for a newly created attachment.
+	 * @param boolean $force_default Whether to enforce a default attachment class.
 	 *
 	 * @return bool|ShipmentAttachment
 	 */
-	public static function get_shipment_attachment( $attachment_id = 0, $attachment_type = 'packing_slip' ) {
+	public static function get_shipment_attachment( $attachment_id = 0, $attachment_type = 'packing_slip', $force_default = false ) {
 		$attachment_id = self::get_document_attachment_id( $attachment_id );
 
 		if ( is_numeric( $attachment_id ) && ! empty( $attachment_id ) ) {
 			$attachment_type = self::get_document_attachment_type( $attachment_id );
 		}
 
-		$classname = apply_filters( 'woocommerce_shiptastic_shipment_attachment_classname', '\Vendidero\Shiptastic\ShipmentAttachment', $attachment_id, $attachment_type );
+		if ( ! $force_default ) {
+			$classname = apply_filters( 'woocommerce_shiptastic_shipment_attachment_classname', '\Vendidero\Shiptastic\ShipmentAttachment', $attachment_id, $attachment_type );
+		} else {
+			$classname = '\Vendidero\Shiptastic\ShipmentAttachment';
+		}
 
 		if ( $classname && class_exists( $classname ) ) {
 			try {

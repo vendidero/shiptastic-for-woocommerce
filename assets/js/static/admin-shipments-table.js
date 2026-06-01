@@ -12,10 +12,13 @@ window.shiptastic.admin = window.shiptastic.admin || {};
         init: function() {
             var self    = shipments.admin.shipments_table;
             self.params = wc_shiptastic_admin_shipments_table_params;
+            self.$wrapper = $( '#wpbody .wrap' );
 
             self.initEnhanced();
 
-            $( document ).on( 'click', '#doaction, #doaction2', self.onBulkSubmit );
+            $( document )
+                .on( 'click', '#doaction, #doaction2', self.onBulkSubmit )
+                .on( 'click', '.wc-stc-table-notices .notice-dismiss', self.onRemoveNotice );
 
             $( '.has-shipment-modal' ).wc_shiptastic_admin_shipment_modal();
 
@@ -48,6 +51,110 @@ window.shiptastic.admin = window.shiptastic.admin || {};
 
                 return false;
             }
+        },
+
+        doAjax: function( params, cSuccess, cError ) {
+            var self             = shipments.admin.shipments_table,
+                url              = self.params.ajax_url,
+                $wrapper         = self.$wrapper,
+                refreshFragments = true,
+                $target          = $( this );
+
+            $wrapper.find( '.wc-stc-table-notices' ).empty();
+
+            cSuccess = cSuccess || self.onAjaxSuccess;
+            cError   = cError || self.onAjaxError;
+
+            if ( params.hasOwnProperty( 'refresh_fragments' ) ) {
+                refreshFragments = params['refresh_fragments'];
+            }
+
+            params = self.getData( params );
+
+            $.ajax({
+                type: "POST",
+                url:  url,
+                data: params,
+                processData: false,
+                contentType: false,
+                success: function( data ) {
+                    if ( data.success ) {
+                        if ( refreshFragments ) {
+                            if ( data.fragments ) {
+                                $.each( data.fragments, function ( key, value ) {
+                                    $( key ).replaceWith( value );
+                                    $( key ).unblock();
+                                } );
+                            }
+                        }
+
+                        cSuccess.apply( $target, [ data ] );
+
+                        self.initTipTip();
+                    } else {
+                        let addedNotice = false;
+
+                        cError.apply( $target, [ data ] );
+
+                        if ( data.hasOwnProperty( 'message' ) ) {
+                            self.addNotice( data.message, 'error' );
+                            addedNotice = true;
+                        } else if( data.hasOwnProperty( 'messages' ) ) {
+                            $.each( data.messages, function( i, message ) {
+                                self.addNotice( message, 'error' );
+                                addedNotice = true;
+                            });
+                        }
+
+                        self.initTipTip();
+
+                        if ( addedNotice ) {
+                            $( '.wc-stc-table-notices' )[0].scrollIntoView({
+                                behavior: "smooth",
+                                block: "start"
+                            });
+                        }
+                    }
+                },
+                error: function( data ) {
+                    cError.apply( $target, [ data ] );
+                    self.initTipTip();
+                },
+                dataType: 'json'
+            });
+        },
+
+        getData: function( additionalData ) {
+            var self = shipments.admin.shipments_table,
+                data = new FormData();
+
+            additionalData = additionalData || {};
+
+            $.each( additionalData, function( index, item ) {
+                data.append(index, item);
+            } );
+
+            return data;
+        },
+
+        onRemoveNotice: function() {
+            $( this ).parents( '.notice' ).slideUp( 150, function() {
+                $( this ).remove();
+            });
+        },
+
+        addNotice: function( message, noticeType ) {
+            var self = shipments.admin.shipments_table;
+
+            self.$wrapper.find( '.wc-stc-table-notices' ).append( '<div class="notice is-dismissible notice-' + noticeType +'"><p>' + message + '</p><button type="button" class="notice-dismiss"></button></div>' );
+        },
+
+        onAjaxError: function( data ) {
+
+        },
+
+        onAjaxSuccess: function( data ) {
+
         },
 
         handleBulkAction: function( action, step, ids, type ) {

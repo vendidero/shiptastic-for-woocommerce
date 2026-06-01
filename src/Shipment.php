@@ -185,8 +185,6 @@ abstract class Shipment extends WC_Data {
 		'est_delivery_date'               => null,
 		'packaging_id'                    => 0,
 		'version'                         => '',
-		'packing_slip_path'               => '',
-		'commercial_invoice_path'         => '',
 		'is_locked'                       => false,
 	);
 
@@ -2484,7 +2482,16 @@ abstract class Shipment extends WC_Data {
 	 * @param string $path The path.
 	 */
 	public function set_packing_slip_path( $path ) {
-		$this->set_prop( 'packing_slip_path', $path );
+		$attachment = $this->get_attachment( 'packing_slip' );
+
+		if ( ! $attachment || ! is_a( $attachment, '\Vendidero\Shiptastic\ShipmentAttachment' ) ) {
+			$attachment = wc_stc_create_shipment_attachment( 'packing_slip', true );
+			$this->add_attachment( $attachment );
+		}
+
+		if ( is_callable( array( $attachment, 'upload_from_file' ) ) ) {
+			$attachment->upload_from_file( $path );
+		}
 	}
 
 	/**
@@ -2493,7 +2500,16 @@ abstract class Shipment extends WC_Data {
 	 * @param string $path The path.
 	 */
 	public function set_commercial_invoice_path( $path ) {
-		$this->set_prop( 'commercial_invoice_path', $path );
+		$attachment = $this->get_attachment( 'commercial_invoice' );
+
+		if ( ! $attachment || ! is_a( $attachment, '\Vendidero\Shiptastic\ShipmentAttachment' ) ) {
+			$attachment = wc_stc_create_shipment_attachment( 'commercial_invoice', true );
+			$this->add_attachment( $attachment );
+		}
+
+		if ( is_callable( array( $attachment, 'upload_from_file' ) ) ) {
+			$attachment->upload_from_file( $path );
+		}
 	}
 
 	/**
@@ -3213,13 +3229,11 @@ abstract class Shipment extends WC_Data {
 	 * @return integer
 	 */
 	public function get_packing_slip_path( $context = 'view' ) {
-		$path = $this->get_prop( 'packing_slip_path', $context );
-
-		if ( 'view' === $context && ! empty( $path ) ) {
-			$path = Package::get_file_by_path( $path );
+		if ( $attachment = $this->get_attachment( 'packing_slip' ) ) {
+			return $attachment->get_path();
 		}
 
-		return $path;
+		return '';
 	}
 
 	/**
@@ -3229,13 +3243,11 @@ abstract class Shipment extends WC_Data {
 	 * @return integer
 	 */
 	public function get_commercial_invoice_path( $context = 'view' ) {
-		$path = $this->get_prop( 'commercial_invoice_path', $context );
-
-		if ( 'view' === $context && ! empty( $path ) ) {
-			$path = Package::get_file_by_path( $path );
+		if ( $attachment = $this->get_attachment( 'commercial_invoice' ) ) {
+			return $attachment->get_path();
 		}
 
-		return $path;
+		return '';
 	}
 
 	/**

@@ -95,6 +95,8 @@ class Admin {
 			}
 		);
 
+		add_filter( 'woocommerce_admin_order_actions', array( __CLASS__, 'order_download_actions' ), 10, 2 );
+
 		add_action( 'woocommerce_admin_field_shiptastic_toggle', array( __CLASS__, 'toggle_input_field' ), 30 );
 		add_action( 'woocommerce_admin_field_shiptastic_search_shipping_provider', array( __CLASS__, 'search_shipping_provider_field' ), 10 );
 		add_action( 'woocommerce_admin_field_dimensions', array( __CLASS__, 'register_dimensions_field' ), 30 );
@@ -108,6 +110,54 @@ class Admin {
 		add_action( 'admin_post_woocommerce_stc_oauth', array( __CLASS__, 'oauth' ) );
 		add_action( 'admin_post_woocommerce_stc_oauth_init', array( __CLASS__, 'oauth_init' ) );
 		add_action( 'admin_post_woocommerce_stc_oauth_revoke', array( __CLASS__, 'oauth_revoke' ) );
+
+		add_action( 'woocommerce_shiptastic_shipment_after_attachment_actions', array( __CLASS__, 'shipment_attachment_actions_html' ), 10, 4 );
+	}
+
+	/**
+	 * @param $actions
+	 * @param \WC_Order $order
+	 */
+	public static function order_download_actions( $actions, $order ) {
+		$attachment_types         = wc_stc_get_shipment_attachment_types();
+		$attachment_types_to_show = array();
+
+		foreach ( $attachment_types as $attachment_type => $type_data ) {
+			if ( wc_stc_shipment_attachment_type_supports( $type_data, 'create' ) ) {
+				$attachment_types_to_show[] = $attachment_type;
+			}
+		}
+
+		if ( ! empty( $attachment_types_to_show ) ) {
+			foreach ( wc_stc_get_simple_shipments_by_order( $order ) as $shipment ) {
+				foreach ( $attachment_types_to_show as $attachment_type ) {
+					$attachment_actions = wc_stc_get_shipment_attachment_actions( $shipment, $attachment_type, 'table' );
+
+					if ( array_key_exists( 'download', $attachment_actions ) ) {
+						$attachment_actions['download']['action'] = 'download';
+
+						$actions[ "download-{$attachment_type}-{$shipment->get_id()}" ] = $attachment_actions['download'];
+					}
+				}
+			}
+		}
+
+		return $actions;
+	}
+
+	public static function shipment_attachment_actions_html( $actions, $attachment_type, $shipment, $attachment ) {
+		$has_upload = array_key_exists( 'upload', $actions );
+		$modal_key  = array_key_exists( 'create', $actions ) ? 'create' : 'refresh';
+		$has_modal  = array_key_exists( $modal_key, $actions ) && isset( $actions[ $modal_key ]['has_modal'] );
+		$type_data  = wc_stc_get_shipment_attachment_type_data( $attachment_type, $shipment->get_type() );
+
+		if ( $has_upload ) {
+			echo '<input data-attachment-type="' . esc_attr( $attachment_type ) . '" type="file" id="upload_attachment_' . esc_attr( $attachment_type ) . '_' . esc_attr( $shipment->get_id() ) . '" class="wc-stc-shipment-upload-attachment hide-default" name="shipment_attachments[' . esc_attr( $shipment->get_id() ) . '][' . esc_attr( $attachment_type ) . ']" accept = "' . esc_attr( implode( ', ', $type_data['mime_types'] ) ) . '" />';
+		}
+
+		if ( $has_modal ) {
+			include Package::get_path() . '/includes/admin/views/html-order-shipment-create-attachment-modal.php';
+		}
 	}
 
 	public static function register_tools( $tools ) {
@@ -1859,10 +1909,12 @@ class Admin {
 			<h1 class="wp-heading-inline"><?php echo esc_html_x( 'Shipments', 'shipments', 'shiptastic-for-woocommerce' ); ?></h1>
 			<hr class="wp-header-end" />
 
-			<?php
-			$wp_list_table->output_notice();
-			$_SERVER['REQUEST_URI'] = remove_query_arg( array( 'updated', 'changed', 'deleted', 'trashed', 'untrashed' ), ( isset( $_SERVER['REQUEST_URI'] ) ? esc_url_raw( wp_unslash( $_SERVER['REQUEST_URI'] ) ) : admin_url( 'admin.php?page=wc-stc-shipments' ) ) );
-			?>
+			<div class="wc-stc-table-notices">
+				<?php
+				$wp_list_table->output_notice();
+				$_SERVER['REQUEST_URI'] = remove_query_arg( array( 'updated', 'changed', 'deleted', 'trashed', 'untrashed' ), ( isset( $_SERVER['REQUEST_URI'] ) ? esc_url_raw( wp_unslash( $_SERVER['REQUEST_URI'] ) ) : admin_url( 'admin.php?page=wc-stc-shipments' ) ) );
+				?>
+			</div>
 
 			<?php $wp_list_table->views(); ?>
 
@@ -1893,10 +1945,12 @@ class Admin {
 			<h1 class="wp-heading-inline"><?php echo esc_html_x( 'Returns', 'shipments', 'shiptastic-for-woocommerce' ); ?></h1>
 			<hr class="wp-header-end" />
 
-			<?php
-			$wp_list_table->output_notice();
-			$_SERVER['REQUEST_URI'] = remove_query_arg( array( 'updated', 'changed', 'deleted', 'trashed', 'untrashed' ), ( isset( $_SERVER['REQUEST_URI'] ) ? esc_url_raw( wp_unslash( $_SERVER['REQUEST_URI'] ) ) : admin_url( 'admin.php?page=wc-stc-shipments' ) ) );
-			?>
+			<div class="wc-stc-table-notices">
+				<?php
+				$wp_list_table->output_notice();
+				$_SERVER['REQUEST_URI'] = remove_query_arg( array( 'updated', 'changed', 'deleted', 'trashed', 'untrashed' ), ( isset( $_SERVER['REQUEST_URI'] ) ? esc_url_raw( wp_unslash( $_SERVER['REQUEST_URI'] ) ) : admin_url( 'admin.php?page=wc-stc-shipments' ) ) );
+				?>
+			</div>
 
 			<?php $wp_list_table->views(); ?>
 
@@ -1989,9 +2043,6 @@ class Admin {
 					'shipment_locked_excluded_fields'     => array( 'status', 'attachments' ),
 					'i18n_remove_shipment_notice'         => _x( 'Do you really want to delete the shipment?', 'shipments', 'shiptastic-for-woocommerce' ),
 					'remove_label_nonce'                  => wp_create_nonce( 'remove-shipment-label' ),
-					'upload_attachment_nonce'             => wp_create_nonce( 'upload-shipment-attachment' ),
-					'create_attachment_nonce'             => wp_create_nonce( 'create-shipment-attachment' ),
-					'remove_attachment_nonce'             => wp_create_nonce( 'remove-shipment-attachment' ),
 					'edit_label_nonce'                    => wp_create_nonce( 'edit-shipment-label' ),
 					'send_return_notification_nonce'      => wp_create_nonce( 'send-return-shipment-notification' ),
 					'refresh_packaging_nonce'             => wp_create_nonce( 'refresh-shipment-packaging' ),
@@ -2005,17 +2056,7 @@ class Admin {
 					'create_shipment_label_load_nonce'    => wp_create_nonce( 'create-shipment-label-load' ),
 					'create_shipment_label_submit_nonce'  => wp_create_nonce( 'create-shipment-label-submit' ),
 					'i18n_remove_label_notice'            => _x( 'Do you really want to delete the label?', 'shipments', 'shiptastic-for-woocommerce' ),
-					'i18n_remove_attachment_notice'       => _x( 'Do you really want to delete the attachment?', 'shipments', 'shiptastic-for-woocommerce' ),
 					'i18n_save_before_create'             => _x( 'Please save the shipment first', 'shipments', 'shiptastic-for-woocommerce' ),
-				)
-			);
-
-			wp_localize_script(
-				'wc-shiptastic-admin-shipments',
-				'wc_shiptastic_admin_shipment_attachment_params',
-				array(
-					'load_nonce'   => wp_create_nonce( 'create-shipment-attachment-load' ),
-					'submit_nonce' => wp_create_nonce( 'create-shipment-attachment-submit' ),
 				)
 			);
 		}
@@ -2031,7 +2072,7 @@ class Admin {
 
 			$bulk_actions = array();
 
-			foreach ( self::get_bulk_action_handlers() as $handler ) {
+			foreach ( self::get_bulk_action_handlers( 'woocommerce_page_wc-stc-return-shipments' === $screen_id ? 'return' : 'simple' ) as $handler ) {
 				$bulk_actions[ sanitize_key( $handler->get_action() ) ] = array(
 					'title' => $handler->get_title(),
 					'nonce' => wp_create_nonce( $handler->get_nonce_name() ),
@@ -2095,6 +2136,19 @@ class Admin {
 			)
 		);
 
+		wp_localize_script(
+			'wc-shiptastic-admin-shipment-attachments',
+			'wc_shiptastic_admin_shipment_attachments_params',
+			array(
+				'upload_attachment_nonce'       => wp_create_nonce( 'upload-shipment-attachment' ),
+				'create_attachment_nonce'       => wp_create_nonce( 'create-shipment-attachment' ),
+				'remove_attachment_nonce'       => wp_create_nonce( 'remove-shipment-attachment' ),
+				'i18n_remove_attachment_notice' => _x( 'Do you really want to delete the attachment?', 'shipments', 'shiptastic-for-woocommerce' ),
+				'load_nonce'                    => wp_create_nonce( 'create-shipment-attachment-load' ),
+				'submit_nonce'                  => wp_create_nonce( 'create-shipment-attachment-submit' ),
+			)
+		);
+
 		// Shipping provider method
 		if ( self::is_shipping_settings_request() ) {
 			/**
@@ -2147,9 +2201,22 @@ class Admin {
 	/**
 	 * @return BulkActionHandler[] $handler
 	 */
-	public static function get_bulk_action_handlers() {
+	public static function get_bulk_action_handlers( $shipment_type = 'simple' ) {
 		if ( is_null( self::$bulk_handlers ) ) {
 			self::$bulk_handlers = array();
+
+			$core_handlers = array(
+				'labels' => '\Vendidero\Shiptastic\Admin\BulkLabel',
+			);
+
+			foreach ( wc_stc_get_shipment_attachment_types( $shipment_type ) as $attachment_type => $type_data ) {
+				if ( wc_stc_shipment_attachment_type_supports( $type_data, 'bulk_create' ) || wc_stc_shipment_attachment_type_supports( $type_data, 'upload' ) ) {
+					$instance = new BulkDownloadAttachment();
+					$instance->set_attachment_type( $attachment_type );
+
+					$core_handlers[ "download_attachments_{$attachment_type}" ] = $instance;
+				}
+			}
 
 			/**
 			 * Filter to register new BulkActionHandler for certain Shipment bulk actions.
@@ -2160,9 +2227,8 @@ class Admin {
 			 */
 			$handlers = apply_filters(
 				'woocommerce_shiptastic_table_bulk_action_handlers',
-				array(
-					'labels' => '\Vendidero\Shiptastic\Admin\BulkLabel',
-				)
+				$core_handlers,
+				$shipment_type
 			);
 
 			foreach ( $handlers as $key => $handler ) {

@@ -2,6 +2,7 @@
 
 namespace Vendidero\Shiptastic;
 
+use Vendidero\Shiptastic\Admin\Admin;
 use Vendidero\Shiptastic\Admin\BulkLabel;
 use WC_Download_Handler;
 
@@ -25,8 +26,11 @@ class DownloadHandler {
 	}
 
 	public static function download_bulk_export() {
-		if ( isset( $_GET['action'] ) && 'wc-stc-download-export-shipment-label' === $_GET['action'] && isset( $_REQUEST['_wpnonce'] ) ) {
-			if ( wp_verify_nonce( wc_clean( wp_unslash( $_REQUEST['_wpnonce'] ) ), 'download-export-shipment-label' ) ) {
+		if ( isset( $_GET['action'], $_GET['handler'], $_GET['shipment_type'] ) && 'wc-stc-download-export' === $_GET['action'] && isset( $_REQUEST['_wpnonce'] ) ) {
+			if ( wp_verify_nonce( wc_clean( wp_unslash( $_REQUEST['_wpnonce'] ) ), 'download-export' ) ) {
+				$shipment_type = wc_clean( wp_unslash( $_GET['shipment_type'] ) );
+				$handler_name  = wc_clean( wp_unslash( $_GET['handler'] ) );
+
 				$args = array(
 					'force' => isset( $_GET['force'] ) ? wc_clean( wp_unslash( $_GET['force'] ) ) : 'no', // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 				);
@@ -34,12 +38,16 @@ class DownloadHandler {
 				$args = self::parse_args( $args );
 
 				if ( current_user_can( 'edit_shop_orders' ) ) {
-					$handler = new BulkLabel();
+					$handlers = Admin::get_bulk_action_handlers( $shipment_type );
 
-					if ( $path = $handler->get_file() ) {
-						$filename = $handler->get_filename();
+					if ( array_key_exists( $handler_name, $handlers ) ) {
+						$handler = $handlers[ $handler_name ];
 
-						self::download( $path, $filename, $args['force'] );
+						if ( $path = $handler->get_file() ) {
+							$filename = $handler->get_filename();
+
+							self::download( $path, $filename, $args['force'] );
+						}
 					}
 				}
 			}
@@ -116,7 +124,9 @@ class DownloadHandler {
 	}
 
 	public static function download( $path, $filename, $force = false ) {
-		if ( $force ) {
+		$file_ext = pathinfo( $filename, PATHINFO_EXTENSION );
+
+		if ( $force || 'pdf' !== $file_ext ) {
 			self::force( $path, $filename );
 		} else {
 			self::embed( $path, $filename );

@@ -8,16 +8,20 @@ window.shiptastic.admin = window.shiptastic.admin || {};
      */
     shipments.admin.shipment_attachments = {
         params: {},
+        isTableView: false,
 
         init: function() {
             var self = shipments.admin.shipment_attachments;
 
+            self.isTableView = $( 'table.shipments' ).length > 0;
+            self.params = wc_shiptastic_admin_shipment_attachments_params;
+
             $( document )
                 .on( 'drop', '#panel-order-shipments .wc-stc-shipment-action-upload-drop', self.onDropUpload )
-                .on( 'click', '#panel-order-shipments .upload_attachment', self.onUploadAttachment )
-                .on( 'change', '#panel-order-shipments .wc-stc-shipment-upload-attachment', self.onChangeAttachment )
-                .on( 'click', '#panel-order-shipments .delete_attachment', self.onRemoveAttachment )
-                .on( 'click', '#panel-order-shipments .create_attachment', self.onCreateAttachment );
+                .on( 'click', '#panel-order-shipments .upload_attachment, table.shipments tr.shipment .upload_attachment', self.onUploadAttachment )
+                .on( 'change', '#panel-order-shipments .wc-stc-shipment-upload-attachment, table.shipments tr.shipment .wc-stc-shipment-upload-attachment', self.onChangeAttachment )
+                .on( 'click', '#panel-order-shipments .delete_attachment, table.shipments tr.shipment .delete_attachment', self.onRemoveAttachment )
+                .on( 'click', '#panel-order-shipments .create_attachment, table.shipments tr.shipment .create_attachment', self.onCreateAttachment );
 
             $( document ).on( 'dragover dragenter', '#panel-order-shipments .wc-stc-shipment-action-upload-drop', function( e ) {
                 let $target = $( e.target ),
@@ -41,7 +45,7 @@ window.shiptastic.admin = window.shiptastic.admin || {};
         },
 
         getShipment: function( $target ) {
-            return $target.parents( '.order-shipment' );
+            return $target.parents( '.order-shipment, .shipment' );
         },
 
         getShipmentId: function( $target ) {
@@ -51,50 +55,79 @@ window.shiptastic.admin = window.shiptastic.admin || {};
         },
 
         blockAttachment: function() {
-            $( this ).parents( '.wc-stc-shipment-attachment' ).block({
-                message: null,
-                overlayCSS: {
-                    background: '#fff',
-                    opacity: 0.6
-                }
-            });
+            self = shipments.admin.shipment_attachments;
+
+            if ( self.isTableView ) {
+                $( this ).addClass( 'button-disabled' );
+                $( this ).find( '.spinner' ).remove();
+                $( this ).append( '<span class="spinner is-active"></span>' );
+                $( this ).addClass( 'loading' );
+            } else {
+                $( this ).parents( '.wc-stc-shipment-attachment' ).block({
+                    message: null,
+                    overlayCSS: {
+                        background: '#fff',
+                        opacity: 0.6
+                    }
+                });
+            }
         },
 
         unblockAttachment: function() {
-            $( this ).parents( '.wc-stc-shipment-attachment' ).unblock();
+            if ( self.isTableView ) {
+                $( this ).find( '.spinner' ).remove();
+                $( this ).removeClass( 'button-disabled' );
+                $( this ).removeClass( 'loading' );
+            } else {
+                $( this ).find( '.wc-stc-shipment-attachment' ).unblock();
+            }
         },
 
         onChangeAttachment: function( e ) {
             let $target = $( e.target ),
                 self = shipments.admin.shipment_attachments,
-                $action = $target.prev( '.wc-stc-shipment-action-button' );
+                $shipment = self.getShipment( $target ),
+                $action = $shipment.find( '.wc-stc-shipment-action-button.upload_attachment[data-attachment-type="' + $target.data( 'attachment-type' ) + '"]' );
 
-            self.uploadAttachment.call( $action );
+            // Get all files that are dropped
+            const files = e.originalEvent.target.files || e.originalEvent.dataTransfer.files;
+            const file = files[0];
+
+            self.uploadAttachment.call( $action, file );
 
             return false;
+        },
+
+        getWrapper: function() {
+            let self = shipments.admin.shipment_attachments;
+
+            return self.isTableView ? shipments.admin.shipments_table : shipments.admin.shipments;
         },
 
         uploadAttachment: function( file = undefined ) {
             let self = shipments.admin.shipment_attachments,
                 $target = $( this ),
                 attachmentType = $target.data( 'attachment-type' ),
+                displayFor = $target.data( 'display-for' ) ? $target.data( 'display-for' ) : 'details',
                 $shipment = self.getShipment( $target ),
                 shipmentId = self.getShipmentId( $target );
 
             let params = {
                 'action'       : 'woocommerce_stc_upload_shipment_attachment',
                 'shipment_id'  : shipmentId,
-                'security'     : shipments.admin.shipments.getParams().upload_attachment_nonce
+                'display_for'  : displayFor,
+                'security'     : self.params.upload_attachment_nonce
             };
 
             if ( file ) {
-                const $attachmentWrapper = $shipment.find( '.wc-stc-shipment-attachment-' + attachmentType );
+                const $input = $shipment.find( '.wc-stc-shipment-upload-attachment[data-attachment-type="' + attachmentType + '"]' );
 
-                params[ $attachmentWrapper.find('.wc-stc-shipment-upload-attachment').prop('name') ] = file;
+                params[ $input.prop('name') ] = file;
             }
 
             self.blockAttachment.call( $target );
-            shipments.admin.shipments.doAjax( params, self.unblockAttachment, self.unblockAttachment );
+
+            self.getWrapper().doAjax.call( $target, params, self.unblockAttachment, self.unblockAttachment );
         },
 
         onDropUpload: function( e ) {
@@ -118,9 +151,10 @@ window.shiptastic.admin = window.shiptastic.admin || {};
         },
 
         onUploadAttachment: function( e ) {
-            let $target = $( e.target );
+            let $target = $( e.target ),
+                self = shipments.admin.shipment_attachments;
 
-            $target.next( '.wc-stc-shipment-upload-attachment' ).trigger( 'click' );
+            self.getShipment( $target ).find( '.wc-stc-shipment-upload-attachment[data-attachment-type="' + $target.data( 'attachment-type' ) + '"]' ).trigger( 'click' );
 
             return false;
         },
@@ -138,25 +172,27 @@ window.shiptastic.admin = window.shiptastic.admin || {};
             let self = shipments.admin.shipment_attachments,
                 $target = $( this ),
                 attachmentType = $target.data( 'attachment-type' ),
+                displayFor = $target.data( 'display-for' ) ? $target.data( 'display-for' ) : 'details',
                 shipmentId = self.getShipmentId( $target );
 
             let params = {
                 'action'         : 'woocommerce_stc_create_shipment_attachment',
                 'shipment_id'    : shipmentId,
                 'attachment_type': attachmentType,
-                'security'       : shipments.admin.shipments.getParams().create_attachment_nonce
+                'display_for'    : displayFor,
+                'security'       : self.params.create_attachment_nonce
             };
 
             self.blockAttachment.call( $target );
 
-            shipments.admin.shipments.doAjax( params, self.unblockAttachment, self.unblockAttachment );
+            self.getWrapper().doAjax.call( $target, params, self.unblockAttachment, self.unblockAttachment );
         },
 
         onRemoveAttachment: function( e ) {
             let self = shipments.admin.shipment_attachments;
             let $target = $( e.target );
 
-            var answer = window.confirm( shipments.admin.shipments.getParams().i18n_remove_attachment_notice );
+            var answer = window.confirm( self.params.i18n_remove_attachment_notice );
 
             if ( answer ) {
                 self.removeAttachment.call( $target );
@@ -169,17 +205,19 @@ window.shiptastic.admin = window.shiptastic.admin || {};
             let self = shipments.admin.shipment_attachments,
                 $target = $( this ),
                 attachmentType = $target.data( 'attachment-type' ),
+                displayFor = $target.data( 'display-for' ) ? $target.data( 'display-for' ) : 'details',
                 shipmentId = self.getShipmentId( $target );
 
             let params = {
                 'action'         : 'woocommerce_stc_remove_shipment_attachment',
                 'shipment_id'    : shipmentId,
                 'attachment_type': attachmentType,
-                'security'       : shipments.admin.shipments.getParams().remove_attachment_nonce
+                'display_for'    : displayFor,
+                'security'       : self.params.remove_attachment_nonce
             };
 
             self.blockAttachment.call( $target );
-            shipments.admin.shipments.doAjax( params, self.unblockAttachment, self.unblockAttachment );
+            self.getWrapper().doAjax.call( $target, params, self.unblockAttachment, self.unblockAttachment );
         }
     };
 

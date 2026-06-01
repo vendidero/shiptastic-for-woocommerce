@@ -349,6 +349,14 @@ class Ajax {
 
 			foreach ( $attachment_types as $attachment_type ) {
 				$response['fragments'][ "div#shipment-{$shipment_id} .wc-stc-shipment-attachment-{$attachment_type}" ] = self::get_shipment_attachment_html( $shipment, $attachment_type );
+
+				$actions = wc_stc_get_shipment_attachment_actions( $shipment, $attachment_type, 'table' );
+
+				if ( array_key_exists( 'download', $actions ) ) {
+					$html = wc_stc_render_shipment_action_buttons( array( $actions['download'] ) );
+
+					$response['fragments'][ "tr#shipment-{$shipment->get_id()} a.upload[data-attachment-type='{$attachment_type}']" ] = $html;
+				}
 			}
 
 			wp_send_json( $response );
@@ -387,8 +395,7 @@ class Ajax {
 	}
 
 	protected static function create_or_update_shipment_attachment( $shipment, $attachment_type ) {
-		$error          = new \WP_Error();
-		$attachment     = $shipment->get_attachment( $attachment_type );
+		$params         = (array) wc_clean( wp_unslash( isset( $_POST[ "{$attachment_type}" ] ) ? $_POST[ "{$attachment_type}" ] : array() ) ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
 		$response_error = array(
 			'success'  => false,
 			'messages' => array(
@@ -396,38 +403,32 @@ class Ajax {
 			),
 		);
 
-		if ( ! $attachment ) {
-			$attachment = wc_stc_create_shipment_attachment( $attachment_type );
-			$attachment->set_shipment( $shipment );
-		}
+		$result = wc_stc_create_or_update_shipment_attachment( $shipment, $attachment_type, $params );
 
-		do_action( "woocommerce_shiptastic_before_create_shipment_attachment_{$attachment_type}", $attachment, $shipment, $error );
-
-		if ( wc_stc_shipment_wp_error_has_errors( $error ) ) {
-			$response_error['messages'] = $error->get_error_messages();
+		if ( is_wp_error( $result ) ) {
+			$response_error['messages'] = $result->get_error_messages();
 
 			return $response_error;
-		} elseif ( is_callable( array( $attachment, 'generate' ) ) ) {
-			$params = (array) wc_clean( wp_unslash( isset( $_POST[ "{$attachment_type}" ] ) ? $_POST[ "{$attachment_type}" ] : array() ) ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
-			$result = $attachment->generate( $shipment, $params );
+		} else {
+			$response = array(
+				'success'       => true,
+				'shipment_id'   => $shipment->get_id(),
+				'needs_refresh' => true,
+				'fragments'     => array(
+					"div#shipment-{$shipment->get_id()} .wc-stc-shipment-attachment-{$attachment_type}" => self::get_shipment_attachment_html( $shipment, $attachment_type ),
+				),
+			);
 
-			if ( true === $result ) {
-				$response = array(
-					'success'       => true,
-					'shipment_id'   => $shipment->get_id(),
-					'needs_refresh' => true,
-					'fragments'     => array(
-						"div#shipment-{$shipment->get_id()} .wc-stc-shipment-attachment-{$attachment_type}" => self::get_shipment_attachment_html( $shipment, $attachment_type ),
-					),
-				);
+			$actions = wc_stc_get_shipment_attachment_actions( $shipment, $attachment_type, 'table' );
 
-				return $response;
-			} elseif ( is_wp_error( $result ) ) {
-				$response_error['messages'] = $result->get_error_messages();
+			if ( array_key_exists( 'download', $actions ) ) {
+				$html = wc_stc_render_shipment_action_buttons( array( $actions['download'] ) );
+
+				$response['fragments'][ "tr#shipment-{$shipment->get_id()} a.create[data-attachment-type='{$attachment_type}']" ] = $html;
 			}
-		}
 
-		return $response_error;
+			return $response;
+		}
 	}
 
 	public static function create_shipment_attachment_load() {
@@ -490,6 +491,7 @@ class Ajax {
 
 		$shipment_id     = absint( $_POST['shipment_id'] );
 		$attachment_type = wc_clean( wp_unslash( $_POST['attachment_type'] ) );
+		$display_for     = wc_clean( wp_unslash( isset( $_POST['display_for'] ) ? $_POST['display_for'] : 'details' ) );
 
 		if ( ! $shipment = wc_stc_get_shipment( $shipment_id ) ) {
 			wp_send_json( $response_error );
@@ -501,7 +503,7 @@ class Ajax {
 			wp_send_json( $response_error );
 		}
 
-		$response = self::create_or_update_shipment_attachment( $shipment, $attachment_type );
+		$response = self::create_or_update_shipment_attachment( $shipment, $attachment_type, $display_for );
 
 		wp_send_json( $response );
 	}
@@ -920,7 +922,7 @@ class Ajax {
 			'message' => '',
 		);
 
-		$handlers = Admin::get_bulk_action_handlers();
+		$handlers = Admin::get_bulk_action_handlers( $type );
 
 		if ( ! array_key_exists( $action, $handlers ) ) {
 			wp_send_json( $response_error );

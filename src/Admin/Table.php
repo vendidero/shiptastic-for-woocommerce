@@ -940,6 +940,29 @@ class Table extends WP_List_Table {
 			}
 		}
 
+		foreach ( $shipment->get_supported_attachment_types() as $attachment_type => $type_data ) {
+			$attachment_actions = wc_stc_get_shipment_attachment_actions( $shipment, $attachment_type, 'table' );
+
+			if ( ! empty( $attachment_actions ) ) {
+				$attachment = $shipment->get_attachment( $attachment_type );
+
+				foreach ( $attachment_actions as $attachment_action_key => $attachment_action ) {
+					$attachment_action = wp_parse_args(
+						$attachment_action,
+						array(
+							'custom_attributes' => array(),
+						)
+					);
+
+					$attachment_action['custom_attributes']['data-display-for'] = 'table';
+
+					$actions[ "{$attachment_action_key}_$attachment_type" ] = $attachment_action;
+				}
+
+				do_action( 'woocommerce_shiptastic_shipment_after_attachment_actions', $attachment_actions, $attachment_type, $shipment, $attachment );
+			}
+		}
+
 		$actions = $this->get_custom_actions( $shipment, $actions );
 
 		/**
@@ -1153,7 +1176,7 @@ class Table extends WP_List_Table {
 		$GLOBALS['shipment'] = $shipment;
 		$classes             = 'shipment shipment-status-' . $shipment->get_status();
 		?>
-		<tr id="shipment-<?php echo esc_attr( $shipment->get_id() ); ?>" class="<?php echo esc_attr( $classes ); ?>">
+		<tr id="shipment-<?php echo esc_attr( $shipment->get_id() ); ?>" class="<?php echo esc_attr( $classes ); ?>" data-shipment="<?php echo esc_attr( $shipment->get_id() ); ?>">
 			<?php $this->single_row_columns( $shipment ); ?>
 		</tr>
 		<?php
@@ -1184,6 +1207,14 @@ class Table extends WP_List_Table {
 		$actions['mark_shipped']            = _x( 'Change status to shipped', 'shipments', 'shiptastic-for-woocommerce' );
 		$actions['mark_delivered']          = _x( 'Change status to delivered', 'shipments', 'shiptastic-for-woocommerce' );
 		$actions['labels']                  = _x( 'Generate and download labels', 'shipments', 'shiptastic-for-woocommerce' );
+
+		foreach ( wc_stc_get_shipment_attachment_types( $this->shipment_type ) as $attachment_type => $type_data ) {
+			if ( wc_stc_shipment_attachment_type_supports( $type_data, 'bulk_create' ) ) {
+				$actions[ "download_attachments_{$attachment_type}" ] = sprintf( _x( 'Generate and download %1$s', 'shipments', 'shiptastic-for-woocommerce' ), wc_stc_get_shipment_attachment_type_name( $attachment_type, $this->shipment_type, 'plural' ) );
+			} elseif ( wc_stc_shipment_attachment_type_supports( $type_data, 'upload' ) ) {
+				$actions[ "download_attachments_{$attachment_type}" ] = sprintf( _x( 'Download %1$s', 'shipments', 'shiptastic-for-woocommerce' ), wc_stc_get_shipment_attachment_type_name( $attachment_type, $this->shipment_type, 'plural' ) );
+			}
+		}
 
 		$actions = $this->get_custom_bulk_actions( $actions );
 

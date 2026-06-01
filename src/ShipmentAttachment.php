@@ -12,6 +12,7 @@ use WC_Data;
 use WC_Data_Store;
 use Exception;
 use WC_DateTime;
+use WP_Error;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -222,6 +223,38 @@ class ShipmentAttachment extends WC_Data implements Attachment {
 		} else {
 			$this->set_relative_path( $path );
 			$this->save();
+
+			return $path;
+		}
+	}
+
+	/**
+	 * Import a file, if necessary and set as relative path.
+	 *
+	 * @param $path
+	 *
+	 * @return string|\WP_Error
+	 */
+	public function upload_from_file( $path ) {
+		$uploads = Package::get_upload_dir();
+
+		/**
+		 * Check whether the file is stored within another path.
+		 */
+		if ( path_is_absolute( $path ) && 0 !== strncmp( $path, $uploads['basedir'], strlen( $uploads['basedir'] ) ) && file_exists( $path ) ) {
+			try {
+				$stream = file_get_contents( $path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
+			} catch ( \Exception $e ) {
+				$stream = '';
+			}
+
+			if ( ! is_string( $stream ) ) {
+				$stream = '';
+			}
+
+			return $this->upload( $stream );
+		} else {
+			$this->set_relative_path( $path );
 
 			return $path;
 		}
