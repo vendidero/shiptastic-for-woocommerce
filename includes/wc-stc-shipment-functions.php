@@ -2117,6 +2117,16 @@ function wc_stc_get_shipment_attachment_types( $shipment_type = 'simple' ) {
 		),
 	);
 
+	if ( Package::base_country_supports_abd_document() ) {
+		$attachment_types['abd'] = array(
+			'singular' => _x( 'ABD (Export Declaration)', 'shipments-attachment-type-name', 'shiptastic-for-woocommerce' ),
+			'plural'   => _x( 'ABD (Export Declarations)', 'shipments-attachment-type-name-plural', 'shiptastic-for-woocommerce' ),
+			'supports' => array(
+				'upload',
+			),
+		);
+	}
+
 	/**
 	 * Add or adjust available shipment attachment types.
 	 *

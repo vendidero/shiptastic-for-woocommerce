@@ -2750,8 +2750,14 @@ abstract class Shipment extends WC_Data {
 	public function get_supported_attachment_types() {
 		$types = wc_stc_get_shipment_attachment_types( $this->get_type() );
 
-		if ( array_key_exists( 'commercial_invoice', $types ) && ! $this->is_shipping_international() ) {
-			unset( $types['commercial_invoice'] );
+		if ( ! $this->is_shipping_international() ) {
+			if ( array_key_exists( 'commercial_invoice', $types ) ) {
+				unset( $types['commercial_invoice'] );
+			}
+
+			if ( array_key_exists( 'abd', $types ) ) {
+				unset( $types['abd'] );
+			}
 		}
 
 		return apply_filters( "{$this->get_hook_prefix()}supported_attachment_types", $types, $this );

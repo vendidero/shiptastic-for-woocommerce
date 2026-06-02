@@ -31,6 +31,8 @@ interface Attachment {
 
 	public function has_file();
 
+	public function get_stream();
+
 	public function delete( $force_delete = false );
 
 	public function save();

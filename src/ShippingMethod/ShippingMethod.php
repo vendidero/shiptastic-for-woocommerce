@@ -1298,7 +1298,7 @@ class ShippingMethod extends \WC_Shipping_Method {
 				} elseif ( in_array( $condition_type_name, array( 'shipping_classes', 'package_shipping_classes', 'shipping_package_shipping_classes' ), true ) ) {
 					$classes = isset( $condition['classes'] ) && ! empty( $condition['classes'] ) ? apply_filters( 'woocommerce_shiptastic_shipping_method_shipping_classes', array_map( 'absint', (array) $condition['classes'] ) ) : array();
 
-					$condition_type_prefix = str_replace( 'shipping_class', '', $condition_type_name );
+					$condition_type_prefix = str_replace( 'shipping_classes', '', $condition_type_name );
 
 					if ( 'exactly' === $operator_name ) {
 						$has_missing_shipping_classes = array_key_exists( "{$condition_type_prefix}has_missing_shipping_classes", $package_data ) ? $package_data[ "{$condition_type_prefix}has_missing_shipping_classes" ] : false;

@@ -551,7 +551,11 @@ class Package {
 	public static function base_country_supports_export_reference_number() {
 		$base_country = self::get_base_country();
 
-		return apply_filters( 'woocommerce_shiptastic_base_country_supports_export_reference_number', self::country_belongs_to_eu_customs_area( $base_country ) );
+		return apply_filters( 'woocommerce_shiptastic_base_country_supports_export_reference_number', self::country_belongs_to_eu_customs_area( $base_country ) || 'GB' === $base_country );
+	}
+
+	public static function base_country_supports_abd_document() {
+		return apply_filters( 'woocommerce_shiptastic_base_country_supports_abd_document', self::base_country_supports_export_reference_number() );
 	}
 
 	public static function get_available_incoterms() {
