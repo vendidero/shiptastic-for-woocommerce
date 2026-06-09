@@ -1086,6 +1086,18 @@ abstract class Shipment extends WC_Data {
 		return $code;
 	}
 
+	public function get_pickup_location_shipping_provider() {
+		$code     = $this->get_pickup_location_code( 'edit' );
+		$provider = $this->get_shipping_provider();
+
+		if ( ! empty( $code ) ) {
+			$code_parts = wc_stc_get_pickup_location_code_parts( $code );
+			$provider   = ! empty( $code_parts['shipping_provider'] ) ? $code_parts['shipping_provider'] : $provider;
+		}
+
+		return $provider;
+	}
+
 	/**
 	 * Retrieves the pickup location customer number, in case existent.
 	 *
@@ -1097,9 +1109,11 @@ abstract class Shipment extends WC_Data {
 	}
 
 	public function has_pickup_location() {
-		$code = $this->get_pickup_location_code();
+		$code                = $this->get_pickup_location_code();
+		$provider            = $this->get_pickup_location_shipping_provider();
+		$has_pickup_location = ! empty( $code ) && str_replace( '_', '', $provider ) === str_replace( '_', '', $this->get_shipping_provider() );
 
-		return apply_filters( "{$this->get_general_hook_prefix()}has_pickup_location", ! empty( $code ), $this );
+		return apply_filters( "{$this->get_general_hook_prefix()}has_pickup_location", $has_pickup_location, $this );
 	}
 
 	/**

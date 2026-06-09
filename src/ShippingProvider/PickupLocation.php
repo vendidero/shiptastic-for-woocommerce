@@ -103,7 +103,10 @@ class PickupLocation {
 		if ( 'view' === $context ) {
 			$provider_name = str_replace( '_', '#', $this->get_shipping_provider_name() );
 
-			return sanitize_key( "{$this->code}_{$this->get_country()}_{$this->get_postcode()}" . ( ! empty( $provider_name ) ? "_{$provider_name}" : '' ) );
+			/**
+			 * Cannot use sanitize_key here as it does not allow #.
+			 */
+			return preg_replace( '/[^a-z0-9_#\-]/', '', strtolower( "{$this->code}_{$this->get_country()}_{$this->get_postcode()}" . ( ! empty( $provider_name ) ? "_{$provider_name}" : '' ) ) );
 		} else {
 			return $this->code;
 		}
