@@ -205,6 +205,15 @@ class Settings {
 				$setting['type']  = 'date';
 
 				woocommerce_wp_text_input( $setting );
+			} elseif ( 'datetime' === $setting['type'] || 'datetime-local' === $setting['type'] ) {
+				$setting['class'] = 'datepicker';
+
+				woocommerce_wp_text_input( $setting );
+			} elseif ( 'time' === $setting['type'] ) {
+				$setting['class'] = 'timepicker';
+				$setting['type']  = 'time';
+
+				woocommerce_wp_text_input( $setting );
 			} elseif ( 'number' === $setting['type'] ) {
 				woocommerce_wp_text_input( $setting );
 			} elseif ( 'services_start' === $setting['type'] ) {

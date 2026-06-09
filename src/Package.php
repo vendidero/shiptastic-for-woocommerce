@@ -25,6 +25,8 @@ class Package {
 
 	protected static $iso = null;
 
+	protected static $holidays = null;
+
 	protected static $street_formats = null;
 
 	protected static $locale = array();
@@ -489,6 +491,62 @@ class Package {
 		}
 
 		return apply_filters( 'woocommerce_shiptastic_shipment_base_postcode', $shipment_postcode );
+	}
+
+	public static function get_holidays( $country ) {
+		if ( is_null( self::$holidays ) ) {
+			self::$holidays = include self::get_path() . '/i18n/holidays.php';
+		}
+
+		$holidays = (array) self::$holidays;
+
+		if ( empty( $country ) ) {
+			return $holidays;
+		} else {
+			$country = strtoupper( $country );
+
+			return array_key_exists( $country, $holidays ) ? $holidays[ $country ] : array();
+		}
+	}
+
+	/**
+	 * @param \WC_DateTime $datetime
+	 *
+	 * @return bool
+	 */
+	public static function is_holiday( $datetime, $country = '' ) {
+		$country = empty( $country ) ? self::get_base_country() : $country;
+
+		return ( in_array( $datetime->date_i18n( 'Y-m-d' ), self::get_holidays( $country ), true ) ) ? true : false;
+	}
+
+	/**
+	 * @param \WC_DateTime $datetime
+	 * @param string $country
+	 *
+	 * @return bool
+	 */
+	public static function is_working_day( $datetime, $country = '' ) {
+		$country        = empty( $country ) ? self::get_base_country() : $country;
+		$is_working_day = ! self::is_holiday( $datetime, $country );
+
+		if ( $is_working_day ) {
+			/**
+			 * Filter to decide whether Shiptastic should consider saturday as a working day
+			 * for preferred day calculation or not.
+			 *
+			 * @param boolean $is_working_day True if saturday should be considered a working day.
+			 *
+			 * @since 3.0.0
+			 */
+			if ( apply_filters( 'woocommerce_shiptastic_consider_saturday_as_working_day', true ) ) {
+				$is_working_day = $datetime->date_i18n( 'N' ) > 6 ? false : true;
+			} else {
+				$is_working_day = $datetime->date_i18n( 'N' ) > 5 ? false : true;
+			}
+		}
+
+		return $is_working_day;
 	}
 
 	public static function base_country_belongs_to_eu_customs_area() {
