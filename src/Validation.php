@@ -4,6 +4,7 @@ namespace Vendidero\Shiptastic;
 
 use Exception;
 use Vendidero\Shiptastic\Interfaces\ShippingProvider;
+use Vendidero\Shiptastic\ShippingProvider\Helper;
 use WC_Order;
 use WC_Order_Item;
 
@@ -205,6 +206,75 @@ class Validation {
 		);
 		add_action( 'woocommerce_order_refunded', array( __CLASS__, 'maybe_update_order_shipping_status' ), 10 );
 		add_action( 'woocommerce_shiptastic_shipping_provider_deactivated', array( __CLASS__, 'maybe_disable_default_shipping_provider' ), 10 );
+
+		add_filter( 'woocommerce_new_order_note_data', array( __CLASS__, 'parse_order_note' ), 10, 2 );
+	}
+
+	/**
+	 * Parse tracking info when a new order note is added.
+	 *
+	 * @param $data
+	 * @param $note_details
+	 *
+	 * @return array
+	 */
+	public static function parse_order_note( $data, $note_details ) {
+		$data         = wp_parse_args(
+			$data,
+			array(
+				'comment_content' => '',
+			)
+		);
+		$note_details = wp_parse_args(
+			$note_details,
+			array(
+				'order_id' => 0,
+			)
+		);
+
+		if ( $shipment_order = wc_stc_get_shipment_order( $note_details['order_id'] ) ) {
+			$tracking_info = wc_stc_extract_tracking_info_from_string( $data['comment_content'] );
+
+			if ( $tracking_info['confidence_score'] > 0.5 && ! empty( $tracking_info['tracking_id'] ) ) {
+				Package::log( "Found tracking info in order note for {$shipment_order->get_id()}", 'info', 'tracking-info' );
+				Package::log( wc_print_r( $tracking_info, true ), 'info', 'tracking-info' );
+
+				if ( $shipment = $shipment_order->get_last_shipment_without_tracking() ) {
+					Package::log( "Found valid shipment without tracking {$shipment->get_id()}", 'info', 'tracking-info' );
+
+					$shipment->set_shipping_provider( '' );
+					$shipment->set_tracking_id( $tracking_info['tracking_id'] );
+
+					$provider = false;
+
+					if ( ! empty( $tracking_info['shipping_provider_name'] ) ) {
+						$provider = wc_stc_get_shipping_provider( $tracking_info['shipping_provider_name'] );
+					}
+
+					$provider = apply_filters( 'woocommerce_shiptastic_order_note_shipping_provider', $provider, $tracking_info, $data, $note_details );
+
+					if ( $provider ) {
+						$shipment->set_shipping_provider( $provider->get_name() );
+					} elseif ( ! empty( $tracking_info['shipping_provider_title'] ) ) {
+						$shipment->set_shipping_provider_title( $tracking_info['shipping_provider_title'] );
+					}
+
+					if ( ! empty( $tracking_info['tracking_url'] ) ) {
+						$shipment->set_tracking_url( $tracking_info['tracking_url'] );
+					}
+
+					if ( apply_filters( 'woocommerce_shiptastic_order_note_tracking_mark_shipment_as_shipped', false, $shipment, $tracking_info ) ) {
+						$shipment->update_status( 'shipped' );
+					} else {
+						$shipment->save();
+					}
+
+					do_action( 'woocommerce_shiptastic_after_update_shipment_based_on_order_note', $shipment, $tracking_info );
+				}
+			}
+		}
+
+		return $data;
 	}
 
 	/**

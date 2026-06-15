@@ -13,6 +13,7 @@ use Vendidero\Shiptastic\AddressSplitter;
 use Vendidero\Shiptastic\ShipmentFactory;
 use Vendidero\Shiptastic\ShipmentItem;
 use Vendidero\Shiptastic\ShipmentReturnItem;
+use Vendidero\Shiptastic\ShippingProvider\Helper;
 use Vendidero\Shiptastic\SimpleShipment;
 use Vendidero\Shiptastic\ReturnShipment;
 use Vendidero\Shiptastic\Package;
@@ -2336,4 +2337,140 @@ function wc_stc_get_shipment_attachment_actions( $shipment, $attachment_type, $d
 	}
 
 	return apply_filters( 'woocommerce_shiptastic_shipment_attachment_actions', $actions, $shipment, $attachment_type, $display_for, $attachment );
+}
+
+/**
+ * Tries to extract tracking info from a string by looking for keywords e.g. shipment.
+ *
+ * @param $tracking_str
+ *
+ * @return array
+ */
+function wc_stc_extract_tracking_info_from_string( $tracking_str ) {
+	$clean_label_cb = function ( $label ) {
+		return trim( preg_replace( '/\s+/', ' ', preg_replace( '/[^\w| ]/', ' ', strtolower( trim( $label ) ) ) ) );
+	};
+
+	$build_word_regex_cb = function ( $words ) {
+		return '/(' . implode( '|', array_map( 'preg_quote', $words ) ) . ')/';
+	};
+
+	$shipment_label_lookup = array_map(
+		$clean_label_cb,
+		array(
+			_x( 'Shipment', 'shipments', 'shiptastic-for-woocommerce' ),
+			'Shipment',
+		)
+	);
+
+	$third_party_provider_lookup = array_map(
+		$clean_label_cb,
+		apply_filters(
+			'woocommerce_shiptastic_third_party_tracking_providers',
+			array(
+				'SendCloud',
+				'SendDrop',
+				'ShipStation',
+				'Pirate Ship',
+				'Skydropx',
+				'Envia',
+				'Easyship',
+				'Packlink',
+			)
+		)
+	);
+
+	$shipping_provider_label_lookup = array_map(
+		$clean_label_cb,
+		array(
+			_x( 'Shipping Provider', 'shipments', 'shiptastic-for-woocommerce' ),
+			'Shipping Provider',
+			'Shipping Carrier',
+			'Carrier',
+		)
+	);
+
+	$words                         = $clean_label_cb( $tracking_str );
+	$contains_shipment             = preg_match( $build_word_regex_cb( $shipment_label_lookup ), $words );
+	$contains_third_party_provider = preg_match( $build_word_regex_cb( $third_party_provider_lookup ), $words, $contains_third_party_providers_found );
+	$tracking_info                 = array(
+		'tracking_id'             => '',
+		'tracking_url'            => '',
+		'shipping_provider_title' => '',
+		'shipping_provider_name'  => '',
+		'third_party_provider'    => '',
+		'confidence_score'        => 0.0,
+	);
+
+	if ( $contains_shipment || $contains_third_party_provider ) {
+		if ( ! empty( $contains_third_party_providers_found ) ) {
+			$tracking_info['third_party_provider'] = wc_clean( array_values( $contains_third_party_providers_found )[0] );
+		}
+
+		$tracking_info['confidence_score'] = 0.5;
+		$line_by_line                      = preg_split( "/\r\n|\n|\r/", $tracking_str );
+
+		foreach ( $line_by_line as $line ) {
+			$line = trim( preg_replace( '/\s+/', ' ', $line ) );
+
+			if ( empty( $line ) ) {
+				continue;
+			}
+
+			$content_parts         = explode( ': ', $line );
+			$is_label_value_format = 2 === count( $content_parts );
+
+			$next_is_shipping_carrier_label = false;
+
+			foreach ( $content_parts as $i => $content_part ) {
+				$content_part        = trim( $content_part );
+				$content_part_words  = preg_split( '/\s+/', $content_part );
+				$contains_alpha_only = preg_match( '/^\w*$/', $content_part_words[0], $tracking_number );
+				$contains_digit      = preg_match( '/\d/', $content_part_words[0] );
+				$content_part_clean  = $clean_label_cb( $content_part );
+
+				if ( $contains_alpha_only && $contains_digit && strlen( $tracking_number[0] ) >= 8 ) {
+					$tracking_info['tracking_id']       = $tracking_number[0];
+					$tracking_info['confidence_score'] += .25;
+				} elseif ( wc_is_valid_url( $content_part_words[0] ) ) {
+					$tracking_info['tracking_url']      = esc_url_raw( $content_part_words[0] );
+					$tracking_info['confidence_score'] += .125;
+				} elseif ( $next_is_shipping_carrier_label ) {
+					$tracking_info['shipping_provider_title'] = $is_label_value_format ? wc_clean( $content_part ) : wc_clean( implode( ' ', array_slice( $content_part_words, 0, 2 ) ) );
+					$tracking_info['confidence_score']       += .125;
+				}
+
+				$next_is_shipping_carrier_label = false;
+				$contains_shipping_provider     = preg_match( $build_word_regex_cb( $shipping_provider_label_lookup ), $content_part_clean );
+
+				if ( $contains_shipping_provider ) {
+					$next_is_shipping_carrier_label = true;
+				}
+			}
+		}
+	}
+
+	$tracking_info = apply_filters( 'woocommerce_shiptastic_extract_tracking_info_from_string', $tracking_info, $tracking_str );
+	$tracking_info = wp_parse_args(
+		$tracking_info,
+		array(
+			'tracking_id'             => '',
+			'tracking_url'            => '',
+			'shipping_provider_title' => '',
+			'shipping_provider_name'  => '',
+			'third_party_provider'    => '',
+			'confidence_score'        => 0.0,
+		)
+	);
+
+	if ( ! empty( $tracking_info['shipping_provider_title'] ) && empty( $tracking_info['shipping_provider_name'] ) ) {
+		$provider = Helper::instance()->get_shipping_provider_by_title( $tracking_info['shipping_provider_title'] );
+		$provider = apply_filters( 'woocommerce_shiptastic_find_shipping_provider_by_tracking_info', $provider, $tracking_info['shipping_provider_title'], $tracking_info );
+
+		if ( $provider ) {
+			$tracking_info['shipping_provider_name'] = $provider->get_name();
+		}
+	}
+
+	return $tracking_info;
 }

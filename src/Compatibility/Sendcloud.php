@@ -5,6 +5,7 @@ namespace Vendidero\Shiptastic\Compatibility;
 use Vendidero\Shiptastic\Extensions;
 use Vendidero\Shiptastic\Interfaces\Compatibility;
 use Vendidero\Shiptastic\Package;
+use Vendidero\Shiptastic\Shipment;
 use Vendidero\Shiptastic\ShippingProvider\Helper;
 
 defined( 'ABSPATH' ) || exit;
@@ -16,95 +17,59 @@ class Sendcloud implements Compatibility {
 	}
 
 	public static function init() {
-		add_filter( 'woocommerce_new_order_note_data', array( __CLASS__, 'parse_order_note' ), 10, 2 );
+		add_filter( 'woocommerce_shiptastic_extract_tracking_info_from_string', array( __CLASS__, 'parse_tracking' ), 10, 2 );
+		add_filter( 'woocommerce_shiptastic_order_note_tracking_mark_shipment_as_shipped', array( __CLASS__, 'maybe_mark_shipped' ), 10, 3 );
 	}
 
 	/**
-	 * Check whether the note contains Sendcloud content and act accordingly.
-	 * Sample: The Austrian Post tracking number for this SendCloud shipment is: 1234567890 and can be traced at: http://sendcloud.com?tracking
+	 * @param boolean $mark_as_shipped
+	 * @param Shipment $shipment
+	 * @param array $tracking_info
 	 *
-	 * @param $data
-	 * @param $note_details
+	 * @return boolean
+	 */
+	public static function maybe_mark_shipped( $mark_as_shipped, $shipment, $tracking_info ) {
+		if ( 'sendcloud' === $tracking_info['third_party_provider'] ) {
+			$mark_as_shipped = apply_filters( 'woocommerce_shiptastic_sendcloud_mark_shipment_as_shipped', false, $shipment );
+		}
+
+		return $mark_as_shipped;
+	}
+
+	/**
+	 * @param array $tracking_info
+	 * @param string $tracking_str
 	 *
 	 * @return array
 	 */
-	public static function parse_order_note( $data, $note_details ) {
-		$data         = wp_parse_args(
-			$data,
+	public static function parse_tracking( $tracking_info, $tracking_str ) {
+		$tracking_info = wp_parse_args(
+			$tracking_info,
 			array(
-				'comment_content' => '',
-			)
-		);
-		$note_details = wp_parse_args(
-			$note_details,
-			array(
-				'order_id' => 0,
+				'third_party_provider' => '',
 			)
 		);
 
-		if ( strstr( $data['comment_content'], 'tracking number for this SendCloud shipment' ) ) {
-			$tracking_number         = '';
+		if ( 'sendcloud' === $tracking_info['third_party_provider'] ) {
+			preg_match( '/The (.*?) tracking number for/', $tracking_str, $matches );
 			$shipping_provider_title = '';
-			$tracking_url            = '';
 
-			if ( $shipment_order = wc_stc_get_shipment_order( $note_details['order_id'] ) ) {
-				preg_match( '/shipment is: ?([^\s]+)/', $data['comment_content'], $matches );
+			if ( 2 === count( $matches ) ) {
+				$shipping_provider_title = $matches[1];
+			}
 
-				Package::log( "Found new SendCloud order note for order {$shipment_order->get_order()->get_id()}", 'info', 'sendcloud' );
+			if ( ! empty( $shipping_provider_title ) ) {
+				$tracking_info['shipping_provider_title'] = $shipping_provider_title;
 
-				if ( 2 === count( $matches ) ) {
-					$tracking_number = $matches[1];
-					$tracking_number = strtoupper( $tracking_number );
-					$tracking_number = preg_replace( '/[^A-Z0-9]/', '', $tracking_number ); // Remove non-alphanumeric characters.
-				}
+				$provider = Helper::instance()->get_shipping_provider_by_title( $shipping_provider_title );
+				$provider = apply_filters( 'woocommerce_shiptastic_sendcloud_shipping_provider', $provider, $shipping_provider_title );
 
-				preg_match( '/The (.*?) tracking number for/', $data['comment_content'], $matches );
-
-				if ( 2 === count( $matches ) ) {
-					$shipping_provider_title = $matches[1];
-				}
-
-				preg_match( '/can be traced at: ?([^\s]+)/', $data['comment_content'], $matches );
-
-				if ( 2 === count( $matches ) ) {
-					$tracking_url = sanitize_url( $matches[1] );
-				}
-
-				if ( ! empty( $tracking_number ) ) {
-					Package::log( "Tracking number for SendCloud order is {$tracking_number}", 'info', 'sendcloud' );
-
-					if ( $shipment = $shipment_order->get_last_shipment_without_tracking() ) {
-						Package::log( "Found valid shipment without tracking {$shipment->get_id()}", 'info', 'sendcloud' );
-
-						$shipment->set_shipping_provider( '' );
-						$shipment->set_tracking_id( $tracking_number );
-
-						if ( ! empty( $shipping_provider_title ) ) {
-							$provider = Helper::instance()->get_shipping_provider_by_title( $shipping_provider_title );
-						}
-
-						$provider = apply_filters( 'woocommerce_shiptastic_sencloud_shipping_provider', $provider, $shipping_provider_title );
-
-						if ( $provider ) {
-							$shipment->set_shipping_provider( $provider->get_name() );
-						} elseif ( ! empty( $shipping_provider_title ) ) {
-							$shipment->set_shipping_provider_title( $shipping_provider_title );
-						}
-
-						if ( ! empty( $tracking_url ) ) {
-							$shipment->set_tracking_url( $tracking_url );
-						}
-
-						if ( apply_filters( 'woocommerce_shiptastic_sencloud_mark_shipment_as_shipped', false, $shipment ) ) {
-							$shipment->update_status( 'shipped' );
-						} else {
-							$shipment->save();
-						}
-					}
+				if ( $provider ) {
+					$tracking_info['shipping_provider_name'] = $provider->get_name();
 				}
 			}
 		}
 
-		return $data;
+		return $tracking_info;
 	}
 }
