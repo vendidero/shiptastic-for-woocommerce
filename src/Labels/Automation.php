@@ -20,10 +20,6 @@ class Automation {
 	public static function init() {
 		add_action( 'woocommerce_shiptastic_shipment_before_status_change', array( __CLASS__, 'set_automation' ), 10, 2 );
 
-		// Watch shipment creations - e.g. default status is set to shipped - needs to trigger label generation
-		add_action( 'woocommerce_shiptastic_new_shipment', array( __CLASS__, 'set_after_create_automation' ), 10, 2 );
-		add_action( 'woocommerce_shiptastic_new_return_shipment', array( __CLASS__, 'set_after_create_automation' ), 10, 2 );
-
 		// After a label has been successfully created - maybe update shipment status
 		add_action( 'woocommerce_shiptastic_shipment_created_label', array( __CLASS__, 'maybe_adjust_shipment_status' ), 10 );
 		add_action( 'woocommerce_shiptastic_return_shipment_created_label', array( __CLASS__, 'maybe_adjust_shipment_status' ), 10 );
