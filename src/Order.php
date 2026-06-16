@@ -2247,7 +2247,10 @@ class Order {
 			if ( empty( $method_id ) ) {
 				$shipping_method = $order_shipping_method;
 				break;
-			} elseif ( $method_id === $order_shipping_method->get_id() ) {
+			} elseif ( is_numeric( $method_id ) && $method_id === $order_shipping_method->get_id() ) {
+				$shipping_method = $order_shipping_method;
+				break;
+			} elseif ( $method_id === $this->get_shipping_method_id( $order_shipping_method ) ) {
 				$shipping_method = $order_shipping_method;
 				break;
 			}
