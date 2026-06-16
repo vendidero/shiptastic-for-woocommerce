@@ -413,8 +413,6 @@ p.wc-stc-product-settings-subtitle {
 
   p.form-field {
     padding: 5px 0;
-    display: flex;
-    flex-wrap: wrap;
     margin: 0;
 
     &.product_id_field {
@@ -422,28 +420,37 @@ p.wc-stc-product-settings-subtitle {
     }
 
     label {
-      margin-bottom: 5px;
       font-weight: bold;
-      display: inline-flex;
-      width: 100%;
     }
 
     .woocommerce-help-tip {
-      display: inline-flex;
-      margin-bottom: 5px;
+      margin-bottom: 0;
       margin-left: 3px;
       margin-top: 2px;
     }
 
-    select, input[type=text], input[type=email], input[type=date] {
+    select,
+    textarea,
+    input[type=text],
+    input[type=number],
+    input[type=email],
+    input[type=date],
+    input[type=time],
+    input[type=datetime-local] {
+      display: block;
+      margin-top: 5px;
+    }
+
+    select,
+    input[type=text],
+    input[type=email],
+    input[type=date] {
       width: 100%;
-      flex: 0 0 100%;
       max-width: 100%;
     }
 
     textarea {
       width: 100%;
-      flex: 0 0 100%;
       max-width: 100%;
     }
 
