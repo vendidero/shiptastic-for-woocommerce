@@ -43,7 +43,15 @@ class Package {
 		self::maybe_set_upload_dir();
 		self::init_hooks();
 		self::includes();
-		self::load_compatibilities();
+
+		/**
+		 * Defer loading compatibilities until the plugins_loaded hooks has "fully" traversed.
+		 */
+		if ( doing_action( 'plugins_loaded' ) ) {
+			add_action( 'plugins_loaded', array( __CLASS__, 'load_compatibilities' ), 9999 );
+		} else {
+			self::load_compatibilities();
+		}
 
 		do_action( 'woocommerce_shiptastic_init' );
 	}

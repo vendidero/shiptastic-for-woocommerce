@@ -56,7 +56,7 @@ class EmailLocale {
 
 	public function restore_email_locale() {
 		if ( apply_filters( 'woocommerce_shiptastic_allow_restoring_email_locale', true ) ) {
-			do_action( 'woocommerce_shiptastsic_restore_email_locale', $this->get_email() );
+			do_action( 'woocommerce_shiptastic_restore_email_locale', $this->get_email() );
 		}
 	}
 }

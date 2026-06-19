@@ -29,7 +29,7 @@ class WPML implements Compatibility {
 		add_filter( 'wcml_emails_options_to_translate', array( __CLASS__, 'register_email_options' ), 10, 1 );
 		add_filter( 'wcml_emails_section_name_prefix', array( __CLASS__, 'filter_email_section_prefix' ), 10, 2 );
 		add_action( 'woocommerce_shiptastic_switch_email_locale', array( __CLASS__, 'setup_email_locale' ), 10, 2 );
-		add_action( 'woocommerce_shiptastsic_restore_email_locale', array( __CLASS__, 'restore_email_locale' ), 10, 1 );
+		add_action( 'woocommerce_shiptastic_restore_email_locale', array( __CLASS__, 'restore_email_locale' ), 10, 1 );
 
 		/**
 		 * Register custom strings (e.g. tracking description placeholder) via WPML. These strings might be translated through
