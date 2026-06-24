@@ -1463,10 +1463,11 @@ class Order {
 		 * @param integer                                      $quantity_left The quantity left for shipment.
 		 * @param WC_Order_Item                                $order_item The order item object.
 		 * @param Order $this The shipment order object.
+		 * @param array $args The arguments passed to the method
 		 *
 		 * @package Vendidero/Shiptastic
 		 */
-		return apply_filters( 'woocommerce_shiptastic_shipment_order_item_quantity_left_for_shipping', $quantity_left, $order_item, $this );
+		return apply_filters( 'woocommerce_shiptastic_shipment_order_item_quantity_left_for_shipping', $quantity_left, $order_item, $this, $args );
 	}
 
 	public function get_item_quantity_sent_by_order_item_id( $order_item_id, $shipping_method_id = 'all' ) {
@@ -2019,7 +2020,7 @@ class Order {
 				$total_quantity -= $refunded_qty;
 
 				/**
-				 * Filter that allows adjusting the quantity left for shipping or a specific order item.
+				 * Filter that allows adjusting the quantity left for shipping of a specific order item.
 				 *
 				 * @param integer                               $quantity_left The quantity left for shipping.
 				 * @param WC_Order_Item                        $item The order item object.
@@ -2032,7 +2033,7 @@ class Order {
 
 				if ( $total_quantity > 0 ) {
 					$all_items[ $key ] = array(
-						'quantity' => absint( $item->get_quantity() ),
+						'quantity' => absint( $total_quantity ),
 						'instance' => $item,
 					);
 				}
@@ -2109,17 +2110,7 @@ class Order {
 			}
 		}
 
-		/**
-		 * Filter that allows adjusting the quantity left for shipping or a specific order item.
-		 *
-		 * @param integer                               $quantity_left The quantity left for shipping.
-		 * @param WC_Order_Item                        $item The order item object.
-		 * @param Order $order The shipment order object.
-		 * @param mixed $shipping_method_id
-		 *
-		 * @package Vendidero/Shiptastic
-		 */
-		return apply_filters( 'woocommerce_shiptastic_shipment_order_item_shippable_quantity', $quantity_left, $order_item, $this, $shipping_method_id );
+		return $quantity_left;
 	}
 
 	/**

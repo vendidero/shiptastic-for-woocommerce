@@ -826,7 +826,7 @@ class Ajax {
 				ShippingProvider\Helper::instance()->load_shipping_providers();
 
 				if ( $provider = wc_stc_get_shipping_provider( $provider_name ) ) {
-                    $provider->activate();
+					$provider->activate();
 
 					$success      = true;
 					$redirect_url = $provider->get_edit_link();

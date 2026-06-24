@@ -35,4 +35,8 @@ rm -f ./vendor/dvdoug/boxpacker/*
 rm -rf ./vendor/dvdoug/boxpacker/.*
 rm -rf ./vendor/dvdoug/boxpacker/.github/*
 
+rm -rf ./vendor/setasign/fpdf/doc/*
+rm -rf ./vendor/setasign/fpdf/tutorial/*
+rm -rf ./vendor/setasign/fpdf/makefont/*
+
 output 2 "Done!"

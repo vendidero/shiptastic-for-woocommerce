@@ -4,6 +4,7 @@ namespace Vendidero\Shiptastic\Compatibility;
 
 use Vendidero\OrderWithdrawalButton\WithdrawalOrder;
 use Vendidero\Shiptastic\Interfaces\Compatibility;
+use Vendidero\Shiptastic\Order;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -17,6 +18,54 @@ class OrderWithdrawalButton implements Compatibility {
 		add_action( 'eu_owb_woocommerce_withdrawal_request_confirmed', array( __CLASS__, 'on_request_updated' ), 10, 2 );
 		add_filter( 'eu_owb_woocommerce_order_item_is_withdrawable', array( __CLASS__, 'item_is_withdrawable' ), 10, 3 );
 		add_filter( 'eu_owb_woocommerce_order_date_delivered_raw', array( __CLASS__, 'date_delivered' ), 10, 2 );
+		add_filter( 'woocommerce_shiptastic_shipment_order_item_shippable_quantity', array( __CLASS__, 'shippable_quantity' ), 10, 3 );
+	}
+
+	/**
+	 * @param int $total_quantity
+	 * @param \WC_Order_Item $order_item
+	 * @param Order $order
+	 *
+	 * @return int
+	 */
+	public static function shippable_quantity( $total_quantity, $order_item, $order ) {
+		if ( ! function_exists( 'eu_owb_get_order_withdrawals' ) ) {
+			return $total_quantity;
+		}
+
+		$withdrawals = eu_owb_get_order_withdrawals( $order->get_order(), array( 'status' => 'confirmed' ) );
+
+		foreach ( $withdrawals as $withdrawal ) {
+			foreach ( $withdrawal->get_items() as $withdrawal_item ) {
+				if ( $withdrawal_item->get_parent_id() === $order_item->get_id() ) {
+					$total_quantity -= $withdrawal_item->get_quantity();
+
+					if ( is_callable( array( $withdrawal_item, 'get_refunded_quantity' ) ) ) {
+						/**
+						 * This is the refunded qty already deducted by core from total_quantity
+						 */
+						$refunded_qty = absint( $order->get_order()->get_qty_refunded_for_item( $order_item->get_id() ) );
+
+						if ( $refunded_qty < 0 ) {
+							$refunded_qty *= -1;
+						}
+
+						/**
+						 * (Re-) add qty refunded
+						 */
+						if ( $withdrawal_item->get_refunded_quantity() > 0 ) {
+							$max_to_add = min( $refunded_qty, $withdrawal_item->get_refunded_quantity() );
+
+							if ( $max_to_add > 0 ) {
+								$total_quantity += $max_to_add;
+							}
+						}
+					}
+				}
+			}
+		}
+
+		return $total_quantity;
 	}
 
 	/**
