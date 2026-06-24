@@ -27,6 +27,29 @@ class Helper {
 				self::flush_order_cache( $order_id );
 			}
 		);
+
+		add_action( 'before_woocommerce_init', array( __CLASS__, 'register_non_persistent_groups' ) );
+	}
+
+	/**
+	 * We don't want to persist the order + shipments objects in cache. It should be in-memory only.
+	 *
+	 * @return void
+	 */
+	public static function register_non_persistent_groups() {
+		$non_persistent_groups = array(
+			self::get_cache_object( 'shipment-orders' ) ? self::get_cache_object( 'shipment-orders' )->get_object_type() : null,
+			self::get_cache_object( 'shipments' ) ? self::get_cache_object( 'shipments' )->get_object_type() : null,
+			self::get_cache_object( 'shipment-labels' ) ? self::get_cache_object( 'shipment-labels' )->get_object_type() : null,
+		);
+
+		$non_persistent_groups = array_filter( $non_persistent_groups );
+
+		if ( ! empty( $non_persistent_groups ) ) {
+			return;
+		}
+
+		wp_cache_add_non_persistent_groups( $non_persistent_groups );
 	}
 
 	public static function flush_order_cache( $order ) {

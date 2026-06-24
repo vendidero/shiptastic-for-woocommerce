@@ -2,14 +2,14 @@
 # This file is distributed under the GPLv3.
 msgid ""
 msgstr ""
-"Project-Id-Version: Shiptastic for WooCommerce 5.0.4\n"
+"Project-Id-Version: Shiptastic for WooCommerce 5.1.0\n"
 "Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/shiptastic-for-woocommerce\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-05-20T09:45:21+00:00\n"
+"POT-Creation-Date: 2026-06-24T07:52:12+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 
@@ -38,25 +38,25 @@ msgstr ""
 msgid "https://vendidero.com"
 msgstr ""
 
-#: includes/admin/views/html-order-shipment-content.php:32
+#: includes/admin/views/html-order-shipment-content.php:31
 #, php-format
 msgctxt "shipments"
 msgid "Content (%s)"
 msgstr ""
 
-#: includes/admin/views/html-order-shipment-content.php:38
+#: includes/admin/views/html-order-shipment-content.php:37
 #, php-format
 msgctxt "shipments"
 msgid "Dimensions (%s)"
 msgstr ""
 
-#: includes/admin/views/html-order-shipment-content.php:38
+#: includes/admin/views/html-order-shipment-content.php:37
 msgctxt "shipments"
 msgid "LxWxH in decimal form."
 msgstr ""
 
-#: includes/admin/views/html-order-shipment-content.php:50
-#: src/Admin/Admin.php:697
+#: includes/admin/views/html-order-shipment-content.php:49
+#: src/Admin/Admin.php:747
 #: src/Admin/Setup/Wizard.php:112
 #: src/Admin/Table.php:719
 #: src/Admin/Tabs/Packaging.php:27
@@ -67,8 +67,8 @@ msgctxt "shipments"
 msgid "Packaging"
 msgstr ""
 
-#: includes/admin/views/html-order-shipment-content.php:58
-#: includes/wc-stc-shipment-functions.php:1498
+#: includes/admin/views/html-order-shipment-content.php:57
+#: includes/wc-stc-shipment-functions.php:1535
 #: src/Admin/ReturnTable.php:25
 #: src/Admin/Table.php:716
 #: src/ShippingProvider/Auto.php:600
@@ -77,12 +77,12 @@ msgctxt "shipments"
 msgid "Status"
 msgstr ""
 
-#: includes/admin/views/html-order-shipment-content.php:68
+#: includes/admin/views/html-order-shipment-content.php:67
 msgctxt "shipments"
 msgid "Shipping method"
 msgstr ""
 
-#: includes/admin/views/html-order-shipment-content.php:78
+#: includes/admin/views/html-order-shipment-content.php:77
 #: includes/admin/views/wizard/shipping-provider.php:71
 #: src/Admin/PackagingSettings.php:137
 #: src/Admin/Setup/Wizard.php:126
@@ -92,47 +92,47 @@ msgctxt "shipments"
 msgid "Shipping Service Provider"
 msgstr ""
 
-#: includes/admin/views/html-order-shipment-content.php:94
+#: includes/admin/views/html-order-shipment-content.php:93
 msgctxt "shipments"
 msgid "Tracking Number"
 msgstr ""
 
-#: includes/admin/views/html-order-shipment-content.php:129
+#: includes/admin/views/html-order-shipment-content.php:128
 msgctxt "shipments"
 msgid "Track & Trace"
 msgstr ""
 
-#: includes/admin/views/html-order-shipment-content.php:177
+#: includes/admin/views/html-order-shipment-content.php:180
 msgctxt "shipments"
 msgid "Add item"
 msgstr ""
 
-#: includes/admin/views/html-order-shipment-content.php:188
+#: includes/admin/views/html-order-shipment-content.php:191
 msgctxt "shipments"
 msgid "Sync items"
 msgstr ""
 
-#: includes/admin/views/html-order-shipment-content.php:189
+#: includes/admin/views/html-order-shipment-content.php:192
 msgctxt "shipments"
 msgid "Automatically adjust items and quantities based on order item data."
 msgstr ""
 
-#: includes/admin/views/html-order-shipment-content.php:202
+#: includes/admin/views/html-order-shipment-content.php:205
 msgctxt "shipments"
 msgid "Add Item"
 msgstr ""
 
-#: includes/admin/views/html-order-shipment-content.php:212
+#: includes/admin/views/html-order-shipment-content.php:215
 #: includes/admin/views/html-order-shipments.php:50
-#: src/Admin/Admin.php:1286
+#: src/Admin/Admin.php:1336
 msgctxt "shipments"
 msgid "Item"
 msgstr ""
 
-#: includes/admin/views/html-order-shipment-content.php:213
+#: includes/admin/views/html-order-shipment-content.php:216
 #: includes/admin/views/html-order-shipments.php:51
 #: includes/admin/views/html-preview-shipment.php:74
-#: src/Admin/Admin.php:1291
+#: src/Admin/Admin.php:1341
 #: src/ShippingMethod/ShippingMethod.php:400
 #: src/ShippingMethod/ShippingMethod.php:506
 #: src/ShippingMethod/ShippingMethod.php:610
@@ -143,86 +143,97 @@ msgctxt "shipments"
 msgid "Quantity"
 msgstr ""
 
-#: includes/admin/views/html-order-shipment-content.php:227
+#: includes/admin/views/html-order-shipment-content.php:230
 #: includes/admin/views/html-order-shipments.php:60
 msgctxt "shipments"
 msgid "Add"
 msgstr ""
 
-#: includes/admin/views/html-order-shipment-content.php:266
+#: includes/admin/views/html-order-shipment-content.php:269
 msgctxt "shipments"
 msgid "Send return instructions to your customer via email including return label as attachment (if available)."
 msgstr ""
 
-#: includes/admin/views/html-order-shipment-content.php:267
+#: includes/admin/views/html-order-shipment-content.php:270
 msgctxt "shipments"
 msgid "Resend notification"
 msgstr ""
 
-#: includes/admin/views/html-order-shipment-content.php:267
+#: includes/admin/views/html-order-shipment-content.php:270
 msgctxt "shipments"
 msgid "Notify customer"
 msgstr ""
 
-#: includes/admin/views/html-order-shipment-content.php:270
+#: includes/admin/views/html-order-shipment-content.php:273
 msgctxt "shipments"
 msgid "Confirm the return request to the customer. The customer receives an email notification possibly containing return instructions."
 msgstr ""
 
-#: includes/admin/views/html-order-shipment-content.php:270
+#: includes/admin/views/html-order-shipment-content.php:273
 #: src/Admin/ReturnTable.php:70
 msgctxt "shipments"
 msgid "Confirm return request"
 msgstr ""
 
-#: includes/admin/views/html-order-shipment-content.php:271
+#: includes/admin/views/html-order-shipment-content.php:274
 msgctxt "shipments"
 msgid "Decline the return request. The customer receives an email notification."
 msgstr ""
 
-#: includes/admin/views/html-order-shipment-content.php:271
-#: includes/admin/views/html-order-shipment-content.php:293
+#: includes/admin/views/html-order-shipment-content.php:274
+#: includes/admin/views/html-order-shipment-content.php:296
 msgctxt "shipments"
 msgid "Decline request"
 msgstr ""
 
-#: includes/admin/views/html-order-shipment-content.php:278
+#: includes/admin/views/html-order-shipment-content.php:281
 msgctxt "shipments"
 msgid "Decline return request"
 msgstr ""
 
-#: includes/admin/views/html-order-shipment-content.php:286
+#: includes/admin/views/html-order-shipment-content.php:289
 msgctxt "shipments"
 msgid "Reason for rejection"
 msgstr ""
 
-#: includes/admin/views/html-order-shipment-content.php:302
+#: includes/admin/views/html-order-shipment-content.php:305
 msgctxt "shipments"
 msgid "Create a refund linked to this return. Return costs will be automatically deducted from refund total."
 msgstr ""
 
-#: includes/admin/views/html-order-shipment-content.php:302
-#: includes/admin/views/html-order-shipment-content.php:309
-#: includes/admin/views/html-order-shipment-content.php:328
+#: includes/admin/views/html-order-shipment-content.php:305
+#: includes/admin/views/html-order-shipment-content.php:312
+#: includes/admin/views/html-order-shipment-content.php:331
 msgctxt "shipments"
 msgid "Create refund"
 msgstr ""
 
-#: includes/admin/views/html-order-shipment-content.php:317
+#: includes/admin/views/html-order-shipment-content.php:320
 #, php-format
 msgctxt "shipments"
 msgid "Return costs (%s)"
 msgstr ""
 
-#: includes/admin/views/html-order-shipment-content.php:321
+#: includes/admin/views/html-order-shipment-content.php:324
 msgctxt "shipments"
 msgid "Restock refunded items?"
 msgstr ""
 
-#: includes/admin/views/html-order-shipment-content.php:339
+#: includes/admin/views/html-order-shipment-content.php:342
 #, php-format
 msgctxt "shipments"
 msgid "Delete %s"
+msgstr ""
+
+#: includes/admin/views/html-order-shipment-create-attachment-modal.php:17
+#, php-format
+msgctxt "shipments-attachment"
+msgid "Create %1$s"
+msgstr ""
+
+#: includes/admin/views/html-order-shipment-create-attachment-modal.php:31
+msgctxt "shipments-attachment"
+msgid "Create"
 msgstr ""
 
 #: includes/admin/views/html-order-shipment-item-count.php:13
@@ -245,10 +256,10 @@ msgid "Delete item"
 msgstr ""
 
 #: includes/admin/views/html-order-shipment-list.php:21
-#: includes/wc-stc-shipment-functions.php:161
-#: src/Admin/Admin.php:682
-#: src/Admin/Admin.php:1773
-#: src/Admin/Admin.php:1893
+#: includes/wc-stc-shipment-functions.php:162
+#: src/Admin/Admin.php:732
+#: src/Admin/Admin.php:1823
+#: src/Admin/Admin.php:1945
 #: src/Admin/Setup/Wizard.php:149
 #: src/Admin/Tabs/General.php:27
 #: src/Admin/Tabs/General.php:93
@@ -283,11 +294,11 @@ msgid "Self-arranged"
 msgstr ""
 
 #: includes/admin/views/html-order-shipments.php:17
-#: includes/wc-stc-shipment-functions.php:154
-#: src/Admin/Admin.php:678
-#: src/Admin/Admin.php:1772
-#: src/Admin/Admin.php:1859
-#: src/Admin/Admin.php:1927
+#: includes/wc-stc-shipment-functions.php:155
+#: src/Admin/Admin.php:728
+#: src/Admin/Admin.php:1822
+#: src/Admin/Admin.php:1909
+#: src/Admin/Admin.php:1981
 #: templates/myaccount/order-shipments.php:20
 msgctxt "shipments"
 msgid "Shipments"
@@ -374,7 +385,7 @@ msgid "Weight"
 msgstr ""
 
 #: includes/admin/views/html-preview-shipment.php:100
-#: src/Admin/Table.php:1009
+#: src/Admin/Table.php:1032
 msgctxt "shipments"
 msgid "SKU:"
 msgstr ""
@@ -391,8 +402,8 @@ msgstr ""
 
 #: includes/admin/views/html-settings-provider-list.php:15
 #: includes/admin/views/tabs/html-admin-settings-tabs.php:15
-#: src/Admin/Admin.php:1087
-#: src/Admin/Admin.php:1613
+#: src/Admin/Admin.php:1137
+#: src/Admin/Admin.php:1663
 #: src/Admin/PackagingSettings.php:122
 #: src/ShippingProvider/Simple.php:1001
 msgctxt "shipments"
@@ -477,7 +488,7 @@ msgstr ""
 #: includes/admin/views/html-settings-provider-list.php:71
 #: includes/admin/views/tabs/html-admin-settings-tabs.php:39
 #: includes/admin/views/tabs/html-admin-settings-tabs.php:58
-#: src/Admin/Admin.php:619
+#: src/Admin/Admin.php:669
 msgctxt "shipments"
 msgid "Yes"
 msgstr ""
@@ -485,7 +496,7 @@ msgstr ""
 #: includes/admin/views/html-settings-provider-list.php:89
 #: includes/admin/views/html-settings-provider-list.php:90
 #: includes/admin/views/html-settings-provider-list.php:92
-#: src/Admin/Admin.php:1080
+#: src/Admin/Admin.php:1130
 msgctxt "shipments"
 msgid "Help"
 msgstr ""
@@ -514,9 +525,9 @@ msgid "Create"
 msgstr ""
 
 #: includes/admin/views/label/html-shipment-label.php:25
-#: includes/wc-stc-shipment-functions.php:1891
+#: includes/wc-stc-shipment-functions.php:1928
 #: src/Admin/Table.php:921
-#: src/Ajax.php:429
+#: src/Ajax.php:721
 #: templates/shipment/shipment-return-instructions.php:28
 msgctxt "shipments"
 msgid "Download label"
@@ -545,8 +556,8 @@ msgstr ""
 
 #: includes/admin/views/tabs/html-admin-settings-tabs.php:39
 #: includes/admin/views/tabs/html-admin-settings-tabs.php:58
-#: src/Admin/Admin.php:619
-#: src/Admin/Admin.php:725
+#: src/Admin/Admin.php:669
+#: src/Admin/Admin.php:775
 msgctxt "shipments"
 msgid "No"
 msgstr ""
@@ -935,8 +946,8 @@ msgid "Text to appear below the main email content."
 msgstr ""
 
 #: includes/emails/class-wc-stc-email-customer-shipment.php:374
-#: includes/wc-stc-shipment-functions.php:1435
-#: includes/wc-stc-shipment-functions.php:1463
+#: includes/wc-stc-shipment-functions.php:1472
+#: includes/wc-stc-shipment-functions.php:1500
 #: templates/shipment/shipment-details-address.php:27
 msgctxt "shipments"
 msgid "N/A"
@@ -994,154 +1005,155 @@ msgctxt "shipments"
 msgid "Letter"
 msgstr ""
 
-#: includes/wc-stc-shipment-functions.php:106
+#: includes/wc-stc-shipment-functions.php:107
 msgctxt "shipments"
 msgid "Domestic"
 msgstr ""
 
-#: includes/wc-stc-shipment-functions.php:107
+#: includes/wc-stc-shipment-functions.php:108
 msgctxt "shipments"
 msgid "EU"
 msgstr ""
 
-#: includes/wc-stc-shipment-functions.php:108
+#: includes/wc-stc-shipment-functions.php:109
 msgctxt "shipments"
 msgid "International"
 msgstr ""
 
-#: includes/wc-stc-shipment-functions.php:121
+#: includes/wc-stc-shipment-functions.php:122
 #, php-format
 msgctxt "shipments-zone-title"
 msgid "%1$s shipments"
 msgstr ""
 
-#: includes/wc-stc-shipment-functions.php:124
+#: includes/wc-stc-shipment-functions.php:125
 msgctxt "shipments"
 msgid "Domestic Shipments"
 msgstr ""
 
-#: includes/wc-stc-shipment-functions.php:125
+#: includes/wc-stc-shipment-functions.php:126
 msgctxt "shipments"
 msgid "EU Shipments"
 msgstr ""
 
-#: includes/wc-stc-shipment-functions.php:126
+#: includes/wc-stc-shipment-functions.php:127
 msgctxt "shipments"
 msgid "International Shipments"
 msgstr ""
 
-#: includes/wc-stc-shipment-functions.php:153
-#: includes/wc-stc-shipment-functions.php:1496
+#: includes/wc-stc-shipment-functions.php:154
+#: includes/wc-stc-shipment-functions.php:1533
+#: includes/wc-stc-shipment-functions.php:2361
 msgctxt "shipments"
 msgid "Shipment"
 msgstr ""
 
-#: includes/wc-stc-shipment-functions.php:160
+#: includes/wc-stc-shipment-functions.php:161
 msgctxt "shipments"
 msgid "Return"
 msgstr ""
 
-#: includes/wc-stc-shipment-functions.php:218
+#: includes/wc-stc-shipment-functions.php:229
 msgctxt "shipments"
 msgid "Not shipped"
 msgstr ""
 
-#: includes/wc-stc-shipment-functions.php:219
-#: includes/wc-stc-shipment-functions.php:428
+#: includes/wc-stc-shipment-functions.php:230
+#: includes/wc-stc-shipment-functions.php:439
 msgctxt "shipments"
 msgid "Ready for shipping"
 msgstr ""
 
-#: includes/wc-stc-shipment-functions.php:220
+#: includes/wc-stc-shipment-functions.php:231
 msgctxt "shipments"
 msgid "Partially ready for shipping"
 msgstr ""
 
-#: includes/wc-stc-shipment-functions.php:221
-#: includes/wc-stc-shipment-functions.php:242
+#: includes/wc-stc-shipment-functions.php:232
+#: includes/wc-stc-shipment-functions.php:253
 msgctxt "shipments"
 msgid "Partially shipped"
 msgstr ""
 
-#: includes/wc-stc-shipment-functions.php:222
-#: includes/wc-stc-shipment-functions.php:243
-#: includes/wc-stc-shipment-functions.php:429
+#: includes/wc-stc-shipment-functions.php:233
+#: includes/wc-stc-shipment-functions.php:254
+#: includes/wc-stc-shipment-functions.php:440
 #: src/Admin/Table.php:912
 msgctxt "shipments"
 msgid "Shipped"
 msgstr ""
 
-#: includes/wc-stc-shipment-functions.php:223
+#: includes/wc-stc-shipment-functions.php:234
 msgctxt "shipments"
 msgid "Partially delivered"
 msgstr ""
 
-#: includes/wc-stc-shipment-functions.php:224
-#: includes/wc-stc-shipment-functions.php:430
+#: includes/wc-stc-shipment-functions.php:235
+#: includes/wc-stc-shipment-functions.php:441
 #: src/Admin/ReturnTable.php:54
 msgctxt "shipments"
 msgid "Delivered"
 msgstr ""
 
-#: includes/wc-stc-shipment-functions.php:225
+#: includes/wc-stc-shipment-functions.php:236
 msgctxt "shipments"
 msgid "No shipping needed"
 msgstr ""
 
-#: includes/wc-stc-shipment-functions.php:241
+#: includes/wc-stc-shipment-functions.php:252
 msgctxt "shipments"
 msgid "Not returned"
 msgstr ""
 
-#: includes/wc-stc-shipment-functions.php:244
+#: includes/wc-stc-shipment-functions.php:255
 msgctxt "shipments"
 msgid "Partially returned"
 msgstr ""
 
-#: includes/wc-stc-shipment-functions.php:245
+#: includes/wc-stc-shipment-functions.php:256
 msgctxt "shipments"
 msgid "Returned"
 msgstr ""
 
-#: includes/wc-stc-shipment-functions.php:246
+#: includes/wc-stc-shipment-functions.php:257
 msgctxt "shipments"
 msgid "Partially requested"
 msgstr ""
 
-#: includes/wc-stc-shipment-functions.php:247
-#: includes/wc-stc-shipment-functions.php:431
+#: includes/wc-stc-shipment-functions.php:258
+#: includes/wc-stc-shipment-functions.php:442
 msgctxt "shipments"
 msgid "Requested"
 msgstr ""
 
-#: includes/wc-stc-shipment-functions.php:248
-#: includes/wc-stc-shipment-functions.php:432
+#: includes/wc-stc-shipment-functions.php:259
+#: includes/wc-stc-shipment-functions.php:443
 msgctxt "shipments"
 msgid "Rejected"
 msgstr ""
 
-#: includes/wc-stc-shipment-functions.php:249
+#: includes/wc-stc-shipment-functions.php:260
 msgctxt "shipments"
 msgid "No return needed"
 msgstr ""
 
-#: includes/wc-stc-shipment-functions.php:426
+#: includes/wc-stc-shipment-functions.php:437
 msgctxt "shipments"
 msgid "Draft"
 msgstr ""
 
-#: includes/wc-stc-shipment-functions.php:427
+#: includes/wc-stc-shipment-functions.php:438
 #: src/Admin/Table.php:904
 msgctxt "shipments"
 msgid "Processing"
 msgstr ""
 
-#: includes/wc-stc-shipment-functions.php:433
+#: includes/wc-stc-shipment-functions.php:444
 msgctxt "shipments"
 msgid "Deleted"
 msgstr ""
 
-#: includes/wc-stc-shipment-functions.php:485
+#: includes/wc-stc-shipment-functions.php:496
 #: includes/wc-stc-template-functions.php:77
 #: includes/wc-stc-template-functions.php:113
 #: includes/wc-stc-template-functions.php:145
@@ -1149,19 +1161,19 @@ msgctxt "shipments"
 msgid "Invalid order."
 msgstr ""
 
-#: includes/wc-stc-shipment-functions.php:489
+#: includes/wc-stc-shipment-functions.php:500
 msgctxt "shipments"
 msgid "This order is already fully returned."
 msgstr ""
 
-#: includes/wc-stc-shipment-functions.php:504
-#: includes/wc-stc-shipment-functions.php:550
+#: includes/wc-stc-shipment-functions.php:515
+#: includes/wc-stc-shipment-functions.php:561
 msgctxt "shipments"
 msgid "Error while creating the shipment instance"
 msgstr ""
 
-#: includes/wc-stc-shipment-functions.php:532
-#: includes/wc-stc-shipment-functions.php:536
+#: includes/wc-stc-shipment-functions.php:543
+#: includes/wc-stc-shipment-functions.php:547
 #: src/ReturnShipment.php:578
 #: src/ReturnShipment.php:679
 #: src/SimpleShipment.php:118
@@ -1170,73 +1182,78 @@ msgctxt "shipments"
 msgid "Invalid shipment order"
 msgstr ""
 
-#: includes/wc-stc-shipment-functions.php:567
+#: includes/wc-stc-shipment-functions.php:586
+msgctxt "shipments"
+msgid "Error while creating the shipment attachment instance"
+msgstr ""
+
+#: includes/wc-stc-shipment-functions.php:598
 msgctxt "shipments"
 msgid "Invalid order item"
 msgstr ""
 
-#: includes/wc-stc-shipment-functions.php:687
+#: includes/wc-stc-shipment-functions.php:718
 msgctxt "shipments"
 msgid "Invalid shipment item"
 msgstr ""
 
-#: includes/wc-stc-shipment-functions.php:955
+#: includes/wc-stc-shipment-functions.php:986
 msgctxt "shipments"
 msgid "None"
 msgstr ""
 
-#: includes/wc-stc-shipment-functions.php:995
+#: includes/wc-stc-shipment-functions.php:1026
 msgctxt "shipments-shipping-provider"
 msgid "Unknown"
 msgstr ""
 
-#: includes/wc-stc-shipment-functions.php:1052
+#: includes/wc-stc-shipment-functions.php:1089
 #, php-format
 msgctxt "shipments"
 msgid "Error while uploading file: %1$s"
 msgstr ""
 
-#: includes/wc-stc-shipment-functions.php:1061
+#: includes/wc-stc-shipment-functions.php:1098
 msgctxt "shipments"
 msgid "First Name"
 msgstr ""
 
-#: includes/wc-stc-shipment-functions.php:1062
+#: includes/wc-stc-shipment-functions.php:1099
 msgctxt "shipments"
 msgid "Last Name"
 msgstr ""
 
-#: includes/wc-stc-shipment-functions.php:1063
+#: includes/wc-stc-shipment-functions.php:1100
 msgctxt "shipments"
 msgid "Full Name"
 msgstr ""
 
-#: includes/wc-stc-shipment-functions.php:1064
+#: includes/wc-stc-shipment-functions.php:1101
 msgctxt "shipments"
 msgid "Company"
 msgstr ""
 
-#: includes/wc-stc-shipment-functions.php:1065
+#: includes/wc-stc-shipment-functions.php:1102
 msgctxt "shipments"
 msgid "Address 1"
 msgstr ""
 
-#: includes/wc-stc-shipment-functions.php:1066
+#: includes/wc-stc-shipment-functions.php:1103
 msgctxt "shipments"
 msgid "Address 2"
 msgstr ""
 
-#: includes/wc-stc-shipment-functions.php:1067
+#: includes/wc-stc-shipment-functions.php:1104
 msgctxt "shipments"
 msgid "Street"
 msgstr ""
 
-#: includes/wc-stc-shipment-functions.php:1068
+#: includes/wc-stc-shipment-functions.php:1105
 msgctxt "shipments"
 msgid "House Number"
 msgstr ""
 
-#: includes/wc-stc-shipment-functions.php:1069
+#: includes/wc-stc-shipment-functions.php:1106
 #: src/PickupDelivery.php:305
 #: build/checkout-pickup-location-select.js:203
 #: build/checkout-pickup-location-select-style.js:193
@@ -1245,73 +1262,73 @@ msgctxt "shipments"
 msgid "Postcode"
 msgstr ""
 
-#: includes/wc-stc-shipment-functions.php:1070
+#: includes/wc-stc-shipment-functions.php:1107
 msgctxt "shipments"
 msgid "City"
 msgstr ""
 
-#: includes/wc-stc-shipment-functions.php:1071
+#: includes/wc-stc-shipment-functions.php:1108
 msgctxt "shipments"
 msgid "Country"
 msgstr ""
 
-#: includes/wc-stc-shipment-functions.php:1072
+#: includes/wc-stc-shipment-functions.php:1109
 msgctxt "shipments"
 msgid "State"
 msgstr ""
 
-#: includes/wc-stc-shipment-functions.php:1073
+#: includes/wc-stc-shipment-functions.php:1110
 msgctxt "shipments"
 msgid "Phone"
 msgstr ""
 
-#: includes/wc-stc-shipment-functions.php:1074
+#: includes/wc-stc-shipment-functions.php:1111
 msgctxt "shipments"
 msgid "Email"
 msgstr ""
 
-#: includes/wc-stc-shipment-functions.php:1075
+#: includes/wc-stc-shipment-functions.php:1112
 msgctxt "shipments"
 msgid "Customs Reference Number"
 msgstr ""
 
-#: includes/wc-stc-shipment-functions.php:1076
+#: includes/wc-stc-shipment-functions.php:1113
 msgctxt "shipments"
 msgid "VAT ID (EU)"
 msgstr ""
 
-#: includes/wc-stc-shipment-functions.php:1077
+#: includes/wc-stc-shipment-functions.php:1114
 msgctxt "shipments"
 msgid "UK VAT ID (HMRC)"
 msgstr ""
 
-#: includes/wc-stc-shipment-functions.php:1146
+#: includes/wc-stc-shipment-functions.php:1183
 #: src/Labels/ReturnLabel.php:140
-#: src/Shipment.php:1642
-#: src/Shipment.php:1651
-#: src/Shipment.php:1987
+#: src/Shipment.php:1666
+#: src/Shipment.php:1675
+#: src/Shipment.php:2011
 #, php-format
 msgctxt "full name"
 msgid "%1$s %2$s"
 msgstr ""
 
-#: includes/wc-stc-shipment-functions.php:1497
+#: includes/wc-stc-shipment-functions.php:1534
 #: src/Admin/ReturnTable.php:24
 #: src/Admin/Table.php:715
 msgctxt "shipments"
 msgid "Date"
 msgstr ""
 
-#: includes/wc-stc-shipment-functions.php:1499
+#: includes/wc-stc-shipment-functions.php:1536
 #: src/ShippingProvider/Auto.php:1210
 #: templates/shipment/shipment-details-tracking.php:22
 msgctxt "shipments"
 msgid "Tracking"
 msgstr ""
 
-#: includes/wc-stc-shipment-functions.php:1500
-#: src/Admin/Admin.php:1296
-#: src/Admin/Admin.php:1618
+#: includes/wc-stc-shipment-functions.php:1537
+#: src/Admin/Admin.php:1346
+#: src/Admin/Admin.php:1668
 #: src/Admin/ReturnTable.php:31
 #: src/Admin/Table.php:723
 #: src/ShippingMethod/ShippingMethod.php:1620
@@ -1319,9 +1336,91 @@ msgctxt "shipments"
 msgid "Actions"
 msgstr ""
 
-#: includes/wc-stc-shipment-functions.php:1884
+#: includes/wc-stc-shipment-functions.php:1921
 msgctxt "shipments"
 msgid "View"
+msgstr ""
+
+#: includes/wc-stc-shipment-functions.php:2106
+msgctxt "shipments-attachment-type-name"
+msgid "Return Slip"
+msgstr ""
+
+#: includes/wc-stc-shipment-functions.php:2106
+msgctxt "shipments-attachment-type-name"
+msgid "Packing Slip"
+msgstr ""
+
+#: includes/wc-stc-shipment-functions.php:2107
+msgctxt "shipments-attachment-type-name-plural"
+msgid "Return Slips"
+msgstr ""
+
+#: includes/wc-stc-shipment-functions.php:2107
+msgctxt "shipments-attachment-type-name-plural"
+msgid "Packing Slips"
+msgstr ""
+
+#: includes/wc-stc-shipment-functions.php:2113
+msgctxt "shipments-attachment-type-name"
+msgid "Commercial Invoice"
+msgstr ""
+
+#: includes/wc-stc-shipment-functions.php:2114
+msgctxt "shipments-attachment-type-name-plural"
+msgid "Commercial Invoices"
+msgstr ""
+
+#: includes/wc-stc-shipment-functions.php:2123
+msgctxt "shipments-attachment-type-name"
+msgid "ABD (Export Declaration)"
+msgstr ""
+
+#: includes/wc-stc-shipment-functions.php:2124
+msgctxt "shipments-attachment-type-name-plural"
+msgid "ABD (Export Declarations)"
+msgstr ""
+
+#: includes/wc-stc-shipment-functions.php:2183
+#: includes/wc-stc-shipment-functions.php:2208
+#, php-format
+msgctxt "shipments"
+msgid "The shipment does not support attachments of type %s."
+msgstr ""
+
+#: includes/wc-stc-shipment-functions.php:2261
+#, php-format
+msgctxt "shipments-attachment"
+msgid "Download %s"
+msgstr ""
+
+#: includes/wc-stc-shipment-functions.php:2269
+#, php-format
+msgctxt "shipments-attachment"
+msgid "Refresh %s"
+msgstr ""
+
+#: includes/wc-stc-shipment-functions.php:2281
+#, php-format
+msgctxt "shipments-attachment"
+msgid "Delete %s"
+msgstr ""
+
+#: includes/wc-stc-shipment-functions.php:2292
+#, php-format
+msgctxt "shipments-attachment"
+msgid "Upload %s"
+msgstr ""
+
+#: includes/wc-stc-shipment-functions.php:2303
+#, php-format
+msgctxt "shipments-attachment"
+msgid "Create %s"
+msgstr ""
+
+#: includes/wc-stc-shipment-functions.php:2386
+msgctxt "shipments"
+msgid "Shipping Provider"
 msgstr ""
 
 #: includes/wc-stc-template-functions.php:77
@@ -1333,7 +1432,7 @@ msgid "My account"
 msgstr ""
 
 #: includes/wc-stc-template-functions.php:126
-#: src/DataStores/Shipment.php:384
+#: src/DataStores/Shipment.php:383
 msgctxt "shipments"
 msgid "Invalid shipment."
 msgstr ""
@@ -1374,17 +1473,17 @@ msgctxt "shipments"
 msgid "The following products cannot be returned due to their nature: %1$s"
 msgstr ""
 
-#: src/Admin/Admin.php:116
+#: src/Admin/Admin.php:166
 msgctxt "shipments"
 msgid "Shiptastic debug mode"
 msgstr ""
 
-#: src/Admin/Admin.php:117
+#: src/Admin/Admin.php:167
 msgctxt "shipments"
 msgid "Disable"
 msgstr ""
 
-#: src/Admin/Admin.php:117
+#: src/Admin/Admin.php:167
 #: src/Admin/Tabs/General.php:301
 #: src/Admin/Tabs/Packaging.php:51
 #: src/ShippingProvider/Auto.php:498
@@ -1392,125 +1491,125 @@ msgctxt "shipments"
 msgid "Enable"
 msgstr ""
 
-#: src/Admin/Admin.php:282
+#: src/Admin/Admin.php:332
 msgctxt "shipments"
 msgid "Shiptastic"
 msgstr ""
 
-#: src/Admin/Admin.php:287
+#: src/Admin/Admin.php:337
 msgctxt "shipments"
 msgid "Database Version"
 msgstr ""
 
-#: src/Admin/Admin.php:292
+#: src/Admin/Admin.php:342
 msgctxt "shipments"
 msgid "Overrides"
 msgstr ""
 
-#: src/Admin/Admin.php:293
+#: src/Admin/Admin.php:343
 msgctxt "shipments"
 msgid "This section shows any files that are overriding the default Shiptastic template pages."
 msgstr ""
 
-#: src/Admin/Admin.php:299
+#: src/Admin/Admin.php:349
 #, php-format
 msgctxt "shipments"
 msgid "Version %1$s is out of date. The core version %2$s is available at: %3$s"
 msgstr ""
 
-#: src/Admin/Admin.php:310
+#: src/Admin/Admin.php:360
 msgctxt "shipments"
 msgid "Outdated templates"
 msgstr ""
 
-#: src/Admin/Admin.php:317
+#: src/Admin/Admin.php:367
 msgctxt "shipments"
 msgid "Learn how to update"
 msgstr ""
 
-#: src/Admin/Admin.php:423
-#: src/Admin/Admin.php:1000
-#: src/Admin/Admin.php:1644
-#: src/Admin/Admin.php:1680
+#: src/Admin/Admin.php:473
+#: src/Admin/Admin.php:1050
+#: src/Admin/Admin.php:1694
+#: src/Admin/Admin.php:1730
 msgctxt "shipments"
 msgid "Length"
 msgstr ""
 
-#: src/Admin/Admin.php:424
-#: src/Admin/Admin.php:1001
-#: src/Admin/Admin.php:1645
-#: src/Admin/Admin.php:1681
+#: src/Admin/Admin.php:474
+#: src/Admin/Admin.php:1051
+#: src/Admin/Admin.php:1695
+#: src/Admin/Admin.php:1731
 msgctxt "shipments"
 msgid "Width"
 msgstr ""
 
-#: src/Admin/Admin.php:425
-#: src/Admin/Admin.php:1002
-#: src/Admin/Admin.php:1646
-#: src/Admin/Admin.php:1682
+#: src/Admin/Admin.php:475
+#: src/Admin/Admin.php:1052
+#: src/Admin/Admin.php:1696
+#: src/Admin/Admin.php:1732
 msgctxt "shipments"
 msgid "Height"
 msgstr ""
 
-#: src/Admin/Admin.php:506
+#: src/Admin/Admin.php:556
 msgctxt "shipments"
 msgid "Revoke"
 msgstr ""
 
-#: src/Admin/Admin.php:508
+#: src/Admin/Admin.php:558
 #, php-format
 msgctxt "shipments"
 msgid "Connect to %s"
 msgstr ""
 
-#: src/Admin/Admin.php:546
+#: src/Admin/Admin.php:596
 msgctxt "shipments"
 msgid "Search for a shipping provider&hellip;"
 msgstr ""
 
-#: src/Admin/Admin.php:671
+#: src/Admin/Admin.php:721
 #: src/Admin/Tabs/Packaging.php:217
 msgctxt "shipments"
 msgid "Edit packaging"
 msgstr ""
 
-#: src/Admin/Admin.php:686
+#: src/Admin/Admin.php:736
 #: src/Admin/Tabs/Packaging.php:141
 #: src/Packaging/ReportHelper.php:42
 msgctxt "shipments"
 msgid "Packaging Report"
 msgstr ""
 
-#: src/Admin/Admin.php:734
+#: src/Admin/Admin.php:784
 msgctxt "shipments"
 msgid "Override defaults?"
 msgstr ""
 
-#: src/Admin/Admin.php:775
+#: src/Admin/Admin.php:825
 msgctxt "shipments"
 msgid "All packaging"
 msgstr ""
 
-#: src/Admin/Admin.php:813
+#: src/Admin/Admin.php:863
 msgctxt "shipments"
 msgid "Save changes"
 msgstr ""
 
-#: src/Admin/Admin.php:817
+#: src/Admin/Admin.php:867
 #, php-format
 msgctxt "shipments"
 msgid "This provider does not support adjusting settings related to %1$s"
 msgstr ""
 
-#: src/Admin/Admin.php:907
-#: src/Admin/Admin.php:915
+#: src/Admin/Admin.php:957
+#: src/Admin/Admin.php:965
 msgctxt "shipments-order-column-name"
 msgid "Shipping Status"
 msgstr ""
 
 #. translators: WooCommerce weight unit
-#: src/Admin/Admin.php:966
-#: src/Admin/Admin.php:1020
+#: src/Admin/Admin.php:1016
+#: src/Admin/Admin.php:1070
 #, php-format
 msgctxt "shipments"
 msgid "Shipping weight (%s)"
@@ -1518,357 +1617,400 @@ msgstr ""
 
 #. translators: %s dimension unit
 #. translators: WooCommerce dimension unit
-#: src/Admin/Admin.php:993
-#: src/Admin/Admin.php:1042
+#: src/Admin/Admin.php:1043
+#: src/Admin/Admin.php:1092
 #, php-format
 msgctxt "shipments"
 msgid "Shipping dimensions (%s)"
 msgstr ""
 
-#: src/Admin/Admin.php:998
-#: src/Admin/Admin.php:1052
+#: src/Admin/Admin.php:1048
+#: src/Admin/Admin.php:1102
 msgctxt "shipments"
 msgid "Length x width x height in decimal form"
 msgstr ""
 
-#: src/Admin/Admin.php:1015
+#: src/Admin/Admin.php:1065
 msgctxt "shipments"
 msgid "Select a country"
 msgstr ""
 
-#: src/Admin/Admin.php:1060
+#: src/Admin/Admin.php:1110
 msgctxt "shipments"
 msgid "Non returnable"
 msgstr ""
 
-#: src/Admin/Admin.php:1061
+#: src/Admin/Admin.php:1111
 msgctxt "shipments"
 msgid "Exclude product from returns, e.g. pet food."
 msgstr ""
 
-#: src/Admin/Admin.php:1069
+#: src/Admin/Admin.php:1119
 msgctxt "shipments"
 msgid "Ship separately via"
 msgstr ""
 
-#: src/Admin/Admin.php:1070
+#: src/Admin/Admin.php:1120
 msgctxt "shipments"
 msgid "Ship this product in a separate group in which only one of the selected shipping service providers (e.g., freight forwarding, dropshipping) is available."
 msgstr ""
 
-#: src/Admin/Admin.php:1078
+#: src/Admin/Admin.php:1128
 msgctxt "shipments"
 msgid "Customs"
 msgstr ""
 
-#: src/Admin/Admin.php:1089
+#: src/Admin/Admin.php:1139
 msgctxt "shipments"
 msgid "Choose a description to be used for customs documents, e.g. CN23 form."
 msgstr ""
 
-#: src/Admin/Admin.php:1097
+#: src/Admin/Admin.php:1147
 msgctxt "shipments"
 msgid "HS-Code"
 msgstr ""
 
-#: src/Admin/Admin.php:1099
+#: src/Admin/Admin.php:1149
 msgctxt "shipments"
 msgid "The HS Code is a number assigned to every possible commodity that can be imported or exported from any country."
 msgstr ""
 
-#: src/Admin/Admin.php:1107
+#: src/Admin/Admin.php:1157
 msgctxt "shipments"
 msgid "MID-Code"
 msgstr ""
 
-#: src/Admin/Admin.php:1109
+#: src/Admin/Admin.php:1159
 msgctxt "shipments"
 msgid "The Manufacturer Identification Code (MID) is a standardized alphanumeric identifier created by the CBP. It serves as a unique “fingerprint” for the foreign manufacturer, producer, or exporter of the goods being imported into the U.S."
 msgstr ""
 
-#: src/Admin/Admin.php:1118
+#: src/Admin/Admin.php:1168
 #: src/Api.php:150
 msgctxt "shipments"
 msgid "Country of manufacture"
 msgstr ""
 
-#: src/Admin/Admin.php:1120
+#: src/Admin/Admin.php:1170
 msgctxt "shipments"
 msgid "The country of manufacture is needed for customs of international shipping."
 msgstr ""
 
-#: src/Admin/Admin.php:1182
+#: src/Admin/Admin.php:1232
 #, php-format
 msgctxt "shipments"
 msgid "Shipments upload directory missing. Please manually create the folder %s and make sure that it is writeable."
 msgstr ""
 
-#: src/Admin/Admin.php:1225
+#: src/Admin/Admin.php:1275
 msgctxt "shipments"
 msgid "View Shipments"
 msgstr ""
 
-#: src/Admin/Admin.php:1226
+#: src/Admin/Admin.php:1276
 msgctxt "shipments"
 msgid "Endpoint for the \"My account &rarr; View shipments\" page."
 msgstr ""
 
-#: src/Admin/Admin.php:1233
+#: src/Admin/Admin.php:1283
 msgctxt "shipments"
 msgid "View shipment"
 msgstr ""
 
-#: src/Admin/Admin.php:1234
+#: src/Admin/Admin.php:1284
 msgctxt "shipments"
 msgid "Endpoint for the \"My account &rarr; View shipment\" page."
 msgstr ""
 
-#: src/Admin/Admin.php:1241
+#: src/Admin/Admin.php:1291
 msgctxt "shipments"
 msgid "Add Return Shipment"
 msgstr ""
 
-#: src/Admin/Admin.php:1242
+#: src/Admin/Admin.php:1292
 msgctxt "shipments"
 msgid "Endpoint for the \"My account &rarr; Add return shipment\" page."
 msgstr ""
 
-#: src/Admin/Admin.php:1304
-#: src/Admin/Admin.php:1439
+#: src/Admin/Admin.php:1354
+#: src/Admin/Admin.php:1489
 #: templates/myaccount/add-return-shipment.php:36
 msgctxt "shipments"
 msgid "Reason"
 msgstr ""
 
-#: src/Admin/Admin.php:1431
+#: src/Admin/Admin.php:1481
 msgctxt "shipments"
 msgid "Return reasons"
 msgstr ""
 
-#: src/Admin/Admin.php:1438
+#: src/Admin/Admin.php:1488
 msgctxt "shipments"
 msgid "Reason code"
 msgstr ""
 
-#: src/Admin/Admin.php:1438
+#: src/Admin/Admin.php:1488
 msgctxt "shipments"
 msgid "The reason code is used to identify the reason."
 msgstr ""
 
-#: src/Admin/Admin.php:1439
+#: src/Admin/Admin.php:1489
 msgctxt "shipments"
 msgid "Choose a reason text."
 msgstr ""
 
-#: src/Admin/Admin.php:1459
+#: src/Admin/Admin.php:1509
 msgctxt "shipments"
 msgid "+ Add reason"
 msgstr ""
 
-#: src/Admin/Admin.php:1459
+#: src/Admin/Admin.php:1509
 msgctxt "shipments"
 msgid "Remove selected reason(s)"
 msgstr ""
 
-#: src/Admin/Admin.php:1516
+#: src/Admin/Admin.php:1566
 msgctxt "shipments"
 msgid "Choose a country / region&hellip;"
 msgstr ""
 
-#: src/Admin/Admin.php:1516
+#: src/Admin/Admin.php:1566
 msgctxt "shipments"
 msgid "Country / Region"
 msgstr ""
 
-#: src/Admin/Admin.php:1529
+#: src/Admin/Admin.php:1579
 msgctxt "shipments"
 msgid "Packaging Reports"
 msgstr ""
 
-#: src/Admin/Admin.php:1529
+#: src/Admin/Admin.php:1579
 msgctxt "shipments"
 msgid "Generate summary reports which contain information about the amount of packaging material used for your shipments."
 msgstr ""
 
-#: src/Admin/Admin.php:1541
+#: src/Admin/Admin.php:1591
 msgctxt "shipments"
 msgid "Create report"
 msgstr ""
 
-#: src/Admin/Admin.php:1548
+#: src/Admin/Admin.php:1598
 #: src/Packaging/ReportHelper.php:223
 msgctxt "shipments"
 msgid "Report"
 msgstr ""
 
-#: src/Admin/Admin.php:1549
+#: src/Admin/Admin.php:1599
 msgctxt "shipments"
 msgid "Start"
 msgstr ""
 
-#: src/Admin/Admin.php:1550
+#: src/Admin/Admin.php:1600
 msgctxt "shipments"
 msgid "End"
 msgstr ""
 
-#: src/Admin/Admin.php:1551
+#: src/Admin/Admin.php:1601
 msgctxt "shipments"
 msgid "Total weight"
 msgstr ""
 
-#: src/Admin/Admin.php:1552
+#: src/Admin/Admin.php:1602
 #: src/Packaging/ReportHelper.php:97
 msgctxt "shipments"
 msgid "Count"
 msgstr ""
 
-#: src/Admin/Admin.php:1606
+#: src/Admin/Admin.php:1656
 msgctxt "shipments"
 msgid "Available packaging"
 msgstr ""
 
-#: src/Admin/Admin.php:1613
+#: src/Admin/Admin.php:1663
 msgctxt "shipments"
 msgid "A description to help you identify the packaging."
 msgstr ""
 
-#: src/Admin/Admin.php:1614
+#: src/Admin/Admin.php:1664
 #: src/Admin/PackagingSettings.php:129
 msgctxt "shipments"
 msgid "Type"
 msgstr ""
 
-#: src/Admin/Admin.php:1615
+#: src/Admin/Admin.php:1665
 #, php-format
 msgctxt "shipments"
 msgid "Weight (%s)"
 msgstr ""
 
-#: src/Admin/Admin.php:1615
+#: src/Admin/Admin.php:1665
 #: src/Admin/PackagingSettings.php:172
 msgctxt "shipments"
 msgid "The weight of the packaging."
 msgstr ""
 
-#: src/Admin/Admin.php:1616
+#: src/Admin/Admin.php:1666
 #, php-format
 msgctxt "shipments"
 msgid "Dimensions (LxWxH, %s)"
 msgstr ""
 
-#: src/Admin/Admin.php:1617
+#: src/Admin/Admin.php:1667
 #, php-format
 msgctxt "shipments"
 msgid "Load capacity (%s)"
 msgstr ""
 
-#: src/Admin/Admin.php:1617
+#: src/Admin/Admin.php:1667
 #: src/Admin/PackagingSettings.php:211
 msgctxt "shipments"
 msgid "The maximum weight this packaging can hold. Leave empty to not restrict maximum weight."
 msgstr ""
 
-#: src/Admin/Admin.php:1653
+#: src/Admin/Admin.php:1703
 msgctxt "shipments"
 msgid "Edit packaging configuration"
 msgstr ""
 
-#: src/Admin/Admin.php:1663
+#: src/Admin/Admin.php:1713
 msgctxt "shipments"
 msgid "+ Add packaging"
 msgstr ""
 
-#: src/Admin/Admin.php:1663
+#: src/Admin/Admin.php:1713
 msgctxt "shipments"
 msgid "Remove selected packaging"
 msgstr ""
 
-#: src/Admin/Admin.php:1758
+#: src/Admin/Admin.php:1808
 msgctxt "shipments"
 msgid "Create shipments"
 msgstr ""
 
-#: src/Admin/Admin.php:1871
+#: src/Admin/Admin.php:1923
 msgctxt "shipments"
 msgid "Search shipments"
 msgstr ""
 
-#: src/Admin/Admin.php:1905
+#: src/Admin/Admin.php:1959
 msgctxt "shipments"
 msgid "Search returns"
 msgstr ""
 
-#: src/Admin/Admin.php:1989
+#: src/Admin/Admin.php:2044
 msgctxt "shipments"
 msgid "Do you really want to delete the shipment?"
 msgstr ""
 
-#: src/Admin/Admin.php:2003
+#: src/Admin/Admin.php:2058
 msgctxt "shipments"
 msgid "Do you really want to delete the label?"
 msgstr ""
 
-#: src/Admin/Admin.php:2004
+#: src/Admin/Admin.php:2059
 msgctxt "shipments"
 msgid "Please save the shipment first"
 msgstr ""
 
-#: src/Admin/Admin.php:2055
+#: src/Admin/Admin.php:2110
 msgctxt "shipments-close-modal"
 msgid "Close"
 msgstr ""
 
-#: src/Admin/Admin.php:2080
+#: src/Admin/Admin.php:2135
 msgctxt "shipments"
 msgid "Do you really want to delete the shipping provider? Some of your existing shipments might be linked to that provider and might need adjustments."
 msgstr ""
 
-#: src/Admin/BulkActionHandler.php:89
+#: src/Admin/Admin.php:2146
+msgctxt "shipments"
+msgid "Do you really want to delete the attachment?"
+msgstr ""
+
+#: src/Admin/BulkActionHandler.php:95
 msgctxt "shipments"
 msgid "Successfully processed shipments."
 msgstr ""
 
-#: src/Admin/BulkLabel.php:31
-msgctxt "shipments"
-msgid "Generating labels..."
-msgstr ""
-
-#: src/Admin/BulkLabel.php:86
-msgctxt "shipments"
-msgid "Download labels"
-msgstr ""
-
-#: src/Admin/BulkLabel.php:96
-msgctxt "shipments"
-msgid "The chosen shipments were not suitable for automatic label creation. Please check the shipping service provider option of the corresponding shipments."
-msgstr ""
-
-#: src/Admin/BulkLabel.php:98
+#: src/Admin/BulkDownload.php:24
 #, php-format
 msgctxt "shipments"
-msgid "Successfully generated labels. %s"
+msgid "Generating %1$s..."
 msgstr ""
 
-#: src/Admin/BulkLabel.php:106
+#: src/Admin/BulkDownload.php:102
+#: src/Admin/Table.php:1215
 #, php-format
 msgctxt "shipments"
-msgid "Labels partially generated. %s"
+msgid "Download %1$s"
 msgstr ""
 
-#: src/Admin/BulkLabel.php:155
+#: src/Admin/BulkDownload.php:112
 #, php-format
 msgctxt "shipments"
-msgid "Notice while creating label for %1$s: %2$s"
+msgid "There were no %1$s available for the shipments chosen."
 msgstr ""
 
-#: src/Admin/BulkLabel.php:155
-#: src/Admin/BulkLabel.php:157
+#: src/Admin/BulkDownload.php:114
+#, php-format
+msgctxt "shipments"
+msgid "Successfully generated %1$s. %2$s"
+msgstr ""
+
+#: src/Admin/BulkDownload.php:122
+#, php-format
+msgctxt "shipments"
+msgid "%1$s partially generated. %2$s"
+msgstr ""
+
+#: src/Admin/BulkDownload.php:144
+msgctxt "shipments"
+msgid "Please make sure to install the PHP zip package. Ask your webhoster for further information."
+msgstr ""
+
+#: src/Admin/BulkDownload.php:164
+msgctxt "shipments"
+msgid "Error while reading or creating ZIP file."
+msgstr ""
+
+#: src/Admin/BulkDownloadAttachment.php:57
+#, php-format
+msgctxt "shipments"
+msgid "Notice while creating %1$s for %2$s: %3$s"
+msgstr ""
+
+#: src/Admin/BulkDownloadAttachment.php:57
+#: src/Admin/BulkDownloadAttachment.php:59
+#: src/Admin/BulkLabel.php:56
+#: src/Admin/BulkLabel.php:58
 #, php-format
 msgctxt "shipments"
 msgid "shipment #%d"
 msgstr ""
 
-#: src/Admin/BulkLabel.php:157
+#: src/Admin/BulkDownloadAttachment.php:59
+#, php-format
+msgctxt "shipments"
+msgid "Error while creating %1$s for %2$s: %3$s"
+msgstr ""
+
+#: src/Admin/BulkLabel.php:33
+msgctxt "shipments-label-type-plural"
+msgid "Labels"
+msgstr ""
+
+#: src/Admin/BulkLabel.php:33
+msgctxt "shipments-label-type"
+msgid "Label"
+msgstr ""
+
+#: src/Admin/BulkLabel.php:56
+#, php-format
+msgctxt "shipments"
+msgid "Notice while creating label for %1$s: %2$s"
+msgstr ""
+
+#: src/Admin/BulkLabel.php:58
 #, php-format
 msgctxt "shipments"
 msgid "Error while creating label for %1$s: %2$s"
@@ -2001,12 +2143,12 @@ msgctxt "shipments-settings-page-title"
 msgid "Shiptastic"
 msgstr ""
 
-#: src/Admin/Settings.php:216
+#: src/Admin/Settings.php:225
 msgctxt "shipments"
 msgid "More services"
 msgstr ""
 
-#: src/Admin/Settings.php:219
+#: src/Admin/Settings.php:228
 msgctxt "shipments"
 msgid "Fewer services"
 msgstr ""
@@ -2102,7 +2244,7 @@ msgid "Filter by shipping service provider"
 msgstr ""
 
 #: src/Admin/Table.php:692
-#: src/Ajax.php:1210
+#: src/Ajax.php:1504
 #, php-format
 msgctxt "shipments"
 msgid "Order #%s"
@@ -2145,52 +2287,58 @@ msgctxt "shipments"
 msgid "Generate label"
 msgstr ""
 
-#: src/Admin/Table.php:983
+#: src/Admin/Table.php:1006
 #, php-format
 msgctxt "shipments"
 msgid "Select %s"
 msgstr ""
 
 #. translators: %s: human-readable time difference
-#: src/Admin/Table.php:1112
+#: src/Admin/Table.php:1135
 #, php-format
 msgctxt "%s = human-readable time difference"
 msgid "%s ago"
 msgstr ""
 
-#: src/Admin/Table.php:1123
+#: src/Admin/Table.php:1146
 msgctxt "shipments"
 msgid "M j, Y"
 msgstr ""
 
-#: src/Admin/Table.php:1179
+#: src/Admin/Table.php:1202
 msgctxt "shipments"
 msgid "Delete Permanently"
 msgstr ""
 
-#: src/Admin/Table.php:1182
+#: src/Admin/Table.php:1205
 msgctxt "shipments"
 msgid "Change status to processing"
 msgstr ""
 
-#: src/Admin/Table.php:1183
+#: src/Admin/Table.php:1206
 msgctxt "shipments"
 msgid "Change status to ready for shipping"
 msgstr ""
 
-#: src/Admin/Table.php:1184
+#: src/Admin/Table.php:1207
 msgctxt "shipments"
 msgid "Change status to shipped"
 msgstr ""
 
-#: src/Admin/Table.php:1185
+#: src/Admin/Table.php:1208
 msgctxt "shipments"
 msgid "Change status to delivered"
 msgstr ""
 
-#: src/Admin/Table.php:1186
+#: src/Admin/Table.php:1209
 msgctxt "shipments"
 msgid "Generate and download labels"
+msgstr ""
+
+#: src/Admin/Table.php:1213
+#, php-format
+msgctxt "shipments"
+msgid "Generate and download %1$s"
 msgstr ""
 
 #: src/Admin/Tabs/General.php:12
@@ -2663,148 +2811,167 @@ msgctxt "shipments"
 msgid "Let's go"
 msgstr ""
 
-#: src/Ajax.php:142
+#: src/Ajax.php:147
 msgctxt "shipments"
 msgid "Notification successfully sent to customer."
 msgstr ""
 
-#: src/Ajax.php:151
+#: src/Ajax.php:156
 msgctxt "shipments"
 msgid "There was an error while sending the notification."
 msgstr ""
 
-#: src/Ajax.php:190
+#: src/Ajax.php:195
 msgctxt "shipments"
 msgid "Return request confirmed successfully."
 msgstr ""
 
-#: src/Ajax.php:204
+#: src/Ajax.php:209
 msgctxt "shipments"
 msgid "There was an error while confirming the request."
 msgstr ""
 
-#: src/Ajax.php:258
+#: src/Ajax.php:263
 #: src/Rest/ShipmentsController.php:1121
 msgctxt "shipments"
 msgid "There was an error creating the label."
 msgstr ""
 
-#: src/Ajax.php:291
+#: src/Ajax.php:325
+#, php-format
+msgctxt "shipments"
+msgid "There was an error uploading the %1$s: %2$s"
+msgstr ""
+
+#: src/Ajax.php:378
+#: src/Ajax.php:402
+#: src/Ajax.php:446
+#: src/Ajax.php:488
+msgctxt "shipments"
+msgid "There was an error creating the attachment."
+msgstr ""
+
+#: src/Ajax.php:522
+msgctxt "shipments"
+msgid "There was an error deleting the attachment."
+msgstr ""
+
+#: src/Ajax.php:566
 msgctxt "shipments"
 msgid "There was an error deleting the label."
 msgstr ""
 
-#: src/Ajax.php:332
+#: src/Ajax.php:607
 msgctxt "shipments"
 msgid "There was an error processing the label."
 msgstr ""
 
-#: src/Ajax.php:441
+#: src/Ajax.php:733
 msgctxt "shipments"
 msgid "There was an error while trying to save the shipping service provider status."
 msgstr ""
 
-#: src/Ajax.php:479
+#: src/Ajax.php:771
 msgctxt "shipments"
 msgid "There was an error while trying to delete the shipping service provider."
 msgstr ""
 
-#: src/Ajax.php:551
+#: src/Ajax.php:845
 msgctxt "shipments"
 msgid "Installed successfully"
 msgstr ""
 
-#: src/Ajax.php:555
+#: src/Ajax.php:849
 #, php-format
 msgctxt "shipments"
 msgid "There was an error while automatically installing %1$s. %2$s"
 msgstr ""
 
-#: src/Ajax.php:574
+#: src/Ajax.php:868
 msgctxt "shipments-returns-page-slug"
 msgid "returns"
 msgstr ""
 
-#: src/Ajax.php:574
+#: src/Ajax.php:868
 msgctxt "shipments-returns-page-slug"
 msgid "Returns"
 msgstr ""
 
-#: src/Ajax.php:579
+#: src/Ajax.php:873
 msgctxt "shipments"
 msgid "Page created successfully"
 msgstr ""
 
-#: src/Ajax.php:625
+#: src/Ajax.php:919
 msgctxt "shipments"
 msgid "There was an error while bulk processing shipments."
 msgstr ""
 
-#: src/Ajax.php:747
-#: src/Ajax.php:959
-#: src/Ajax.php:1036
-#: src/Ajax.php:1075
-#: src/Ajax.php:1304
-#: src/Ajax.php:1350
-#: src/Ajax.php:1429
-#: src/Ajax.php:1462
-#: src/Ajax.php:1521
-#: src/Ajax.php:1591
-#: src/Ajax.php:1631
-#: src/Ajax.php:1686
-#: src/Ajax.php:1730
+#: src/Ajax.php:1041
+#: src/Ajax.php:1253
+#: src/Ajax.php:1330
+#: src/Ajax.php:1369
+#: src/Ajax.php:1598
+#: src/Ajax.php:1644
+#: src/Ajax.php:1723
+#: src/Ajax.php:1756
+#: src/Ajax.php:1815
+#: src/Ajax.php:1885
+#: src/Ajax.php:1925
+#: src/Ajax.php:1980
+#: src/Ajax.php:2024
 msgctxt "shipments"
 msgid "There was an error processing the shipment"
 msgstr ""
 
-#: src/Ajax.php:800
+#: src/Ajax.php:1094
 msgctxt "shipments"
 msgid "There was an error while adding the shipment"
 msgstr ""
 
-#: src/Ajax.php:821
+#: src/Ajax.php:1115
 msgctxt "shipments"
 msgid "This order contains enough shipments already."
 msgstr ""
 
-#: src/Ajax.php:876
+#: src/Ajax.php:1170
 msgctxt "shipments"
 msgid "There was an error processing the decline."
 msgstr ""
 
-#: src/Ajax.php:910
+#: src/Ajax.php:1204
 msgctxt "shipments"
 msgid "There was an error processing the refund."
 msgstr ""
 
-#: src/Ajax.php:978
+#: src/Ajax.php:1272
 msgctxt "shipments"
 msgid "This order contains enough returns already."
 msgstr ""
 
-#: src/Ajax.php:1261
+#: src/Ajax.php:1555
 msgctxt "shipments"
 msgid "Status:"
 msgstr ""
 
-#: src/Ajax.php:1266
+#: src/Ajax.php:1560
 msgctxt "shipments"
 msgid "Customer payment page &rarr;"
 msgstr ""
 
-#: src/Ajax.php:1857
+#: src/Ajax.php:2151
 #: src/FormHandler.php:225
 msgctxt "shipments"
 msgid "You are not allowed to add returns to that order."
 msgstr ""
 
-#: src/Ajax.php:1863
+#: src/Ajax.php:2157
 #: src/FormHandler.php:230
 msgctxt "shipments"
 msgid "Sorry, but this order does not support returns any longer."
 msgstr ""
 
-#: src/Ajax.php:1873
+#: src/Ajax.php:2167
 #: src/FormHandler.php:239
 #: src/FormHandler.php:262
 #: src/Order.php:747
@@ -2812,12 +2979,12 @@ msgctxt "shipments"
 msgid "Please choose one or more items from the list."
 msgstr ""
 
-#: src/Ajax.php:1894
+#: src/Ajax.php:2188
 msgctxt "shipments"
 msgid "Your return is free of charge."
 msgstr ""
 
-#: src/Ajax.php:1894
+#: src/Ajax.php:2188
 #: templates/emails/email-return-shipment-costs.php:22
 #: templates/emails/plain/email-return-shipment-costs.php:19
 #, php-format
@@ -3102,6 +3269,11 @@ msgctxt "shipments"
 msgid "Invalid packaging."
 msgstr ""
 
+#: src/DataStores/ShipmentAttachment.php:178
+msgctxt "shipments"
+msgid "Invalid attachment."
+msgstr ""
+
 #: src/DataStores/ShipmentItem.php:195
 msgctxt "shipments"
 msgid "Invalid shipment item."
@@ -3273,13 +3445,8 @@ msgctxt "shipments"
 msgid "This label misses the API implementation"
 msgstr ""
 
-#: src/Labels/Label.php:668
-msgctxt "shipments"
-msgid "Error while uploading label."
-msgstr ""
-
-#: src/Labels/Label.php:690
-#: src/Labels/Label.php:697
+#: src/Labels/Label.php:673
+#: src/Labels/Label.php:680
 msgctxt "shipments"
 msgid "Error while downloading the PDF file."
 msgstr ""
@@ -3295,117 +3462,117 @@ msgctxt "shipments"
 msgid "Seems like none of your <a href=\"%1$s\">packaging options</a> is available for this order."
 msgstr ""
 
-#: src/Package.php:99
+#: src/Package.php:111
 #, php-format
 msgctxt "shipments-webhook-topic"
 msgid "Deleted %s"
 msgstr ""
 
-#: src/Package.php:100
+#: src/Package.php:112
 #, php-format
 msgctxt "shipments-webhook-topic"
 msgid "Created %s"
 msgstr ""
 
-#: src/Package.php:101
+#: src/Package.php:113
 #, php-format
 msgctxt "shipments-webhook-topic"
 msgid "Updated %s"
 msgstr ""
 
-#: src/Package.php:103
+#: src/Package.php:115
 #, php-format
 msgctxt "shipments-webhook-topic"
 msgid "Created %s label"
 msgstr ""
 
-#: src/Package.php:104
+#: src/Package.php:116
 #, php-format
 msgctxt "shipments-webhook-topic"
 msgid "Deleted %s label"
 msgstr ""
 
-#: src/Package.php:290
+#: src/Package.php:302
 msgctxt "shipments"
 msgid "Sorry, this order is invalid and cannot be returned."
 msgstr ""
 
-#: src/Package.php:559
+#: src/Package.php:631
 msgctxt "shipments"
 msgid "Delivered at Place (DAP)"
 msgstr ""
 
-#: src/Package.php:560
+#: src/Package.php:632
 msgctxt "shipments"
 msgid "Delivered at Place Unloaded (DPU)"
 msgstr ""
 
-#: src/Package.php:561
+#: src/Package.php:633
 msgctxt "shipments"
 msgid "Delivered Duty Paid (DDP)"
 msgstr ""
 
-#: src/Package.php:562
+#: src/Package.php:634
 msgctxt "shipments"
 msgid "Delivered Duty Unpaid (DDU)"
 msgstr ""
 
-#: src/Package.php:563
+#: src/Package.php:635
 msgctxt "shipments"
 msgid "ExWorks (EXW)"
 msgstr ""
 
-#: src/Package.php:564
+#: src/Package.php:636
 msgctxt "shipments"
 msgid "Free Carrier (FCA)"
 msgstr ""
 
-#: src/Package.php:565
+#: src/Package.php:637
 msgctxt "shipments"
 msgid "Carriage Paid To (CPT)"
 msgstr ""
 
-#: src/Package.php:566
+#: src/Package.php:638
 msgctxt "shipments"
 msgid "Carriage and Insurance Paid To (CIP)"
 msgstr ""
 
-#: src/Package.php:567
+#: src/Package.php:639
 msgctxt "shipments"
 msgid "Free Alongside Ship (FAS)"
 msgstr ""
 
-#: src/Package.php:568
+#: src/Package.php:640
 msgctxt "shipments"
 msgid "Free on Board (FOB)"
 msgstr ""
 
-#: src/Package.php:569
+#: src/Package.php:641
 msgctxt "shipments"
 msgid "Cost and Freight (CFR)"
 msgstr ""
 
-#: src/Package.php:570
+#: src/Package.php:642
 msgctxt "shipments"
 msgid "Cost, Insurance and Freight (CIF)"
 msgstr ""
 
-#: src/Package.php:571
+#: src/Package.php:643
 msgctxt "shipments"
 msgid "Delivered at Frontier (DAF)"
 msgstr ""
 
-#: src/Package.php:572
+#: src/Package.php:644
 msgctxt "shipments"
 msgid "Delivered at Terminal (DAT)"
 msgstr ""
 
-#: src/Package.php:573
+#: src/Package.php:645
 msgctxt "shipments"
 msgid "Delivery ex Quay (DEQ)"
 msgstr ""
 
-#: src/Package.php:574
+#: src/Package.php:646
 msgctxt "shipments"
 msgid "Delivered ex Ship (DES)"
 msgstr ""
@@ -3543,7 +3710,7 @@ msgstr ""
 
 #: src/PickupDelivery.php:191
 #: src/PickupDelivery.php:477
-#: src/ShippingProvider/PickupLocation.php:299
+#: src/ShippingProvider/PickupLocation.php:302
 msgctxt "shipments"
 msgid "Customer Number"
 msgstr ""
@@ -4436,7 +4603,7 @@ msgctxt "shipments"
 msgid "Encryption of type %s"
 msgstr ""
 
-#: src/Shipment.php:1162
+#: src/Shipment.php:1186
 #, php-format
 msgctxt "shipments-tracking-instruction"
 msgid "Shipping via %s."
@@ -4810,12 +4977,12 @@ msgctxt "shipments"
 msgid "Rule:"
 msgstr ""
 
-#: src/ShippingMethod/ShippingMethod.php:1696
+#: src/ShippingMethod/ShippingMethod.php:1699
 msgctxt "shipments"
 msgid "Rule cost is"
 msgstr ""
 
-#: src/ShippingMethod/ShippingMethod.php:1716
+#: src/ShippingMethod/ShippingMethod.php:1719
 msgctxt "shipments"
 msgid "When"
 msgstr ""
