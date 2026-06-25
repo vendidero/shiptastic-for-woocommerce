@@ -11,6 +11,14 @@ abstract class OAuth extends RESTAuth {
 	}
 
 	protected function get_access_token() {
+		$token_expires = $this->access_token_expires();
+
+		if ( ! empty( $token_expires ) && time() >= $token_expires ) {
+			$this->invalidate();
+
+			return '';
+		}
+
 		return $this->get_token_data( 'access', 'token' );
 	}
 
@@ -19,8 +27,16 @@ abstract class OAuth extends RESTAuth {
 	}
 
 	protected function get_token_data( $token_type = 'access', $type = 'token' ) {
-		$token_data = get_transient( "woocommerce_stc_{$this->get_api()->get_setting_name()}_{$token_type}_token" );
+		$token_data = get_option( "woocommerce_stc_{$this->get_api()->get_setting_name()}_{$token_type}_token", false );
 		$result     = '';
+
+		/**
+		 * Newer impl uses options instead of transients as transients may cause issues
+		 * with external object caches such as memcached (and their fixed day limits, e.g. 30 days)
+		 */
+		if ( empty( $token_data ) ) {
+			$token_data = get_transient( "woocommerce_stc_{$this->get_api()->get_setting_name()}_{$token_type}_token" );
+		}
 
 		if ( false !== $token_data ) {
 			if ( is_array( $token_data ) ) {
@@ -42,6 +58,14 @@ abstract class OAuth extends RESTAuth {
 	}
 
 	protected function get_refresh_token() {
+		$token_expires = $this->refresh_token_expires();
+
+		if ( ! empty( $token_expires ) && time() >= $token_expires ) {
+			$this->revoke();
+
+			return '';
+		}
+
 		return $this->get_token_data( 'refresh', 'token' );
 	}
 
@@ -82,13 +106,13 @@ abstract class OAuth extends RESTAuth {
 		$expires_in         -= MINUTE_IN_SECONDS;
 		$refresh_expires_in -= DAY_IN_SECONDS;
 
-		set_transient(
+		update_option(
 			"woocommerce_stc_{$this->get_api()->get_setting_name()}_access_token",
 			array(
 				'token'   => SecretBox::maybe_encrypt( wc_clean( $token_data['access_token'] ) ),
 				'expires' => time() + $expires_in,
 			),
-			$expires_in
+			false
 		);
 
 		$queue_args = array(
@@ -97,30 +121,34 @@ abstract class OAuth extends RESTAuth {
 
 		WC()->queue()->cancel_all( 'woocommerce_shiptastic_oauth_refresh_token', $queue_args, 'woocommerce-shiptastic-api' );
 
-		if ( ! WC()->queue()->get_next( 'woocommerce_shiptastic_oauth_refresh_token', $queue_args, 'woocommerce-shiptastic-api' ) ) {
-			$schedule_at = time() + ( $expires_in - MINUTE_IN_SECONDS * 10 );
-
-			WC()->queue()->schedule_single(
-				$schedule_at,
-				'woocommerce_shiptastic_oauth_refresh_token',
-				$queue_args,
-				'woocommerce-shiptastic-api'
-			);
-		}
-
 		if ( ! empty( $token_data['refresh_token'] ) ) {
-			set_transient(
+			/**
+			 * Make sure that the connection is being refreshed regularly (although not used) with the refresh token to prevent invalidation.
+			 */
+			if ( ! WC()->queue()->get_next( 'woocommerce_shiptastic_oauth_refresh_token', $queue_args, 'woocommerce-shiptastic-api' ) ) {
+				$schedule_at = time() + ( $expires_in - MINUTE_IN_SECONDS * 10 );
+
+				WC()->queue()->schedule_single(
+					$schedule_at,
+					'woocommerce_shiptastic_oauth_refresh_token',
+					$queue_args,
+					'woocommerce-shiptastic-api'
+				);
+			}
+
+			update_option(
 				"woocommerce_stc_{$this->get_api()->get_setting_name()}_refresh_token",
 				array(
 					'token'   => SecretBox::maybe_encrypt( wc_clean( $token_data['refresh_token'] ) ),
 					'expires' => time() + $refresh_expires_in,
 				),
-				$refresh_expires_in
+				false
 			);
 		}
 	}
 
 	public function invalidate() {
+		delete_option( "woocommerce_stc_{$this->get_api()->get_setting_name()}_access_token" );
 		delete_transient( "woocommerce_stc_{$this->get_api()->get_setting_name()}_access_token" );
 
 		$queue_args = array(
@@ -133,6 +161,7 @@ abstract class OAuth extends RESTAuth {
 	public function revoke() {
 		$this->invalidate();
 
+		delete_option( "woocommerce_stc_{$this->get_api()->get_setting_name()}_refresh_token" );
 		delete_transient( "woocommerce_stc_{$this->get_api()->get_setting_name()}_refresh_token" );
 	}
 }
