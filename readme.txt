@@ -1,6 +1,6 @@
 === Shiptastic for WooCommerce ===
 Contributors: vendidero, vdwoocommercesupport
-Tags: shipping, woocommerce, shipments, rules, woo, fulfillment
+Tags: shipping, woocommerce, shipments, woo, fulfillment
 Requires at least: 5.4
 Tested up to: 7.0
 Stable tag: 5.1.0

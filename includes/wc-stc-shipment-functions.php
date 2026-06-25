@@ -73,7 +73,17 @@ function wc_stc_get_customer_preferred_shipping_provider( $user_id ) {
 		$default_provider = 1 === count( $available ) ? array_values( $available )[0] : false;
 	}
 
-	if ( $customer = new WC_Customer( $user_id ) ) {
+	if ( is_a( $user_id, 'WC_Customer' ) ) {
+		$customer = $user_id;
+	} elseif ( is_numeric( $user_id ) ) {
+		$customer = new WC_Customer( $user_id );
+	} elseif ( WC()->customer ) {
+		$customer = WC()->customer;
+	} else {
+		$customer = null;
+	}
+
+	if ( $customer ) {
 		if ( $last_order = $customer->get_last_order() ) {
 			$provider = wc_stc_get_order_shipping_provider( $last_order );
 		}

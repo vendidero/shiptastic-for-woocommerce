@@ -34,7 +34,8 @@ class PickupDelivery {
 		add_filter( 'woocommerce_update_order_review_fragments', array( __CLASS__, 'register_order_review_fragments' ), 10, 1 );
 		add_action( 'woocommerce_after_checkout_validation', array( __CLASS__, 'register_classic_checkout_validation' ), 10, 2 );
 		add_action( 'woocommerce_checkout_create_order', array( __CLASS__, 'register_classic_checkout_order_data' ), 10, 2 );
-
+		add_filter( 'woocommerce_checkout_update_order_review', array( __CLASS__, 'store_classic_checkout_customer_session' ), 10 );
+		add_filter( 'woocommerce_customer_allowed_session_meta_keys', array( __CLASS__, 'register_customer_session_meta_keys' ) );
 		/**
 		 * Some themes/page builder may not fire the woocommerce_after_checkout_form hook. Fallback to wp_footer instead.
 		 */
@@ -62,6 +63,23 @@ class PickupDelivery {
 
 		add_filter( 'woocommerce_customer_meta_fields', array( __CLASS__, 'register_admin_profile_fields' ), 50 );
 		add_filter( 'woocommerce_admin_shipping_fields', array( __CLASS__, 'register_pickup_location_admin_fields' ), 10, 3 );
+	}
+
+	public static function register_customer_session_meta_keys( $allowed ) {
+		$allowed[] = 'pickup_location_customer_number';
+		$allowed[] = 'pickup_location_code';
+
+		return $allowed;
+	}
+
+	public static function store_classic_checkout_customer_session( $data ) {
+		parse_str( wp_unslash( $data ), $data );
+
+		$pickup_location_code            = isset( $data['current_pickup_location'] ) ? trim( wc_clean( $data['current_pickup_location'] ) ) : null;
+		$pickup_location_customer_number = isset( $data['pickup_location_customer_number'] ) ? wc_clean( $data['pickup_location_customer_number'] ) : null;
+
+		WC()->customer->update_meta_data( 'pickup_location_code', $pickup_location_code );
+		WC()->customer->update_meta_data( 'pickup_location_customer_number', $pickup_location_customer_number );
 	}
 
 	public static function register_admin_profile_fields( $fields ) {
@@ -201,6 +219,7 @@ class PickupDelivery {
 			$provider = wc_stc_get_customer_preferred_shipping_provider( $customer );
 		} elseif ( 'checkout' === $context ) {
 			$query_args = self::get_pickup_delivery_cart_args();
+			$customer   = WC()->customer;
 		}
 
 		if ( ! empty( $current_provider ) ) {
