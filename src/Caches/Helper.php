@@ -45,7 +45,7 @@ class Helper {
 
 		$non_persistent_groups = array_filter( $non_persistent_groups );
 
-		if ( ! empty( $non_persistent_groups ) ) {
+		if ( empty( $non_persistent_groups ) ) {
 			return;
 		}
 

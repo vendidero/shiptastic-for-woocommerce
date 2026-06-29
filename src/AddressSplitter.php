@@ -22,25 +22,32 @@ class AddressSplitter {
 	 * @throws Exception
 	 */
 	public static function split_address( $address ) {
-		$fixed_street_name = '';
-		$address           = is_null( $address ) ? '' : $address;
+		$address                 = is_null( $address ) ? '' : $address;
+		$original_address        = $address;
+		$street_name_placeholder = 'Sample Street';
+		$address_details         = array(
+			'address'           => $address,
+			'fixed_street_name' => '',
+		);
 
 		/**
 		 * Enforce whitespace after comma to improve parsing.
 		 */
-		$address = str_replace( ',', ', ', $address );
+		$address_details['address'] = str_replace( ',', ', ', $address_details['address'] );
 
 		/**
 		 * Special case 1: For street names containing numbers, e.g. Straße 50 in Berlin. Replace the original street name with a placeholder to prevent mixing up house numbers.
 		 * Special case 2: Street names starting with a number, e.g. 10. Oktoberstrasse
 		 */
-		if ( 1 === preg_match( '/^(str\.|strasse|straße|street)\s+[0-9]+/i', $address, $matches ) ) {
-			$fixed_street_name = $matches[0];
-			$address           = preg_replace( '/^(str\.|strasse|straße|street)\s+([0-9]+)/i', 'Sample Street', $address );
-		} elseif ( 1 === preg_match( '/^[0-9]*[.-]+(\s*)([\w]*(\s*)(str\.|strasse|straße|street))/i', $address, $matches ) ) {
-			$fixed_street_name = $matches[0];
-			$address           = preg_replace( '/^[0-9]*[.-]+(\s*)([\w]*(\s*)(str\.|strasse|straße|street))/i', 'Sample Street', $address );
+		if ( 1 === preg_match( '/^(str\.|strasse|straße|street)\s+[0-9]+/i', $address_details['address'], $matches ) ) {
+			$address_details['fixed_street_name'] = $matches[0];
+			$address_details['address']           = preg_replace( '/^(str\.|strasse|straße|street)\s+([0-9]+)/i', $street_name_placeholder, $address_details['address'] );
+		} elseif ( 1 === preg_match( '/^[0-9]*[.-]+(\s*)([\w]*(\s*)(str\.|strasse|straße|street))/i', $address_details['address'], $matches ) ) {
+			$address_details['fixed_street_name'] = $matches[0];
+			$address_details['address']           = preg_replace( '/^[0-9]*[.-]+(\s*)([\w]*(\s*)(str\.|strasse|straße|street))/i', $street_name_placeholder, $address_details['address'] );
 		}
+
+		$address_details = apply_filters( 'woocommerce_shiptastic_split_address_details_before_parsing', $address_details, $original_address, $street_name_placeholder );
 
 		/* Matching this group signifies the following text is part of
 		 * additionToAddress2.
@@ -224,11 +231,11 @@ class AddressSplitter {
                 )?
             )
             \s*\Z/xu';
-		$result                 = preg_match( $regex, $address, $matches );
+		$result                 = preg_match( $regex, $address_details['address'], $matches );
 		if ( 0 === $result ) {
-			throw new Exception( esc_html( sprintf( 'Error occurred while trying to split address \'%s\'', $address ) ) );
+			throw new Exception( esc_html( sprintf( 'Error occurred while trying to split address \'%s\'', $address_details['address'] ) ) );
 		} elseif ( false === $result ) {
-			throw new RuntimeException( esc_html( sprintf( 'Error occurred while trying to split address \'%s\'', $address ) ) );
+			throw new RuntimeException( esc_html( sprintf( 'Error occurred while trying to split address \'%s\'', $address_details['address'] ) ) );
 		}
 		if ( ! empty( $matches['A_Street_name'] ) ) {
 			$result = array(
@@ -254,8 +261,8 @@ class AddressSplitter {
 			);
 		}
 
-		if ( $fixed_street_name ) {
-			$result['streetName'] = str_replace( 'Sample Street', $fixed_street_name, $result['streetName'] );
+		if ( $address_details['fixed_street_name'] ) {
+			$result['streetName'] = str_replace( $street_name_placeholder, $address_details['fixed_street_name'], $result['streetName'] );
 		}
 
 		return $result;
