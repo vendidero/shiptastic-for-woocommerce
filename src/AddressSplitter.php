@@ -22,8 +22,9 @@ class AddressSplitter {
 	 * @throws Exception
 	 */
 	public static function split_address( $address ) {
-		$fixed_street_name = '';
-		$address           = is_null( $address ) ? '' : $address;
+		$fixed_street_name       = '';
+		$street_name_placeholder = 'Sample Street';
+		$address                 = is_null($address) ? '' : $address;
 
 		/**
 		 * Enforce whitespace after comma to improve parsing.
@@ -31,15 +32,38 @@ class AddressSplitter {
 		$address = str_replace( ',', ', ', $address );
 
 		/**
+		 * Allow for a filter to fix the street name and address before splitting.
+		 *
+		 * @param bool   $fixed_street_name_data
+		 * @param string $address
+		 * @param string $street_name_placeholder
+		 */
+		$fixed_street_name_data = apply_filters(
+			'woocommerce_shiptastic_address_splitter_fixed_street_name_data',
+			false,
+			$address,
+			$street_name_placeholder
+		);
+
+		if (
+			is_array($fixed_street_name_data)
+			&& ! empty($fixed_street_name_data['street_name'])
+			&& ! empty($fixed_street_name_data['address'])
+		) {
+			$fixed_street_name = $fixed_street_name_data['street_name'];
+			$address           = $fixed_street_name_data['address'];
+		}
+
+		/**
 		 * Special case 1: For street names containing numbers, e.g. Straße 50 in Berlin. Replace the original street name with a placeholder to prevent mixing up house numbers.
 		 * Special case 2: Street names starting with a number, e.g. 10. Oktoberstrasse
 		 */
-		if ( 1 === preg_match( '/^(str\.|strasse|straße|street)\s+[0-9]+/i', $address, $matches ) ) {
+		if (! $fixed_street_name && 1 === preg_match('/^(str\.|strasse|straße|street)\s+[0-9]+/i', $address, $matches)) {
 			$fixed_street_name = $matches[0];
-			$address           = preg_replace( '/^(str\.|strasse|straße|street)\s+([0-9]+)/i', 'Sample Street', $address );
-		} elseif ( 1 === preg_match( '/^[0-9]*[.-]+(\s*)([\w]*(\s*)(str\.|strasse|straße|street))/i', $address, $matches ) ) {
+			$address           = preg_replace('/^(str\.|strasse|straße|street)\s+([0-9]+)/i', $street_name_placeholder, $address);
+		} elseif (! $fixed_street_name && 1 === preg_match('/^[0-9]*[.-]+(\s*)([\w]*(\s*)(str\.|strasse|straße|street))/i', $address, $matches)) {
 			$fixed_street_name = $matches[0];
-			$address           = preg_replace( '/^[0-9]*[.-]+(\s*)([\w]*(\s*)(str\.|strasse|straße|street))/i', 'Sample Street', $address );
+			$address           = preg_replace('/^[0-9]*[.-]+(\s*)([\w]*(\s*)(str\.|strasse|straße|street))/i', $street_name_placeholder, $address);
 		}
 
 		/* Matching this group signifies the following text is part of
@@ -255,7 +279,7 @@ class AddressSplitter {
 		}
 
 		if ( $fixed_street_name ) {
-			$result['streetName'] = str_replace( 'Sample Street', $fixed_street_name, $result['streetName'] );
+			$result['streetName'] = str_replace($street_name_placeholder, $fixed_street_name, $result['streetName']);
 		}
 
 		return $result;
