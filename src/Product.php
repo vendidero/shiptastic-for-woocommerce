@@ -168,6 +168,10 @@ class Product {
 		return $data;
 	}
 
+	public function get_warehouse_name( $context = 'view' ) {
+		return $this->get_parent_product_if_available()->get_meta( '_warehouse_name', true, $context );
+	}
+
 	public function is_non_returnable( $context = 'view' ) {
 		$is_non_returnable = wc_string_to_bool( $this->get_parent_product_if_available()->get_meta( '_is_non_returnable', true, $context ) );
 
@@ -250,6 +254,10 @@ class Product {
 
 	public function set_ship_separately_via( $shipping_provider ) {
 		$this->product->update_meta_data( '_ship_separately_via', $shipping_provider );
+	}
+
+	public function set_warehouse_name( $name ) {
+		$this->product->update_meta_data( '_warehouse_name', $name );
 	}
 
 	public function set_shipping_weight( $weight ) {

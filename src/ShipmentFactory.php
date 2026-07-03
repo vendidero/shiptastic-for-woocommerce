@@ -124,6 +124,10 @@ class ShipmentFactory {
 			try {
 				$attachment = new $classname( $attachment_id );
 
+				if ( $attachment_id > 0 && empty( $attachment->get_id() ) ) {
+					throw new Exception( 'Attachment does not exist' );
+				}
+
 				if ( ! is_a( $attachment, 'Vendidero\Shiptastic\Interfaces\Attachment' ) ) {
 					throw new Exception( 'Invalid attachment type' );
 				}

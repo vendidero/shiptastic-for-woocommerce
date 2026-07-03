@@ -79,6 +79,10 @@ class Factory {
 		try {
 			$label = new $classname( $label_id );
 
+			if ( $label_id > 0 && empty( $label->get_id() ) ) {
+				throw new Exception( 'Label does not exist' );
+			}
+
 			if ( $label && $label_id > 0 && ( $cache = Helper::get_cache_object( 'shipment-labels' ) ) ) {
 				$cache->set( $label, $label_id );
 			}

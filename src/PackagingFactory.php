@@ -56,6 +56,10 @@ class PackagingFactory {
 		try {
 			$packaging = new $classname( $packaging_id );
 
+			if ( $packaging_id > 0 && empty( $packaging->get_id() ) ) {
+				throw new Exception( 'Packaging does not exist' );
+			}
+
 			if ( $packaging && $packaging_id > 0 && ( $cache = Helper::get_cache_object( 'packagings' ) ) ) {
 				$cache->set( $packaging, $packaging_id );
 			}

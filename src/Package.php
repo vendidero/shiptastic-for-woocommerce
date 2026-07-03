@@ -5,6 +5,7 @@ namespace Vendidero\Shiptastic;
 use Automattic\WooCommerce\Utilities\I18nUtil;
 use Exception;
 use Vendidero\Shiptastic\API\Helper;
+use Vendidero\Shiptastic\BulkFulfillments\BulkFulfillment;
 use Vendidero\Shiptastic\Registry\Container;
 use Vendidero\Shiptastic\ShippingMethod\MethodHelper;
 
@@ -973,6 +974,7 @@ class Package {
 		include_once self::get_path() . '/includes/wc-stc-shipment-functions.php';
 		include_once self::get_path() . '/includes/wc-stc-label-functions.php';
 		include_once self::get_path() . '/includes/wc-stc-packaging-functions.php';
+		include_once self::get_path() . '/includes/wc-stc-warehouse-functions.php';
 	}
 
 	private static function is_frontend_request() {
@@ -1053,18 +1055,24 @@ class Package {
 
 		// List of tables without prefixes.
 		$tables = array(
-			'stc_shipment_itemmeta'       => 'woocommerce_stc_shipment_itemmeta',
-			'stc_shipmentmeta'            => 'woocommerce_stc_shipmentmeta',
-			'stc_shipments'               => 'woocommerce_stc_shipments',
-			'stc_shipment_labelmeta'      => 'woocommerce_stc_shipment_labelmeta',
-			'stc_shipment_labels'         => 'woocommerce_stc_shipment_labels',
-			'stc_shipment_attachmentmeta' => 'woocommerce_stc_shipment_attachmentmeta',
-			'stc_shipment_attachments'    => 'woocommerce_stc_shipment_attachments',
-			'stc_shipment_items'          => 'woocommerce_stc_shipment_items',
-			'stc_shipping_provider'       => 'woocommerce_stc_shipping_provider',
-			'stc_shipping_providermeta'   => 'woocommerce_stc_shipping_providermeta',
-			'stc_packaging'               => 'woocommerce_stc_packaging',
-			'stc_packagingmeta'           => 'woocommerce_stc_packagingmeta',
+			'stc_shipment_itemmeta'          => 'woocommerce_stc_shipment_itemmeta',
+			'stc_shipmentmeta'               => 'woocommerce_stc_shipmentmeta',
+			'stc_shipments'                  => 'woocommerce_stc_shipments',
+			'stc_shipment_labelmeta'         => 'woocommerce_stc_shipment_labelmeta',
+			'stc_shipment_labels'            => 'woocommerce_stc_shipment_labels',
+			'stc_shipment_attachmentmeta'    => 'woocommerce_stc_shipment_attachmentmeta',
+			'stc_shipment_attachments'       => 'woocommerce_stc_shipment_attachments',
+			'stc_shipment_items'             => 'woocommerce_stc_shipment_items',
+			'stc_shipping_provider'          => 'woocommerce_stc_shipping_provider',
+			'stc_shipping_providermeta'      => 'woocommerce_stc_shipping_providermeta',
+			'stc_packaging'                  => 'woocommerce_stc_packaging',
+			'stc_packagingmeta'              => 'woocommerce_stc_packagingmeta',
+			'stc_warehouses'                 => 'woocommerce_stc_warehouses',
+			'stc_warehousemeta'              => 'woocommerce_stc_warehousemeta',
+			'stc_bulk_fulfillments'          => 'woocommerce_stc_bulk_fulfillments',
+			'stc_bulk_fulfillmentmeta'       => 'woocommerce_stc_bulk_fulfillmentmeta',
+			'stc_bulk_fulfillment_orders'    => 'woocommerce_stc_bulk_fulfillment_orders',
+			'stc_bulk_fulfillment_ordermeta' => 'woocommerce_stc_bulk_fulfillment_ordermeta',
 		);
 
 		foreach ( $tables as $name => $table ) {
@@ -1089,12 +1097,15 @@ class Package {
 	}
 
 	public static function register_data_stores( $stores ) {
-		$stores['shipment']            = 'Vendidero\Shiptastic\DataStores\Shipment';
-		$stores['shipment-label']      = 'Vendidero\Shiptastic\DataStores\Label';
-		$stores['packaging']           = 'Vendidero\Shiptastic\DataStores\Packaging';
-		$stores['shipment-item']       = 'Vendidero\Shiptastic\DataStores\ShipmentItem';
-		$stores['shipping-provider']   = 'Vendidero\Shiptastic\DataStores\ShippingProvider';
-		$stores['shipment-attachment'] = 'Vendidero\Shiptastic\DataStores\ShipmentAttachment';
+		$stores['shipment']               = 'Vendidero\Shiptastic\DataStores\Shipment';
+		$stores['shipment-label']         = 'Vendidero\Shiptastic\DataStores\Label';
+		$stores['packaging']              = 'Vendidero\Shiptastic\DataStores\Packaging';
+		$stores['warehouse']              = 'Vendidero\Shiptastic\DataStores\Warehouse';
+		$stores['shipment-item']          = 'Vendidero\Shiptastic\DataStores\ShipmentItem';
+		$stores['shipping-provider']      = 'Vendidero\Shiptastic\DataStores\ShippingProvider';
+		$stores['shipment-attachment']    = 'Vendidero\Shiptastic\DataStores\ShipmentAttachment';
+		$stores['bulk-fulfillment']       = 'Vendidero\Shiptastic\DataStores\BulkFulfillment';
+		$stores['bulk-fulfillment-order'] = 'Vendidero\Shiptastic\DataStores\BulkFulfillmentOrder';
 
 		do_action( 'woocommerce_shiptastic_registered_data_stores' );
 

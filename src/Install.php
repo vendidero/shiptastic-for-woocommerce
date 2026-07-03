@@ -716,6 +716,59 @@ CREATE TABLE {$wpdb->prefix}woocommerce_stc_shipmentmeta (
   KEY stc_shipment_id (stc_shipment_id),
   KEY meta_key (meta_key(32))
 ) $collate;
+CREATE TABLE {$wpdb->prefix}woocommerce_stc_bulk_fulfillments (
+  fulfillment_id bigint(20) unsigned NOT NULL auto_increment,
+  fulfillment_date_created_gmt datetime NULL,
+  fulfillment_date_modified_gmt datetime NULL,
+  fulfillment_date_start_gmt datetime NULL,
+  fulfillment_date_end_gmt datetime NULL,
+  fulfillment_status varchar(150) NOT NULL default 'open',
+  fulfillment_type varchar(150) NOT NULL default 'manual',
+  fulfillment_filters longtext NULL,
+  fulfillment_actions longtext NULL,
+  fulfillment_current_order bigint(20) unsigned NOT NULL DEFAULT 0,
+  fulfillment_current_action varchar(150) NOT NULL default '',
+  fulfillment_is_initialized tinyint(1) unsigned NOT NULL DEFAULT 0,
+  fulfillment_progress tinyint(3) unsigned NOT NULL DEFAULT 0,
+  fulfillment_parent_id bigint(20) unsigned NOT NULL,
+  fulfillment_order_count bigint(20) unsigned NOT NULL DEFAULT 0,
+  fulfillment_first_order bigint(20) unsigned NOT NULL DEFAULT 0,
+  fulfillment_last_order bigint(20) unsigned NOT NULL DEFAULT 0,
+  PRIMARY KEY  (fulfillment_id),
+  KEY fulfillment_last_order (fulfillment_last_order),
+  KEY fulfillment_first_order (fulfillment_first_order),
+  KEY fulfillment_current_order (fulfillment_current_order),
+  KEY fulfillment_parent_id (fulfillment_parent_id)
+) $collate;
+CREATE TABLE {$wpdb->prefix}woocommerce_stc_bulk_fulfillmentmeta (
+  meta_id bigint(20) unsigned NOT NULL auto_increment,
+  stc_bulk_fulfillment_id bigint(20) unsigned NOT NULL,
+  meta_key varchar(255) default NULL,
+  meta_value longtext NULL,
+  PRIMARY KEY  (meta_id),
+  KEY stc_bulk_fulfillment_id (stc_bulk_fulfillment_id),
+  KEY meta_key (meta_key(32))
+) $collate;
+CREATE TABLE {$wpdb->prefix}woocommerce_stc_bulk_fulfillment_orders (
+  fulfillment_order_id bigint(20) unsigned NOT NULL auto_increment,
+  fulfillment_order_order_id bigint(20) unsigned NOT NULL,
+  fulfillment_order_fulfillment_id bigint(20) unsigned NOT NULL,
+  fulfillment_order_date_locked_gmt datetime NULL,
+  fulfillment_order_locked_by bigint(20) unsigned NOT NULL DEFAULT 0,
+  fulfillment_order_status varchar(150) NOT NULL default 'open',
+  PRIMARY KEY  (fulfillment_order_id),
+  UNIQUE KEY fulfillment_order_constraint (fulfillment_order_order_id, fulfillment_order_fulfillment_id),
+  KEY fulfillment_order_locked_by (fulfillment_order_locked_by)
+) $collate;
+CREATE TABLE {$wpdb->prefix}woocommerce_stc_bulk_fulfillment_ordermeta (
+  meta_id bigint(20) unsigned NOT NULL auto_increment,
+  stc_bulk_fulfillment_order_id bigint(20) unsigned NOT NULL,
+  meta_key varchar(255) default NULL,
+  meta_value longtext NULL,
+  PRIMARY KEY  (meta_id),
+  KEY stc_bulk_fulfillment_order_id (stc_bulk_fulfillment_order_id),
+  KEY meta_key (meta_key(32))
+) $collate;
 CREATE TABLE {$wpdb->prefix}woocommerce_stc_packaging (
   packaging_id bigint(20) unsigned NOT NULL auto_increment,
   packaging_date_created datetime default NULL,
@@ -742,6 +795,27 @@ CREATE TABLE {$wpdb->prefix}woocommerce_stc_packagingmeta (
   meta_value longtext NULL,
   PRIMARY KEY  (meta_id),
   KEY stc_packaging_id (stc_packaging_id),
+  KEY meta_key (meta_key(32))
+) $collate;
+CREATE TABLE {$wpdb->prefix}woocommerce_stc_warehouses (
+  warehouse_id bigint(20) unsigned NOT NULL auto_increment,
+  warehouse_date_created datetime default NULL,
+  warehouse_date_created_gmt datetime default NULL,
+  warehouse_type varchar(200) NOT NULL DEFAULT '',
+  warehouse_name varchar(200) NOT NULL,
+  warehouse_description tinytext NULL,
+  warehouse_title tinytext NULL,
+  warehouse_order bigint(20) unsigned NOT NULL DEFAULT 0,
+  PRIMARY KEY  (warehouse_id),
+  UNIQUE KEY warehouse_name (warehouse_name)
+) $collate;
+CREATE TABLE {$wpdb->prefix}woocommerce_stc_warehousemeta (
+  meta_id bigint(20) unsigned NOT NULL auto_increment,
+  stc_warehouse_id bigint(20) unsigned NOT NULL,
+  meta_key varchar(255) default NULL,
+  meta_value longtext NULL,
+  PRIMARY KEY  (meta_id),
+  KEY stc_warehouse_id (stc_warehouse_id),
   KEY meta_key (meta_key(32))
 ) $collate;
 CREATE TABLE {$wpdb->prefix}woocommerce_stc_shipping_provider (
