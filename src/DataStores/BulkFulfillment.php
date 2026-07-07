@@ -30,14 +30,14 @@ class BulkFulfillment extends WC_Data_Store_WP implements WC_Object_Data_Store_I
 		'type',
 		'filters',
 		'actions',
-		'current_order',
+		'current_order_id',
 		'current_action',
 		'progress',
 		'parent_id',
 		'is_initialized',
 		'order_count',
-		'last_order',
-		'first_order',
+		'last_order_id',
+		'first_order_id',
 	);
 
 	protected $meta_type = 'stc_bulk_fulfillment';
@@ -68,14 +68,14 @@ class BulkFulfillment extends WC_Data_Store_WP implements WC_Object_Data_Store_I
 			'fulfillment_type'              => $fulfillment->get_type( 'edit' ),
 			'fulfillment_filters'           => empty( $fulfillment->get_filters( 'edit' ) ) ? '' : maybe_serialize( $fulfillment->get_filters( 'edit' ) ),
 			'fulfillment_actions'           => empty( $fulfillment->get_filters( 'edit' ) ) ? '' : maybe_serialize( $fulfillment->get_actions( 'edit' ) ),
-			'fulfillment_current_order'     => $fulfillment->get_current_order( 'edit' ),
+			'fulfillment_current_order_id'  => $fulfillment->get_current_order_id( 'edit' ),
 			'fulfillment_current_action'    => $fulfillment->get_current_action( 'edit' ),
 			'fulfillment_progress'          => $fulfillment->get_progress( 'edit' ),
 			'fulfillment_parent_id'         => $fulfillment->get_parent_id( 'edit' ),
 			'fulfillment_is_initialized'    => $fulfillment->get_is_initialized( 'edit' ) ? 1 : 0,
 			'fulfillment_order_count'       => $fulfillment->get_order_count( 'edit' ),
-			'fulfillment_last_order'        => $fulfillment->get_last_order( 'edit' ),
-			'fulfillment_first_order'       => $fulfillment->get_first_order( 'edit' ),
+			'fulfillment_last_order_id'     => $fulfillment->get_last_order_id( 'edit' ),
+			'fulfillment_first_order_id'    => $fulfillment->get_first_order_id( 'edit' ),
 		);
 
 		$wpdb->insert(
@@ -232,22 +232,22 @@ class BulkFulfillment extends WC_Data_Store_WP implements WC_Object_Data_Store_I
 		if ( $data ) {
 			$fulfillment->set_props(
 				array(
-					'date_created'   => $this->string_to_timestamp( $data->fulfillment_date_created_gmt ),
-					'date_modified'  => $this->string_to_timestamp( $data->fulfillment_date_modified_gmt ),
-					'date_start'     => $this->string_to_timestamp( $data->fulfillment_date_start_gmt ),
-					'date_end'       => $this->string_to_timestamp( $data->fulfillment_date_end_gmt ),
-					'status'         => $data->fulfillment_status,
-					'type'           => $data->fulfillment_type,
-					'filters'        => maybe_unserialize( $data->fulfillment_filters ),
-					'actions'        => maybe_unserialize( $data->fulfillment_actions ),
-					'current_order'  => $data->fulfillment_current_order,
-					'current_action' => $data->fulfillment_current_action,
-					'progress'       => $data->fulfillment_progress,
-					'parent_id'      => $data->fulfillment_parent_id,
-					'is_initialized' => $data->fulfillment_is_initialized,
-					'order_count'    => $data->fulfillment_order_count,
-					'last_order'     => $data->fulfillment_last_order,
-					'first_order'    => $data->fulfillment_first_order,
+					'date_created'     => $this->string_to_timestamp( $data->fulfillment_date_created_gmt ),
+					'date_modified'    => $this->string_to_timestamp( $data->fulfillment_date_modified_gmt ),
+					'date_start'       => $this->string_to_timestamp( $data->fulfillment_date_start_gmt ),
+					'date_end'         => $this->string_to_timestamp( $data->fulfillment_date_end_gmt ),
+					'status'           => $data->fulfillment_status,
+					'type'             => $data->fulfillment_type,
+					'filters'          => maybe_unserialize( $data->fulfillment_filters ),
+					'actions'          => maybe_unserialize( $data->fulfillment_actions ),
+					'current_order_id' => $data->fulfillment_current_order_id,
+					'current_action'   => $data->fulfillment_current_action,
+					'progress'         => $data->fulfillment_progress,
+					'parent_id'        => $data->fulfillment_parent_id,
+					'is_initialized'   => $data->fulfillment_is_initialized,
+					'order_count'      => $data->fulfillment_order_count,
+					'last_order_id'    => $data->fulfillment_last_order_id,
+					'first_order_id'   => $data->fulfillment_first_order_id,
 				)
 			);
 
@@ -393,30 +393,10 @@ class BulkFulfillment extends WC_Data_Store_WP implements WC_Object_Data_Store_I
 		$wpdb->delete( $wpdb->stc_bulk_fulfillment_orders, array( 'fulfillment_order_fulfillment_id' => $fulfillment_id ), array( '%d' ) );
 	}
 
-	public function get_orders( $fulfillment_id, $args = array() ) {
+	public function get_prev_next_current_order( $fulfillment_id, $order_id ) {
 		global $wpdb;
 
-		$args = wp_parse_args(
-			$args,
-			array(
-				'limit'  => 10,
-				'before' => -1,
-				'after'  => -1,
-				'id'     => -1,
-			)
-		);
-
-		$where = '';
-
-		if ( -1 !== $args['before'] ) {
-			$where .= $wpdb->prepare( ' AND (fulfillment_order_id < %d)', $args['before'] ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		} elseif ( -1 !== $args['after'] ) {
-			$where .= $wpdb->prepare( ' AND (fulfillment_order_id > %d)', $args['after'] ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		} elseif ( -1 !== $args['id'] ) {
-			$where .= $wpdb->prepare( ' AND (fulfillment_order_id >= %d)', $args['id'] ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		}
-
-		return $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$wpdb->stc_bulk_fulfillment_orders} WHERE fulfillment_order_fulfillment_id = %d {$where} ORDER BY fulfillment_order_id ASC LIMIT %d", $fulfillment_id, $args['limit'] ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		return $wpdb->get_results( $wpdb->prepare( "select * from {$wpdb->stc_bulk_fulfillment_orders} where (fulfillment_order_id = IFNULL((select min(fulfillment_order_id) from {$wpdb->stc_bulk_fulfillment_orders} where fulfillment_order_fulfillment_id = %d and fulfillment_order_id > %d),0) or fulfillment_order_id = IFNULL((select max(fulfillment_order_id) from {$wpdb->stc_bulk_fulfillment_orders} where fulfillment_order_fulfillment_id = %d and fulfillment_order_id < %d),0) or fulfillment_order_id = IFNULL((select fulfillment_order_id from {$wpdb->stc_bulk_fulfillment_orders} where fulfillment_order_fulfillment_id = %d and fulfillment_order_id = %d),0))", $fulfillment_id, $order_id, $fulfillment_id, $order_id, $fulfillment_id, $order_id ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 	}
 
 	public function get_first_order_id( $fulfillment_id ) {

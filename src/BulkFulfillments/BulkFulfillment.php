@@ -2,7 +2,6 @@
 
 namespace Vendidero\Shiptastic\BulkFulfillments;
 
-use Vendidero\Shiptastic\Package;
 use WC_Data;
 
 defined( 'ABSPATH' ) || exit;
@@ -45,22 +44,22 @@ class BulkFulfillment extends WC_Data {
 	 * @var array
 	 */
 	protected $data = array(
-		'date_created'   => null,
-		'date_modified'  => null,
-		'date_start'     => null,
-		'date_end'       => null,
-		'status'         => '',
-		'type'           => '',
-		'filters'        => array(),
-		'actions'        => array(),
-		'current_order'  => 0,
-		'current_action' => 0,
-		'progress'       => 0,
-		'parent_id'      => 0,
-		'is_initialized' => false,
-		'order_count'    => 0,
-		'last_order'     => 0,
-		'first_order'    => 0,
+		'date_created'     => null,
+		'date_modified'    => null,
+		'date_start'       => null,
+		'date_end'         => null,
+		'status'           => '',
+		'type'             => '',
+		'filters'          => array(),
+		'actions'          => array(),
+		'current_order_id' => 0,
+		'current_action'   => '',
+		'progress'         => 0,
+		'parent_id'        => 0,
+		'is_initialized'   => false,
+		'order_count'      => 0,
+		'last_order_id'    => 0,
+		'first_order_id'   => 0,
 	);
 
 	/**
@@ -128,7 +127,13 @@ class BulkFulfillment extends WC_Data {
 	}
 
 	public function get_status( $context = 'view' ) {
-		return $this->get_prop( 'status', $context );
+		$status = $this->get_prop( 'status', $context );
+
+		if ( 'view' === $context && empty( $status ) ) {
+			$status = 'open';
+		}
+
+		return $status;
 	}
 
 	public function set_status( $status ) {
@@ -184,8 +189,11 @@ class BulkFulfillment extends WC_Data {
 			)
 		);
 
-		$actions          = $this->get_actions();
-		$actions[ $name ] = $args;
+		$actions   = $this->get_actions();
+		$actions[] = array(
+			'name'     => $name,
+			'settings' => $args['settings'],
+		);
 
 		$this->set_actions( $actions );
 	}
@@ -194,12 +202,25 @@ class BulkFulfillment extends WC_Data {
 		$this->set_prop( 'actions', array_filter( (array) $actions ) );
 	}
 
-	public function get_current_order( $context = 'view' ) {
-		return $this->get_prop( 'current_order', $context );
+	public function get_current_order_id( $context = 'view' ) {
+		return $this->get_prop( 'current_order_id', $context );
 	}
 
-	public function set_current_order( $current_order ) {
-		$this->set_prop( 'current_order', absint( $current_order ) );
+	/**
+	 * @return BulkFulfillmentOrder|null
+	 */
+	public function get_current_order() {
+		return $this->get_orders()['current'];
+	}
+
+	public function set_current_order_id( $current_order ) {
+		if ( is_a( $current_order, '\Vendidero\Shiptastic\BulkFulfillments\BulkFulfillment' ) ) {
+			$current_order = $current_order->get_id();
+		}
+
+		$this->set_prop( 'current_order_id', absint( $current_order ) );
+
+		$this->orders = null;
 	}
 
 	public function get_current_action( $context = 'view' ) {
@@ -246,106 +267,34 @@ class BulkFulfillment extends WC_Data {
 		$this->set_prop( 'order_count', absint( $count ) );
 	}
 
-	public function get_first_order( $context = 'view' ) {
-		return $this->get_prop( 'first_order', $context );
+	public function get_first_order_id( $context = 'view' ) {
+		return $this->get_prop( 'first_order_id', $context );
 	}
 
-	public function set_first_order( $order_id ) {
-		$this->set_prop( 'first_order', absint( $order_id ) );
+	public function set_first_order_id( $order_id ) {
+		$this->set_prop( 'first_order_id', absint( $order_id ) );
 	}
 
-	public function get_last_order( $context = 'view' ) {
-		return $this->get_prop( 'last_order', $context );
+	public function get_last_order_id( $context = 'view' ) {
+		return $this->get_prop( 'last_order_id', $context );
 	}
 
-	public function set_last_order( $order_id ) {
-		$this->set_prop( 'last_order', absint( $order_id ) );
+	public function set_last_order_id( $order_id ) {
+		$this->set_prop( 'last_order_id', absint( $order_id ) );
 	}
 
 	/**
-	 * @param $args
-	 *
 	 * @return BulkFulfillmentOrder[]
 	 */
-	public function get_orders( $args ) {
-		$args = wp_parse_args(
-			$args,
-			array(
-				'before'      => -1,
-				'after'       => -1,
-				'id'          => -1,
-				'limit'       => 5,
-				'allow_fetch' => true,
-			)
-		);
-
-		$fetch = false;
-
+	public function get_orders() {
 		if ( is_null( $this->orders ) ) {
-			$this->orders = array();
-			$fetch        = true;
-		}
+			$this->orders = array(
+				'next'    => null,
+				'prev'    => null,
+				'current' => null,
+			);
 
-		$first_order_id = $this->get_first_order();
-		$last_order_id  = $this->get_last_order();
-		$order_ids      = array_keys( $this->orders );
-
-		if ( ! $fetch ) {
-			if ( -1 !== $args['before'] ) {
-				$pos   = array_search( $args['before'], $order_ids, true );
-				$fetch = false === $pos;
-
-				if ( ! $fetch ) {
-					$order_ids = array_slice( $order_ids, 0, $pos );
-					$has_first = in_array( $first_order_id, $order_ids, true );
-
-					if ( count( $order_ids ) < $args['limit'] && ! $has_first && $args['before'] !== $first_order_id ) {
-						$fetch = true;
-					}
-				} else {
-					if ( $args['before'] === $first_order_id ) {
-						$fetch = false;
-					}
-
-					$order_ids = array();
-				}
-			} elseif ( -1 !== $args['after'] ) {
-				$pos   = array_search( $args['after'], $order_ids, true );
-				$fetch = false === $pos;
-
-				if ( ! $fetch ) {
-					$order_ids = array_slice( $order_ids, $pos + 1 );
-					$has_last  = in_array( $last_order_id, $order_ids, true );
-
-					if ( count( $order_ids ) < $args['limit'] && ! $has_last && $args['after'] !== $last_order_id ) {
-						$fetch = true;
-					}
-				} else {
-					if ( $args['after'] === $last_order_id ) {
-						$fetch = false;
-					}
-
-					$order_ids = array();
-				}
-			} elseif ( -1 !== $args['id'] ) {
-				$fetch = ! array_key_exists( $args['id'], $this->orders );
-
-				if ( ! $fetch ) {
-					$order_ids = array( $args['id'] );
-				} else {
-					$order_ids = array();
-				}
-			} else {
-				$order_ids = array_slice( $order_ids, 0, $args['limit'] );
-
-				if ( empty( $order_ids ) ) {
-					$fetch = true;
-				}
-			}
-		}
-
-		if ( $fetch && $args['allow_fetch'] ) {
-			$results = $this->get_data_store()->get_orders( $this->get_id(), $args );
+			$results = $this->get_data_store()->get_prev_next_current_order( $this->get_id(), $this->get_current_order_id() );
 
 			foreach ( $results as $result ) {
 				if ( $order = $this->get_order_instance( $result ) ) {
@@ -353,25 +302,20 @@ class BulkFulfillment extends WC_Data {
 						continue;
 					}
 
-					$this->orders[ $order->get_id() ] = $order;
+					$order->set_fulfillment( $this );
+
+					if ( $order->get_id() > $this->get_current_order_id() ) {
+						$this->orders['next'] = $order;
+					} elseif ( $order->get_id() < $this->get_current_order_id() ) {
+						$this->orders['prev'] = $order;
+					} else {
+						$this->orders['current'] = $order;
+					}
 				}
 			}
-
-			$args['allow_fetch'] = false;
-
-			return $this->get_orders( $args );
 		}
 
-		return array_filter(
-			array_replace( array_flip( $order_ids ), $this->orders ),
-			function ( $order ) {
-				if ( ! is_a( $order, '\Vendidero\Shiptastic\BulkFulfillments\BulkFulfillmentOrder' ) ) {
-					return false;
-				}
-
-				return true;
-			}
-		);
+		return (array) $this->orders;
 	}
 
 	protected function get_order_instance( $order = 0 ) {
@@ -392,7 +336,7 @@ class BulkFulfillment extends WC_Data {
 	 */
 	public function go_to_order( $order ) {
 		if ( $the_order = $this->get_go_to_order( $order ) ) {
-			$this->set_current_order( $the_order->get_id() );
+			$this->set_current_order_id( $the_order->get_id() );
 			$this->save();
 
 			return $the_order;
@@ -407,17 +351,13 @@ class BulkFulfillment extends WC_Data {
 	 * @return BulkFulfillmentOrder|null
 	 */
 	public function get_go_to_order( $order ) {
-		$orders = $this->get_orders(
-			array(
-				'id' => is_numeric( $order ) ? $order : $order->get_id(),
-			)
-		);
+		$current_order = $this->get_current_order_id();
+		$this->set_current_order_id( $order );
+		$go_to_order = $this->get_orders()['current'];
 
-		if ( ! empty( $orders ) ) {
-			return array_values( $orders )[0];
-		}
+		$this->set_current_order_id( $current_order );
 
-		return null;
+		return $go_to_order;
 	}
 
 	/**
@@ -425,7 +365,7 @@ class BulkFulfillment extends WC_Data {
 	 */
 	public function next_order() {
 		if ( $next = $this->get_next_order() ) {
-			$this->set_current_order( $next->get_id() );
+			$this->set_current_order_id( $next->get_id() );
 			$this->save();
 
 			return $next;
@@ -439,7 +379,7 @@ class BulkFulfillment extends WC_Data {
 	 */
 	public function prev_order() {
 		if ( $prev = $this->get_prev_order() ) {
-			$this->set_current_order( $prev->get_id() );
+			$this->set_current_order_id( $prev->get_id() );
 			$this->save();
 
 			return $prev;
@@ -452,34 +392,14 @@ class BulkFulfillment extends WC_Data {
 	 * @return BulkFulfillmentOrder|null
 	 */
 	public function get_next_order() {
-		$orders = $this->get_orders(
-			array(
-				'after' => $this->get_current_order(),
-			)
-		);
-
-		if ( ! empty( $orders ) ) {
-			return array_values( $orders )[0];
-		}
-
-		return null;
+		return $this->get_orders()['next'];
 	}
 
 	/**
 	 * @return BulkFulfillmentOrder|null
 	 */
 	public function get_prev_order() {
-		$orders = $this->get_orders(
-			array(
-				'before' => $this->get_current_order(),
-			)
-		);
-
-		if ( ! empty( $orders ) ) {
-			return array_values( $orders )[0];
-		}
-
-		return null;
+		return $this->get_orders()['prev'];
 	}
 
 	public function initialize( $args = array() ) {
@@ -530,9 +450,9 @@ class BulkFulfillment extends WC_Data {
 		if ( empty( $orders ) || count( $orders ) < $args['limit'] ) {
 			$this->set_progress( 0 );
 			$this->set_order_count( $this->get_data_store()->get_order_count( $this->get_id() ) );
-			$this->set_first_order( $this->get_data_store()->get_first_order_id( $this->get_id() ) );
-			$this->set_last_order( $this->get_data_store()->get_last_order_id( $this->get_id() ) );
-			$this->set_current_order( $this->get_first_order() );
+			$this->set_first_order_id( $this->get_data_store()->get_first_order_id( $this->get_id() ) );
+			$this->set_last_order_id( $this->get_data_store()->get_last_order_id( $this->get_id() ) );
+			$this->set_current_order_id( $this->get_first_order_id() );
 
 			$this->set_is_initialized( true );
 			$this->save();
@@ -541,6 +461,21 @@ class BulkFulfillment extends WC_Data {
 		} else {
 			return true;
 		}
+	}
+
+	public function get_url( $order_id, $action = '' ) {
+		if ( is_a( $order_id, '\Vendidero\Shiptastic\BulkFulfillments\BulkFulfillmentOrder' ) ) {
+			$order_id = $order_id->get_id();
+		}
+
+		return add_query_arg(
+			array(
+				'id'       => $this->get_id(),
+				'order_id' => $order_id,
+				'action'   => $action,
+			),
+			admin_url( 'admin.php?page=wc-shiptastic-fulfillment' )
+		);
 	}
 
 	/**

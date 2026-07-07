@@ -726,18 +726,18 @@ CREATE TABLE {$wpdb->prefix}woocommerce_stc_bulk_fulfillments (
   fulfillment_type varchar(150) NOT NULL default 'manual',
   fulfillment_filters longtext NULL,
   fulfillment_actions longtext NULL,
-  fulfillment_current_order bigint(20) unsigned NOT NULL DEFAULT 0,
+  fulfillment_current_order_id bigint(20) unsigned NOT NULL DEFAULT 0,
   fulfillment_current_action varchar(150) NOT NULL default '',
   fulfillment_is_initialized tinyint(1) unsigned NOT NULL DEFAULT 0,
   fulfillment_progress tinyint(3) unsigned NOT NULL DEFAULT 0,
   fulfillment_parent_id bigint(20) unsigned NOT NULL,
   fulfillment_order_count bigint(20) unsigned NOT NULL DEFAULT 0,
-  fulfillment_first_order bigint(20) unsigned NOT NULL DEFAULT 0,
-  fulfillment_last_order bigint(20) unsigned NOT NULL DEFAULT 0,
+  fulfillment_first_order_id bigint(20) unsigned NOT NULL DEFAULT 0,
+  fulfillment_last_order_id bigint(20) unsigned NOT NULL DEFAULT 0,
   PRIMARY KEY  (fulfillment_id),
-  KEY fulfillment_last_order (fulfillment_last_order),
-  KEY fulfillment_first_order (fulfillment_first_order),
-  KEY fulfillment_current_order (fulfillment_current_order),
+  KEY fulfillment_last_order_id (fulfillment_last_order_id),
+  KEY fulfillment_first_order_id (fulfillment_first_order_id),
+  KEY fulfillment_current_order_id (fulfillment_current_order_id),
   KEY fulfillment_parent_id (fulfillment_parent_id)
 ) $collate;
 CREATE TABLE {$wpdb->prefix}woocommerce_stc_bulk_fulfillmentmeta (
@@ -754,11 +754,13 @@ CREATE TABLE {$wpdb->prefix}woocommerce_stc_bulk_fulfillment_orders (
   fulfillment_order_order_id bigint(20) unsigned NOT NULL,
   fulfillment_order_fulfillment_id bigint(20) unsigned NOT NULL,
   fulfillment_order_date_locked_gmt datetime NULL,
+  fulfillment_order_current_shipment_id bigint(20) unsigned NOT NULL DEFAULT 0,
   fulfillment_order_locked_by bigint(20) unsigned NOT NULL DEFAULT 0,
   fulfillment_order_status varchar(150) NOT NULL default 'open',
   PRIMARY KEY  (fulfillment_order_id),
   UNIQUE KEY fulfillment_order_constraint (fulfillment_order_order_id, fulfillment_order_fulfillment_id),
-  KEY fulfillment_order_locked_by (fulfillment_order_locked_by)
+  KEY fulfillment_order_locked_by (fulfillment_order_locked_by),
+  KEY fulfillment_order_current_shipment_id (fulfillment_order_current_shipment_id)
 ) $collate;
 CREATE TABLE {$wpdb->prefix}woocommerce_stc_bulk_fulfillment_ordermeta (
   meta_id bigint(20) unsigned NOT NULL auto_increment,

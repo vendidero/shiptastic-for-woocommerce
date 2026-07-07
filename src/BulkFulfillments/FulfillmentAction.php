@@ -59,7 +59,7 @@ abstract class FulfillmentAction {
 	 *
 	 * @return array
 	 */
-	public static function get_depending_actions() {
+	public static function get_must_run_before_actions() {
 		return array(
 			'create_shipments',
 		);
@@ -68,10 +68,10 @@ abstract class FulfillmentAction {
 	/**
 	 * The context of the fulfillment action, either order or shipment.
 	 *
-	 * @return string
+	 * @return string[]
 	 */
-	public static function get_context() {
-		return 'order';
+	public static function get_supported_contexts() {
+		return array( 'order' );
 	}
 
 	public static function get_settings() {
@@ -100,5 +100,17 @@ abstract class FulfillmentAction {
 	}
 
 	public function get_setting( $name, $default_value = null ) {
+	}
+
+	public function get_context() {
+		$supported = self::get_supported_contexts();
+
+		return $this->get_setting( 'context', array_values( $supported )[0] );
+	}
+
+	public function get_run_context() {
+		$supported = self::get_supported_run_contexts();
+
+		return $this->get_setting( 'run_context', array_values( $supported )[0] );
 	}
 }

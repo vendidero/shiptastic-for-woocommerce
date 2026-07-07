@@ -4,6 +4,7 @@ namespace Vendidero\Shiptastic\BulkFulfillments;
 
 use WC_Data;
 use WC_Data_Store;
+use WC_Order;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -30,6 +31,11 @@ class BulkFulfillmentOrder extends WC_Data {
 	 */
 	protected $cache_group = 'bulk_fulfillment_order';
 
+	/**
+	 * @var BulkFulfillment|null
+	 */
+	protected $fulfillment = null;
+
 	protected $orders = null;
 
 	/**
@@ -38,11 +44,12 @@ class BulkFulfillmentOrder extends WC_Data {
 	 * @var array
 	 */
 	protected $data = array(
-		'order_id'       => 0,
-		'fulfillment_id' => 0,
-		'date_locked'    => null,
-		'locked_by'      => 0,
-		'status'         => '',
+		'order_id'            => 0,
+		'fulfillment_id'      => 0,
+		'date_locked'         => null,
+		'locked_by'           => 0,
+		'status'              => '',
+		'current_shipment_id' => 0,
 	);
 
 	/**
@@ -90,8 +97,26 @@ class BulkFulfillmentOrder extends WC_Data {
 		$this->set_date_prop( 'date_locked', $date );
 	}
 
+	public function get_current_shipment_id( $context = 'view' ) {
+		return $this->get_prop( 'current_shipment_id', $context );
+	}
+
+	public function set_current_shipment_id( $current_shipment ) {
+		if ( is_a( $current_shipment, '\Vendidero\Shiptastic\Shipment' ) ) {
+			$current_shipment = $current_shipment->get_id();
+		}
+
+		$this->set_prop( 'current_shipment_id', absint( $current_shipment ) );
+	}
+
 	public function get_status( $context = 'view' ) {
-		return $this->get_prop( 'status', $context );
+		$status = $this->get_prop( 'status', $context );
+
+		if ( 'view' === $context && empty( $status ) ) {
+			$status = 'unfulfilled';
+		}
+
+		return $status;
 	}
 
 	public function set_status( $status ) {
@@ -120,37 +145,28 @@ class BulkFulfillmentOrder extends WC_Data {
 
 	public function set_fulfillment_id( $fulfillment_id ) {
 		$this->set_prop( 'fulfillment_id', absint( $fulfillment_id ) );
+
+		$this->fulfillment = null;
 	}
 
 	/**
-	 * Normalize a date input to a UTC 'Y-m-d H:i:s' string.
-	 *
-	 * Bare MySQL-format strings are interpreted as site-local time (matching
-	 * the convention of current_time('mysql')). Strings that include an
-	 * explicit timezone designator (Z, numeric offset, or named zone) are
-	 * respected as-is.
-	 *
-	 * @param string|null $date Date input.
-	 * @return string|null UTC datetime string, or null for empty/invalid input.
+	 * @return BulkFulfillment|null
 	 */
-	private function normalize_date_to_utc( ?string $date ): ?string {
-		$date = null === $date ? null : trim( $date );
-		if ( null === $date || '' === $date ) {
-			return null;
+	public function get_fulfillment() {
+		if ( is_null( $this->fulfillment ) && ! empty( $this->get_fulfillment_id() ) ) {
+			$this->fulfillment = Factory::get_bulk_fulfillment( $this->get_fulfillment_id() );
 		}
-		try {
-			// The second DateTimeZone is used only when the string has no explicit zone.
-			$datetime = new \DateTime( $date, wp_timezone() );
-			// DateTime silently normalizes invalid calendar dates (e.g. Feb 30 -> Mar 2);
-			// reject those so callers don't persist a different date than the user supplied.
-			$parse_errors = \DateTime::getLastErrors();
-			if ( false !== $parse_errors && ( $parse_errors['warning_count'] > 0 || $parse_errors['error_count'] > 0 ) ) {
-				return null;
-			}
-			$datetime->setTimezone( new \DateTimeZone( 'UTC' ) );
-			return $datetime->format( 'Y-m-d H:i:s' );
-		} catch ( \Exception $e ) {
-			return null;
-		}
+
+		return $this->fulfillment ? $this->fulfillment : null;
+	}
+
+	/**
+	 * @param BulkFulfillment $fulfillment
+	 *
+	 * @return void
+	 */
+	public function set_fulfillment( $fulfillment ) {
+		$this->set_fulfillment_id( $fulfillment->get_id() );
+		$this->fulfillment = $fulfillment;
 	}
 }
