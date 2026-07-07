@@ -53,7 +53,6 @@ class BulkFulfillment extends WC_Data {
 		'filters'          => array(),
 		'actions'          => array(),
 		'current_order_id' => 0,
-		'current_action'   => '',
 		'progress'         => 0,
 		'parent_id'        => 0,
 		'is_initialized'   => false,
@@ -178,24 +177,88 @@ class BulkFulfillment extends WC_Data {
 	}
 
 	public function get_actions( $context = 'view' ) {
-		return $this->get_prop( 'actions', $context );
+		$actions = $this->get_prop( 'actions', $context );
+
+		if ( 'view' === $context ) {
+			usort(
+				$actions,
+				function ( $a, $b ) {
+					$a = wp_parse_args(
+						$a,
+						array(
+							'settings' => array(),
+						)
+					);
+
+					$b = wp_parse_args(
+						$b,
+						array(
+							'settings' => array(),
+						)
+					);
+
+					$a_settings = wp_parse_args(
+						$a['settings'],
+						array(
+							'sort_order' => 999,
+							'context'    => 'order',
+						)
+					);
+
+					$b_settings = wp_parse_args(
+						$b['settings'],
+						array(
+							'sort_order' => 999,
+							'context'    => 'order',
+						)
+					);
+
+					if ( $a_settings['context'] === $b_settings['context'] ) {
+						if ( $a_settings['sort_order'] === $b_settings['sort_order'] ) {
+							return 0;
+						}
+
+						return $a_settings['sort_order'] < $b_settings['sort_order'] ? -1 : 1;
+					} elseif ( 'order' === $a_settings['context'] ) {
+						return -1;
+					} else {
+						return 1;
+					}
+				}
+			);
+		}
+
+		return $actions;
 	}
 
-	public function add_action( $name, $args = array() ) {
-		$args = wp_parse_args(
-			$args,
+	/**
+	 * @param $name
+	 * @param $settings
+	 *
+	 * @return bool
+	 */
+	public function add_action( $name, $settings = array() ) {
+		$settings = wp_parse_args(
+			$settings,
 			array(
-				'settings' => array(),
+				'sort_order' => 999,
 			)
 		);
 
+		if ( ! Factory::get_fulfillment_action( $name ) ) {
+			return false;
+		}
+
 		$actions   = $this->get_actions();
 		$actions[] = array(
-			'name'     => $name,
-			'settings' => $args['settings'],
+			'name'       => $name,
+			'settings'   => $settings,
+			'sort_order' => $settings['sort_order'],
 		);
 
 		$this->set_actions( $actions );
+
+		return true;
 	}
 
 	public function set_actions( $actions ) {
@@ -221,14 +284,6 @@ class BulkFulfillment extends WC_Data {
 		$this->set_prop( 'current_order_id', absint( $current_order ) );
 
 		$this->orders = null;
-	}
-
-	public function get_current_action( $context = 'view' ) {
-		return $this->get_prop( 'current_action', $context );
-	}
-
-	public function set_current_action( $current_action ) {
-		$this->set_prop( 'current_action', $current_action );
 	}
 
 	public function get_progress( $context = 'view' ) {

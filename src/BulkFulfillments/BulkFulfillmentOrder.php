@@ -50,7 +50,11 @@ class BulkFulfillmentOrder extends WC_Data {
 		'locked_by'           => 0,
 		'status'              => '',
 		'current_shipment_id' => 0,
+		'current_action_name' => '',
+		'action_data'         => array(),
 	);
+
+	protected $action_loop = null;
 
 	/**
 	 * @param int|object|BulkFulfillmentOrder $fulfillment_order Fulfillment order to read.
@@ -97,6 +101,14 @@ class BulkFulfillmentOrder extends WC_Data {
 		$this->set_date_prop( 'date_locked', $date );
 	}
 
+	public function get_action_data( $context = 'view' ) {
+		return $this->get_prop( 'action_data', $context );
+	}
+
+	public function set_action_data( $data ) {
+		$this->set_prop( 'action_data', array_filter( (array) $data ) );
+	}
+
 	public function get_current_shipment_id( $context = 'view' ) {
 		return $this->get_prop( 'current_shipment_id', $context );
 	}
@@ -107,6 +119,55 @@ class BulkFulfillmentOrder extends WC_Data {
 		}
 
 		$this->set_prop( 'current_shipment_id', absint( $current_shipment ) );
+	}
+
+	public function get_current_action_name( $context = 'view' ) {
+		$current_action_name = $this->get_prop( 'current_action_name', $context );
+
+		if ( 'view' === $context && empty( $current_action_name ) ) {
+			$loop                = $this->get_action_loop( 'order' );
+			$current_action_name = ! empty( $loop ) ? $loop[0]::get_name() : '';
+		}
+
+		return $current_action_name;
+	}
+
+	public function set_current_action_name( $current_action ) {
+		$this->set_prop( 'current_action_name', $current_action );
+	}
+
+	public function get_current_action() {
+		return $this->get_action( $this->get_current_action_name(), $this->get_current_shipment_id() );
+	}
+
+	public function get_action( $name, $shipment_id = 0 ) {
+		$loop = $this->get_action_loop();
+
+		if ( array_key_exists( $name, $loop['map'] ) ) {
+			$map_entry = $loop['map'][ $name ];
+
+			if ( 'shipment' === $map_entry['context'] ) {
+				if ( ! empty( $shipment_id ) ) {
+					return $loop[ $map_entry['context'] ][ $shipment_id ][ $map_entry['index'] ];
+				} else {
+					return array_values( $loop[ $map_entry['context'] ] )[0][ $map_entry['index'] ];
+				}
+			} else {
+				return $loop[ $map_entry['context'] ][ $map_entry['index'] ];
+			}
+		}
+
+		return null;
+	}
+
+	public function get_current_context() {
+		$context = 'order';
+
+		if ( $current_action = $this->get_current_action() ) {
+			$context = $current_action->get_context();
+		}
+
+		return $context;
 	}
 
 	public function get_status( $context = 'view' ) {
@@ -147,6 +208,7 @@ class BulkFulfillmentOrder extends WC_Data {
 		$this->set_prop( 'fulfillment_id', absint( $fulfillment_id ) );
 
 		$this->fulfillment = null;
+		$this->action_loop = null;
 	}
 
 	/**
@@ -168,5 +230,155 @@ class BulkFulfillmentOrder extends WC_Data {
 	public function set_fulfillment( $fulfillment ) {
 		$this->set_fulfillment_id( $fulfillment->get_id() );
 		$this->fulfillment = $fulfillment;
+	}
+
+	/**
+	 * @param FulfillmentAction $action
+	 *
+	 * @return int
+	 */
+	public function update_action( $action ) {
+		$action_data                            = $this->get_action_data();
+		$action_data[ $action->get_data_key() ] = $action->get_data();
+
+		return $this->save();
+	}
+
+	protected function get_action_instance( $args, $shipment = null ) {
+		$args = wp_parse_args(
+			$args,
+			array(
+				'name'     => '',
+				'settings' => array(),
+			)
+		);
+
+		$action_data = $this->get_action_data();
+
+		if ( is_numeric( $shipment ) ) {
+			$shipment = $this->get_shipment( $shipment );
+		}
+
+		$action = Factory::get_fulfillment_action( $args['name'], $args );
+		$action->set_order( $this );
+		$action->set_shipment( $shipment );
+
+		if ( array_key_exists( $action->get_data_key(), $action_data ) ) {
+			$action->set_data( $action_data[ $action->get_data_key() ] );
+		}
+
+		return $action;
+	}
+
+	public function get_shipments() {
+		if ( $shipment_order = wc_stc_get_shipment_order( $this->get_order_id() ) ) {
+			return $shipment_order->get_simple_shipments();
+		}
+
+		return array();
+	}
+
+	public function get_shipment( $shipment_id ) {
+		$shipments = $this->get_shipments();
+
+		foreach ( $shipments as $shipment ) {
+			if ( $shipment->get_id() === $shipment_id ) {
+				return $shipment;
+			}
+		}
+
+		return null;
+	}
+
+	/**
+	 * @param $type
+	 *
+	 * @return FulfillmentAction[]
+	 */
+	public function get_action_loop( $type = '' ) {
+		if ( is_null( $this->action_loop ) ) {
+			$this->action_loop = array(
+				'order'    => array(),
+				'shipment' => array(),
+				'map'      => array(),
+			);
+
+			foreach ( $this->get_shipments() as $shipment ) {
+				$this->action_loop['shipment'][ $shipment->get_id() ] = array();
+			}
+
+			if ( $fulfillment = $this->get_fulfillment() ) {
+				$actions = $fulfillment->get_actions();
+
+				foreach ( $actions as $action ) {
+					if ( $instance = $this->get_action_instance( $action ) ) {
+						$actions_before = $instance::get_must_run_before_actions();
+
+						if ( ! empty( $actions_before ) ) {
+							$has_all_dependent_actions = true;
+
+							foreach ( $actions_before as $action_name ) {
+								if ( ! array_key_exists( $action_name, $this->action_loop['map'] ) ) {
+									if ( $before_instance = $this->get_action_instance( $action ) ) {
+										$index = -1;
+
+										if ( 'shipment' === $before_instance->get_context() ) {
+											foreach ( array_keys( $this->action_loop['shipment'] ) as $shipment_id ) {
+												$this->action_loop[ $before_instance->get_context() ][ $shipment_id ][] = $before_instance;
+												$index = count( $this->action_loop[ $before_instance->get_context() ][ $shipment_id ] ) - 1;
+											}
+										} else {
+											$this->action_loop[ $before_instance->get_context() ][] = $before_instance;
+											$index = count( $this->action_loop[ $before_instance->get_context() ] );
+										}
+
+										if ( -1 !== $index ) {
+											$this->action_loop['map'][ $action_name ] = array(
+												'index'   => $index,
+												'context' => $before_instance->get_context(),
+											);
+										} else {
+											$has_all_dependent_actions = false;
+										}
+									} else {
+										$has_all_dependent_actions = false;
+									}
+								}
+							}
+
+							if ( ! $has_all_dependent_actions ) {
+								continue;
+							}
+						}
+
+						$index = -1;
+
+						if ( 'shipment' === $instance->get_context() ) {
+							foreach ( array_keys( $this->action_loop['shipment'] ) as $shipment_id ) {
+								$new_instance                                    = $this->get_action_instance( $action, $shipment_id );
+								$this->action_loop['shipment'][ $shipment_id ][] = $new_instance;
+								$index = count( $this->action_loop['shipment'][ $shipment_id ] ) - 1;
+							}
+						} else {
+							$this->action_loop[ $instance->get_context() ][] = $instance;
+							$index = count( $this->action_loop[ $instance->get_context() ] ) - 1;
+						}
+
+						if ( -1 !== $index ) {
+							$this->action_loop['map'][ $instance::get_name() ] = array(
+								'index'   => $index,
+								'context' => $instance->get_context(),
+							);
+						}
+					}
+				}
+			}
+		}
+
+		if ( empty( $type ) ) {
+			return $this->action_loop;
+		} else {
+			return array_key_exists( $type, $this->action_loop ) ? $this->action_loop[ $type ] : array();
+		}
 	}
 }

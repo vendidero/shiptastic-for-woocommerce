@@ -105,7 +105,6 @@ class View {
 				>
 					<header class="fulfillment-header">
 						<h1>Order <?php echo esc_html( $fulfillment->get_current_order_id() ); ?></h1>
-						<h2>Action <?php echo esc_html( $fulfillment->get_current_action() ); ?></h2>
 
 						<nav class="fulfillment-order-nav">
 							<a
@@ -124,6 +123,12 @@ class View {
 							>
 								Next &rarr;
 							</a>
+						</nav>
+
+						<nav class="fulfillment-order-actions-nav">
+							<?php foreach ( $fulfillment->get_current_order()->get_action_loop( 'order' ) as $action ) : ?>
+								<a href="#"><?php echo esc_html( $action::get_title() ); ?></a>
+							<?php endforeach; ?>
 						</nav>
 					</header>
 				</main>

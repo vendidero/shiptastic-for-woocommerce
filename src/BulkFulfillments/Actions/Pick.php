@@ -2,22 +2,22 @@
 
 namespace Vendidero\Shiptastic\BulkFulfillments\Actions;
 
-class Pack extends \Vendidero\Shiptastic\BulkFulfillments\FulfillmentAction {
+class Pick extends \Vendidero\Shiptastic\BulkFulfillments\FulfillmentAction {
 
 	public static function get_title() {
-		return _x( 'Pack', 'fulfillments', 'shiptastic-for-woocommerce' );
+		return _x( 'Pick', 'fulfillments', 'shiptastic-for-woocommerce' );
 	}
 
 	public static function get_description() {
-		return _x( 'Pack shipments.', 'fulfillments', 'shiptastic-for-woocommerce' );
+		return _x( 'Pack items for shipments.', 'fulfillments', 'shiptastic-for-woocommerce' );
 	}
 
 	public static function get_name() {
-		return 'pack';
+		return 'pick';
 	}
 
 	public static function get_supported_contexts() {
-		return array( 'shipment' );
+		return array( 'shipment', 'order' );
 	}
 
 	public function render() {

@@ -23,9 +23,11 @@ class BulkFulfillmentOrder extends WC_Data_Store_WP implements WC_Object_Data_St
 		'order_id',
 		'fulfillment_id',
 		'current_shipment_id',
+		'current_action_name',
 		'date_locked',
 		'locked_by',
 		'status',
+		'action_data',
 	);
 
 	protected $meta_type = 'stc_bulk_fulfillment_order';
@@ -48,9 +50,11 @@ class BulkFulfillmentOrder extends WC_Data_Store_WP implements WC_Object_Data_St
 			'fulfillment_order_order_id'            => $fulfillment_order->get_order_id( 'edit' ),
 			'fulfillment_order_fulfillment_id'      => $fulfillment_order->get_fulfillment_id( 'edit' ),
 			'fulfillment_order_current_shipment_id' => $fulfillment_order->get_current_shipment_id( 'edit' ),
+			'fulfillment_order_current_action_name' => $fulfillment_order->get_current_action_name( 'edit' ),
 			'fulfillment_order_date_locked_gmt'     => $this->get_mysql_date_gmt( $fulfillment_order->get_date_locked( 'edit' ) ),
 			'fulfillment_order_locked_by'           => $fulfillment_order->get_locked_by( 'edit' ),
 			'fulfillment_order_status'              => $fulfillment_order->get_status( 'edit' ),
+			'fulfillment_order_action_data'         => empty( $fulfillment_order->get_action_data( 'edit' ) ) ? '' : maybe_serialize( $fulfillment_order->get_action_data( 'edit' ) ),
 		);
 
 		$wpdb->insert(
@@ -107,6 +111,10 @@ class BulkFulfillmentOrder extends WC_Data_Store_WP implements WC_Object_Data_St
 			switch ( $prop ) {
 				case 'date_locked':
 					$fulfillment_data[ "fulfillment_order_{$prop}_gmt" ] = $this->get_mysql_date_gmt( $fulfillment_order->{'get_' . $prop}( 'edit' ) );
+					break;
+				case 'action_data':
+					$raw = $fulfillment_order->{'get_' . $prop}( 'edit' );
+					$fulfillment_data[ "fulfillment_order_{$prop}" ] = empty( $raw ) ? '' : maybe_serialize( $raw );
 					break;
 				default:
 					if ( is_callable( array( $fulfillment_order, 'get_' . $prop ) ) ) {
@@ -194,9 +202,11 @@ class BulkFulfillmentOrder extends WC_Data_Store_WP implements WC_Object_Data_St
 					'order_id'            => $data->fulfillment_order_order_id,
 					'fulfillment_id'      => $data->fulfillment_order_fulfillment_id,
 					'current_shipment_id' => $data->fulfillment_order_current_shipment_id,
+					'current_action_name' => $data->fulfillment_order_current_action_name,
 					'date_locked'         => $this->string_to_timestamp( $data->fulfillment_order_date_locked_gmt ),
 					'locked_by'           => $data->fulfillment_order_locked_by,
 					'status'              => $data->fulfillment_order_status,
+					'action_data'         => maybe_unserialize( $data->fulfillment_order_action_data ),
 				)
 			);
 
