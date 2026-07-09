@@ -49,6 +49,9 @@ Make sure that you've created a page with the [shiptastic_return_request_form] s
 customers (guests, registered customers) with a form to submit a return requests to an order applicable. Also make sure that the
 shipping service provider linked to the order/shipment has the return options enabled.
 
+= Where do I report security bugs found in this plugin? =
+Please report security bugs found in the source code of the plugin through the [Patchstack Vulnerability Disclosure Program](https://patchstack.com/database/vdp/6fc53392-d89b-41f3-bc28-eb3680901b4d). The Patchstack team will assist you with verification, CVE assignment, and notify the developers of this plugin.
+
 == Installation ==
 
 = Minimal Requirements =
