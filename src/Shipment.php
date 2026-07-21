@@ -1070,6 +1070,15 @@ abstract class Shipment extends WC_Data {
 		return $secret;
 	}
 
+	public function get_or_create_tracking_secret( $context = 'view' ) {
+		if ( ! $this->get_tracking_secret( 'edit' ) ) {
+			$this->set_tracking_secret( wp_generate_password( 25, false ) );
+			$this->save();
+		}
+
+		return $this->get_tracking_secret( $context );
+	}
+
 	/**
 	 * Retrieves the pickup location code, in case existent.
 	 *

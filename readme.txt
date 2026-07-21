@@ -3,7 +3,7 @@ Contributors: vendidero, vdwoocommercesupport
 Tags: shipping, woocommerce, shipments, woo, fulfillment
 Requires at least: 5.4
 Tested up to: 7.0
-Stable tag: 5.1.0
+Stable tag: 5.1.1
 Requires PHP: 5.6
 License: GPLv3
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
@@ -74,6 +74,14 @@ We recommend installing Shiptastic for WooCommerce through the WordPress Backend
 6. Manage returns
 
 == Changelog ==
+= 5.1.1 =
+* Improvement: Store current pickup location code + customer number in customer session
+* Improvement: Store OAuth tokens within wp_options instead of transients to prevent issues with external object storage, e.g. memcached (which has a hard 30-day limit and may fail upon storing a transient with a longer lifetime).
+* Fix: Respect incoterms default setting
+* Fix: Do only override a variants' weight/dim with parent shipping data in case the data equals parent data to prevent filter overrides
+* Fix: Make email preview more generic
+* Security: Fixed a security issue which allowed downloading return labels for guest orders without proper permission check - thanks to Guillermo Álvarez for reporting
+
 = 5.1.0 =
 * New: Attachments for shipments, e.g. commercial invoices, customs documents
 * Improvement: Holiday list for different countries

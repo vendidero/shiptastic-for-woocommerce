@@ -57,6 +57,7 @@ class DownloadHandler {
 	public static function download_label() {
 		if ( 'wc-stc-download-shipment-label' === $_GET['action'] && wp_verify_nonce( wc_clean( wp_unslash( $_REQUEST['_wpnonce'] ) ), 'download-shipment-label' ) ) { // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotValidated
 			$shipment_id    = absint( $_GET['shipment_id'] ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotValidated
+			$tracking_key   = isset( $_GET['key'] ) ? wp_unslash( $_GET['key'] ) : ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
 			$has_permission = current_user_can( 'edit_shop_orders' );
 
 			$args = self::parse_args(
@@ -67,8 +68,12 @@ class DownloadHandler {
 			);
 
 			if ( $shipment = wc_stc_get_shipment( $shipment_id ) ) {
-				if ( 'return' === $shipment->get_type() && current_user_can( 'view_order', $shipment->get_order_id() ) && $shipment->has_label() ) {
-					$has_permission = true;
+				if ( 'return' === $shipment->get_type() && ! $has_permission ) {
+					if ( is_user_logged_in() && current_user_can( 'view_order', $shipment->get_order_id() ) ) { // Do only use the view_order permission with the is_user_logged_in check to prevent guest order mismatches
+						$has_permission = true;
+					} elseif ( $shipment->get_tracking_secret() && hash_equals( $tracking_key, $shipment->get_tracking_secret() ) && $shipment->has_label() ) {
+						$has_permission = true;
+					}
 				}
 
 				if ( $has_permission ) {

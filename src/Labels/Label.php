@@ -593,11 +593,16 @@ class Label extends WC_Data implements ShipmentLabel {
 	}
 
 	public function get_download_url( $args = array() ) {
+		if ( ! $shipment = $this->get_shipment() ) {
+			return '';
+		}
+
 		$base_url     = is_admin() ? admin_url() : trailingslashit( home_url() );
 		$download_url = add_query_arg(
 			array(
 				'action'      => 'wc-stc-download-shipment-label',
 				'shipment_id' => $this->get_shipment_id(),
+				'key'         => current_user_can( 'edit_shop_orders' ) ? '' : $shipment->get_or_create_tracking_secret(),
 			),
 			wp_nonce_url( $base_url, 'download-shipment-label' )
 		);
