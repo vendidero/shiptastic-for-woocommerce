@@ -83,6 +83,7 @@ class Table extends WP_List_Table {
 			array(
 				'changed',
 				'bulk_action',
+				'shipment_attachments',
 			)
 		);
 

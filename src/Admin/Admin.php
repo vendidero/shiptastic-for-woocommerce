@@ -1912,14 +1912,13 @@ class Admin {
 			<div class="wc-stc-table-notices">
 				<?php
 				$wp_list_table->output_notice();
-				$_SERVER['REQUEST_URI'] = remove_query_arg( array( 'updated', 'changed', 'deleted', 'trashed', 'untrashed' ), ( isset( $_SERVER['REQUEST_URI'] ) ? esc_url_raw( wp_unslash( $_SERVER['REQUEST_URI'] ) ) : admin_url( 'admin.php?page=wc-stc-shipments' ) ) );
+				$_SERVER['REQUEST_URI'] = remove_query_arg( array( 'updated', 'changed', 'deleted', 'trashed', 'untrashed', 'shipment_attachments' ), ( isset( $_SERVER['REQUEST_URI'] ) ? esc_url_raw( wp_unslash( $_SERVER['REQUEST_URI'] ) ) : admin_url( 'admin.php?page=wc-stc-shipments' ) ) );
 				?>
 			</div>
 
 			<?php $wp_list_table->views(); ?>
 
 			<form id="posts-filter" method="get">
-
 				<?php $wp_list_table->search_box( _x( 'Search shipments', 'shipments', 'shiptastic-for-woocommerce' ), 'shipment' ); ?>
 
 				<input type="hidden" name="shipment_status" class="shipment_status_page" value="<?php echo ! empty( $_REQUEST['shipment_status'] ) ? esc_attr( wc_clean( wp_unslash( $_REQUEST['shipment_status'] ) ) ) : 'all'; // phpcs:ignore WordPress.Security.NonceVerification.Recommended ?>" />
