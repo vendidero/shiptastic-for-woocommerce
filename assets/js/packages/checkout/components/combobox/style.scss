@@ -7,6 +7,8 @@
     // Fixes width in the editor.
     .components-flex {
       width: 100%;
+      padding: 0;
+      height: auto;
     }
 
     .components-base-control__field {
@@ -187,18 +189,15 @@
         padding-right: 50px;
       }
 
-      .components-flex-item:not(.components-flex-block) {
+      button.components-button {
         position: absolute;
         right: 10px;
+        background: transparent;
+        border: none;
+        cursor: pointer;
 
-        button {
-          background: transparent;
-          border: none;
-          cursor: pointer;
-
-          > span {
-            display: none !important;
-          }
+        > span {
+          display: none !important;
         }
       }
     }

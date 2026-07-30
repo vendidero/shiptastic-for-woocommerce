@@ -4,7 +4,7 @@
 import classnames from 'classnames';
 import { _x } from '@wordpress/i18n';
 import { useEffect, useId, useRef } from '@wordpress/element';
-import { ComboboxControl } from 'wordpress-components';
+import { ComboboxControl } from '@wordpress/components';
 import { ValidationInputError } from '@woocommerce/blocks-components';
 import { useDispatch, useSelect } from '@wordpress/data';
 import { VALIDATION_STORE_KEY } from '@woocommerce/block-data';
@@ -133,6 +133,7 @@ const Combobox = ( {
                 // Note these aria properties are ignored by ComboboxControl. When we replace ComboboxControl we should support them.
                 aria-invalid={ error?.message && ! error?.hidden }
                 aria-errormessage={ validationErrorId }
+                __next40pxDefaultSize={ true }
             />
             <ValidationInputError propertyName={ errorId } />
         </div>
