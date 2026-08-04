@@ -57,7 +57,7 @@ const getBlockEntries = ( relativePath ) => {
                     relativePath
                 );
                 if ( filePaths.length > 0 ) {
-                    return [ blockCode, './' + filePaths ];
+                    return [ blockCode, filePaths.map( ( path ) => { return './' + path } ) ];
                 }
                 return null;
             } )
