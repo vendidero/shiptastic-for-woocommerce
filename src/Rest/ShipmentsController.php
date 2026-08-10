@@ -408,14 +408,6 @@ class ShipmentsController extends \WC_REST_Controller {
 			$shipment->set_tracking_instruction( wp_kses_post( wp_unslash( $request['tracking_instruction'] ) ) );
 		}
 
-		if ( isset( $request['packing_slip_path'] ) ) {
-			$shipment->set_packing_slip_path( wc_clean( wp_unslash( $request['packing_slip_path'] ) ) );
-		}
-
-		if ( isset( $request['commercial_invoice_path'] ) ) {
-			$shipment->set_commercial_invoice_path( wc_clean( wp_unslash( $request['commercial_invoice_path'] ) ) );
-		}
-
 		if ( isset( $request['dimensions'] ) ) {
 			if ( isset( $request['dimensions']['length'] ) ) {
 				$shipment->set_length( wc_clean( wp_unslash( $request['dimensions']['length'] ) ) );
@@ -1487,11 +1479,13 @@ class ShipmentsController extends \WC_REST_Controller {
 					'description' => _x( 'Shipment packing slip path.', 'shipments', 'shiptastic-for-woocommerce' ),
 					'type'        => 'string',
 					'context'     => array( 'view', 'edit' ),
+					'readonly'    => true,
 				),
 				'commercial_invoice_path' => array(
 					'description' => _x( 'Shipment commercial invoice path.', 'shipments', 'shiptastic-for-woocommerce' ),
 					'type'        => 'string',
 					'context'     => array( 'view', 'edit' ),
+					'readonly'    => true,
 				),
 				'date_created'            => array(
 					'description' => _x( "The date the shipment was created, in the site's timezone.", 'shipments', 'shiptastic-for-woocommerce' ),

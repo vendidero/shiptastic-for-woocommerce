@@ -75,6 +75,10 @@ class Helper {
 		return 'yes' === get_option( 'woocommerce_shiptastic_enable_auto_packing' );
 	}
 
+	public static function get_max_qty_to_pack() {
+		return apply_filters( 'woocommerce_shiptastic_get_max_qty_to_pack', 5000 );
+	}
+
 	/**
 	 * @param \Vendidero\Shiptastic\Packing\ItemList $items
 	 * @param PackingBox[]|BoxList $boxes

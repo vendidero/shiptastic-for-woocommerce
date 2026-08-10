@@ -2392,6 +2392,12 @@ class Order {
 					$has_auto_packing = true;
 				}
 			}
+
+			$total_item_count = $this->get_order()->get_item_count();
+
+			if ( $total_item_count > Helper::get_max_qty_to_pack() ) {
+				$has_auto_packing = false;
+			}
 		}
 
 		return apply_filters( 'woocommerce_shiptastic_shipment_order_has_auto_packing', $has_auto_packing, $this->get_order(), $this );

@@ -236,28 +236,9 @@ class ShipmentAttachment extends WC_Data implements Attachment {
 	 * @return string|\WP_Error
 	 */
 	public function upload_from_file( $path ) {
-		$uploads = Package::get_upload_dir();
+		wc_deprecated_function( __METHOD__, '5.2.0' );
 
-		/**
-		 * Check whether the file is stored within another path.
-		 */
-		if ( path_is_absolute( $path ) && 0 !== strncmp( $path, $uploads['basedir'], strlen( $uploads['basedir'] ) ) && file_exists( $path ) ) {
-			try {
-				$stream = file_get_contents( $path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
-			} catch ( \Exception $e ) {
-				$stream = '';
-			}
-
-			if ( ! is_string( $stream ) ) {
-				$stream = '';
-			}
-
-			return $this->upload( $stream );
-		} else {
-			$this->set_relative_path( $path );
-
-			return $path;
-		}
+		return new WP_Error( 500, 'Not supported.' );
 	}
 
 	public function has_file() {

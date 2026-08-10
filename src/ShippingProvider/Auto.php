@@ -1614,6 +1614,10 @@ abstract class Auto extends Simple implements ShippingProviderAuto {
 
 		if ( $label ) {
 			foreach ( $props as $key => $value ) {
+				if ( in_array( $key, array( 'id', 'shipment_id', 'reference_id', 'path' ), true ) || strstr( $key, 'path' ) ) {
+					continue;
+				}
+
 				$setter = "set_{$key}";
 
 				if ( is_callable( array( $label, $setter ) ) ) {

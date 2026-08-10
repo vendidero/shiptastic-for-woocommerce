@@ -907,6 +907,33 @@ class Package {
 		return apply_filters( 'woocommerce_shiptastic_relative_upload_dir', $path );
 	}
 
+	/**
+	 * Check whether an absolute path resolves to a location inside the upload directory.
+	 *
+	 * @param string $file Absolute path.
+	 *
+	 * @return bool
+	 */
+	public static function path_is_inside_upload_dir( $file ) {
+		if ( empty( $file ) || ! is_string( $file ) || ! sab_is_absolute_path( $file ) ) {
+			return false;
+		}
+
+		$uploads = self::get_upload_dir();
+
+		if ( false !== $uploads['error'] ) {
+			return false;
+		}
+
+		$basedir = realpath( $uploads['basedir'] );
+
+		if ( false === $basedir ) {
+			return false;
+		}
+
+		return 0 === strpos( trailingslashit( $file ), trailingslashit( $basedir ) );
+	}
+
 	public static function set_upload_dir_filter() {
 		add_filter( 'upload_dir', array( __CLASS__, 'filter_upload_dir' ), 150, 1 );
 	}
@@ -919,11 +946,13 @@ class Package {
 		// If the file is relative, prepend upload dir.
 		if ( $file && 0 !== strpos( $file, '/' ) && ( ( $uploads = self::get_upload_dir() ) && false === $uploads['error'] ) ) {
 			$file = $uploads['basedir'] . "/$file";
-
-			return $file;
-		} else {
-			return $file;
 		}
+
+		if ( ! self::path_is_inside_upload_dir( $file ) ) {
+			$file = '';
+		}
+
+		return $file;
 	}
 
 	public static function get_upload_dir_name() {
