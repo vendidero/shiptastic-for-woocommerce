@@ -917,12 +917,14 @@ class Table extends WP_List_Table {
 
 		if ( $shipment->supports_label() ) {
 			if ( $label = $shipment->get_label() ) {
-				$actions['download_label'] = array(
-					'url'    => $label->get_download_url(),
-					'name'   => _x( 'Download label', 'shipments', 'shiptastic-for-woocommerce' ),
-					'action' => 'download-label download',
-					'target' => '_blank',
-				);
+				if ( $label->get_file() ) {
+					$actions['download_label'] = array(
+						'url'    => $label->get_download_url(),
+						'name'   => _x( 'Download label', 'shipments', 'shiptastic-for-woocommerce' ),
+						'action' => 'download-label download',
+						'target' => '_blank',
+					);
+				}
 			} elseif ( $shipment->needs_label() ) {
 				$actions['generate_label'] = array(
 					'url'               => '#',

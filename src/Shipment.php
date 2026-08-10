@@ -2512,9 +2512,7 @@ abstract class Shipment extends WC_Data {
 			$this->add_attachment( $attachment );
 		}
 
-		if ( is_callable( array( $attachment, 'upload_from_file' ) ) ) {
-			$attachment->upload_from_file( $path );
-		}
+		$attachment->set_relative_path( $path );
 	}
 
 	/**
@@ -2530,9 +2528,7 @@ abstract class Shipment extends WC_Data {
 			$this->add_attachment( $attachment );
 		}
 
-		if ( is_callable( array( $attachment, 'upload_from_file' ) ) ) {
-			$attachment->upload_from_file( $path );
-		}
+		$attachment->set_relative_path( $path );
 	}
 
 	/**

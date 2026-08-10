@@ -558,8 +558,9 @@ class Packaging extends WC_Data_Store_WP implements WC_Object_Data_Store_Interfa
 
 		if ( false === $results && count( $items ) > 0 ) {
 			$available_packaging_ids = array();
+			$item_count              = $shipment->get_item_count();
 
-			if ( Package::is_packing_supported() ) {
+			if ( Package::is_packing_supported() && $item_count < \Vendidero\Shiptastic\Packing\Helper::get_max_qty_to_pack() ) {
 				$packaging_list = $this->get_packaging_list( array( 'shipping_provider' => $shipment->get_shipping_provider() ) );
 
 				foreach ( $packaging_list as $packaging ) {

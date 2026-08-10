@@ -61,6 +61,11 @@ class MethodHelper {
 
 		if ( $method = wc_stc_get_shipping_provider_method( $method ) ) {
 			$rate->add_meta_data( '_shipping_provider', $method->get_shipping_provider() );
+
+			/**
+			 * Need to register shipping_provider rate meta without _ prefix to show in rates within block-based checkout.
+			 */
+			$rate->add_meta_data( 'shipping_provider', $method->get_shipping_provider() );
 		}
 
 		return $rate;
@@ -196,6 +201,9 @@ class MethodHelper {
 			return $packages;
 		}
 
+		$original_packages = $packages;
+		$max_qty_to_pack   = \Vendidero\Shiptastic\Packing\Helper::get_max_qty_to_pack();
+
 		$cart_data = array(
 			'total'                        => 0.0,
 			'subtotal'                     => 0.0,
@@ -209,6 +217,8 @@ class MethodHelper {
 		);
 
 		$package_subtotal = 0.0;
+		$total_qty        = 0;
+		$skip_packing     = false;
 
 		foreach ( $packages as $index => $package_details ) {
 			$package_data = array(
@@ -258,12 +268,19 @@ class MethodHelper {
 					$line_subtotal += (float) isset( $item['line_subtotal_tax'] ) ? $item['line_subtotal_tax'] : 0.0;
 				}
 
-				$quantity = (int) ceil( (float) $item['quantity'] );
-				$width    = ( empty( $s_product->get_shipping_width() ) ? 0 : (float) wc_format_decimal( $s_product->get_shipping_width() ) ) * $quantity;
-				$length   = ( empty( $s_product->get_shipping_length() ) ? 0 : (float) wc_format_decimal( $s_product->get_shipping_length() ) ) * $quantity;
-				$height   = ( empty( $s_product->get_shipping_height() ) ? 0 : (float) wc_format_decimal( $s_product->get_shipping_height() ) ) * $quantity;
-				$weight   = ( empty( $s_product->get_shipping_weight() ) ? 0 : (float) wc_format_decimal( $s_product->get_shipping_weight() ) ) * $quantity;
-				$volume   = ( $width * $length * $height );
+				$quantity   = (int) ceil( (float) $item['quantity'] );
+				$total_qty += $quantity;
+
+				if ( $total_qty > $max_qty_to_pack ) {
+					$skip_packing = true;
+					break 2;
+				}
+
+				$width  = ( empty( $s_product->get_shipping_width() ) ? 0 : (float) wc_format_decimal( $s_product->get_shipping_width() ) ) * $quantity;
+				$length = ( empty( $s_product->get_shipping_length() ) ? 0 : (float) wc_format_decimal( $s_product->get_shipping_length() ) ) * $quantity;
+				$height = ( empty( $s_product->get_shipping_height() ) ? 0 : (float) wc_format_decimal( $s_product->get_shipping_height() ) ) * $quantity;
+				$weight = ( empty( $s_product->get_shipping_weight() ) ? 0 : (float) wc_format_decimal( $s_product->get_shipping_weight() ) ) * $quantity;
+				$volume = ( $width * $length * $height );
 
 				$package_data['shipping_package_total']      += $line_total;
 				$package_data['shipping_package_subtotal']   += $line_subtotal;
@@ -310,6 +327,13 @@ class MethodHelper {
 
 			$packages[ $index ]['items_to_pack'] = $items;
 			$packages[ $index ]['package_data']  = $package_data;
+		}
+
+		/**
+		 * Skip packing due to potential quantity overload.
+		 */
+		if ( $skip_packing ) {
+			return $original_packages;
 		}
 
 		/**

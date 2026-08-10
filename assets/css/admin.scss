@@ -1111,53 +1111,55 @@ a.button.wc-stc-shipment-action-button {
       }
     }
 
-    td.column-title {
-      font-weight: bold;
+    tbody {
+      .column-title {
+        font-weight: bold;
 
-      .shipment-preview {
-        float: right;
-        width: 16px;
-        padding: 20px 4px 4px 4px;
-        height: 0;
-        overflow: hidden;
-        position: relative;
-        border: 2px solid transparent;
-        border-radius: 4px;
+        .shipment-preview {
+          float: right;
+          width: 16px;
+          padding: 20px 4px 4px 4px;
+          height: 0;
+          overflow: hidden;
+          position: relative;
+          border: 2px solid transparent;
+          border-radius: 4px;
 
-        &:hover {
-          border: 2px solid var(--wp-admin-theme-color, #00a0d2);
+          &:hover {
+            border: 2px solid var(--wp-admin-theme-color, #00a0d2);
+          }
+
+          &::before {
+            font-family: WooCommerce;
+            speak: never;
+            font-weight: 400;
+            font-variant: normal;
+            text-transform: none;
+            margin: 0;
+            text-indent: 0;
+            position: absolute;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            text-align: center;
+            content: "\e010";
+            line-height: 16px;
+            font-size: 14px;
+            vertical-align: middle;
+            top: 4px;
+          }
         }
 
-        &::before {
-          font-family: WooCommerce;
-          speak: never;
-          font-weight: 400;
-          font-variant: normal;
-          text-transform: none;
-          margin: 0;
-          text-indent: 0;
-          position: absolute;
-          left: 0;
-          width: 100%;
-          height: 100%;
-          text-align: center;
-          content: "\e010";
-          line-height: 16px;
-          font-size: 14px;
-          vertical-align: middle;
-          top: 4px;
-        }
-      }
-
-      .shipment-title-meta {
-        margin-top: 0;
-        font-weight: normal;
-        color: #999;
-        font-size: 12px;
-
-        .shipment-tracking-id {
+        .shipment-title-meta {
+          margin-top: 0;
+          font-weight: normal;
           color: #999;
-          display: block;
+          font-size: 12px;
+
+          .shipment-tracking-id {
+            color: #999;
+            display: block;
+          }
         }
       }
     }

@@ -295,6 +295,10 @@ class Label extends WC_Data implements ShipmentLabel {
 		$path_name = empty( $file_type ) ? 'path' : "{$file_type}_path";
 		$getter    = "get_{$path_name}";
 
+		if ( ! empty( $file_type ) && ! $this->supports_additional_file_type( $file_type ) ) {
+			return '';
+		}
+
 		if ( ! empty( $file_type ) && ! is_callable( array( $this, $getter ) ) ) {
 			$value = $this->get_meta( $path_name, true, $context );
 		} else {
