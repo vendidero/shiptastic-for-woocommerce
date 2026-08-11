@@ -19,7 +19,7 @@ class Package {
 	 *
 	 * @var string
 	 */
-	const VERSION = '5.1.2';
+	const VERSION = '5.1.3';
 
 	public static $upload_dir_suffix = '';
 
@@ -915,7 +915,7 @@ class Package {
 	 * @return bool
 	 */
 	public static function path_is_inside_upload_dir( $file ) {
-		if ( empty( $file ) || ! is_string( $file ) || ! sab_is_absolute_path( $file ) ) {
+		if ( empty( $file ) || ! is_string( $file ) || ! path_is_absolute( $file ) ) {
 			return false;
 		}
 
