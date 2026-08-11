@@ -919,6 +919,7 @@ class Package {
 			return false;
 		}
 
+		$file    = realpath( $file );
 		$uploads = self::get_upload_dir();
 
 		if ( false !== $uploads['error'] ) {
@@ -949,7 +950,7 @@ class Package {
 		}
 
 		if ( ! self::path_is_inside_upload_dir( $file ) ) {
-			$file = '';
+			return false;
 		}
 
 		return $file;
