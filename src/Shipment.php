@@ -1192,7 +1192,12 @@ abstract class Shipment extends WC_Data {
 			if ( $provider = $this->get_shipping_provider_instance() ) {
 				$instruction = $provider->get_tracking_desc( $this, 'plain' === $context );
 			} elseif ( $provider_title = $this->get_shipping_provider_title() ) {
+				$tracking_id = $this->get_tracking_id();
 				$instruction = sprintf( _x( 'Shipping via %s.', 'shipments-tracking-instruction', 'shiptastic-for-woocommerce' ), $provider_title );
+
+				if ( ! empty( $tracking_id ) ) {
+					$instruction .= ' ' . sprintf( _x( 'You may use %s to track your shipment.', 'shipments-tracking-instruction', 'shiptastic-for-woocommerce' ), $tracking_id );
+				}
 			}
 
 			/**
