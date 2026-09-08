@@ -198,6 +198,18 @@ final class Checkout {
 				},
 			)
 		);
+
+		woocommerce_store_api_register_update_callback(
+			array(
+				'namespace' => 'shiptastic-pickup-location',
+				'callback'  => function ( $data ) {
+					if ( isset( $data['pickup_location_code'] ) ) {
+						WC()->customer->update_meta_data( 'pickup_location_code', trim( wc_clean( wp_unslash( $data['pickup_location_code'] ) ) ) );
+						WC()->customer->update_meta_data( 'pickup_location_customer_number', wc_clean( wp_unslash( $data['pickup_location_customer_number'] ) ) );
+					}
+				},
+			)
+		);
 	}
 
 	private function get_checkout_schema() {

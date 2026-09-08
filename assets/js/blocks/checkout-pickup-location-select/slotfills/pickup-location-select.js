@@ -5,6 +5,7 @@ import { useSelect, useDispatch, select, dispatch } from '@wordpress/data';
 import { __, _x, sprintf } from '@wordpress/i18n';
 import triggerFetch from '@wordpress/api-fetch';
 import { CART_STORE_KEY, CHECKOUT_STORE_KEY } from '@woocommerce/block-data';
+import { extensionCartUpdate } from '@woocommerce/blocks-checkout';
 import classnames from 'classnames';
 import {
     ValidatedTextInput,
@@ -307,6 +308,7 @@ const render = () => {
     const { setShippingAddress, updateCustomerData } = useDispatch( CART_STORE_KEY );
 
     const checkoutOptions = getCheckoutData();
+    const [ prevCheckoutOptions, setPrevCheckoutOptions ] = useState( checkoutOptions );
 
     const isAvailable = pickupLocationDeliveryAvailable && needsShipping;
 
@@ -453,7 +455,17 @@ const render = () => {
         defaultPickupLocation
     ] );
 
-    useEffect(() => {
+    const updatePickupLocation = useDebouncedCallback( () => {
+        extensionCartUpdate( {
+            namespace: 'shiptastic-pickup-location',
+            data: {
+                'pickup_location_code': checkoutOptions.pickup_location,
+                'pickup_location_customer_number': checkoutOptions.pickup_location_customer_number
+            },
+        } );
+    }, 1000 );
+
+    useEffect( () => {
         setIsChangingPickupLocation( () => { return true } );
 
         if ( checkoutOptions.pickup_location ) {
@@ -472,21 +484,35 @@ const render = () => {
                     }
                 });
 
-                if ( newShippingAddress !== shippingAddress ) {
-                    setShippingAddress( shippingAddress );
+                if ( JSON.stringify( newShippingAddress ) !== JSON.stringify( shippingAddress ) ) {
+                    setShippingAddress( newShippingAddress );
                     // Prevent overridden data from other hooks/extensions by persisting customer address
                     updateCustomerData( {
                         'shipping_address': newShippingAddress,
-                    }, false );
+                    }, false ).then( () => {
+                        updatePickupLocation();
+                    } );
+                } else {
+                    updatePickupLocation();
                 }
             } else {
                 setCurrentPickupLocation( () => { return null } );
+
+                updatePickupLocation();
             }
         } else {
             setCurrentPickupLocation( () => { return null } );
+
+            updatePickupLocation();
         }
     }, [
         checkoutOptions.pickup_location
+    ] );
+
+    useEffect( () => {
+        updatePickupLocation();
+    }, [
+        checkoutOptions.pickup_location_customer_number
     ] );
 
     /**
