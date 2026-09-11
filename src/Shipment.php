@@ -786,7 +786,7 @@ abstract class Shipment extends WC_Data {
 	 * @return float
 	 */
 	public function get_content_weight() {
-		return wc_format_decimal( array_sum( $this->get_item_weights() ) );
+		return apply_filters( "{$this->get_general_hook_prefix()}content_weight", wc_format_decimal( array_sum( $this->get_item_weights() ) ), $this );
 	}
 
 	public function get_content_dimensions() {
@@ -805,7 +805,7 @@ abstract class Shipment extends WC_Data {
 	public function get_content_length() {
 		$default = max( $this->get_item_lengths() );
 
-		return wc_format_decimal( $default, false, true );
+		return apply_filters( "{$this->get_general_hook_prefix()}content_length", wc_format_decimal( $default, false, true ), $this );
 	}
 
 	/**
@@ -816,7 +816,7 @@ abstract class Shipment extends WC_Data {
 	public function get_content_width() {
 		$default = max( $this->get_item_widths() );
 
-		return wc_format_decimal( $default, false, true );
+		return apply_filters( "{$this->get_general_hook_prefix()}content_width", wc_format_decimal( $default, false, true ), $this );
 	}
 
 	/**
@@ -827,7 +827,7 @@ abstract class Shipment extends WC_Data {
 	public function get_content_volume() {
 		$default = array_sum( $this->get_item_volumes() );
 
-		return wc_format_decimal( $default, false, true );
+		return apply_filters( "{$this->get_general_hook_prefix()}content_volume", wc_format_decimal( $default, false, true ), $this );
 	}
 
 	/**
@@ -838,7 +838,7 @@ abstract class Shipment extends WC_Data {
 	public function get_content_height() {
 		$default_height = array_sum( $this->get_item_heights() );
 
-		return wc_format_decimal( $default_height, false, true );
+		return apply_filters( "{$this->get_general_hook_prefix()}content_height", wc_format_decimal( $default_height, false, true ), $this );
 	}
 
 	/**
