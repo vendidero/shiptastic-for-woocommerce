@@ -104,9 +104,17 @@ class Product {
 		if ( 'view' === $context && '' === $weight ) {
 			$weight = $this->get_product()->get_weight();
 
+			/**
+			 * Check whether the variation does not have a separate weight stored.
+			 *
+			 * @note For compatibility reason check whether the weight really equals the parents weight before overriding
+			 * so that custom filters used to filter the weight won't be overridden by the get_weight( 'edit' ) check.
+			 */
 			if ( $this->is_variation() && '' === $this->get_product()->get_weight( 'edit' ) ) {
 				if ( $parent = $this->get_parent_product() ) {
-					$weight = wc_shiptastic_get_product( $parent )->get_shipping_weight( $context );
+					if ( '' === $weight || ( $weight === $parent->get_weight() ) ) {
+						$weight = wc_shiptastic_get_product( $parent )->get_shipping_weight( $context );
+					}
 				}
 			}
 		}
@@ -122,7 +130,9 @@ class Product {
 
 			if ( $this->is_variation() && '' === $this->get_product()->get_length( 'edit' ) ) {
 				if ( $parent = $this->get_parent_product() ) {
-					$length = wc_shiptastic_get_product( $parent )->get_shipping_length( $context );
+					if ( '' === $length || ( $length === $parent->get_length() ) ) {
+						$length = wc_shiptastic_get_product( $parent )->get_shipping_length( $context );
+					}
 				}
 			}
 		}
@@ -138,7 +148,9 @@ class Product {
 
 			if ( $this->is_variation() && '' === $this->get_product()->get_width( 'edit' ) ) {
 				if ( $parent = $this->get_parent_product() ) {
-					$width = wc_shiptastic_get_product( $parent )->get_shipping_width( $context );
+					if ( '' === $width || ( $width === $parent->get_width() ) ) {
+						$width = wc_shiptastic_get_product( $parent )->get_shipping_width( $context );
+					}
 				}
 			}
 		}
@@ -154,7 +166,9 @@ class Product {
 
 			if ( $this->is_variation() && '' === $this->get_product()->get_height( 'edit' ) ) {
 				if ( $parent = $this->get_parent_product() ) {
-					$height = wc_shiptastic_get_product( $parent )->get_shipping_height( $context );
+					if ( '' === $height || ( $height === $parent->get_height() ) ) {
+						$height = wc_shiptastic_get_product( $parent )->get_shipping_height( $context );
+					}
 				}
 			}
 		}

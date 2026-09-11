@@ -1614,6 +1614,10 @@ abstract class Auto extends Simple implements ShippingProviderAuto {
 
 		if ( $label ) {
 			foreach ( $props as $key => $value ) {
+				if ( in_array( $key, array( 'id', 'shipment_id', 'reference_id', 'path' ), true ) || strstr( $key, 'path' ) ) {
+					continue;
+				}
+
 				$setter = "set_{$key}";
 
 				if ( is_callable( array( $label, $setter ) ) ) {
@@ -1825,8 +1829,13 @@ abstract class Auto extends Simple implements ShippingProviderAuto {
 	 * @param \Vendidero\Shiptastic\Shipment $shipment
 	 */
 	public function get_default_incoterms( $shipment ) {
-		if ( array_key_exists( $shipment->get_incoterms(), $this->get_available_incoterms() ) ) {
+		$default_incoterms   = $this->get_setting( 'label_default_incoterms', $this->get_default_label_incoterms() );
+		$available_incoterms = $this->get_available_incoterms();
+
+		if ( array_key_exists( $shipment->get_incoterms(), $available_incoterms ) ) {
 			return $shipment->get_incoterms();
+		} elseif ( array_key_exists( $default_incoterms, $available_incoterms ) ) {
+			return $default_incoterms;
 		} else {
 			return $this->get_default_label_incoterms();
 		}

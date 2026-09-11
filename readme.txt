@@ -2,8 +2,8 @@
 Contributors: vendidero, vdwoocommercesupport
 Tags: shipping, woocommerce, shipments, woo, fulfillment
 Requires at least: 5.4
-Tested up to: 7.0
-Stable tag: 5.1.0
+Tested up to: 7.1
+Stable tag: 5.1.5
 Requires PHP: 5.6
 License: GPLv3
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
@@ -49,6 +49,9 @@ Make sure that you've created a page with the [shiptastic_return_request_form] s
 customers (guests, registered customers) with a form to submit a return requests to an order applicable. Also make sure that the
 shipping service provider linked to the order/shipment has the return options enabled.
 
+= Where do I report security bugs found in this plugin? =
+Please report security bugs found in the source code of the plugin through the [Patchstack Vulnerability Disclosure Program](https://patchstack.com/database/vdp/6fc53392-d89b-41f3-bc28-eb3680901b4d). The Patchstack team will assist you with verification, CVE assignment, and notify the developers of this plugin.
+
 == Installation ==
 
 = Minimal Requirements =
@@ -71,6 +74,32 @@ We recommend installing Shiptastic for WooCommerce through the WordPress Backend
 6. Manage returns
 
 == Changelog ==
+= 5.1.5 =
+* Improvement: Store block-based pickup location in customer session
+* Improvement: Append tracking id to tracking instruction, if it exists, for manually set providers
+
+= 5.1.4 =
+* Fix: Path check improvements
+* Fix: Windows/IIS path compatibility
+
+= 5.1.3 =
+* Fix: Wrong absolute path check
+
+= 5.1.2 =
+* Improvement: WP 7.1 compatibility
+* Improvement: Add a guard to prevent running packing algo for a very high number of items
+* Fix: Aggregate weight logic for bundles
+* Fix: Exclude shipment_attachments query param in table view
+* Fix: Add unprefixed shipping_provider meta for block-based checkout
+
+= 5.1.1 =
+* Improvement: Store current pickup location code + customer number in customer session
+* Improvement: Store OAuth tokens within wp_options instead of transients to prevent issues with external object storage, e.g. memcached (which has a hard 30-day limit and may fail upon storing a transient with a longer lifetime).
+* Fix: Respect incoterms default setting
+* Fix: Do only override a variants' weight/dim with parent shipping data in case the data equals parent data to prevent filter overrides
+* Fix: Make email preview more generic
+* Security: Fixed a security issue which allowed downloading return labels for guest orders without proper permission check - thanks to Guillermo Álvarez for reporting
+
 = 5.1.0 =
 * New: Attachments for shipments, e.g. commercial invoices, customs documents
 * Improvement: Holiday list for different countries

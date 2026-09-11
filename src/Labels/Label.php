@@ -295,6 +295,10 @@ class Label extends WC_Data implements ShipmentLabel {
 		$path_name = empty( $file_type ) ? 'path' : "{$file_type}_path";
 		$getter    = "get_{$path_name}";
 
+		if ( ! empty( $file_type ) && ! $this->supports_additional_file_type( $file_type ) ) {
+			return '';
+		}
+
 		if ( ! empty( $file_type ) && ! is_callable( array( $this, $getter ) ) ) {
 			$value = $this->get_meta( $path_name, true, $context );
 		} else {
@@ -593,11 +597,16 @@ class Label extends WC_Data implements ShipmentLabel {
 	}
 
 	public function get_download_url( $args = array() ) {
+		if ( ! $shipment = $this->get_shipment() ) {
+			return '';
+		}
+
 		$base_url     = is_admin() ? admin_url() : trailingslashit( home_url() );
 		$download_url = add_query_arg(
 			array(
 				'action'      => 'wc-stc-download-shipment-label',
 				'shipment_id' => $this->get_shipment_id(),
+				'key'         => current_user_can( 'edit_shop_orders' ) ? '' : $shipment->get_or_create_tracking_secret(),
 			),
 			wp_nonce_url( $base_url, 'download-shipment-label' )
 		);

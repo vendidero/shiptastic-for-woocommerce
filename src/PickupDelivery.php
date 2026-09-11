@@ -250,6 +250,15 @@ class PickupDelivery {
 			);
 		}
 
+		$available_countries = WC()->countries->get_shipping_countries();
+
+		/**
+		 * Do only query pickup locations for valid shipping countries to prevent unnecessary API calls
+		 */
+		if ( ! empty( $result['address']['country'] ) && ! array_key_exists( $result['address']['country'], $available_countries ) ) {
+			return $result;
+		}
+
 		$result['provider'] = $provider ? $provider->get_name() : '';
 
 		if ( is_a( $provider, 'Vendidero\Shiptastic\Interfaces\ShippingProviderAuto' ) ) {

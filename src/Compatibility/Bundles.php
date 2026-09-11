@@ -209,12 +209,21 @@ class Bundles implements Compatibility {
 
 		$reset_dimensions = false;
 		$reset_weight     = false;
+		$shipment_order   = wc_stc_get_shipment_order( $order );
 
 		if ( wc_pb_is_bundle_container_order_item( $item, $order ) ) {
-			if ( $product->needs_shipping() ) {
+			$aggregate_weight = self::aggregate_product_weight( $product );
+
+			if ( ! $product->needs_shipping() ) {
+				$reset_weight     = true;
+				$reset_dimensions = true;
+			} elseif ( ! $aggregate_weight ) {
 				/**
-				 * That's the total weight of the bundle (container) including all it's children.
-				 * This meta key does only exist for assembled container items.
+				 * Assembled bundles that have the aggregate weight option set to "ignore" want to force
+				 * override the individual weights of the children included with the container weight.
+				 *
+				 * Assembled bundles with aggregate weight set to "keep" will store the container weight within the normal
+				 * product weight so no action is necessary.
 				 */
 				if ( $bundle_weight = $item->get_meta( '_bundle_weight', true ) ) {
 					if ( is_null( $bundle_weight ) ) {
@@ -223,14 +232,28 @@ class Bundles implements Compatibility {
 
 					$product->set_shipping_weight( $bundle_weight );
 				}
-			} else {
-				$reset_weight     = true;
-				$reset_dimensions = true;
 			}
 		} elseif ( wc_pb_is_bundled_order_item( $item, $order ) ) {
-			if ( ! $product->needs_shipping() || ! self::order_item_is_shipped_individually( $item ) ) {
+			$is_shipped_individually = self::order_item_is_shipped_individually( $item );
+
+			if ( ! $product->needs_shipping() || ! $is_shipped_individually ) {
 				$reset_weight     = true;
 				$reset_dimensions = true;
+
+				if ( ! $is_shipped_individually ) {
+					if ( $container = wc_pb_get_bundled_order_item_container( $item, $order, false ) ) {
+						$parent_product = $shipment_order->get_order_item_product( $container );
+
+						if ( $parent_product && self::is_assembled_bundle( $parent_product ) ) {
+							$aggregate_weight = self::aggregate_product_weight( $parent_product );
+							$reset_weight     = false;
+
+							if ( ! $aggregate_weight ) {
+								$reset_weight = true;
+							}
+						}
+					}
+				}
 			}
 		}
 
@@ -245,6 +268,27 @@ class Bundles implements Compatibility {
 		}
 
 		return $product;
+	}
+
+	/**
+	 * Whether the bundle container product has the aggregate_weight option set to "keep".
+	 *
+	 * @param $product
+	 *
+	 * @return bool
+	 */
+	protected static function aggregate_product_weight( $product ) {
+		$aggregate_weight = false;
+
+		if ( is_a( $product, '\Vendidero\Shiptastic\Product' ) ) {
+			$product = $product->get_product();
+		}
+
+		if ( is_a( $product, 'WC_Product_Bundle' ) && is_callable( array( $product, 'get_aggregate_weight' ) ) ) {
+			$aggregate_weight = $product->get_aggregate_weight();
+		}
+
+		return $aggregate_weight;
 	}
 
 	/**

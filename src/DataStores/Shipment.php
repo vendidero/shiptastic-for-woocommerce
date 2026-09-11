@@ -96,6 +96,10 @@ class Shipment extends WC_Data_Store_WP implements WC_Object_Data_Store_Interfac
 		$shipment->set_weight_unit( get_option( 'woocommerce_weight_unit', 'kg' ) );
 		$shipment->set_dimension_unit( get_option( 'woocommerce_dimension_unit', 'cm' ) );
 
+		if ( ! $shipment->get_tracking_secret( 'edit' ) ) {
+			$shipment->set_tracking_secret( wp_generate_password( 25, false ) );
+		}
+
 		if ( ! $shipment->get_date_modified( 'edit' ) ) {
 			$shipment->set_date_modified( time() );
 		}

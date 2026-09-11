@@ -19,7 +19,7 @@ class Package {
 	 *
 	 * @var string
 	 */
-	const VERSION = '5.1.0';
+	const VERSION = '5.1.5';
 
 	public static $upload_dir_suffix = '';
 
@@ -907,6 +907,45 @@ class Package {
 		return apply_filters( 'woocommerce_shiptastic_relative_upload_dir', $path );
 	}
 
+	/**
+	 * Check whether an absolute path resolves to a location inside the upload directory.
+	 *
+	 * @param string $file Absolute path.
+	 *
+	 * @return bool
+	 */
+	public static function path_is_inside_upload_dir( $file ) {
+		if ( empty( $file ) || ! is_string( $file ) || ! path_is_absolute( $file ) ) {
+			return false;
+		}
+
+		$file    = realpath( $file );
+		$uploads = self::get_upload_dir();
+
+		if ( false !== $uploads['error'] ) {
+			return false;
+		}
+
+		$basedir = realpath( $uploads['basedir'] );
+
+		if ( false === $basedir ) {
+			return false;
+		}
+
+		/**
+		 * WIN systems have a backslash dir separator. Appending a forward slash via
+		 * trailingslashit may cause a different upload base dir, e.g. C:\\public\wp-content\uploads\storeabill-1234/.
+		 * Comparing that with the absolute file path which contains a backslash, e.g. C:\\public\wp-content\uploads\storeabill-1234\file.pdf will fail.
+		 * Tweak: Convert all backslashes to forward slashes for comparison instead.
+		 */
+		if ( defined( 'DIRECTORY_SEPARATOR' ) && '\\' === DIRECTORY_SEPARATOR ) {
+			$basedir = str_replace( '\\', '/', $basedir );
+			$file    = str_replace( '\\', '/', $file );
+		}
+
+		return 0 === strpos( trailingslashit( $file ), trailingslashit( $basedir ) );
+	}
+
 	public static function set_upload_dir_filter() {
 		add_filter( 'upload_dir', array( __CLASS__, 'filter_upload_dir' ), 150, 1 );
 	}
@@ -919,11 +958,13 @@ class Package {
 		// If the file is relative, prepend upload dir.
 		if ( $file && 0 !== strpos( $file, '/' ) && ( ( $uploads = self::get_upload_dir() ) && false === $uploads['error'] ) ) {
 			$file = $uploads['basedir'] . "/$file";
-
-			return $file;
-		} else {
-			return $file;
 		}
+
+		if ( ! self::path_is_inside_upload_dir( $file ) ) {
+			return false;
+		}
+
+		return $file;
 	}
 
 	public static function get_upload_dir_name() {

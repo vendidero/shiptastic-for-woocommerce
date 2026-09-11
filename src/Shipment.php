@@ -786,7 +786,7 @@ abstract class Shipment extends WC_Data {
 	 * @return float
 	 */
 	public function get_content_weight() {
-		return wc_format_decimal( array_sum( $this->get_item_weights() ) );
+		return apply_filters( "{$this->get_general_hook_prefix()}content_weight", wc_format_decimal( array_sum( $this->get_item_weights() ) ), $this );
 	}
 
 	public function get_content_dimensions() {
@@ -805,7 +805,7 @@ abstract class Shipment extends WC_Data {
 	public function get_content_length() {
 		$default = max( $this->get_item_lengths() );
 
-		return wc_format_decimal( $default, false, true );
+		return apply_filters( "{$this->get_general_hook_prefix()}content_length", wc_format_decimal( $default, false, true ), $this );
 	}
 
 	/**
@@ -816,7 +816,7 @@ abstract class Shipment extends WC_Data {
 	public function get_content_width() {
 		$default = max( $this->get_item_widths() );
 
-		return wc_format_decimal( $default, false, true );
+		return apply_filters( "{$this->get_general_hook_prefix()}content_width", wc_format_decimal( $default, false, true ), $this );
 	}
 
 	/**
@@ -827,7 +827,7 @@ abstract class Shipment extends WC_Data {
 	public function get_content_volume() {
 		$default = array_sum( $this->get_item_volumes() );
 
-		return wc_format_decimal( $default, false, true );
+		return apply_filters( "{$this->get_general_hook_prefix()}content_volume", wc_format_decimal( $default, false, true ), $this );
 	}
 
 	/**
@@ -838,7 +838,7 @@ abstract class Shipment extends WC_Data {
 	public function get_content_height() {
 		$default_height = array_sum( $this->get_item_heights() );
 
-		return wc_format_decimal( $default_height, false, true );
+		return apply_filters( "{$this->get_general_hook_prefix()}content_height", wc_format_decimal( $default_height, false, true ), $this );
 	}
 
 	/**
@@ -1070,6 +1070,15 @@ abstract class Shipment extends WC_Data {
 		return $secret;
 	}
 
+	public function get_or_create_tracking_secret( $context = 'view' ) {
+		if ( ! $this->get_tracking_secret( 'edit' ) ) {
+			$this->set_tracking_secret( wp_generate_password( 25, false ) );
+			$this->save();
+		}
+
+		return $this->get_tracking_secret( $context );
+	}
+
 	/**
 	 * Retrieves the pickup location code, in case existent.
 	 *
@@ -1183,7 +1192,12 @@ abstract class Shipment extends WC_Data {
 			if ( $provider = $this->get_shipping_provider_instance() ) {
 				$instruction = $provider->get_tracking_desc( $this, 'plain' === $context );
 			} elseif ( $provider_title = $this->get_shipping_provider_title() ) {
+				$tracking_id = $this->get_tracking_id();
 				$instruction = sprintf( _x( 'Shipping via %s.', 'shipments-tracking-instruction', 'shiptastic-for-woocommerce' ), $provider_title );
+
+				if ( ! empty( $tracking_id ) ) {
+					$instruction .= ' ' . sprintf( _x( 'You may use %s to track your shipment.', 'shipments-tracking-instruction', 'shiptastic-for-woocommerce' ), $tracking_id );
+				}
 			}
 
 			/**
@@ -2503,9 +2517,7 @@ abstract class Shipment extends WC_Data {
 			$this->add_attachment( $attachment );
 		}
 
-		if ( is_callable( array( $attachment, 'upload_from_file' ) ) ) {
-			$attachment->upload_from_file( $path );
-		}
+		$attachment->set_relative_path( $path );
 	}
 
 	/**
@@ -2521,9 +2533,7 @@ abstract class Shipment extends WC_Data {
 			$this->add_attachment( $attachment );
 		}
 
-		if ( is_callable( array( $attachment, 'upload_from_file' ) ) ) {
-			$attachment->upload_from_file( $path );
-		}
+		$attachment->set_relative_path( $path );
 	}
 
 	/**

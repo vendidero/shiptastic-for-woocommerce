@@ -2,6 +2,8 @@
 
 namespace Vendidero\Shiptastic;
 
+use WC_DateTime;
+
 defined( 'ABSPATH' ) || exit;
 
 class Emails {
@@ -20,21 +22,22 @@ class Emails {
 		add_action(
 			'woocommerce_prepare_email_for_preview',
 			function ( $email_instance ) {
-				$returns = array(
-					'WC_STC_Email_Customer_Return_Shipment',
-					'WC_STC_Email_Customer_Return_Shipment_Rejected',
-					'WC_STC_Email_New_Return_Shipment_Request',
-					'WC_STC_Email_Customer_Return_Shipment_Delivered',
-				);
+				try {
+					$classname = strtolower( get_class( $email_instance ) );
+				} catch ( \Exception $e ) {
+					$classname = '';
+				}
 
-				if ( is_a( $email_instance, 'WC_STC_Email_Customer_Shipment' ) ) {
-					$email_instance->shipment = new \Vendidero\Shiptastic\Admin\Preview\Shipment();
-				} elseif ( in_array( get_class( $email_instance ), $returns, true ) ) {
-					$email_instance->shipment = new \Vendidero\Shiptastic\Admin\Preview\ReturnShipment();
+				if ( 'wc_stc_' === substr( $classname, 0, 7 ) ) {
+					if ( strstr( $classname, '_return' ) ) {
+						$email_instance->shipment = new \Vendidero\Shiptastic\Admin\Preview\ReturnShipment();
 
-					if ( is_a( $email_instance, 'WC_STC_Email_Customer_Return_Shipment_Rejected' ) ) {
-						$email_instance->shipment->set_status( 'rejected' );
-						$email_instance->shipment->set_request_rejection_reason( _x( 'A custom rejection reason.', 'shipments-email-preview-rejection-reason', 'shiptastic-for-woocommerce' ) );
+						if ( is_a( $email_instance, 'WC_STC_Email_Customer_Return_Shipment_Rejected' ) ) {
+							$email_instance->shipment->set_status( 'rejected' );
+							$email_instance->shipment->set_request_rejection_reason( _x( 'A custom rejection reason.', 'shipments-email-preview-rejection-reason', 'shiptastic-for-woocommerce' ) );
+						}
+					} else {
+						$email_instance->shipment = new \Vendidero\Shiptastic\Admin\Preview\Shipment();
 					}
 				}
 
@@ -45,10 +48,13 @@ class Emails {
 		add_filter(
 			'woocommerce_email_preview_placeholders',
 			function ( $placeholders, $email_type ) {
-				if ( 'WC_STC_Email_Customer_Shipment' === $email_type ) {
+				$email_type = strtolower( $email_type );
+
+				if ( 'wc_stc_' === substr( $email_type, 0, 7 ) ) {
 					$placeholders['{shipment_number}']      = '1234';
 					$placeholders['{current_shipment_num}'] = '1';
 					$placeholders['{total_shipments}']      = '1';
+					$placeholders['{date_sent}']            = wc_format_datetime( new \WC_DateTime( '@' . time() ) );
 				}
 
 				return $placeholders;
