@@ -1,7 +1,7 @@
 // view.js
-import { store, withSyncEvent } from '@wordpress/interactivity';
+import { store, withSyncEvent, getContext, getServerContext } from '@wordpress/interactivity';
 
-store( 'shiptastic/fulfillments', {
+const { state, actions } = store( 'shiptastic/fulfillments', {
     actions: {
         prefetch: function* ( event ) {
             const { actions } = yield import(
@@ -9,15 +9,23 @@ store( 'shiptastic/fulfillments', {
                 );
             yield actions.prefetch( event.target.href );
         },
-        prev: withSyncEvent( function* ( event ) {
+        prevOrder: withSyncEvent( function* ( event ) {
             event.preventDefault();
 
             const { actions } = yield import(
                 '@wordpress/interactivity-router'
                 );
-            yield actions.navigate( event.target.href );
+            yield actions.navigate( event.target.href, { force: true } );
         } ),
-        next: withSyncEvent( function* ( event ) {
+        nextOrder: withSyncEvent( function* ( event ) {
+            event.preventDefault();
+
+            const { actions } = yield import(
+                '@wordpress/interactivity-router'
+                );
+            yield actions.navigate( event.target.href, { force: true } );
+        } ),
+        goToAction: withSyncEvent( function* ( event ) {
             event.preventDefault();
 
             const { actions } = yield import(
@@ -26,4 +34,15 @@ store( 'shiptastic/fulfillments', {
             yield actions.navigate( event.target.href );
         } ),
     },
+    callbacks: {
+        updateContext() {
+            const clientContext = getContext();
+            const serverContext = getServerContext();
+            // const clientState   = getState();
+
+            console.log('jaa');
+            console.log(state);
+            console.log(clientContext);
+        },
+    }
 } );

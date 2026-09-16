@@ -517,6 +517,14 @@ class Package {
 		}
 	}
 
+	public static function get_current_weight_unit() {
+		return get_option( 'woocommerce_weight_unit', 'kg' );
+	}
+
+	public static function get_current_dimension_unit() {
+		return get_option( 'woocommerce_dimension_unit', 'cm' );
+	}
+
 	/**
 	 * @param \WC_DateTime $datetime
 	 *
