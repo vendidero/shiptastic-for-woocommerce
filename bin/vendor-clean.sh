@@ -36,9 +36,9 @@ rm -rf ./vendor/dvdoug/boxpacker/.*
 rm -rf ./vendor/dvdoug/boxpacker/.github/*
 
 # PHP 8.4 nullable fix (remove when updating to boxpacker 4.0.0)
-sed -i '' -e 's/__construct(BoxSorter /__construct(BoxSorter|null /g' vendor/dvdoug/boxpacker/src/BoxList.php
-sed -i '' -e 's/__construct(ItemSorter /__construct(ItemSorter|null /g' vendor/dvdoug/boxpacker/src/ItemList.php
-sed -i '' -e 's/__construct(PackedBoxSorter /__construct(PackedBoxSorter|null /g' vendor/dvdoug/boxpacker/src/PackedBoxList.php
+sed -i '' -e 's/__construct(BoxSorter /__construct(/g' vendor/dvdoug/boxpacker/src/BoxList.php
+sed -i '' -e 's/__construct(ItemSorter /__construct(/g' vendor/dvdoug/boxpacker/src/ItemList.php
+sed -i '' -e 's/__construct(PackedBoxSorter /__construct(/g' vendor/dvdoug/boxpacker/src/PackedBoxList.php
 
 rm -rf ./vendor/setasign/fpdf/doc/*
 rm -rf ./vendor/setasign/fpdf/tutorial/*
