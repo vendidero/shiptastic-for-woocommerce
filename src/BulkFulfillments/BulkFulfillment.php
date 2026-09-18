@@ -518,9 +518,13 @@ class BulkFulfillment extends WC_Data {
 		}
 	}
 
-	public function get_url( $order_id, $action = '', $shipment_id = 0 ) {
+	public function get_url( $order_id = 0, $action = '', $shipment_id = 0 ) {
 		if ( is_a( $order_id, '\Vendidero\Shiptastic\BulkFulfillments\BulkFulfillmentOrder' ) ) {
 			$order_id = $order_id->get_id();
+		}
+
+		if ( empty( $order_id ) ) {
+			$order_id = $this->get_current_order_id();
 		}
 
 		return add_query_arg(

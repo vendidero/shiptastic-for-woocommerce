@@ -27,6 +27,9 @@ class View {
 	}
 
 	public static function enqueue_scripts() {
+		wp_enqueue_script( 'wp-api-fetch' );
+		wp_enqueue_script( 'wp-url' );
+
 		wp_register_script_module(
 			'shiptastic/fulfillments',
 			Package::get_assets_url( 'static/admin-fulfillments.js' ),
@@ -92,10 +95,105 @@ class View {
 
 		set_current_screen( 'wc-shiptastic-fulfillment' );
 
+		$next_order = $fulfillment->get_next_order();
+		$prev_order = $fulfillment->get_prev_order();
+
+		wp_interactivity_config(
+			'shiptastic/fulfillments',
+			array(
+				'baseUrl'              => $fulfillment->get_url(),
+				'shipmentsEndpointUrl' => get_rest_url( null, 'my-plugin/v1/' ),
+				'nonce'                => wp_create_nonce( 'my_plugin_action' ),
+				'translations'         => array(),
+			)
+		);
+
+		$shipment_order = $fulfillment->get_current_order()->get_shipment_order();
+		$items          = array();
+		$shipments      = array();
+
+		foreach ( $shipment_order->get_available_items_for_shipment() as $item_id => $item ) {
+			$order_item = $shipment_order->get_order()->get_item( $item_id, false );
+			$weight     = 0.0;
+			$width      = 0.0;
+			$length     = 0.0;
+			$height     = 0.0;
+
+			if ( $order_item && is_callable( array( $order_item, 'get_product' ) ) ) {
+				if ( $product = $shipment_order->get_order_item_product( $order_item ) ) {
+					$weight = $product->get_shipping_weight();
+					$length = $product->get_shipping_length();
+					$width  = $product->get_shipping_width();
+					$height = $product->get_shipping_height();
+				}
+			}
+
+			$items[] = array(
+				'name'        => $item['name'],
+				'maxQuantity' => $item['max_quantity'],
+				'quantity'    => $item['max_quantity'],
+				'weight'      => $weight,
+				'length'      => $length,
+				'width'       => $width,
+				'height'      => $height,
+				'id'          => $item_id,
+			);
+		}
+
+		$shipments_item_count        = 0;
+		$shipments_unique_item_count = 0;
+
+		foreach ( $shipment_order->get_simple_shipments() as $shipment ) {
+			$shipment_items = array();
+
+			foreach ( $shipment->get_items() as $item_id => $item ) {
+				$shipments_item_count += $item->get_quantity();
+				++$shipments_unique_item_count;
+
+				$shipment_items[] = array(
+					'name'        => $item->get_name(),
+					'quantity'    => $item->get_quantity(),
+					'maxQuantity' => $item->get_quantity(),
+					'id'          => $item->get_order_item_id(),
+					'itemId'      => $item->get_id(),
+					'weight'      => wc_get_weight( $item->get_weight(), Package::get_current_weight_unit(), $shipment->get_weight_unit() ),
+					'length'      => wc_get_dimension( $item->get_length(), Package::get_current_dimension_unit(), $shipment->get_dimension_unit() ),
+					'width'       => wc_get_dimension( $item->get_width(), Package::get_current_dimension_unit(), $shipment->get_dimension_unit() ),
+					'height'      => wc_get_dimension( $item->get_height(), Package::get_current_dimension_unit(), $shipment->get_dimension_unit() ),
+				);
+			}
+
+			$shipments[] = array(
+				'id'               => $shipment->get_id(),
+				'status'           => $shipment->get_status(),
+				'weight'           => wc_get_weight( $shipment->get_weight(), Package::get_current_weight_unit(), $shipment->get_weight_unit() ),
+				'length'           => wc_get_dimension( $shipment->get_length(), Package::get_current_dimension_unit(), $shipment->get_dimension_unit() ),
+				'width'            => wc_get_dimension( $shipment->get_width(), Package::get_current_dimension_unit(), $shipment->get_dimension_unit() ),
+				'height'           => wc_get_dimension( $shipment->get_height(), Package::get_current_dimension_unit(), $shipment->get_dimension_unit() ),
+				'shippingProvider' => $shipment->get_shipping_provider(),
+				'packagingId'      => $shipment->get_packaging_id(),
+				'items'            => $shipment_items,
+			);
+		}
+
 		wp_interactivity_state(
 			'shiptastic/fulfillments',
 			array(
-				'counter' => 5,
+				'fulfillmentId'            => $fulfillment->get_id(),
+				'orderId'                  => $fulfillment->get_current_order_id(),
+				'orderNumber'              => $fulfillment->get_current_order()->get_order_number(),
+				'shipmentId'               => $fulfillment->get_current_order()->get_current_shipment_id(),
+				'currentAction'            => $fulfillment->get_current_order()->get_current_action_name(),
+				'nextOrderId'              => $next_order ? $next_order->get_id() : 0,
+				'prevOrderId'              => $prev_order ? $prev_order->get_id() : 0,
+				'nextOrderNumber'          => $next_order ? $next_order->get_order_number() : 0,
+				'prevOrderNumber'          => $prev_order ? $prev_order->get_order_number() : 0,
+				'orderItemCount'           => $shipment_order->get_shippable_item_count(),
+				'orderUniqueItemCount'     => $shipment_order->get_shippable_unique_item_count(),
+				'shipmentsItemCount'       => $shipments_item_count,
+				'shipmentsUniqueItemCount' => $shipments_unique_item_count,
+				'shipments'                => $shipments,
+				'itemsAvailableToShip'     => $items,
 			)
 		);
 		ob_start();
@@ -127,33 +225,35 @@ class View {
 	 * @return false|string
 	 */
 	protected static function get_html( $fulfillment ) {
-		$next_order = $fulfillment->get_next_order();
-		$prev_order = $fulfillment->get_prev_order();
 		ob_start();
 		?>
 		<div
 			data-wp-router-region="shiptastic/fulfillments/fulfillment"
 			data-wp-interactive="shiptastic/fulfillments"
+			data-wp-watch="callbacks.onUpdateState"
 			class="site-content"
-			data-wp-watch="callbacks.updateContext"
 		>
 			<header class="fulfillment-header">
-				<h1>Order <?php echo esc_html( $fulfillment->get_current_order_id() ); ?></h1>
+				<h1>Order <span data-wp-text="state.orderNumber"></span></h1>
+
+				<span>Currently shipping <span data-wp-text="state.shipmentsItemCount"></span>/<span data-wp-text="state.orderItemCount"></span> items (<span data-wp-text="state.shipmentsUniqueItemCount"></span>/<span data-wp-text="state.orderUniqueItemCount"></span> unique)</span>
 
 				<nav class="fulfillment-order-nav">
 					<a
 						data-wp-on--click="actions.prevOrder"
-						class="<?php echo esc_attr( ! $prev_order ? 'disabled' : '' ); ?>"
-						href="<?php echo esc_url( $prev_order ? $fulfillment->get_url( $prev_order ) : '#' ); ?>"
+						data-wp-class--disabled="!state.prevOrderId"
+						data-wp-bind--href="callbacks.getPrevOrderUrl"
+						href="#"
 					>
-						&larr; Prev
+						&larr; <span data-wp-text="state.prevOrderNumber"></span>
 					</a>
 					<a
 						data-wp-on--click="actions.nextOrder"
-						class="<?php echo esc_attr( ! $next_order ? 'disabled' : '' ); ?>"
-						href="<?php echo esc_url( $next_order ? $fulfillment->get_url( $next_order ) : '#' ); ?>"
+						data-wp-class--disabled="!state.nextOrderId"
+						data-wp-bind--href="callbacks.getNextOrderUrl"
+						href="#"
 					>
-						Next &rarr;
+						<span data-wp-text="state.nextOrderNumber"></span> &rarr;
 					</a>
 				</nav>
 
@@ -204,14 +304,20 @@ class View {
 				data-wp-interactive="shiptastic/fulfillments"
 			>
 				<?php if ( $current_action = $fulfillment->get_current_order()->get_current_action() ) : ?>
-					<?php
-					ob_start();
-					$current_action->render();
-					$html = ob_get_clean();
-					echo $html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
-					?>
+					<div id="<?php echo esc_attr( $current_action->get_name() ); ?>">
+						<?php
+						ob_start();
+						$current_action->render();
+						$html = ob_get_clean();
+						echo $html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+						?>
+					</div>
 				<?php endif; ?>
 			</main>
+
+			<footer>
+				<button data-wp-on--click="actions.save">Save</button>
+			</footer>
 		</div>
 		<?php
 		return ob_get_clean();

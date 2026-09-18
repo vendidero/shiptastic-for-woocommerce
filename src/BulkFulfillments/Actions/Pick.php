@@ -2,6 +2,8 @@
 
 namespace Vendidero\Shiptastic\BulkFulfillments\Actions;
 
+use Vendidero\Shiptastic\Package;
+
 class Pick extends \Vendidero\Shiptastic\BulkFulfillments\FulfillmentAction {
 
 	public static function get_title() {
@@ -21,6 +23,40 @@ class Pick extends \Vendidero\Shiptastic\BulkFulfillments\FulfillmentAction {
 	}
 
 	public function render() {
-		// TODO: Implement render() method.
+		wp_register_script_module(
+			'shiptastic/fulfillments/' . self::get_name(),
+			Package::get_assets_url( 'static/fulfillments/pick.js' ),
+			array(
+				'@wordpress/interactivity',
+				array(
+					'id'     => '@wordpress/interactivity-router',
+					'import' => 'dynamic',
+				),
+			),
+			Package::get_version()
+		);
+
+		wp_interactivity()->add_client_navigation_support_to_script_module(
+			'shiptastic/fulfillments/' . self::get_name()
+		);
+
+		wp_enqueue_script_module( 'shiptastic/fulfillments/' . self::get_name() );
+		?>
+		<div
+			data-wp-interactive="shiptastic/fulfillments/pick"
+			data-wp-watch="callbacks.onUpdateState"
+		>
+			<ul>
+				<template
+					data-wp-each--shipment_item="state.allShipmentItems"
+					data-wp-each-key="context.shipment_item.id"
+				>
+					<li>
+						<span data-wp-text="context.shipment_item.name"></span> x<span data-wp-text="context.shipment_item.quantity"></span>
+					</li>
+				</template>
+			</ul>
+		</div>
+		<?php
 	}
 }

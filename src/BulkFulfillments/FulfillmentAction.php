@@ -136,11 +136,20 @@ abstract class FulfillmentAction {
 		return $this->settings;
 	}
 
+	public function get_default_type() {
+		if ( in_array( 'manual', self::get_supported_types(), true ) ) {
+			return 'manual';
+		} else {
+			return array_values( self::get_supported_types() )[0];
+		}
+	}
+
 	public function set_settings( $settings ) {
 		$settings = wp_parse_args(
 			$settings,
 			array(
 				'sort_order' => 999,
+				'type'       => $this->get_default_type(),
 			)
 		);
 
@@ -153,6 +162,18 @@ abstract class FulfillmentAction {
 		} else {
 			return $default_value;
 		}
+	}
+
+	public function get_type() {
+		return $this->get_setting( 'type', $this->get_default_type() );
+	}
+
+	public function is_auto() {
+		return 'auto' === $this->get_type();
+	}
+
+	public function is_manual() {
+		return 'manual' === $this->get_type();
 	}
 
 	public function get_data() {

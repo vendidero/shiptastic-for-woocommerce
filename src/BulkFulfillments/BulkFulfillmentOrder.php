@@ -140,7 +140,16 @@ class BulkFulfillmentOrder extends WC_Data {
 			$loop = $this->get_action_loop( $loop_context );
 		}
 
-		return ! empty( $loop ) ? $loop[0]::get_name() : '';
+		$current_action = ! empty( $loop ) ? $loop[ count( $loop ) - 1 ]::get_name() : '';
+
+		foreach ( $loop as $k => $action ) {
+			if ( 'open' === $action->get_status() ) {
+				$current_action = $action->get_name();
+				break;
+			}
+		}
+
+		return $current_action;
 	}
 
 	public function is_default_action( $name, $loop_context = '' ) {
@@ -218,6 +227,10 @@ class BulkFulfillmentOrder extends WC_Data {
 
 	public function get_order_id( $context = 'view' ) {
 		return $this->get_prop( 'order_id', $context );
+	}
+
+	public function get_order_number() {
+		return $this->get_shipment_order()->get_order_number();
 	}
 
 	public function set_order_id( $order_id ) {
@@ -364,6 +377,8 @@ class BulkFulfillmentOrder extends WC_Data {
 							$has_all_dependent_actions = true;
 
 							foreach ( $actions_before as $action_name_before ) {
+								$before_settings = array();
+
 								if ( $before_instance = $this->get_action_instance( array( 'name' => $action_name_before ) ) ) {
 									$new_before_action_contexts = array();
 

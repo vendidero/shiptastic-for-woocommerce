@@ -40,86 +40,31 @@ class CreateShipments extends \Vendidero\Shiptastic\BulkFulfillments\Fulfillment
 			'shiptastic/fulfillments/' . self::get_name()
 		);
 
-		wp_enqueue_script_module( 'shiptastic/fulfillments/' . self::get_name() );
-
-		$shipment_order = $this->get_order()->get_shipment_order();
-		$items          = array();
-		$shipments      = array();
-
-		foreach ( $shipment_order->get_available_items_for_shipment() as $item_id => $item ) {
-			$order_item = $shipment_order->get_order()->get_item( $item_id, false );
-			$weight     = 0.0;
-			$width      = 0.0;
-			$length     = 0.0;
-			$height     = 0.0;
-
-			if ( $order_item && is_callable( array( $order_item, 'get_product' ) ) ) {
-				if ( $product = $shipment_order->get_order_item_product( $order_item ) ) {
-					$weight = $product->get_shipping_weight();
-					$length = $product->get_shipping_length();
-					$width  = $product->get_shipping_width();
-					$height = $product->get_shipping_height();
-				}
-			}
-
-			$items[] = array(
-				'name'        => $item['name'],
-				'maxQuantity' => $item['max_quantity'],
-				'quantity'    => $item['max_quantity'],
-				'weight'      => $weight,
-				'length'      => $length,
-				'width'       => $width,
-				'height'      => $height,
-				'id'          => $item_id,
-			);
-		}
-
-		foreach ( $shipment_order->get_simple_shipments() as $shipment ) {
-			$shipment_items = array();
-
-			foreach ( $shipment->get_items() as $item_id => $item ) {
-				$shipment_items[] = array(
-					'name'        => $item->get_name(),
-					'quantity'    => $item->get_quantity(),
-					'maxQuantity' => $item->get_quantity(),
-					'id'          => $item->get_order_item_id(),
-					'itemId'      => $item->get_id(),
-					'weight'      => wc_get_weight( $item->get_weight(), Package::get_current_weight_unit(), $shipment->get_weight_unit() ),
-					'length'      => wc_get_dimension( $item->get_length(), Package::get_current_dimension_unit(), $shipment->get_dimension_unit() ),
-					'width'       => wc_get_dimension( $item->get_width(), Package::get_current_dimension_unit(), $shipment->get_dimension_unit() ),
-					'height'      => wc_get_dimension( $item->get_height(), Package::get_current_dimension_unit(), $shipment->get_dimension_unit() ),
-				);
-			}
-
-			$shipments[] = array(
-				'id'               => $shipment->get_id(),
-				'status'           => $shipment->get_status(),
-				'weight'           => wc_get_weight( $shipment->get_weight(), Package::get_current_weight_unit(), $shipment->get_weight_unit() ),
-				'length'           => wc_get_dimension( $shipment->get_length(), Package::get_current_dimension_unit(), $shipment->get_dimension_unit() ),
-				'width'            => wc_get_dimension( $shipment->get_width(), Package::get_current_dimension_unit(), $shipment->get_dimension_unit() ),
-				'height'           => wc_get_dimension( $shipment->get_height(), Package::get_current_dimension_unit(), $shipment->get_dimension_unit() ),
-				'shippingProvider' => $shipment->get_shipping_provider(),
-				'packagingId'      => $shipment->get_packaging_id(),
-				'items'            => $shipment_items,
-			);
-		}
-
 		wp_interactivity_state(
-			'shiptastic/fulfillments/shipments',
+			'shiptastic/fulfillments/' . self::get_name(),
 			array(
-				'hasSelectedItems' => false,
-				'shipments'        => $shipments,
-				'items'            => $items,
+				'itemsAvailableToShip' => function () {
+					$state = wp_interactivity_state( 'shiptastic/fulfillments' );
+
+					return $state['itemsAvailableToShip'];
+				},
+				'shipments'            => function () {
+					$state = wp_interactivity_state( 'shiptastic/fulfillments' );
+
+					return $state['shipments'];
+				},
 			)
 		);
+
+		wp_enqueue_script_module( 'shiptastic/fulfillments/' . self::get_name() );
 		?>
 		<div
-			data-wp-interactive="shiptastic/fulfillments/shipments"
-			data-wp-watch="callbacks.updateContext"
+			data-wp-interactive="shiptastic/fulfillments/create_shipments"
+			data-wp-watch="callbacks.onUpdateState"
 		>
 			<ul>
 				<template
-					data-wp-each--item="state.items"
+					data-wp-each--item="state.itemsAvailableToShip"
 					data-wp-each-key="context.item.id"
 				>
 					<li
@@ -155,7 +100,7 @@ class CreateShipments extends \Vendidero\Shiptastic\BulkFulfillments\Fulfillment
 				<div>
 					<template
 						data-wp-each--shipment_item="context.shipment.items"
-						data-wp-each-key="context.shipment_item.id"
+						data-wp-each-key="context.shipment_item.itemId"
 					>
 						<div>
 							<span data-wp-text="context.shipment_item.name"></span>
@@ -171,6 +116,15 @@ class CreateShipments extends \Vendidero\Shiptastic\BulkFulfillments\Fulfillment
 							/>
 						</div>
 					</template>
+				</div>
+			</template>
+
+			<template
+				data-wp-each--shipment_item="state.allShipmentItems"
+				data-wp-each-key="context.shipment_item.id"
+			>
+				<div>
+					<span data-wp-text="context.shipment_item.name"></span> x<span data-wp-text="context.shipment_item.quantity"></span>
 				</div>
 			</template>
 		</div>

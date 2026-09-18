@@ -62,6 +62,10 @@ class Order {
 		return $this->get_order()->get_id();
 	}
 
+	public function get_order_number() {
+		return $this->get_order()->get_order_number();
+	}
+
 	/**
 	 * @return WC_DateTime|null
 	 */
@@ -2137,6 +2141,23 @@ class Order {
 	}
 
 	/**
+	 * Returns the total number of unique shippable items.
+	 *
+	 * @return mixed|void
+	 */
+	public function get_shippable_unique_item_count() {
+		/**
+		 * Filters the total number of unique shippable items available in an order.
+		 *
+		 * @param integer $count The total number of items.
+		 * @param Order $order The shipment order object.
+		 *
+		 * @package Vendidero/Shiptastic
+		 */
+		return apply_filters( 'woocommerce_shiptastic_shipment_order_shippable_unique_item_count', count( $this->get_shippable_items() ), $this );
+	}
+
+	/**
 	 * Returns the number of total returnable items.
 	 *
 	 * @return mixed|void
@@ -2157,6 +2178,23 @@ class Order {
 		 * @package Vendidero/Shiptastic
 		 */
 		return apply_filters( 'woocommerce_shiptastic_shipment_order_returnable_item_count', $count, $this );
+	}
+
+	/**
+	 * Returns the total number of unique returnable items.
+	 *
+	 * @return mixed|void
+	 */
+	public function get_returnable_unique_item_count() {
+		/**
+		 * Filters the total number of unique returnable items available in an order.
+		 *
+		 * @param integer $count The total number of items.
+		 * @param Order $order The shipment order object.
+		 *
+		 * @package Vendidero/Shiptastic
+		 */
+		return apply_filters( 'woocommerce_shiptastic_shipment_order_returnable_unique_item_count', count( $this->get_returnable_items( false ) ), $this );
 	}
 
 	public function get_pickup_delivery_args() {
