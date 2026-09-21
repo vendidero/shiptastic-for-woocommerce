@@ -1,11 +1,8 @@
 <?php
 namespace Vendidero\Shiptastic\Blocks;
 
-use Automattic\WooCommerce\StoreApi\Exceptions\RouteException;
-use Automattic\WooCommerce\StoreApi\Schemas\ExtendSchema;
 use Automattic\WooCommerce\StoreApi\Schemas\V1\CartSchema;
 use Automattic\WooCommerce\StoreApi\Schemas\V1\CheckoutSchema;
-use Automattic\WooCommerce\StoreApi\Utilities\CartController;
 use Vendidero\Shiptastic\Blocks\StoreApi\SchemaController;
 use Vendidero\Shiptastic\Package;
 use Vendidero\Shiptastic\PickupDelivery;
@@ -71,16 +68,47 @@ final class Checkout {
 	private function validate_checkout_data( $order, $request ) {
 		$stc_data                        = $this->get_checkout_data_from_request( $request );
 		$pickup_location                 = false;
-		$pickup_location_customer_number = '';
+		$has_pickup_location             = $this->has_checkout_data( 'pickup_location', $request ) && ! empty( $stc_data['pickup_location'] );
+		$pickup_location_code            = isset( $stc_data['pickup_location'] ) ? $stc_data['pickup_location'] : '';
+		$pickup_location_customer_number = isset( $stc_data['pickup_location_customer_number'] ) ? $stc_data['pickup_location_customer_number'] : '';
 
-		if ( $this->has_checkout_data( 'pickup_location', $request ) && ! empty( $stc_data['pickup_location'] ) ) {
-			$pickup_location_code            = $stc_data['pickup_location'];
-			$pickup_location_customer_number = $stc_data['pickup_location_customer_number'];
-			$supports_customer_number        = false;
-			$customer_number_is_mandatory    = false;
-			$is_valid                        = false;
-			$pickup_location                 = false;
-			$address_data                    = array(
+		if ( ! $has_pickup_location && ( $location_details = PickupDelivery::get_pickup_locations_by_address( $order->get_shipping_address_1(), $order->get_shipping_address_2() ) ) ) {
+			if ( $provider = wc_stc_get_order_shipping_provider( $order ) ) {
+				if ( array_key_exists( $provider->get_name(), $location_details ) ) {
+					$location_detail = $location_details[ $provider->get_name() ];
+
+					$pickup_location_code            = $location_detail['code'];
+					$pickup_location_customer_number = ! empty( $location_detail['customer_number'] ) ? $location_detail['customer_number'] : $order->get_shipping_address_2();
+					$has_pickup_location             = true;
+				}
+			}
+
+			if ( ! $has_pickup_location ) {
+				$provider_is_active = false;
+
+				foreach ( $location_details as $provider_name => $location_detail ) {
+					if ( $provider = wc_stc_get_shipping_provider( $provider_name ) ) {
+						if ( is_a( $provider, 'Vendidero\Shiptastic\Interfaces\ShippingProviderAuto' ) ) {
+							if ( $provider->is_activated() && $provider->enable_pickup_location_delivery() ) {
+								$provider_is_active = true;
+								break;
+							}
+						}
+					}
+				}
+
+				if ( apply_filters( 'woocommerce_shiptastic_checkout_show_address_pickup_location_error', $provider_is_active, $location_details ) ) {
+					throw new \Automattic\WooCommerce\StoreApi\Exceptions\RouteException( 'invalid_address_1', wp_kses_post( _x( 'You\'ve entered a pickup location in your address that we don\'t support. Please check your address or, if available, select a pickup location from the shipping options.', 'shipments', 'shiptastic-for-woocommerce' ) ), 400 );
+				}
+			}
+		}
+
+		if ( $has_pickup_location ) {
+			$supports_customer_number     = false;
+			$customer_number_is_mandatory = false;
+			$is_valid                     = false;
+			$pickup_location              = false;
+			$address_data                 = array(
 				'country'   => $order->get_shipping_country(),
 				'postcode'  => $order->get_shipping_postcode(),
 				'city'      => $order->get_shipping_city(),
@@ -93,8 +121,8 @@ final class Checkout {
 					$query_args['payment_gateway'] = $order->get_payment_method();
 
 					if ( $provider->supports_pickup_location_delivery( $address_data, $query_args ) ) {
-						$pickup_location              = $provider->get_pickup_location_by_code( $pickup_location_code );
-						$is_valid                     = $provider->is_valid_pickup_location( $pickup_location_code );
+						$pickup_location              = $provider->get_pickup_location_by_code( $pickup_location_code, $address_data );
+						$is_valid                     = $provider->is_valid_pickup_location( $pickup_location_code, $address_data );
 						$supports_customer_number     = $pickup_location ? $pickup_location->supports_customer_number() : false;
 						$customer_number_is_mandatory = $pickup_location ? $pickup_location->customer_number_is_mandatory() : false;
 					}

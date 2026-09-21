@@ -828,6 +828,66 @@ class PickupDelivery {
 		return $excluded_gateways;
 	}
 
+    /**
+     * This function tries to detect a pickup location (based on heuristics) within an address.
+     *
+     * @param $address_1
+     * @param $address_2
+     *
+     * @return array|false
+     */
+	public static function get_pickup_locations_by_address( $address_1, $address_2 = '' ) {
+		$address_1 = strtolower( $address_1 );
+		$address_2 = strtolower( $address_2 );
+		$result    = false;
+
+		$provider_regexes = apply_filters(
+			'woocommerce_shiptastic_pickup_location_address_regexes',
+			array(
+				'dhl'         => array(
+					'code'            => '/(packstation|postfiliale) (?P<code>[0-9]+)/',
+					'customer_number' => '/(\s|^)(?P<customer_number>[0-9]{6,12})(?!\S)/',
+				),
+				'dhl_express' => array(
+					'code'            => '/(packstation|postfiliale) (?P<code>[0-9]+)/',
+					'customer_number' => '/(\s|^)(?P<customer_number>[0-9]{6,12})(?!\S)/',
+				),
+			)
+		);
+
+		foreach ( $provider_regexes as $potential_provider => $regexes ) {
+			$regexes = wp_parse_args(
+				$regexes,
+				array(
+					'code'            => '',
+					'customer_number' => '',
+				)
+			);
+
+			if ( ! empty( $regexes['code'] ) ) {
+				if ( preg_match( $regexes['code'], $address_1, $matches ) || preg_match( $regexes['code'], $address_2, $matches ) ) {
+					if ( ! is_array( $result ) ) {
+						$result = array();
+					}
+
+					$result[ $potential_provider ] = array(
+						'code'            => isset( $matches['code'] ) ? $matches['code'] : '',
+						'provider'        => $potential_provider,
+						'customer_number' => '',
+					);
+
+					if ( ! empty( $regexes['customer_number'] ) ) {
+						if ( preg_match( $regexes['customer_number'], $address_1, $customer_number_matches ) || preg_match( $regexes['customer_number'], $address_2, $customer_number_matches ) ) {
+							$result[ $potential_provider ]['customer_number'] = isset( $customer_number_matches['customer_number'] ) ? $customer_number_matches['customer_number'] : '';
+						}
+					}
+				}
+			}
+		}
+
+		return $result;
+	}
+
 	public static function get_pickup_delivery_cart_args() {
 		if ( ! wc()->cart ) {
 			return array(
