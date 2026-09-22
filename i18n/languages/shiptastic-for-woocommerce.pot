@@ -2,14 +2,14 @@
 # This file is distributed under the GPLv3.
 msgid ""
 msgstr ""
-"Project-Id-Version: Shiptastic for WooCommerce 5.1.2\n"
+"Project-Id-Version: Shiptastic for WooCommerce 5.1.5\n"
 "Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/shiptastic-for-woocommerce\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-08-10T10:11:51+00:00\n"
+"POT-Creation-Date: 2026-09-22T08:04:22+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 
@@ -1255,9 +1255,9 @@ msgstr ""
 
 #: includes/wc-stc-shipment-functions.php:1116
 #: src/PickupDelivery.php:333
-#: build/checkout-pickup-location-select.js:207
-#: build/checkout-pickup-location-select-style.js:193
-#: build/checkout-pickup-location-select.js:194
+#: build/checkout-pickup-location-select.js:208
+#: build/checkout-pickup-location-select-style.js:194
+#: build/checkout-pickup-location-select.js:195
 msgctxt "shipments"
 msgid "Postcode"
 msgstr ""
@@ -1304,9 +1304,9 @@ msgstr ""
 
 #: includes/wc-stc-shipment-functions.php:1193
 #: src/Labels/ReturnLabel.php:140
-#: src/Shipment.php:1675
-#: src/Shipment.php:1684
-#: src/Shipment.php:2020
+#: src/Shipment.php:1680
+#: src/Shipment.php:1689
+#: src/Shipment.php:2025
 #, php-format
 msgctxt "full name"
 msgid "%1$s %2$s"
@@ -2256,9 +2256,9 @@ msgid "Filter by order"
 msgstr ""
 
 #: src/Admin/Table.php:719
-#: build/checkout-pickup-location-select.js:197
-#: build/checkout-pickup-location-select-style.js:182
-#: build/checkout-pickup-location-select.js:183
+#: build/checkout-pickup-location-select.js:198
+#: build/checkout-pickup-location-select-style.js:183
+#: build/checkout-pickup-location-select.js:184
 msgctxt "shipments"
 msgid "Address"
 msgstr ""
@@ -3078,8 +3078,8 @@ msgid "Pickup location code"
 msgstr ""
 
 #: src/Api.php:372
-#: src/Blocks/Checkout.php:212
-#: src/Blocks/Checkout.php:238
+#: src/Blocks/Checkout.php:252
+#: src/Blocks/Checkout.php:278
 msgctxt "shipments"
 msgid "Pickup location customer number"
 msgstr ""
@@ -3100,28 +3100,33 @@ msgctxt "shipments"
 msgid "Order is fully shipped."
 msgstr ""
 
-#: src/Blocks/Checkout.php:105
+#: src/Blocks/Checkout.php:101
+msgctxt "shipments"
+msgid "You've entered a pickup location in your address that we don't support. Please check your address or, if available, select a pickup location from the shipping options."
+msgstr ""
+
+#: src/Blocks/Checkout.php:133
 #: src/PickupDelivery.php:711
 msgctxt "shipments"
 msgid "Sorry, your current pickup location is not supported."
 msgstr ""
 
-#: src/Blocks/Checkout.php:111
+#: src/Blocks/Checkout.php:139
 #: src/PickupDelivery.php:140
 #: src/PickupDelivery.php:717
 msgctxt "shipments"
 msgid "Sorry, your pickup location customer number is invalid."
 msgstr ""
 
-#: src/Blocks/Checkout.php:206
-#: src/Blocks/Checkout.php:231
+#: src/Blocks/Checkout.php:246
+#: src/Blocks/Checkout.php:271
 #: src/PickupDelivery.php:91
 #: src/PickupDelivery.php:426
 msgctxt "shipments"
 msgid "Pickup location"
 msgstr ""
 
-#: src/Blocks/Checkout.php:225
+#: src/Blocks/Checkout.php:265
 msgctxt "shipments"
 msgid "Whether pickup location delivery is available"
 msgstr ""
@@ -3717,9 +3722,9 @@ msgstr ""
 
 #: src/PickupDelivery.php:307
 #: src/PickupDelivery.php:462
-#: build/checkout-pickup-location-select.js:223
-#: build/checkout-pickup-location-select-style.js:217
-#: build/checkout-pickup-location-select.js:218
+#: build/checkout-pickup-location-select.js:224
+#: build/checkout-pickup-location-select-style.js:218
+#: build/checkout-pickup-location-select.js:219
 msgctxt "shipments"
 msgid "Choose a pickup location"
 msgstr ""
@@ -4603,10 +4608,16 @@ msgctxt "shipments"
 msgid "Encryption of type %s"
 msgstr ""
 
-#: src/Shipment.php:1195
+#: src/Shipment.php:1196
 #, php-format
 msgctxt "shipments-tracking-instruction"
 msgid "Shipping via %s."
+msgstr ""
+
+#: src/Shipment.php:1199
+#, php-format
+msgctxt "shipments-tracking-instruction"
+msgid "You may use %s to track your shipment."
 msgstr ""
 
 #: src/ShippingMethod/MethodHelper.php:398
@@ -5641,45 +5652,45 @@ msgctxt "shipments"
 msgid "Please select a valid option"
 msgstr ""
 
-#: build/checkout-pickup-location-select.js:91
-#: build/checkout-pickup-location-select-style.js:53
-#: build/checkout-pickup-location-select.js:54
+#: build/checkout-pickup-location-select.js:92
+#: build/checkout-pickup-location-select-style.js:54
+#: build/checkout-pickup-location-select.js:55
 msgctxt "shipments"
 msgid "Managed by&nbsp;<a href=\"#current-pickup-location\">pickup location</a>"
 msgstr ""
 
-#: build/checkout-pickup-location-select.js:144
-#: build/checkout-pickup-location-select-style.js:120
-#: build/checkout-pickup-location-select.js:121
+#: build/checkout-pickup-location-select.js:145
+#: build/checkout-pickup-location-select-style.js:121
+#: build/checkout-pickup-location-select.js:122
 #, js-format
 msgctxt "shipments"
 msgid "Currently shipping to: %s"
 msgstr ""
 
-#: build/checkout-pickup-location-select.js:187
-#: build/checkout-pickup-location-select-style.js:168
-#: build/checkout-pickup-location-select.js:169
+#: build/checkout-pickup-location-select.js:188
+#: build/checkout-pickup-location-select-style.js:169
+#: build/checkout-pickup-location-select.js:170
 msgctxt "shipments"
 msgid "Not at home? Choose a pickup location"
 msgstr ""
 
-#: build/checkout-pickup-location-select.js:232
-#: build/checkout-pickup-location-select-style.js:229
-#: build/checkout-pickup-location-select.js:230
+#: build/checkout-pickup-location-select.js:233
+#: build/checkout-pickup-location-select-style.js:230
+#: build/checkout-pickup-location-select.js:231
 msgctxt "shipments"
 msgid "Sorry, we did not find any pickup locations nearby."
 msgstr ""
 
-#: build/checkout-pickup-location-select.js:359
-#: build/checkout-pickup-location-select-style.js:406
-#: build/checkout-pickup-location-select.js:407
+#: build/checkout-pickup-location-select.js:361
+#: build/checkout-pickup-location-select-style.js:408
+#: build/checkout-pickup-location-select.js:409
 msgctxt "shipments"
 msgid "Please review your shipping address."
 msgstr ""
 
-#: build/checkout-pickup-location-select.js:440
-#: build/checkout-pickup-location-select-style.js:506
-#: build/checkout-pickup-location-select.js:507
+#: build/checkout-pickup-location-select.js:460
+#: build/checkout-pickup-location-select-style.js:532
+#: build/checkout-pickup-location-select.js:533
 msgctxt "shipments"
 msgid "Your pickup location chosen is not available any longer. Please review your shipping address."
 msgstr ""

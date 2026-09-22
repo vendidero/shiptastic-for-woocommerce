@@ -77,6 +77,7 @@ We recommend installing Shiptastic for WooCommerce through the WordPress Backend
 = 5.1.5 =
 * Improvement: Store block-based pickup location in customer session
 * Improvement: Append tracking id to tracking instruction, if it exists, for manually set providers
+* Improvement: Use a heuristic (DHL Packstation) to determine whether pickup location was entered in address instead (block-based checkout)
 
 = 5.1.4 =
 * Fix: Path check improvements
