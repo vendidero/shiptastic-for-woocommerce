@@ -1707,6 +1707,7 @@ class Order {
 				$items[ $item->get_id() ] = array(
 					'name'         => $item->get_name() . ( ! empty( $sku ) ? ' (' . esc_html( $sku ) . ')' : '' ),
 					'max_quantity' => $quantity_left,
+					'instance'     => $item,
 				);
 			}
 		}

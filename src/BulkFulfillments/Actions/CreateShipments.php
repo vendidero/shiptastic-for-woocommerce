@@ -2,6 +2,7 @@
 
 namespace Vendidero\Shiptastic\BulkFulfillments\Actions;
 
+use Vendidero\Shiptastic\BulkFulfillments\Scripts;
 use Vendidero\Shiptastic\Package;
 
 class CreateShipments extends \Vendidero\Shiptastic\BulkFulfillments\FulfillmentAction {
@@ -23,7 +24,7 @@ class CreateShipments extends \Vendidero\Shiptastic\BulkFulfillments\Fulfillment
 	}
 
 	public function render() {
-		wp_register_script_module(
+		Scripts::register_script_module(
 			'shiptastic/fulfillments/' . self::get_name(),
 			Package::get_assets_url( 'static/fulfillments/create-shipments.js' ),
 			array(
@@ -56,7 +57,7 @@ class CreateShipments extends \Vendidero\Shiptastic\BulkFulfillments\Fulfillment
 			)
 		);
 
-		wp_enqueue_script_module( 'shiptastic/fulfillments/' . self::get_name() );
+		Scripts::enqueue_script_module( 'shiptastic/fulfillments/' . self::get_name() );
 		?>
 		<div
 			data-wp-interactive="shiptastic/fulfillments/create_shipments"
@@ -67,22 +68,44 @@ class CreateShipments extends \Vendidero\Shiptastic\BulkFulfillments\Fulfillment
 					data-wp-each--item="state.itemsAvailableToShip"
 					data-wp-each-key="context.item.id"
 				>
-					<li
+					<div
 						data-wp-on--click="actions.toggleSelectItem"
 						data-wp-class--is-selected="state.isItemSelected"
+						draggable="true"
+						data-wp-on--dragstart="actions.onShipmentItemDrag"
 					>
-						<span data-wp-text="context.item.name"></span>
-						<input
-							type="number"
-							name="quantity"
-							data-wp-bind--value="context.item.quantity"
-							data-wp-on--click="actions.stopPropagation"
-							data-wp-on--input="actions.setItemQuantity"
-							min="1"
-							step="1"
-							data-wp-bind--max="context.item.maxQuantity"
-						/>
-					</li>
+						<div class="item-column item-img-column">
+							<img data-wp-bind--src="context.item.image" />
+						</div>
+						<div class="item-column item-details-column">
+							<h4 data-wp-text="context.item.name"></h4>
+							<div class="item-ids">
+								<span data-wp-text="context.item.globalUniqueId"></span>
+								<span data-wp-text="context.item.sku"></span>
+							</div>
+							<div class="item-attributes">
+								<template
+									data-wp-each--attribute="context.item.attributes"
+									data-wp-each-key="context.item.attribute.id"
+								>
+									<div class="attribute-label" data-wp-watch="callbacks.renderItemAttributeLabel"></div>
+									<div class="attribute-value" data-wp-watch="callbacks.renderItemAttributeValue"></div>
+								</template>
+							</div>
+						</div>
+						<div class="item-column item-qty-column">
+							<input
+								type="number"
+								name="quantity"
+								data-wp-bind--value="context.item.quantity"
+								data-wp-on--click="actions.stopPropagation"
+								data-wp-on--input="actions.setItemQuantity"
+								min="1"
+								step="1"
+								data-wp-bind--max="context.item.maxQuantity"
+							/>
+						</div>
+					</div>
 				</template>
 			</ul>
 
@@ -97,12 +120,20 @@ class CreateShipments extends \Vendidero\Shiptastic\BulkFulfillments\Fulfillment
 				data-wp-each--shipment="state.shipments"
 				data-wp-each-key="context.shipment.id"
 			>
-				<div>
+				<div
+					data-wp-on--dragover="actions.onShipmentItemDragOver"
+					data-wp-on--drop="actions.onShipmentItemDrop"
+				>
+					<h3>Shipment <span data-wp-text="context.shipment.currentShipmentNumber"></span>/<span data-wp-text="state.shipmentCount"></span></h3>
+
 					<template
 						data-wp-each--shipment_item="context.shipment.items"
 						data-wp-each-key="context.shipment_item.itemId"
 					>
-						<div>
+						<div
+							draggable="true"
+							data-wp-on--dragstart="actions.onShipmentItemDrag"
+						>
 							<span data-wp-text="context.shipment_item.name"></span>
 							<input
 								type="number"

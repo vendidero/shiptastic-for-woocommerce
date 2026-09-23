@@ -242,6 +242,22 @@ class ShipmentItem extends WC_Data {
 		return $this->get_prop( 'quantity', $context );
 	}
 
+	public function get_image_url() {
+		if ( $product = $this->get_product() ) {
+			return $product->get_image_url();
+		}
+
+		return '';
+	}
+
+	public function get_permalink() {
+		if ( $product = $this->get_product() ) {
+			return $product->get_permalink();
+		}
+
+		return '';
+	}
+
 	/**
 	 * Get weight.
 	 *

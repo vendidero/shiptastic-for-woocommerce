@@ -2,6 +2,7 @@
 
 namespace Vendidero\Shiptastic\BulkFulfillments\Actions;
 
+use Vendidero\Shiptastic\BulkFulfillments\Scripts;
 use Vendidero\Shiptastic\Package;
 
 class Pick extends \Vendidero\Shiptastic\BulkFulfillments\FulfillmentAction {
@@ -23,7 +24,7 @@ class Pick extends \Vendidero\Shiptastic\BulkFulfillments\FulfillmentAction {
 	}
 
 	public function render() {
-		wp_register_script_module(
+		Scripts::register_script_module(
 			'shiptastic/fulfillments/' . self::get_name(),
 			Package::get_assets_url( 'static/fulfillments/pick.js' ),
 			array(
@@ -40,7 +41,7 @@ class Pick extends \Vendidero\Shiptastic\BulkFulfillments\FulfillmentAction {
 			'shiptastic/fulfillments/' . self::get_name()
 		);
 
-		wp_enqueue_script_module( 'shiptastic/fulfillments/' . self::get_name() );
+		Scripts::enqueue_script_module( 'shiptastic/fulfillments/' . self::get_name() );
 		?>
 		<div
 			data-wp-interactive="shiptastic/fulfillments/pick"

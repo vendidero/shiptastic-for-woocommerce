@@ -298,6 +298,12 @@ class Product {
 		$this->product->update_meta_data( '_is_non_returnable', wc_bool_to_string( $is_non_returnable ) );
 	}
 
+	public function get_image_url( $size = 'full' ) {
+		$image_id = $this->product->get_image_id() ? $this->product->get_image_id() : 0;
+
+		return $image_id ? wp_get_attachment_image_url( $image_id, $size ) : '';
+	}
+
 	/**
 	 * Call child methods if the method does not exist.
 	 *

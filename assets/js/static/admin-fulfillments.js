@@ -23,7 +23,7 @@ const { state, actions, callbacks } = store( 'shiptastic/fulfillments', {
             }, 0 );
         },
 
-        get shipmentsCount() {
+        get shipmentCount() {
             return state.shipments.length;
         },
 
@@ -55,6 +55,7 @@ const { state, actions, callbacks } = store( 'shiptastic/fulfillments', {
                 );
             yield actions.prefetch( link.href );
         },
+
         prevOrder: withSyncEvent( function* ( event ) {
             event.preventDefault();
             const link = event.target.closest( 'a' );
@@ -65,6 +66,7 @@ const { state, actions, callbacks } = store( 'shiptastic/fulfillments', {
 
             yield actions.navigate( link.href, { force: true } );
         } ),
+
         nextOrder: withSyncEvent( function* ( event ) {
             event.preventDefault();
             const link = event.target.closest( 'a' );
@@ -74,6 +76,7 @@ const { state, actions, callbacks } = store( 'shiptastic/fulfillments', {
                 );
             yield actions.navigate( link.href, { force: true } );
         } ),
+
         goToAction: withSyncEvent( function* ( event ) {
             event.preventDefault();
             const link = event.target.closest( 'a' );
@@ -108,12 +111,80 @@ const { state, actions, callbacks } = store( 'shiptastic/fulfillments', {
             }
         },
 
+        getShipmentByItem( shipmentItem ) {
+            const items = state.shipments.filter( ( theShipment ) => {
+                return theShipment.items.filter( ( theShipmentItem ) => {
+                    if ( theShipmentItem.itemId === shipmentItem.itemId ) {
+                        return true;
+                    }
+
+                    return false;
+                } ).length > 0;
+            } );
+
+            if ( items.length > 0 ) {
+                return items[0];
+            }
+
+            return null;
+        },
+
+        getShipmentItemById( shipment, id ) {
+            const item = shipment.items.filter( ( theShipmentItem ) => {
+                if ( theShipmentItem.id === id ) {
+                    return true;
+                }
+
+                return false;
+            } );
+
+            if ( item.length > 0 ) {
+                return item[0];
+            }
+
+            return null;
+        },
+
+        addShipmentItem( shipment, shipmentItem ) {
+            const originalShipment = actions.getShipmentByItem( shipmentItem );
+
+            if ( originalShipment && originalShipment.id === shipment.id ) {
+                return;
+            }
+
+            const item = actions.getShipmentItemById( shipment, shipmentItem.id );
+
+            if ( originalShipment ) {
+                actions.deleteShipmentItem( originalShipment, shipmentItem );
+            }
+
+            if ( item ) {
+                const newQuantity = item.quantity + shipmentItem.quantity;
+
+                actions.setShipmentItemQuantity( shipment, item, newQuantity );
+            } else {
+                const newShipmentItem = { ...shipmentItem, ...{
+                    'itemId': 'new_item_' + shipmentItem.id + '_' + Date.now(),
+                } };
+
+                shipment.items.push( newShipmentItem );
+
+                actions.setShipmentItemQuantity( shipment, newShipmentItem, newShipmentItem.quantity );
+
+                shipment.weight += ( newShipmentItem.weight * newShipmentItem.quantity );
+                shipment.length = Math.max( shipment.length, newShipmentItem.length );
+                shipment.width = Math.max( shipment.width, newShipmentItem.width );
+                shipment.height = Math.max( shipment.height, newShipmentItem.height );
+            }
+        },
+
         createShipment( items ) {
             const shipment = {
                 'items': [],
                 'id': 'new_shipment_' + Date.now(),
                 'packagingId': 0,
                 'shippingProvider': '',
+                'currentShipmentNumber': state.shipments.length + 1,
                 'status': '',
                 'weight': 0.0,
                 'length': 0.0,
@@ -122,24 +193,7 @@ const { state, actions, callbacks } = store( 'shiptastic/fulfillments', {
             };
 
             items.map( ( item ) => {
-                const shipmentItem = { ...item, ...{
-                    'itemId': 'new_item_' + item.id + '_' + Date.now(),
-                } };
-
-                state.itemsAvailableToShip = state.itemsAvailableToShip.map( ( contextItem ) => {
-                    if ( contextItem.id === item.id ) {
-                        contextItem.maxQuantity -= item.quantity;
-                    }
-
-                    return contextItem;
-                } );
-
-                shipment.items.push( shipmentItem );
-
-                shipment.weight += ( item.weight * item.quantity );
-                shipment.length = Math.max( shipment.length, item.length );
-                shipment.width = Math.max( shipment.width, item.width );
-                shipment.height = Math.max( shipment.height, item.height );
+                actions.addShipmentItem( shipment, item );
             } );
 
             state.itemsAvailableToShip = state.itemsAvailableToShip.filter( ( contextItem ) => {
@@ -153,7 +207,9 @@ const { state, actions, callbacks } = store( 'shiptastic/fulfillments', {
             state.shipments.push( shipment );
         },
 
-        onUpdateShipmentItemQuantity( shipment, shipmentItem ) {
+        setShipmentItemQuantity( shipment, shipmentItem, quantity ) {
+            shipmentItem.quantity = quantity;
+
             const quantityLeft = shipmentItem.maxQuantity - shipmentItem.quantity;
 
             if ( shipmentItem.quantity <= 0 ) {
@@ -195,6 +251,10 @@ const { state, actions, callbacks } = store( 'shiptastic/fulfillments', {
         }
     },
     callbacks: {
+        shipmentHasItem( shipment, id ) {
+            return actions.getShipmentItemById( shipment, id );
+        },
+
         updateShipmentItems() {
             const { shipments } = getServerState();
             const shipmentItems = {};

@@ -19,18 +19,26 @@ class View {
 			return;
 		}
 
+		add_action(
+			'after_setup_theme',
+			function () {
+				if ( self::is_active() ) {
+					remove_action( 'after_setup_theme', array( wp_script_modules(), 'add_hooks' ) );
+				}
+			},
+			1
+		);
+
 		add_action( 'admin_menu', array( __CLASS__, 'admin_menus' ), 20 );
 		add_action( 'admin_init', array( __CLASS__, 'render' ), 20 );
 
-		// Load after base has registered scripts
-		add_action( 'admin_enqueue_scripts', array( __CLASS__, 'enqueue_scripts' ), 15 );
+		add_action( 'woocommerce_shiptastic_fulfillment_enqueue_scripts', array( __CLASS__, 'enqueue_scripts' ), 15 );
 	}
 
 	public static function enqueue_scripts() {
-		wp_enqueue_script( 'wp-api-fetch' );
-		wp_enqueue_script( 'wp-url' );
+		Scripts::enqueue_script( 'wp-api-fetch' );
 
-		wp_register_script_module(
+		Scripts::register_script_module(
 			'shiptastic/fulfillments',
 			Package::get_assets_url( 'static/admin-fulfillments.js' ),
 			array(
@@ -47,7 +55,7 @@ class View {
 			'shiptastic/fulfillments'
 		);
 
-		wp_enqueue_script_module( 'shiptastic/fulfillments' );
+		Scripts::enqueue_script_module( 'shiptastic/fulfillments' );
 	}
 
 	/**
@@ -68,6 +76,8 @@ class View {
 		if ( ! self::is_active() ) {
 			return;
 		}
+
+		Scripts::init();
 
 		$id          = isset( $_GET['id'] ) ? absint( $_GET['id'] ) : 0; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		$order_id    = isset( $_GET['order_id'] ) ? absint( $_GET['order_id'] ) : 0; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
@@ -113,35 +123,63 @@ class View {
 		$shipments      = array();
 
 		foreach ( $shipment_order->get_available_items_for_shipment() as $item_id => $item ) {
-			$order_item = $shipment_order->get_order()->get_item( $item_id, false );
-			$weight     = 0.0;
-			$width      = 0.0;
-			$length     = 0.0;
-			$height     = 0.0;
+			$weight           = 0.0;
+			$width            = 0.0;
+			$length           = 0.0;
+			$height           = 0.0;
+			$sku              = '';
+			$image            = '';
+			$global_unique_id = '';
+			$permalink        = '';
 
-			if ( $order_item && is_callable( array( $order_item, 'get_product' ) ) ) {
-				if ( $product = $shipment_order->get_order_item_product( $order_item ) ) {
-					$weight = $product->get_shipping_weight();
-					$length = $product->get_shipping_length();
-					$width  = $product->get_shipping_width();
-					$height = $product->get_shipping_height();
+			if ( $item['instance'] && is_callable( array( $item['instance'], 'get_product' ) ) ) {
+				if ( $product = $shipment_order->get_order_item_product( $item['instance'] ) ) {
+					$weight           = $product->get_shipping_weight();
+					$length           = $product->get_shipping_length();
+					$width            = $product->get_shipping_width();
+					$height           = $product->get_shipping_height();
+					$image            = $product->get_image_url();
+					$sku              = $product->get_sku();
+					$permalink        = $product->get_permalink();
+					$global_unique_id = $product->get_global_unique_id();
 				}
 			}
 
+			$name       = html_entity_decode( wc_clean( $item['instance']->get_name() ), ENT_QUOTES, get_bloginfo( 'charset' ) );
+			$attributes = array();
+
+			foreach ( $item['instance']->get_formatted_meta_data() as $meta_id => $meta ) {
+				$value = wp_kses_post( make_clickable( trim( $meta->value ) ) );
+				$label = wp_kses_post( $meta->display_key );
+
+				$attributes[] = array(
+					'id'    => $meta_id,
+					'value' => $value,
+					'label' => $label,
+				);
+			}
+
 			$items[] = array(
-				'name'        => $item['name'],
-				'maxQuantity' => $item['max_quantity'],
-				'quantity'    => $item['max_quantity'],
-				'weight'      => $weight,
-				'length'      => $length,
-				'width'       => $width,
-				'height'      => $height,
-				'id'          => $item_id,
+				'name'           => $name,
+				'sku'            => $sku,
+				'globalUniqueId' => $global_unique_id,
+				'attributes'     => $attributes,
+				'image'          => $image,
+				'permalink'      => $permalink,
+				'quantity'       => $item['max_quantity'],
+				'maxQuantity'    => $item['max_quantity'],
+				'id'             => $item_id,
+				'itemId'         => 0,
+				'weight'         => $weight,
+				'length'         => $length,
+				'width'          => $width,
+				'height'         => $height,
 			);
 		}
 
 		$shipments_item_count        = 0;
 		$shipments_unique_item_count = 0;
+		$shipment_count              = 0;
 
 		foreach ( $shipment_order->get_simple_shipments() as $shipment ) {
 			$shipment_items = array();
@@ -151,28 +189,34 @@ class View {
 				++$shipments_unique_item_count;
 
 				$shipment_items[] = array(
-					'name'        => $item->get_name(),
-					'quantity'    => $item->get_quantity(),
-					'maxQuantity' => $item->get_quantity(),
-					'id'          => $item->get_order_item_id(),
-					'itemId'      => $item->get_id(),
-					'weight'      => wc_get_weight( $item->get_weight(), Package::get_current_weight_unit(), $shipment->get_weight_unit() ),
-					'length'      => wc_get_dimension( $item->get_length(), Package::get_current_dimension_unit(), $shipment->get_dimension_unit() ),
-					'width'       => wc_get_dimension( $item->get_width(), Package::get_current_dimension_unit(), $shipment->get_dimension_unit() ),
-					'height'      => wc_get_dimension( $item->get_height(), Package::get_current_dimension_unit(), $shipment->get_dimension_unit() ),
+					'name'           => $item->get_name(),
+					'sku'            => $item->get_sku(),
+					'globalUniqueId' => $item->get_global_unique_id(),
+					'attributes'     => $item->get_attributes(),
+					'image'          => $item->get_image_url(),
+					'permalink'      => $item->get_permalink(),
+					'quantity'       => $item->get_quantity(),
+					'maxQuantity'    => $item->get_quantity(),
+					'id'             => $item->get_order_item_id(),
+					'itemId'         => $item->get_id(),
+					'weight'         => wc_get_weight( $item->get_weight(), Package::get_current_weight_unit(), $shipment->get_weight_unit() ),
+					'length'         => wc_get_dimension( $item->get_length(), Package::get_current_dimension_unit(), $shipment->get_dimension_unit() ),
+					'width'          => wc_get_dimension( $item->get_width(), Package::get_current_dimension_unit(), $shipment->get_dimension_unit() ),
+					'height'         => wc_get_dimension( $item->get_height(), Package::get_current_dimension_unit(), $shipment->get_dimension_unit() ),
 				);
 			}
 
 			$shipments[] = array(
-				'id'               => $shipment->get_id(),
-				'status'           => $shipment->get_status(),
-				'weight'           => wc_get_weight( $shipment->get_weight(), Package::get_current_weight_unit(), $shipment->get_weight_unit() ),
-				'length'           => wc_get_dimension( $shipment->get_length(), Package::get_current_dimension_unit(), $shipment->get_dimension_unit() ),
-				'width'            => wc_get_dimension( $shipment->get_width(), Package::get_current_dimension_unit(), $shipment->get_dimension_unit() ),
-				'height'           => wc_get_dimension( $shipment->get_height(), Package::get_current_dimension_unit(), $shipment->get_dimension_unit() ),
-				'shippingProvider' => $shipment->get_shipping_provider(),
-				'packagingId'      => $shipment->get_packaging_id(),
-				'items'            => $shipment_items,
+				'id'                    => $shipment->get_id(),
+				'status'                => $shipment->get_status(),
+				'weight'                => wc_get_weight( $shipment->get_weight(), Package::get_current_weight_unit(), $shipment->get_weight_unit() ),
+				'length'                => wc_get_dimension( $shipment->get_length(), Package::get_current_dimension_unit(), $shipment->get_dimension_unit() ),
+				'width'                 => wc_get_dimension( $shipment->get_width(), Package::get_current_dimension_unit(), $shipment->get_dimension_unit() ),
+				'height'                => wc_get_dimension( $shipment->get_height(), Package::get_current_dimension_unit(), $shipment->get_dimension_unit() ),
+				'shippingProvider'      => $shipment->get_shipping_provider(),
+				'packagingId'           => $shipment->get_packaging_id(),
+				'items'                 => $shipment_items,
+				'currentShipmentNumber' => ++$shipment_count,
 			);
 		}
 
@@ -192,6 +236,7 @@ class View {
 				'orderUniqueItemCount'     => $shipment_order->get_shippable_unique_item_count(),
 				'shipmentsItemCount'       => $shipments_item_count,
 				'shipmentsUniqueItemCount' => $shipments_unique_item_count,
+				'shipmentCount'            => $shipment_count,
 				'shipments'                => $shipments,
 				'itemsAvailableToShip'     => $items,
 			)
@@ -203,16 +248,16 @@ class View {
 				<meta charset="<?php bloginfo( 'charset' ); ?>">
 				<meta name="viewport" content="width=device-width, initial-scale=1">
 				<title><?php wp_title(); ?></title>
-				<?php do_action( 'admin_enqueue_scripts' ); ?>
-				<?php do_action( 'admin_print_styles' ); ?>
-				<?php do_action( 'admin_print_scripts' ); ?>
-				<?php do_action( 'admin_head' ); ?>
+				<?php do_action( 'woocommerce_shiptastic_fulfillment_enqueue_scripts' ); ?>
+				<?php do_action( 'woocommerce_shiptastic_fulfillment_print_styles' ); ?>
+				<?php do_action( 'woocommerce_shiptastic_fulfillment_print_scripts' ); ?>
+				<?php do_action( 'woocommerce_shiptastic_fulfillment_head' ); ?>
 			</head>
 			<body <?php body_class(); ?>>
 				<?php echo wp_interactivity_process_directives( self::get_html( $fulfillment ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
 
-				<?php do_action( 'admin_footer', '' ); ?>
-				<?php do_action( 'admin_print_footer_scripts' ); ?>
+				<?php do_action( 'woocommerce_shiptastic_fulfillment_footer', '' ); ?>
+				<?php do_action( 'woocommerce_shiptastic_fulfillment_print_footer_scripts' ); ?>
 			</body>
 		</html>
 		<?php
