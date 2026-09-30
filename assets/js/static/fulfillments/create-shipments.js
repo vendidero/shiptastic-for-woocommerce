@@ -29,6 +29,12 @@ const { state, actions } = store( 'shiptastic/fulfillments/create_shipments', {
         get shipmentCount() {
             return mainStore.state.shipmentCount;
         },
+
+        get currentShipmentNumber() {
+            const context = getContext();
+
+            return mainStore.callbacks.getCurrentShipmentNumber( context.shipment );
+        },
     },
     actions: {
         createShipment() {
@@ -66,10 +72,19 @@ const { state, actions } = store( 'shiptastic/fulfillments/create_shipments', {
             const context = getContext();
             const quantity = ( parseInt( event.target.value ) || 0 );
 
-            console.log(event);
-            console.log(quantity);
-
             mainStore.actions.setShipmentItemQuantity( context.shipment, context.shipment_item, quantity );
+        },
+
+        deleteShipment() {
+            const context = getContext();
+
+            mainStore.actions.deleteShipment( context.shipment );
+        },
+
+        deleteShipmentItem() {
+            const context = getContext();
+
+            mainStore.actions.deleteShipmentItem( context.shipment, context.shipment_item );
         },
 
         onShipmentItemDrag( event ) {

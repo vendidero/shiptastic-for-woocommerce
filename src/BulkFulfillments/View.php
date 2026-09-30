@@ -118,9 +118,10 @@ class View {
 			)
 		);
 
-		$shipment_order = $fulfillment->get_current_order()->get_shipment_order();
-		$items          = array();
-		$shipments      = array();
+		$shipment_order  = $fulfillment->get_current_order()->get_shipment_order();
+		$items           = array();
+		$shipments       = array();
+		$latest_modified = null;
 
 		foreach ( $shipment_order->get_available_items_for_shipment() as $item_id => $item ) {
 			$weight           = 0.0;
@@ -182,7 +183,14 @@ class View {
 		$shipment_count              = 0;
 
 		foreach ( $shipment_order->get_simple_shipments() as $shipment ) {
-			$shipment_items = array();
+			$shipment_items       = array();
+			$shipment_last_edited = $shipment->get_date_modified() ? $shipment->get_date_modified()->getTimestamp() : $shipment->get_date_created()->getTimestamp();
+
+			if ( is_null( $latest_modified ) ) {
+				$latest_modified = $shipment_last_edited;
+			} elseif ( $shipment_last_edited > $latest_modified ) {
+				$latest_modified = $shipment_last_edited;
+			}
 
 			foreach ( $shipment->get_items() as $item_id => $item ) {
 				$shipments_item_count += $item->get_quantity();
@@ -207,16 +215,15 @@ class View {
 			}
 
 			$shipments[] = array(
-				'id'                    => $shipment->get_id(),
-				'status'                => $shipment->get_status(),
-				'weight'                => wc_get_weight( $shipment->get_weight(), Package::get_current_weight_unit(), $shipment->get_weight_unit() ),
-				'length'                => wc_get_dimension( $shipment->get_length(), Package::get_current_dimension_unit(), $shipment->get_dimension_unit() ),
-				'width'                 => wc_get_dimension( $shipment->get_width(), Package::get_current_dimension_unit(), $shipment->get_dimension_unit() ),
-				'height'                => wc_get_dimension( $shipment->get_height(), Package::get_current_dimension_unit(), $shipment->get_dimension_unit() ),
-				'shippingProvider'      => $shipment->get_shipping_provider(),
-				'packagingId'           => $shipment->get_packaging_id(),
-				'items'                 => $shipment_items,
-				'currentShipmentNumber' => ++$shipment_count,
+				'id'               => $shipment->get_id(),
+				'status'           => $shipment->get_status(),
+				'weight'           => wc_get_weight( $shipment->get_weight(), Package::get_current_weight_unit(), $shipment->get_weight_unit() ),
+				'length'           => wc_get_dimension( $shipment->get_length(), Package::get_current_dimension_unit(), $shipment->get_dimension_unit() ),
+				'width'            => wc_get_dimension( $shipment->get_width(), Package::get_current_dimension_unit(), $shipment->get_dimension_unit() ),
+				'height'           => wc_get_dimension( $shipment->get_height(), Package::get_current_dimension_unit(), $shipment->get_dimension_unit() ),
+				'shippingProvider' => $shipment->get_shipping_provider(),
+				'packagingId'      => $shipment->get_packaging_id(),
+				'items'            => $shipment_items,
 			);
 		}
 
@@ -239,6 +246,7 @@ class View {
 				'shipmentCount'            => $shipment_count,
 				'shipments'                => $shipments,
 				'itemsAvailableToShip'     => $items,
+				'shipmentsSavedAt'         => $latest_modified,
 			)
 		);
 		ob_start();
@@ -280,7 +288,6 @@ class View {
 		>
 			<header class="fulfillment-header">
 				<h1>Order <span data-wp-text="state.orderNumber"></span></h1>
-
 				<span>Currently shipping <span data-wp-text="state.shipmentsItemCount"></span>/<span data-wp-text="state.orderItemCount"></span> items (<span data-wp-text="state.shipmentsUniqueItemCount"></span>/<span data-wp-text="state.orderUniqueItemCount"></span> unique)</span>
 
 				<nav class="fulfillment-order-nav">

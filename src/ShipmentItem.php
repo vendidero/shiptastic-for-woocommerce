@@ -244,7 +244,9 @@ class ShipmentItem extends WC_Data {
 
 	public function get_image_url() {
 		if ( $product = $this->get_product() ) {
-			return $product->get_image_url();
+			$stc_product = wc_shiptastic_get_product( $product );
+
+			return $stc_product->get_image_url();
 		}
 
 		return '';
@@ -843,7 +845,7 @@ class ShipmentItem extends WC_Data {
 	 * @param $attributes
 	 */
 	public function set_attributes( $attributes ) {
-		$this->set_prop( 'attributes', (array) $attributes );
+		$this->set_prop( 'attributes', array_filter( (array) $attributes ) );
 	}
 
 	/*

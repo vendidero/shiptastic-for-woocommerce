@@ -124,7 +124,8 @@ class CreateShipments extends \Vendidero\Shiptastic\BulkFulfillments\Fulfillment
 					data-wp-on--dragover="actions.onShipmentItemDragOver"
 					data-wp-on--drop="actions.onShipmentItemDrop"
 				>
-					<h3>Shipment <span data-wp-text="context.shipment.currentShipmentNumber"></span>/<span data-wp-text="state.shipmentCount"></span></h3>
+					<h3>Shipment <span data-wp-text="state.currentShipmentNumber"></span>/<span data-wp-text="state.shipmentCount"></span></h3>
+					<a data-wp-on--click="actions.deleteShipment">Delete shipment</a>
 
 					<template
 						data-wp-each--shipment_item="context.shipment.items"
@@ -145,6 +146,7 @@ class CreateShipments extends \Vendidero\Shiptastic\BulkFulfillments\Fulfillment
 								step="1"
 								data-wp-bind--max="context.shipment_item.maxQuantity"
 							/>
+							<a data-wp-on--click="actions.deleteShipmentItem">Delete item</a>
 						</div>
 					</template>
 				</div>

@@ -87,9 +87,58 @@ const { state, actions, callbacks } = store( 'shiptastic/fulfillments', {
             yield actions.navigate( link.href );
         } ),
 
+        setLocalState( key, value ) {
+            const newPayload = {
+                [key]: {
+                    'dateModified': Math.round( Date.now() / 1000 ),
+                    'value': value
+                }
+            };
+
+            const payload = { ...actions.getCurrentLocalState(), ...newPayload };
+
+            console.log(payload);
+
+            localStorage.setItem( actions.getLocalStateKey(), JSON.stringify( payload ) );
+        },
+
+        getCurrentLocalState() {
+            const payloadRaw = localStorage.getItem( actions.getLocalStateKey() );
+
+            if ( payloadRaw ) {
+                return JSON.parse( payloadRaw );
+            }
+
+            return {};
+        },
+
+        getLocalStateKey() {
+            return 'wc_stc_bulk_fulfillments_' + state.fulfillmentId + '_order_' + state.orderId;
+        },
+
+        getLocalState( key ) {
+            const payloadRaw = actions.getCurrentLocalState();
+
+            if ( payloadRaw.hasOwnProperty( key ) ) {
+                return payloadRaw[ key ];
+            }
+
+            return null;
+        },
+
+        getLocalStateLastUpdated( key ) {
+            return actions.getLocalState( key, 'dateModified' );
+        },
+
         deleteShipment( shipment ) {
             state.shipments = state.shipments.filter( ( theShipment ) => {
                 if ( theShipment.id === shipment.id ) {
+                    shipment.items = shipment.items.filter( ( theShipmentItem ) => {
+                        actions.setShipmentItemQuantity( theShipment, theShipmentItem, 0 );
+
+                        return true;
+                    } );
+
                     return false;
                 }
 
@@ -100,6 +149,10 @@ const { state, actions, callbacks } = store( 'shiptastic/fulfillments', {
         deleteShipmentItem( shipment, shipmentItem ) {
             shipment.items = shipment.items.filter( ( theShipmentItem ) => {
                 if ( theShipmentItem.itemId === shipmentItem.itemId ) {
+                    if ( theShipmentItem.quantity > 0 ) {
+                        actions.setShipmentItemQuantity( shipment, theShipmentItem, 0 );
+                    }
+
                     return false;
                 }
 
@@ -153,21 +206,25 @@ const { state, actions, callbacks } = store( 'shiptastic/fulfillments', {
             }
 
             const item = actions.getShipmentItemById( shipment, shipmentItem.id );
+            const originalShipmentItem = { ...shipmentItem }; // Clone before potential deletion
 
             if ( originalShipment ) {
                 actions.deleteShipmentItem( originalShipment, shipmentItem );
             }
 
             if ( item ) {
-                const newQuantity = item.quantity + shipmentItem.quantity;
+                const newQuantity = item.quantity + originalShipmentItem.quantity;
 
                 actions.setShipmentItemQuantity( shipment, item, newQuantity );
             } else {
-                const newShipmentItem = { ...shipmentItem, ...{
-                    'itemId': 'new_item_' + shipmentItem.id + '_' + Date.now(),
+                const newShipmentItem = { ...originalShipmentItem, ...{
+                    'itemId': 'new_item_' + originalShipmentItem.id + '_' + Date.now(),
                 } };
 
-                shipment.items.push( newShipmentItem );
+                shipment.items = [
+                    ...shipment.items,
+                    newShipmentItem
+                ]
 
                 actions.setShipmentItemQuantity( shipment, newShipmentItem, newShipmentItem.quantity );
 
@@ -204,7 +261,10 @@ const { state, actions, callbacks } = store( 'shiptastic/fulfillments', {
                 return true;
             } );
 
-            state.shipments.push( shipment );
+            state.shipments = [
+                ...state.shipments,
+                shipment
+            ];
         },
 
         setShipmentItemQuantity( shipment, shipmentItem, quantity ) {
@@ -230,7 +290,10 @@ const { state, actions, callbacks } = store( 'shiptastic/fulfillments', {
                 } );
 
                 if ( ! exists ) {
-                    state.itemsAvailableToShip.push( {...shipmentItem, ...{ 'itemId': 0, 'maxQuantity': quantityLeft, 'quantity': quantityLeft}} )
+                    state.itemsAvailableToShip = [
+                        ...state.itemsAvailableToShip,
+                        {...shipmentItem, ...{ 'itemId': 0, 'maxQuantity': quantityLeft, 'quantity': quantityLeft}}
+                    ]
                 }
             } else {
                 state.itemsAvailableToShip = state.itemsAvailableToShip.filter( ( contextItem ) => {
@@ -242,7 +305,6 @@ const { state, actions, callbacks } = store( 'shiptastic/fulfillments', {
                 } );
             }
         },
-
         getCurrentActionData() {
             return {};
         },
@@ -251,6 +313,20 @@ const { state, actions, callbacks } = store( 'shiptastic/fulfillments', {
         }
     },
     callbacks: {
+        getCurrentShipmentNumber( shipment ) {
+            let count = 0;
+
+            for ( const theShipment of state.shipments ) {
+                count++;
+
+                if ( shipment.id === theShipment.id ) {
+                    break;
+                }
+            }
+
+            return count;
+        },
+
         shipmentHasItem( shipment, id ) {
             return actions.getShipmentItemById( shipment, id );
         },
@@ -258,8 +334,6 @@ const { state, actions, callbacks } = store( 'shiptastic/fulfillments', {
         updateShipmentItems() {
             const { shipments } = getServerState();
             const shipmentItems = {};
-
-            console.log(shipments);
 
             for ( const shipment of shipments.shipments ) {
                 for ( const item of shipment.items ) {
@@ -305,6 +379,8 @@ const { state, actions, callbacks } = store( 'shiptastic/fulfillments', {
         onUpdateState() {
             const serverState = getServerState();
 
+            console.log('update fulfillment state');
+
             /**
              * Override all state.
              */
@@ -323,7 +399,26 @@ const { state, actions, callbacks } = store( 'shiptastic/fulfillments', {
             if ( parseInt( state.shipmentId ) !== parseInt( serverState.shipmentId ) ) {
                 state.shipmentId = parseInt( serverState.shipmentId );
             }
+
+            const curLocalShipments = actions.getLocalState( 'shipments' );
+            const curLocalItemsAvailableToShip = actions.getLocalState( 'itemsAvailableToShip' );
+
+            if ( curLocalShipments && curLocalItemsAvailableToShip && curLocalShipments.dateModified > state.shipmentsSavedAt ) {
+                state.shipments = curLocalShipments.value;
+                state.itemsAvailableToShip = curLocalItemsAvailableToShip.value;
+            }
         },
+    }
+} );
+
+watch( () => {
+    const serverState = getServerState();
+    const shipments = state.shipments;
+    const itemsAvailableToShip = state.itemsAvailableToShip;
+
+    if ( undefined !== serverState.shipments ) {
+        actions.setLocalState( 'shipments', shipments );
+        actions.setLocalState( 'itemsAvailableToShip', itemsAvailableToShip );
     }
 } );
 
