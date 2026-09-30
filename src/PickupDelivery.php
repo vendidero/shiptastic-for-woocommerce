@@ -828,14 +828,14 @@ class PickupDelivery {
 		return $excluded_gateways;
 	}
 
-    /**
-     * This function tries to detect a pickup location (based on heuristics) within an address.
-     *
-     * @param $address_1
-     * @param $address_2
-     *
-     * @return array|false
-     */
+	/**
+	 * This function tries to detect a pickup location (based on heuristics) within an address.
+	 *
+	 * @param $address_1
+	 * @param $address_2
+	 *
+	 * @return array|false
+	 */
 	public static function get_pickup_locations_by_address( $address_1, $address_2 = '' ) {
 		$address_1 = strtolower( $address_1 );
 		$address_2 = strtolower( $address_2 );

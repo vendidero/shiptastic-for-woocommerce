@@ -9,6 +9,7 @@ namespace Vendidero\Shiptastic;
 
 use DVDoug\BoxPacker\ItemList;
 use Vendidero\Shiptastic\Caches\Helper;
+use Vendidero\Shiptastic\Interfaces\Attachment;
 use Vendidero\Shiptastic\Interfaces\ShipmentLabel;
 use Vendidero\Shiptastic\Interfaces\ShipmentReturnLabel;
 use Vendidero\Shiptastic\Labels\Label;
@@ -74,7 +75,7 @@ abstract class Shipment extends WC_Data {
 	protected $items = null;
 
 	/**
-	 * @var null|ShipmentAttachment[]
+	 * @var null|Attachment[]
 	 */
 	protected $attachments = null;
 
@@ -88,7 +89,7 @@ abstract class Shipment extends WC_Data {
 	/**
 	 * List of items to be deleted on save.
 	 *
-	 * @var ShipmentAttachment[]
+	 * @var Attachment[]
 	 */
 	protected $attachments_to_delete = array();
 
@@ -2512,7 +2513,7 @@ abstract class Shipment extends WC_Data {
 	public function set_packing_slip_path( $path ) {
 		$attachment = $this->get_attachment( 'packing_slip' );
 
-		if ( ! $attachment || ! is_a( $attachment, '\Vendidero\Shiptastic\ShipmentAttachment' ) ) {
+		if ( ! $attachment || ! is_a( $attachment, '\Vendidero\Shiptastic\Interfaces\Attachment' ) ) {
 			$attachment = wc_stc_create_shipment_attachment( 'packing_slip', true );
 			$this->add_attachment( $attachment );
 		}
@@ -2528,7 +2529,7 @@ abstract class Shipment extends WC_Data {
 	public function set_commercial_invoice_path( $path ) {
 		$attachment = $this->get_attachment( 'commercial_invoice' );
 
-		if ( ! $attachment || ! is_a( $attachment, '\Vendidero\Shiptastic\ShipmentAttachment' ) ) {
+		if ( ! $attachment || ! is_a( $attachment, '\Vendidero\Shiptastic\Interfaces\Attachment' ) ) {
 			$attachment = wc_stc_create_shipment_attachment( 'commercial_invoice', true );
 			$this->add_attachment( $attachment );
 		}
@@ -2790,7 +2791,7 @@ abstract class Shipment extends WC_Data {
 	/**
 	 * Return an array of attachments within this document.
 	 *
-	 * @return ShipmentAttachment[]
+	 * @return Attachment[]
 	 */
 	public function get_attachments( $types = '' ) {
 		$supported_types = array_keys( $this->get_supported_attachment_types() );
@@ -2822,7 +2823,7 @@ abstract class Shipment extends WC_Data {
 	 * Adds a shipment attachment to this shipment. The shipment attachment will not persist until save.
 	 *
 	 * @since 3.0.0
-	 * @param ShipmentAttachment $attachment Shipment attachment object.
+	 * @param Attachment $attachment Shipment attachment object.
 	 *
 	 * @return false|void
 	 */
@@ -2854,7 +2855,7 @@ abstract class Shipment extends WC_Data {
 	 *
 	 * @param string $type Attachment type.
 	 *
-	 * @return ShipmentAttachment|false
+	 * @return Attachment|false
 	 */
 	public function get_attachment( $type ) {
 		$attachments = $this->get_attachments( $type );
