@@ -9,6 +9,7 @@
 namespace Vendidero\Shiptastic\BulkFulfillments;
 
 use Vendidero\Shiptastic\Package;
+use Vendidero\Shiptastic\Packaging\Helper;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -38,10 +39,18 @@ class View {
 	public static function enqueue_scripts() {
 		Scripts::enqueue_script( 'wp-api-fetch' );
 
+        Scripts::register_script_module(
+            'binpackingjs',
+            Package::get_assets_url( 'static/binpackingjs/index.js' ),
+            array(),
+            Package::get_version()
+        );
+
 		Scripts::register_script_module(
 			'shiptastic/fulfillments',
 			Package::get_assets_url( 'static/admin-fulfillments.js' ),
 			array(
+                'binpackingjs',
 				'@wordpress/interactivity',
 				array(
 					'id'     => '@wordpress/interactivity-router',
@@ -69,6 +78,230 @@ class View {
 		return ( isset( $_GET['page'] ) && 'wc-shiptastic-fulfillment' === wc_clean( wp_unslash( $_GET['page'] ) ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 	}
 
+    /**
+     * @param BulkFulfillment $fulfillment
+     *
+     * @return string
+     */
+    public static function get_fulfillment_html( $fulfillment ) {
+        ob_start();
+        Scripts::init();
+
+        set_current_screen( 'wc-shiptastic-fulfillment' );
+
+        $next_order = $fulfillment->get_next_order();
+        $prev_order = $fulfillment->get_prev_order();
+
+        $locale        = localeconv();
+        $decimal_point = isset( $locale['decimal_point'] ) ? $locale['decimal_point'] : '.';
+        $decimal       = ( ! empty( wc_get_price_decimal_separator() ) ) ? wc_get_price_decimal_separator() : $decimal_point;
+        $packaging_list = array();
+
+        foreach( Helper::get_all_packaging() as $packaging ) {
+            $packaging_list[] = array(
+                'id'   => $packaging->get_id(),
+                'title' => $packaging->get_title(),
+                'weightUnit' => wc_stc_get_packaging_weight_unit(),
+                'weight' => (float) $packaging->get_weight(),
+                'maxWeight' => (float) $packaging->get_max_content_weight(),
+                'dimensionUnit' => wc_stc_get_packaging_dimension_unit(),
+                'length' => (float) $packaging->get_length(),
+                'width' => (float) $packaging->get_width(),
+                'height' => (float) $packaging->get_height(),
+                'innerLength' => (float) $packaging->get_inner_length(),
+                'innerWidth' => (float) $packaging->get_inner_width(),
+                'innerHeight' => (float) $packaging->get_inner_height(),
+                'availableShippingProvider' => $packaging->get_available_shipping_provider(),
+            );
+        }
+
+        wp_interactivity_config(
+            'shiptastic/fulfillments',
+            array(
+                'baseUrl'              => $fulfillment->get_url(),
+                'ajaxUrl'              => admin_url( 'admin-ajax.php' ),
+                'shipmentsEndpointUrl' => get_rest_url( null, 'my-plugin/v1/' ),
+                'saveNonce'            => wp_create_nonce( 'save-bulk-fulfillment' ),
+                'translations'         => array(),
+                'decimalPoint'         => $decimal,
+                'numberOfDecimals'     => 3,
+                'weightUnit'           => get_option( 'woocommerce_weight_unit' ),
+                'dimensionUnit'        => get_option( 'woocommerce_dimension_unit' ),
+                'packagingOptions'     => $packaging_list,
+            )
+        );
+
+        $shipment_order  = $fulfillment->get_current_order()->get_shipment_order();
+        $items           = array();
+        $shipments       = array();
+        $latest_modified = null;
+
+        foreach ( $shipment_order->get_shippable_items() as $item ) {
+            $weight           = 0.0;
+            $width            = 0.0;
+            $length           = 0.0;
+            $height           = 0.0;
+            $sku              = '';
+            $image            = '';
+            $global_unique_id = '';
+            $permalink        = '';
+            $quantity         = $shipment_order->get_shippable_item_quantity( $item );
+
+            if ( $quantity <= 0 ) {
+                continue;
+            }
+
+            if ( is_callable( array( $item, 'get_product' ) ) ) {
+                if ( $product = $shipment_order->get_order_item_product( $item ) ) {
+                    $weight           = $product->get_shipping_weight();
+                    $length           = $product->get_shipping_length();
+                    $width            = $product->get_shipping_width();
+                    $height           = $product->get_shipping_height();
+                    $image            = $product->get_image_url();
+                    $sku              = $product->get_sku();
+                    $permalink        = $product->get_permalink();
+                    $global_unique_id = $product->get_global_unique_id();
+                }
+            }
+
+            $name       = html_entity_decode( wc_clean( $item->get_name() ), ENT_QUOTES, get_bloginfo( 'charset' ) );
+            $attributes = array();
+
+            foreach ( $item->get_formatted_meta_data() as $meta_id => $meta ) {
+                $value = wp_kses_post( make_clickable( trim( $meta->value ) ) );
+                $label = wp_kses_post( $meta->display_key );
+
+                $attributes[] = array(
+                    'id'    => $meta_id,
+                    'value' => $value,
+                    'label' => $label,
+                );
+            }
+
+            $items[] = array(
+                'name'           => $name,
+                'sku'            => $sku,
+                'globalUniqueId' => $global_unique_id,
+                'attributes'     => $attributes,
+                'image'          => $image,
+                'permalink'      => $permalink,
+                'quantity'       => $quantity,
+                'maxQuantity'    => $quantity,
+                'id'             => $item->get_id(),
+                'itemId'         => 0,
+                'weight'         => $weight,
+                'length'         => $length,
+                'width'          => $width,
+                'height'         => $height,
+            );
+        }
+
+        $shipments_item_count        = 0;
+        $shipments_unique_item_count = 0;
+        $shipment_count              = 0;
+
+        foreach ( $shipment_order->get_simple_shipments() as $shipment ) {
+            $shipment_items       = array();
+            $shipment_last_edited = $shipment->get_date_modified() ? $shipment->get_date_modified()->getTimestamp() : $shipment->get_date_created()->getTimestamp();
+
+            if ( is_null( $latest_modified ) ) {
+                $latest_modified = $shipment_last_edited;
+            } elseif ( $shipment_last_edited > $latest_modified ) {
+                $latest_modified = $shipment_last_edited;
+            }
+
+            foreach ( $shipment->get_items() as $item_id => $item ) {
+                $shipments_item_count += $item->get_quantity();
+                ++$shipments_unique_item_count;
+
+                $shipment_items[] = array(
+                    'name'           => $item->get_name(),
+                    'sku'            => $item->get_sku(),
+                    'globalUniqueId' => $item->get_global_unique_id(),
+                    'attributes'     => $item->get_attributes(),
+                    'image'          => $item->get_image_url(),
+                    'permalink'      => $item->get_permalink(),
+                    'quantity'       => $item->get_quantity(),
+                    'maxQuantity'    => $item->get_quantity(),
+                    'id'             => $item->get_order_item_id(),
+                    'itemId'         => $item->get_id(),
+                    'weight'         => wc_get_weight( $item->get_weight(), Package::get_current_weight_unit(), $shipment->get_weight_unit() ),
+                    'length'         => wc_get_dimension( $item->get_length(), Package::get_current_dimension_unit(), $shipment->get_dimension_unit() ),
+                    'width'          => wc_get_dimension( $item->get_width(), Package::get_current_dimension_unit(), $shipment->get_dimension_unit() ),
+                    'height'         => wc_get_dimension( $item->get_height(), Package::get_current_dimension_unit(), $shipment->get_dimension_unit() ),
+                );
+            }
+
+            $weight = wc_get_weight( $shipment->get_weight(), Package::get_current_weight_unit(), $shipment->get_weight_unit() );
+            $length = wc_get_dimension( $shipment->get_length(), Package::get_current_dimension_unit(), $shipment->get_dimension_unit() );
+            $width  = wc_get_dimension( $shipment->get_width(), Package::get_current_dimension_unit(), $shipment->get_dimension_unit() );
+            $height = wc_get_dimension( $shipment->get_height(), Package::get_current_dimension_unit(), $shipment->get_dimension_unit() );
+
+            $shipments[] = array(
+                'id'               => $shipment->get_id(),
+                'status'           => $shipment->get_status(),
+                'weightUnit'       => $shipment->get_weight_unit(),
+                'editable'         => $shipment->is_editable(),
+                'weight'           => $weight,
+                'dimensionUnit'    => $shipment->get_dimension_unit(),
+                'length'           => $length,
+                'width'            => $width,
+                'height'           => $height,
+                'shippingProvider' => $shipment->get_shipping_provider(),
+                'packagingId'      => $shipment->get_packaging_id(),
+                'items'            => $shipment_items,
+            );
+        }
+
+        // $latest_modified = strtotime( 'now' );
+
+        wp_interactivity_state(
+            'shiptastic/fulfillments',
+            array(
+                'fulfillmentId'            => $fulfillment->get_id(),
+                'orderId'                  => $fulfillment->get_current_order_id(),
+                'orderNumber'              => $fulfillment->get_current_order()->get_order_number(),
+                'currentAction'            => $fulfillment->get_current_order()->get_current_action()::get_name(),
+                'currentActionId'          => $fulfillment->get_current_order()->get_current_action_id(),
+                'nextOrderId'              => $next_order ? $next_order->get_id() : 0,
+                'prevOrderId'              => $prev_order ? $prev_order->get_id() : 0,
+                'nextOrderNumber'          => $next_order ? $next_order->get_order_number() : 0,
+                'prevOrderNumber'          => $prev_order ? $prev_order->get_order_number() : 0,
+                'orderItemCount'           => $shipment_order->get_shippable_item_count(),
+                'orderUniqueItemCount'     => $shipment_order->get_shippable_unique_item_count(),
+                'shipmentsItemCount'       => $shipments_item_count,
+                'shipmentsUniqueItemCount' => $shipments_unique_item_count,
+                'shipmentCount'            => $shipment_count,
+                'shipments'                => $shipments,
+                'allItemsAvailableToShip'  => $items,
+                'shipmentsSavedAt'         => $latest_modified,
+            )
+        );
+        ob_start();
+        ?>
+        <html <?php language_attributes(); ?>>
+        <head>
+            <meta charset="<?php bloginfo( 'charset' ); ?>">
+            <meta name="viewport" content="width=device-width, initial-scale=1">
+            <title><?php wp_title(); ?></title>
+            <?php do_action( 'woocommerce_shiptastic_fulfillment_enqueue_scripts' ); ?>
+            <?php do_action( 'woocommerce_shiptastic_fulfillment_print_styles' ); ?>
+            <?php do_action( 'woocommerce_shiptastic_fulfillment_print_scripts' ); ?>
+            <?php do_action( 'woocommerce_shiptastic_fulfillment_head' ); ?>
+        </head>
+        <body <?php body_class(); ?>>
+        <?php echo wp_interactivity_process_directives( self::get_fulfillment_body( $fulfillment ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+
+        <?php do_action( 'woocommerce_shiptastic_fulfillment_footer', '' ); ?>
+        <?php do_action( 'woocommerce_shiptastic_fulfillment_print_footer_scripts' ); ?>
+        </body>
+        </html>
+        <?php
+        $html = ob_get_clean();
+
+        return $html;
+    }
+
 	/**
 	 * Show the setup wizard.
 	 */
@@ -77,198 +310,27 @@ class View {
 			return;
 		}
 
-		Scripts::init();
-
 		$id          = isset( $_GET['id'] ) ? absint( $_GET['id'] ) : 0; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		$order_id    = isset( $_GET['order_id'] ) ? absint( $_GET['order_id'] ) : 0; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		$action      = isset( $_GET['action'] ) ? wc_clean( wp_unslash( $_GET['action'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-		$shipment_id = isset( $_GET['shipment_id'] ) ? absint( $_GET['shipment_id'] ) : 0; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-		$fulfillment = Factory::get_bulk_fulfillment( $id );
 
-		if ( ! $fulfillment ) {
-			return;
-		}
+        $fulfillment = Factory::get_bulk_fulfillment( $id );
 
-		$fulfillment->set_current_order_id( $order_id );
+        if ( ! $fulfillment ) {
+            return;
+        }
 
-		if ( ! $fulfillment->get_current_order() ) {
-			return;
-		}
+        $fulfillment->set_current_order_id( $order_id );
 
-		if ( ! empty( $action ) ) {
-			$fulfillment->get_current_order()->set_current_action_name( $action );
-		}
+        if ( ! $fulfillment->get_current_order() ) {
+            return;
+        }
 
-		if ( ! empty( $shipment_id ) ) {
-			$fulfillment->get_current_order()->set_current_shipment_id( $shipment_id );
-		}
+        if ( ! empty( $action ) ) {
+            $fulfillment->get_current_order()->set_current_action_id( $action );
+        }
 
-		set_current_screen( 'wc-shiptastic-fulfillment' );
-
-		$next_order = $fulfillment->get_next_order();
-		$prev_order = $fulfillment->get_prev_order();
-
-		wp_interactivity_config(
-			'shiptastic/fulfillments',
-			array(
-				'baseUrl'              => $fulfillment->get_url(),
-				'shipmentsEndpointUrl' => get_rest_url( null, 'my-plugin/v1/' ),
-				'nonce'                => wp_create_nonce( 'my_plugin_action' ),
-				'translations'         => array(),
-			)
-		);
-
-		$shipment_order  = $fulfillment->get_current_order()->get_shipment_order();
-		$items           = array();
-		$shipments       = array();
-		$latest_modified = null;
-
-		foreach ( $shipment_order->get_available_items_for_shipment() as $item_id => $item ) {
-			$weight           = 0.0;
-			$width            = 0.0;
-			$length           = 0.0;
-			$height           = 0.0;
-			$sku              = '';
-			$image            = '';
-			$global_unique_id = '';
-			$permalink        = '';
-
-			if ( $item['instance'] && is_callable( array( $item['instance'], 'get_product' ) ) ) {
-				if ( $product = $shipment_order->get_order_item_product( $item['instance'] ) ) {
-					$weight           = $product->get_shipping_weight();
-					$length           = $product->get_shipping_length();
-					$width            = $product->get_shipping_width();
-					$height           = $product->get_shipping_height();
-					$image            = $product->get_image_url();
-					$sku              = $product->get_sku();
-					$permalink        = $product->get_permalink();
-					$global_unique_id = $product->get_global_unique_id();
-				}
-			}
-
-			$name       = html_entity_decode( wc_clean( $item['instance']->get_name() ), ENT_QUOTES, get_bloginfo( 'charset' ) );
-			$attributes = array();
-
-			foreach ( $item['instance']->get_formatted_meta_data() as $meta_id => $meta ) {
-				$value = wp_kses_post( make_clickable( trim( $meta->value ) ) );
-				$label = wp_kses_post( $meta->display_key );
-
-				$attributes[] = array(
-					'id'    => $meta_id,
-					'value' => $value,
-					'label' => $label,
-				);
-			}
-
-			$items[] = array(
-				'name'           => $name,
-				'sku'            => $sku,
-				'globalUniqueId' => $global_unique_id,
-				'attributes'     => $attributes,
-				'image'          => $image,
-				'permalink'      => $permalink,
-				'quantity'       => $item['max_quantity'],
-				'maxQuantity'    => $item['max_quantity'],
-				'id'             => $item_id,
-				'itemId'         => 0,
-				'weight'         => $weight,
-				'length'         => $length,
-				'width'          => $width,
-				'height'         => $height,
-			);
-		}
-
-		$shipments_item_count        = 0;
-		$shipments_unique_item_count = 0;
-		$shipment_count              = 0;
-
-		foreach ( $shipment_order->get_simple_shipments() as $shipment ) {
-			$shipment_items       = array();
-			$shipment_last_edited = $shipment->get_date_modified() ? $shipment->get_date_modified()->getTimestamp() : $shipment->get_date_created()->getTimestamp();
-
-			if ( is_null( $latest_modified ) ) {
-				$latest_modified = $shipment_last_edited;
-			} elseif ( $shipment_last_edited > $latest_modified ) {
-				$latest_modified = $shipment_last_edited;
-			}
-
-			foreach ( $shipment->get_items() as $item_id => $item ) {
-				$shipments_item_count += $item->get_quantity();
-				++$shipments_unique_item_count;
-
-				$shipment_items[] = array(
-					'name'           => $item->get_name(),
-					'sku'            => $item->get_sku(),
-					'globalUniqueId' => $item->get_global_unique_id(),
-					'attributes'     => $item->get_attributes(),
-					'image'          => $item->get_image_url(),
-					'permalink'      => $item->get_permalink(),
-					'quantity'       => $item->get_quantity(),
-					'maxQuantity'    => $item->get_quantity(),
-					'id'             => $item->get_order_item_id(),
-					'itemId'         => $item->get_id(),
-					'weight'         => wc_get_weight( $item->get_weight(), Package::get_current_weight_unit(), $shipment->get_weight_unit() ),
-					'length'         => wc_get_dimension( $item->get_length(), Package::get_current_dimension_unit(), $shipment->get_dimension_unit() ),
-					'width'          => wc_get_dimension( $item->get_width(), Package::get_current_dimension_unit(), $shipment->get_dimension_unit() ),
-					'height'         => wc_get_dimension( $item->get_height(), Package::get_current_dimension_unit(), $shipment->get_dimension_unit() ),
-				);
-			}
-
-			$shipments[] = array(
-				'id'               => $shipment->get_id(),
-				'status'           => $shipment->get_status(),
-				'weight'           => wc_get_weight( $shipment->get_weight(), Package::get_current_weight_unit(), $shipment->get_weight_unit() ),
-				'length'           => wc_get_dimension( $shipment->get_length(), Package::get_current_dimension_unit(), $shipment->get_dimension_unit() ),
-				'width'            => wc_get_dimension( $shipment->get_width(), Package::get_current_dimension_unit(), $shipment->get_dimension_unit() ),
-				'height'           => wc_get_dimension( $shipment->get_height(), Package::get_current_dimension_unit(), $shipment->get_dimension_unit() ),
-				'shippingProvider' => $shipment->get_shipping_provider(),
-				'packagingId'      => $shipment->get_packaging_id(),
-				'items'            => $shipment_items,
-			);
-		}
-
-		wp_interactivity_state(
-			'shiptastic/fulfillments',
-			array(
-				'fulfillmentId'            => $fulfillment->get_id(),
-				'orderId'                  => $fulfillment->get_current_order_id(),
-				'orderNumber'              => $fulfillment->get_current_order()->get_order_number(),
-				'shipmentId'               => $fulfillment->get_current_order()->get_current_shipment_id(),
-				'currentAction'            => $fulfillment->get_current_order()->get_current_action_name(),
-				'nextOrderId'              => $next_order ? $next_order->get_id() : 0,
-				'prevOrderId'              => $prev_order ? $prev_order->get_id() : 0,
-				'nextOrderNumber'          => $next_order ? $next_order->get_order_number() : 0,
-				'prevOrderNumber'          => $prev_order ? $prev_order->get_order_number() : 0,
-				'orderItemCount'           => $shipment_order->get_shippable_item_count(),
-				'orderUniqueItemCount'     => $shipment_order->get_shippable_unique_item_count(),
-				'shipmentsItemCount'       => $shipments_item_count,
-				'shipmentsUniqueItemCount' => $shipments_unique_item_count,
-				'shipmentCount'            => $shipment_count,
-				'shipments'                => $shipments,
-				'itemsAvailableToShip'     => $items,
-				'shipmentsSavedAt'         => $latest_modified,
-			)
-		);
-		ob_start();
-		?>
-		<html <?php language_attributes(); ?>>
-			<head>
-				<meta charset="<?php bloginfo( 'charset' ); ?>">
-				<meta name="viewport" content="width=device-width, initial-scale=1">
-				<title><?php wp_title(); ?></title>
-				<?php do_action( 'woocommerce_shiptastic_fulfillment_enqueue_scripts' ); ?>
-				<?php do_action( 'woocommerce_shiptastic_fulfillment_print_styles' ); ?>
-				<?php do_action( 'woocommerce_shiptastic_fulfillment_print_scripts' ); ?>
-				<?php do_action( 'woocommerce_shiptastic_fulfillment_head' ); ?>
-			</head>
-			<body <?php body_class(); ?>>
-				<?php echo wp_interactivity_process_directives( self::get_html( $fulfillment ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
-
-				<?php do_action( 'woocommerce_shiptastic_fulfillment_footer', '' ); ?>
-				<?php do_action( 'woocommerce_shiptastic_fulfillment_print_footer_scripts' ); ?>
-			</body>
-		</html>
-		<?php
+        echo self::get_fulfillment_html( $fulfillment );
 		exit;
 	}
 
@@ -277,7 +339,7 @@ class View {
 	 *
 	 * @return false|string
 	 */
-	protected static function get_html( $fulfillment ) {
+	protected static function get_fulfillment_body( $fulfillment ) {
 		ob_start();
 		?>
 		<div
@@ -310,45 +372,16 @@ class View {
 				</nav>
 
 				<nav class="fulfillment-order-actions-nav">
-					<?php foreach ( $fulfillment->get_current_order()->get_action_loop( 'order' ) as $action ) : ?>
+					<?php foreach ( $fulfillment->get_current_order()->get_action_loop() as $action ) : ?>
 						<a
 							data-wp-on--click="actions.goToAction"
 							data-wp-on--mouseenter="actions.prefetch"
-							href="<?php echo esc_url( $fulfillment->get_url( $fulfillment->get_current_order_id(), $fulfillment->get_current_order()->is_default_action( $action::get_name(), 'order' ) ? '' : $action::get_name() ) ); ?>"
+							href="<?php echo esc_url( $action->get_url() ); ?>"
 						>
 							<?php echo esc_html( $action::get_title() ); ?>
 						</a>
 					<?php endforeach; ?>
-					<?php
-					$shipment_count  = 0;
-					$shipment_loop   = $fulfillment->get_current_order()->get_action_loop( 'shipment' );
-					$total_shipments = count( $shipment_loop );
-					foreach ( $shipment_loop as $shipment_id => $actions ) :
-						++$shipment_count;
-						?>
-						<a
-							data-wp-on--click="actions.goToAction"
-							data-wp-on--mouseenter="actions.prefetch"
-							href="<?php echo esc_url( $fulfillment->get_url( $fulfillment->get_current_order_id(), '', $shipment_id ) ); ?>"
-						>
-							<?php echo esc_html( sprintf( _x( 'Shipment %1$s/%2$s', 'shipments', 'shiptastic-for-woocommerce' ), $shipment_count, $total_shipments ) ); ?>
-						</a>
-					<?php endforeach; ?>
 				</nav>
-
-				<?php if ( $current_shipment_id = $fulfillment->get_current_order()->get_current_shipment_id() ) : ?>
-					<nav class="fulfillment-shipment-actions-nav">
-						<?php foreach ( $fulfillment->get_current_order()->get_action_loop( 'shipment', $current_shipment_id ) as $action ) : ?>
-							<a
-								data-wp-on--click="actions.goToAction"
-								data-wp-on--mouseenter="actions.prefetch"
-								href="<?php echo esc_url( $fulfillment->get_url( $fulfillment->get_current_order_id(), $fulfillment->get_current_order()->is_default_action( $action::get_name(), 'shipment' ) ? '' : $action::get_name(), $current_shipment_id ) ); ?>"
-							>
-								<?php echo esc_html( $action::get_title() ); ?>
-							</a>
-						<?php endforeach; ?>
-					</nav>
-				<?php endif; ?>
 			</header>
 
 			<main
@@ -356,20 +389,24 @@ class View {
 				data-wp-interactive="shiptastic/fulfillments"
 			>
 				<?php if ( $current_action = $fulfillment->get_current_order()->get_current_action() ) : ?>
-					<div id="<?php echo esc_attr( $current_action->get_name() ); ?>">
+					<div
+                        id="<?php echo esc_attr( $current_action->get_name() ); ?>"
+                        data-wp-interactive="shiptastic/fulfillments/<?php echo esc_attr( $current_action->get_name() ); ?>"
+                        data-wp-watch="callbacks.onUpdateState"
+                    >
 						<?php
 						ob_start();
 						$current_action->render();
 						$html = ob_get_clean();
 						echo $html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 						?>
+                        <footer>
+                            <button data-wp-on--click="actions.prev">Prev</button>
+                            <button data-wp-on--click="actions.done">Done & continue</button>
+                        </footer>
 					</div>
 				<?php endif; ?>
 			</main>
-
-			<footer>
-				<button data-wp-on--click="actions.save">Save</button>
-			</footer>
 		</div>
 		<?php
 		return ob_get_clean();

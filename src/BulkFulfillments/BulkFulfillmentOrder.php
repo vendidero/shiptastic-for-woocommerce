@@ -42,6 +42,10 @@ class BulkFulfillmentOrder extends WC_Data {
 	 */
 	protected $shipment_order = null;
 
+	protected $prev_action = null;
+
+	protected $next_action = null;
+
 	/**
 	 * Stores fulfillment data.
 	 *
@@ -53,8 +57,7 @@ class BulkFulfillmentOrder extends WC_Data {
 		'date_locked'         => null,
 		'locked_by'           => 0,
 		'status'              => '',
-		'current_shipment_id' => 0,
-		'current_action_name' => '',
+		'current_action_id'   => '',
 		'action_data'         => array(),
 	);
 
@@ -113,38 +116,13 @@ class BulkFulfillmentOrder extends WC_Data {
 		$this->set_prop( 'action_data', array_filter( (array) $data ) );
 	}
 
-	public function get_current_shipment_id( $context = 'view' ) {
-		return $this->get_prop( 'current_shipment_id', $context );
-	}
-
-	public function set_current_shipment_id( $current_shipment ) {
-		if ( is_a( $current_shipment, '\Vendidero\Shiptastic\Shipment' ) ) {
-			$current_shipment = $current_shipment->get_id();
-		}
-
-		$this->set_prop( 'current_shipment_id', absint( $current_shipment ) );
-	}
-
-	public function get_default_action_name( $loop_context = '' ) {
-		if ( empty( $loop_context ) ) {
-			if ( $this->get_current_shipment_id() > 0 ) {
-				$loop_context = 'shipment';
-			} else {
-				$loop_context = 'order';
-			}
-		}
-
-		if ( 'shipment' === $loop_context ) {
-			$loop = $this->get_action_loop( 'shipment', $this->get_current_shipment_id() );
-		} else {
-			$loop = $this->get_action_loop( $loop_context );
-		}
-
-		$current_action = ! empty( $loop ) ? $loop[ count( $loop ) - 1 ]::get_name() : '';
+	public function get_default_action_id() {
+		$loop = $this->get_action_loop();
+		$current_action = ! empty( $loop ) ? $loop[ count( $loop ) - 1 ]->get_id() : '';
 
 		foreach ( $loop as $k => $action ) {
 			if ( 'open' === $action->get_status() ) {
-				$current_action = $action->get_name();
+				$current_action = $action->get_id();
 				break;
 			}
 		}
@@ -152,42 +130,110 @@ class BulkFulfillmentOrder extends WC_Data {
 		return $current_action;
 	}
 
-	public function is_default_action( $name, $loop_context = '' ) {
-		return $name === $this->get_default_action_name( $loop_context );
+	public function is_default_action( $id ) {
+		return $id === $this->get_default_action_id();
 	}
 
-	public function get_current_action_name( $context = 'view' ) {
-		$current_action_name = $this->get_prop( 'current_action_name', $context );
+	public function get_current_action_id( $context = 'view' ) {
+		$current_action_id = $this->get_prop( 'current_action_id', $context );
 
-		if ( 'view' === $context && empty( $current_action_name ) ) {
-			$current_action_name = $this->get_default_action_name();
+		if ( 'view' === $context && empty( $current_action_id ) ) {
+			$current_action_id = $this->get_default_action_id();
 		}
 
-		return $current_action_name;
+		return $current_action_id;
 	}
 
-	public function set_current_action_name( $current_action ) {
-		$this->set_prop( 'current_action_name', $current_action );
+	public function set_current_action_id( $current_action ) {
+		$this->set_prop( 'current_action_id', $current_action );
+
+		$this->next_action = null;
+		$this->prev_action = null;
 	}
 
 	public function get_current_action() {
-		return $this->get_action( $this->get_current_action_name(), $this->get_current_shipment_id() );
+		return $this->get_action( $this->get_current_action_id() );
 	}
 
-	public function get_action( $name, $shipment_id = 0 ) {
-		$context = empty( $shipment_id ) ? 'order' : 'shipment';
-		$loop    = $this->get_action_loop();
+	public function get_action( $action_id ) {
+		$loop   = $this->get_action_loop();
+		$action_index = $this->get_action_index( $action_id );
 
-		if ( array_key_exists( $name, $loop[ "{$context}_map" ] ) ) {
-			$map_entry = $loop[ "{$context}_map" ][ $name ];
+		if ( -1 !== $action_index && isset( $loop[ $action_index ] ) ) {
+			return $loop[ $action_index ];
+		}
 
-			if ( 'shipment' === $context ) {
-				if ( isset( $map_entry['index'], $loop['shipment'][ $shipment_id ] ) ) {
-					return $loop['shipment'][ $shipment_id ][ $map_entry['index'] ];
+		return null;
+	}
+
+	protected function get_action_index( $data_key ) {
+		$map = $this->get_action_loop( 'map' );
+
+		if ( array_key_exists( $data_key, $map ) ) {
+			return $map[ $data_key ];
+		}
+
+		return -1;
+	}
+
+	public function get_next_action() {
+		if ( is_null( $this->next_action ) ) {
+			$this->next_action = false;
+			$current_action = $this->get_current_action();
+			$data_key       = $current_action->get_id();
+			$loop           = $this->get_action_loop();
+			$action_index   = $this->get_action_index( $data_key );
+
+			if ( -1 !== $action_index ) {
+				$next_map_entry = ++$action_index;
+
+				if ( isset( $loop[ $next_map_entry ]  ) ) {
+					$this->next_action = $loop[ $next_map_entry ];
 				}
-			} elseif ( isset( $map_entry['index'], $loop[ $context ] ) ) {
-				return $loop[ $context ][ $map_entry['index'] ];
 			}
+		}
+
+		return $this->next_action ? $this->next_action : null;
+	}
+
+	public function next_action() {
+		if ( $next = $this->get_next_action() ) {
+			$this->set_current_action_id( $next->get_id() );
+			$this->save();
+
+			return $next;
+		}
+
+		return null;
+	}
+
+	public function get_prev_action() {
+		if ( is_null( $this->prev_action ) ) {
+			$this->prev_action = false;
+
+			$current_action = $this->get_current_action();
+			$data_key       = $current_action->get_id();
+			$loop           = $this->get_action_loop();
+			$action_index   = $this->get_action_index( $data_key );
+
+			if ( -1 !== $action_index ) {
+				$prev_map_entry = --$action_index;
+
+				if ( isset( $loop[ $prev_map_entry ]  ) ) {
+					$this->prev_action = $loop[ $prev_map_entry ];
+				}
+			}
+		}
+
+		return $this->prev_action ? $this->prev_action : null;
+	}
+
+	public function prev_action() {
+		if ( $prev = $this->get_prev_action() ) {
+			$this->set_current_action_id( $prev->get_id() );
+			$this->save();
+
+			return $prev;
 		}
 
 		return null;
@@ -277,8 +323,10 @@ class BulkFulfillmentOrder extends WC_Data {
 	 * @return int
 	 */
 	public function update_action( $action ) {
-		$action_data                            = $this->get_action_data();
-		$action_data[ $action->get_data_key() ] = $action->get_data();
+		$action_data                      = $this->get_action_data();
+		$action_data[ $action->get_id() ] = $action->get_data();
+
+		$this->set_action_data( $action_data );
 
 		return $this->save();
 	}
@@ -302,8 +350,8 @@ class BulkFulfillmentOrder extends WC_Data {
 		$action->set_order( $this );
 		$action->set_shipment( $shipment );
 
-		if ( array_key_exists( $action->get_data_key(), $action_data ) ) {
-			$action->set_data( $action_data[ $action->get_data_key() ] );
+		if ( array_key_exists( $action->get_id(), $action_data ) ) {
+			$action->set_data( $action_data[ $action->get_id() ] );
 		}
 
 		return $action;
@@ -342,18 +390,12 @@ class BulkFulfillmentOrder extends WC_Data {
 	 *
 	 * @return FulfillmentAction[]
 	 */
-	public function get_action_loop( $type = '', $shipment_id = 0 ) {
+	public function get_action_loop( $type = 'loop' ) {
 		if ( is_null( $this->action_loop ) ) {
 			$this->action_loop = array(
-				'order'        => array(),
-				'order_map'    => array(),
-				'shipment'     => array(),
-				'shipment_map' => array(),
+				'loop'         => array(),
+				'map'          => array(),
 			);
-
-			foreach ( $this->get_shipments() as $shipment ) {
-				$this->action_loop['shipment'][ $shipment->get_id() ] = array();
-			}
 
 			if ( $fulfillment = $this->get_fulfillment() ) {
 				$actions                   = $fulfillment->get_actions();
@@ -423,24 +465,22 @@ class BulkFulfillmentOrder extends WC_Data {
 
 				foreach ( $context_aware_actions as $context => $actions ) {
 					foreach ( $actions as $action ) {
-						$index = -1;
+						$action = array_merge( $action, array( 'context' => $context ) );
 
 						if ( 'shipment' === $context ) {
-							foreach ( array_keys( $this->action_loop['shipment'] ) as $shipment_id ) {
-								$new_instance                                    = $this->get_action_instance( $action, $shipment_id );
-								$this->action_loop['shipment'][ $shipment_id ][] = $new_instance;
-								$index = count( $this->action_loop['shipment'][ $shipment_id ] ) - 1;
+							foreach ( $this->get_shipments() as $shipment ) {
+								$new_instance = $this->get_action_instance( $action, $shipment->get_id() );
+								$index = count( $this->action_loop['loop'] );
+
+								$this->action_loop['loop'][]                         = $new_instance;
+								$this->action_loop['map'][ $new_instance->get_id() ] = $index;
 							}
 						} else {
-							$this->action_loop[ $context ][] = $this->get_action_instance( $action );
+							$new_instance = $this->get_action_instance( $action );
+							$index = count( $this->action_loop['loop'] );
 
-							$index = count( $this->action_loop[ $context ] ) - 1;
-						}
-
-						if ( -1 !== $index ) {
-							$this->action_loop[ "{$context}_map" ][ $action['name'] ] = array(
-								'index' => $index,
-							);
+							$this->action_loop['loop'][]                         = $new_instance;
+							$this->action_loop['map'][ $new_instance->get_id() ] = $index;
 						}
 					}
 				}
@@ -451,10 +491,6 @@ class BulkFulfillmentOrder extends WC_Data {
 			return $this->action_loop;
 		} else {
 			$action_loop = array_key_exists( $type, $this->action_loop ) ? $this->action_loop[ $type ] : array();
-
-			if ( 'shipment' === $type && ! empty( $shipment_id ) ) {
-				$action_loop = isset( $action_loop[ $shipment_id ] ) ? $action_loop[ $shipment_id ] : array();
-			}
 
 			return $action_loop;
 		}

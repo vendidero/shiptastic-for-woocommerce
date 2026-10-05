@@ -144,12 +144,21 @@ abstract class FulfillmentAction {
 		}
 	}
 
+	public function get_default_context() {
+		if ( in_array( 'order', self::get_supported_contexts(), true ) ) {
+			return 'order';
+		} else {
+			return array_values( self::get_supported_contexts() )[0];
+		}
+	}
+
 	public function set_settings( $settings ) {
 		$settings = wp_parse_args(
 			$settings,
 			array(
 				'sort_order' => 999,
 				'type'       => $this->get_default_type(),
+				'context'    => $this->get_default_context(),
 			)
 		);
 
@@ -200,17 +209,26 @@ abstract class FulfillmentAction {
 	}
 
 	public function get_context() {
-		$supported = self::get_supported_contexts();
-
-		return $this->get_setting( 'context', array_values( $supported )[0] );
+		return $this->get_setting( 'context', $this->get_default_context() );
 	}
 
 	public function get_status() {
 		return $this->get_data_entry( 'status', 'open' );
 	}
 
-	public function get_data_key() {
-		$name = $this->get_name();
+	public function set_status( $status ) {
+		$this->update_data_entry( 'status', $status );
+	}
+
+	public function update_status( $status ) {
+		if ( $status !== $this->get_status() ) {
+			$this->set_status( $status );
+			$this->save();
+		}
+	}
+
+	public function get_id() {
+		$name = "{$this->get_context()}_{$this->get_name()}";
 
 		if ( $shipment = $this->get_shipment() ) {
 			$name .= "_{$shipment->get_id()}";
@@ -224,6 +242,10 @@ abstract class FulfillmentAction {
 		$data[ $key ] = $value;
 
 		$this->set_data( $data );
+	}
+
+	public function get_url() {
+		return $this->get_order()->get_fulfillment()->get_url( $this->get_order()->get_id(), $this->get_id() );
 	}
 
 	public function get_run_context() {

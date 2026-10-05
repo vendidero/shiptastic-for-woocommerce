@@ -518,7 +518,7 @@ class BulkFulfillment extends WC_Data {
 		}
 	}
 
-	public function get_url( $order_id = 0, $action = '', $shipment_id = 0 ) {
+	public function get_url( $order_id = 0, $action = '' ) {
 		if ( is_a( $order_id, '\Vendidero\Shiptastic\BulkFulfillments\BulkFulfillmentOrder' ) ) {
 			$order_id = $order_id->get_id();
 		}
@@ -532,7 +532,6 @@ class BulkFulfillment extends WC_Data {
 				'id'          => $this->get_id(),
 				'order_id'    => $order_id,
 				'action'      => $action,
-				'shipment_id' => $shipment_id,
 			),
 			admin_url( 'admin.php?page=wc-shiptastic-fulfillment' )
 		);

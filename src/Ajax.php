@@ -4,6 +4,8 @@ namespace Vendidero\Shiptastic;
 
 use Vendidero\Shiptastic\Admin\Admin;
 use Vendidero\Shiptastic\Admin\MetaBox;
+use Vendidero\Shiptastic\BulkFulfillments\Factory;
+use Vendidero\Shiptastic\BulkFulfillments\View;
 use Vendidero\Shiptastic\Interfaces\ShipmentLabel;
 use Vendidero\Shiptastic\ShippingProvider\Helper;
 
@@ -60,6 +62,7 @@ class Ajax {
 			'create_return_page',
 			'calculate_return_costs',
 			'json_search_shipping_providers',
+            'save_bulk_fulfillment'
 		);
 
 		$ajax_nopriv_events = array(
@@ -87,6 +90,46 @@ class Ajax {
 
 		$GLOBALS['wpdb']->hide_errors();
 	}
+
+    public static function save_bulk_fulfillment() {
+        check_ajax_referer( 'save-bulk-fulfillment', 'security' );
+
+        if ( ! current_user_can( 'manage_woocommerce' ) || ! isset( $_POST['fulfillment_id'], $_POST['current_action'], $_POST['order_id'] ) ) {
+            wp_die( -1 );
+        }
+
+        $fulfillment_id = absint( $_POST['fulfillment_id'] );
+        $order_id = absint( $_POST['order_id'] );
+        $shipment_id = isset( $_POST['shipment_id'] ) ? absint( $_POST['order_id'] ) : 0;
+        $current_action = wc_clean( wp_unslash( $_POST['current_action'] ) );
+
+        $fulfillment = Factory::get_bulk_fulfillment( $fulfillment_id );
+
+        if ( ! $fulfillment ) {
+            return;
+        }
+
+        $fulfillment->set_current_order_id( $order_id );
+
+        if ( ! $fulfillment->get_current_order() ) {
+            return;
+        }
+
+        $fulfillment->get_current_order()->set_current_action_id( $current_action );
+        $shipments = json_decode( wp_unslash( $_POST['shipments'] ), true );
+
+        $fulfillment->get_current_order()->get_current_action()->update_status( 'done' );
+
+        if ( $next_action = $fulfillment->get_current_order()->get_next_action() ) {
+            $fulfillment->get_current_order()->next_action();
+            $html = View::get_fulfillment_html( $fulfillment );
+
+            wp_send_json( array(
+                'url'  => $next_action->get_url(),
+                'html' => $html,
+            ), 200 );
+        }
+    }
 
 	public static function json_search_shipping_providers() {
 		check_ajax_referer( 'search-shipping-providers', 'security' );
