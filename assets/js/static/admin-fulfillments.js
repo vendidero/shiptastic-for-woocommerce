@@ -1,5 +1,5 @@
 // view.js
-import { store, withSyncEvent, getContext, getServerContext, getServerState, getConfig, watch } from '@wordpress/interactivity';
+import { store, withSyncEvent, getContext, getServerContext, getServerState, getConfig, watch, useEffect } from '@wordpress/interactivity';
 import { pack3D } from 'binpackingjs';
 
 const isGetter = (obj, prop) => {
@@ -10,12 +10,14 @@ const { state, actions, callbacks } = store( 'shiptastic/fulfillments', {
     state: {
         currentUrl: '',
         syncWithServer: false,
+        hasSaved: false,
+        didInit: false,
 
         get itemsAvailableToShip() {
             const items = state.allShipmentItemsMap;
             const { allItemsAvailableToShip } = getServerState();
 
-            const itemsAvailable = allItemsAvailableToShip.filter( ( theItem ) => {
+            return allItemsAvailableToShip.filter( ( theItem ) => {
                 if ( items.hasOwnProperty( theItem.id ) ) {
                     theItem.maxQuantity -= items[ theItem.id ].quantity;
                     theItem.quantity -= items[ theItem.id ].quantity;
@@ -27,10 +29,38 @@ const { state, actions, callbacks } = store( 'shiptastic/fulfillments', {
 
                 return true;
             } );
+        },
 
-            console.log(itemsAvailable);
+        get currentShipment() {
+            if ( state.currentShipmentId <= 0 ) {
+                return null;
+            }
 
-            return itemsAvailable;
+            const shipments = state.shipments.filter( ( theShipment ) => {
+                if ( theShipment.id === state.currentShipmentId ) {
+                    return true;
+                }
+
+                return false;
+            } );
+
+            return shipments.length > 0 ? shipments[0] : null;
+        },
+
+        get currentShipmentNumber() {
+            const currentShipment = state.currentShipment;
+
+            return currentShipment ? callbacks.getShipmentNumber( currentShipment ) : 0;
+        },
+
+        get currentShipmentItemCount() {
+            return state.currentShipment ? state.currentShipment.items.reduce( ( innerCount, item ) => {
+                return innerCount + item.quantity;
+            }, 0 ) : 0;
+        },
+
+        get currentShipmentUniqueItemCount() {
+            return state.currentShipment ? state.currentShipment.items.length : 0;
         },
 
         get shipmentsItemCount() {
@@ -42,9 +72,7 @@ const { state, actions, callbacks } = store( 'shiptastic/fulfillments', {
         },
 
         get shipmentsUniqueItemCount() {
-            return state.shipments.reduce( ( count, shipment ) => {
-                return count + shipment.items.length;
-            }, 0 );
+            return Object.keys( state.allShipmentItemsMap ).length;
         },
 
         get shipmentCount() {
@@ -71,7 +99,7 @@ const { state, actions, callbacks } = store( 'shiptastic/fulfillments', {
 
         get allShipmentItems() {
             return Object.values( state.allShipmentItemsMap );
-        }
+        },
     },
 
     actions: {
@@ -137,8 +165,9 @@ const { state, actions, callbacks } = store( 'shiptastic/fulfillments', {
 
                 const html = data['html'];
 
-                yield actions.navigate( data['url'], { html } ).then( () => {
+                yield actions.navigate( data['url'], { html, force: true } ).then( () => {
                     state.syncWithServer = true;
+                    state.hasSaved = true;
                 } );
             } catch ( e ) {
                 // Something went wrong!
@@ -243,7 +272,7 @@ const { state, actions, callbacks } = store( 'shiptastic/fulfillments', {
                 };
             } );
 
-            let newObjects = shipment.items.flatMap( ( item ) => {
+            const allItems = shipment.items.flatMap( ( item ) => {
                 return Array( item.quantity ).fill(
                     {
                         'name': item.id,
@@ -255,15 +284,20 @@ const { state, actions, callbacks } = store( 'shiptastic/fulfillments', {
                 );
             } );
 
-            console.log(newObjects);
-
             const result = pack3D({
                 bins: bins,
-                items: newObjects,
+                items: allItems,
             });
 
-            console.log('hm');
-            console.log(result);
+            const bestPackagings = result.packedBins.filter( ( bin ) => {
+                if ( bin.items.length === allItems.length ) {
+                    return true;
+                }
+
+                return false;
+            } );
+
+            return bestPackagings.length > 0 ? callbacks.getPackagingById( bestPackagings[0].name ) : null;
         },
 
         packagingFitsShipment( packaging, shipment ) {
@@ -305,8 +339,6 @@ const { state, actions, callbacks } = store( 'shiptastic/fulfillments', {
 
         getShipmentContentWeight( shipment ) {
             return shipment.items.reduce( ( count, item ) => {
-                console.log(( item.weight * item.quantity ));
-
                 return count + ( item.weight * item.quantity );
             }, 0.0 );
         },
@@ -481,7 +513,7 @@ const { state, actions, callbacks } = store( 'shiptastic/fulfillments', {
             return packagingList.length > 0 ? packagingList[0] : null;
         },
 
-        getCurrentShipmentNumber( shipment ) {
+        getShipmentNumber(shipment ) {
             let count = 0;
 
             for ( const theShipment of state.shipments ) {
@@ -514,8 +546,6 @@ const { state, actions, callbacks } = store( 'shiptastic/fulfillments', {
             }
 
             state.shipmentItems = Object.values( shipmentItems );
-
-            console.log(state.shipmentItems);
         },
 
         getNextOrderUrl() {
@@ -544,13 +574,15 @@ const { state, actions, callbacks } = store( 'shiptastic/fulfillments', {
             return url;
         },
 
-        onUpdateState() {
+        onUpdate() {
+
+        },
+
+        onInit() {
             const serverState = getServerState();
             const oldAction = state.currentActionId;
 
-            console.log('update fulfillment state');
-            console.log(serverState.shipmentsSavedAt);
-            console.log(state.syncWithServer);
+            const oldActionStore = store( 'shiptastic/fulfillments/' + state.currentAction );
 
             /**
              * Override all state.
@@ -567,6 +599,11 @@ const { state, actions, callbacks } = store( 'shiptastic/fulfillments', {
                 }
             }
 
+            console.log('on init fulfillments');
+            console.log(serverState);
+            console.log(state.syncWithServer);
+            console.log(state.hasSaved);
+
             if ( oldAction !== serverState.currentActionId ) {
                 state.currentActionId = serverState.currentActionId;
                 state.currentAction   = serverState.currentAction;
@@ -574,44 +611,23 @@ const { state, actions, callbacks } = store( 'shiptastic/fulfillments', {
 
             const currentActionStore = store( 'shiptastic/fulfillments/' + state.currentAction );
 
-            if ( state.syncWithServer ) {
-                actions.deleteLocalState( 'shipments' );
+            if ( state.hasSaved ) {
                 actions.deleteLocalState( oldAction );
 
-                if ( currentActionStore ) {
-                    currentActionStore.callbacks.syncWithServer();
+                if ( oldActionStore && typeof oldActionStore.callbacks.onSave !== 'undefined' ) {
+                    oldActionStore.callbacks.onSave();
                 }
 
-                state.syncWithServer = false;
+                state.hasSaved = false;
             } else {
-                const curLocalShipments = actions.getLocalState( 'shipments' );
-
-                if ( curLocalShipments && curLocalShipments.dateModified > state.shipmentsSavedAt ) {
-                    state.shipments = curLocalShipments.value;
-                }
-
-                if ( currentActionStore ) {
-                    currentActionStore.callbacks.loadLocalState();
+                if ( currentActionStore && typeof currentActionStore.callbacks.onInit !== 'undefined' ) {
+                    currentActionStore.callbacks.onInit();
                 }
             }
+
+            state.syncWithServer = false;
+            state.didInit = true;
         },
-    }
-} );
-
-watch( () => {
-    const serverState = getServerState();
-    const shipments = state.shipments;
-
-    shipments.map( ( shipment ) => {
-        const newWeight = shipment.weight;
-        const newLength = shipment.length;
-        const newWidth = shipment.width;
-        const newHeight = shipment.height;
-        const packagingId = shipment.packagingId;
-    } );
-
-    if ( undefined !== serverState.shipments ) {
-        actions.setLocalState( 'shipments', shipments );
     }
 } );
 

@@ -15,16 +15,19 @@ const { state, actions } = store( 'shiptastic/fulfillments/pick', {
 
     },
     callbacks: {
-        onUpdateState() {
-            console.log('update pick state');
+        onInit() {
+            console.log('on init pick');
+
+            state.selectedItems = [];
+            state.currentShipmentItemDragged = null;
         },
 
-        loadLocalState() {
-            console.log('load local pick state');
+        onUpdate() {
+
         },
 
-        syncWithServer() {
-            console.log('sync pick with server');
+        onSave() {
+            console.log('on save pick');
         },
     }
 } );

@@ -23,4 +23,7 @@ class Pack extends \Vendidero\Shiptastic\BulkFulfillments\FulfillmentAction {
 	public function render() {
 		// TODO: Implement render() method.
 	}
+
+	public function process( $data ) {
+	}
 }

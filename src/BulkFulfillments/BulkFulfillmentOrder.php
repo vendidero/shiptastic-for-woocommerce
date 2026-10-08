@@ -52,13 +52,13 @@ class BulkFulfillmentOrder extends WC_Data {
 	 * @var array
 	 */
 	protected $data = array(
-		'order_id'            => 0,
-		'fulfillment_id'      => 0,
-		'date_locked'         => null,
-		'locked_by'           => 0,
-		'status'              => '',
-		'current_action_id'   => '',
-		'action_data'         => array(),
+		'order_id'          => 0,
+		'fulfillment_id'    => 0,
+		'date_locked'       => null,
+		'locked_by'         => 0,
+		'status'            => '',
+		'current_action_id' => '',
+		'action_data'       => array(),
 	);
 
 	protected $action_loop = null;
@@ -117,7 +117,7 @@ class BulkFulfillmentOrder extends WC_Data {
 	}
 
 	public function get_default_action_id() {
-		$loop = $this->get_action_loop();
+		$loop           = $this->get_action_loop();
 		$current_action = ! empty( $loop ) ? $loop[ count( $loop ) - 1 ]->get_id() : '';
 
 		foreach ( $loop as $k => $action ) {
@@ -156,7 +156,7 @@ class BulkFulfillmentOrder extends WC_Data {
 	}
 
 	public function get_action( $action_id ) {
-		$loop   = $this->get_action_loop();
+		$loop         = $this->get_action_loop();
 		$action_index = $this->get_action_index( $action_id );
 
 		if ( -1 !== $action_index && isset( $loop[ $action_index ] ) ) {
@@ -179,15 +179,15 @@ class BulkFulfillmentOrder extends WC_Data {
 	public function get_next_action() {
 		if ( is_null( $this->next_action ) ) {
 			$this->next_action = false;
-			$current_action = $this->get_current_action();
-			$data_key       = $current_action->get_id();
-			$loop           = $this->get_action_loop();
-			$action_index   = $this->get_action_index( $data_key );
+			$current_action    = $this->get_current_action();
+			$data_key          = $current_action->get_id();
+			$loop              = $this->get_action_loop();
+			$action_index      = $this->get_action_index( $data_key );
 
 			if ( -1 !== $action_index ) {
 				$next_map_entry = ++$action_index;
 
-				if ( isset( $loop[ $next_map_entry ]  ) ) {
+				if ( isset( $loop[ $next_map_entry ] ) ) {
 					$this->next_action = $loop[ $next_map_entry ];
 				}
 			}
@@ -219,7 +219,7 @@ class BulkFulfillmentOrder extends WC_Data {
 			if ( -1 !== $action_index ) {
 				$prev_map_entry = --$action_index;
 
-				if ( isset( $loop[ $prev_map_entry ]  ) ) {
+				if ( isset( $loop[ $prev_map_entry ] ) ) {
 					$this->prev_action = $loop[ $prev_map_entry ];
 				}
 			}
@@ -393,8 +393,8 @@ class BulkFulfillmentOrder extends WC_Data {
 	public function get_action_loop( $type = 'loop' ) {
 		if ( is_null( $this->action_loop ) ) {
 			$this->action_loop = array(
-				'loop'         => array(),
-				'map'          => array(),
+				'loop' => array(),
+				'map'  => array(),
 			);
 
 			if ( $fulfillment = $this->get_fulfillment() ) {
@@ -470,14 +470,14 @@ class BulkFulfillmentOrder extends WC_Data {
 						if ( 'shipment' === $context ) {
 							foreach ( $this->get_shipments() as $shipment ) {
 								$new_instance = $this->get_action_instance( $action, $shipment->get_id() );
-								$index = count( $this->action_loop['loop'] );
+								$index        = count( $this->action_loop['loop'] );
 
 								$this->action_loop['loop'][]                         = $new_instance;
 								$this->action_loop['map'][ $new_instance->get_id() ] = $index;
 							}
 						} else {
 							$new_instance = $this->get_action_instance( $action );
-							$index = count( $this->action_loop['loop'] );
+							$index        = count( $this->action_loop['loop'] );
 
 							$this->action_loop['loop'][]                         = $new_instance;
 							$this->action_loop['map'][ $new_instance->get_id() ] = $index;

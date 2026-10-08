@@ -92,12 +92,23 @@ abstract class FulfillmentAction {
 	abstract public function render();
 
 	/**
-	 * @return ShipmentError|array
+	 * Process the action based on data passed from the client.
+	 *
+	 * @param mixed $data The unsanitized data passed on from the client
+	 *
+	 * @return ShipmentError|true
+	 */
+	abstract public function process( $data );
+
+	/**
+	 * @return ShipmentError|true
 	 */
 	public function save() {
 		if ( $this->get_order() ) {
 			$this->get_order()->update_action( $this );
 		}
+
+		return true;
 	}
 
 	/**

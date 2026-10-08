@@ -12,6 +12,34 @@ const { state, actions } = store( 'shiptastic/fulfillments/create_shipments', {
             return state.selectedItems.length;
         },
 
+        get shipmentItemMaxQuantity() {
+            const context = getContext();
+            const shipment = context.shipment;
+            const shipmentItem = context.shipment_item;
+            const shipmentItemsMap = mainStore.state.allShipmentItemsMap;
+            const { allItemsAvailableToShip } = getServerState( 'shiptastic/fulfillments' );
+
+            let maxQuantityAvailable = allItemsAvailableToShip.filter( ( theItem ) => {
+                if ( theItem.id === shipmentItem.id ) {
+                    return true;
+                }
+
+                return false;
+            } )[0].maxQuantity;
+
+            let curMapItemQuantity = shipmentItemsMap[ shipmentItem.id ].quantity - shipmentItem.quantity;
+
+            return Math.max( 0, maxQuantityAvailable - curMapItemQuantity );
+        },
+
+        get shipmentItemQuantity() {
+            const context = getContext();
+            const shipment = context.shipment;
+            const shipmentItem = context.shipment_item;
+
+            return shipmentItem.quantity;
+        },
+
         get formattedShipmentWeight() {
             const context = getContext();
 
@@ -47,9 +75,39 @@ const { state, actions } = store( 'shiptastic/fulfillments/create_shipments', {
         },
 
         get packagingOptions() {
+            const context = getContext();
+            const shipment = context.shipment;
             const { packagingOptions } = getConfig( 'shiptastic/fulfillments' );
 
-            return packagingOptions;
+            let shipmentPackagingOptions = packagingOptions.map( ( packaging ) => {
+                let newPackaging = { ...packaging };
+
+                if ( shipment.bestPackagingId && shipment.bestPackagingId === newPackaging.id ) {
+                    newPackaging.title = newPackaging.title + ' (best fit)';
+                }
+
+                return newPackaging;
+            } );
+
+            console.log(shipmentPackagingOptions);
+
+            return shipmentPackagingOptions;
+        },
+
+        get shipmentPackagingId() {
+            const context = getContext();
+            const shipment = context.shipment;
+
+            if ( shipment.hasNewBestPackaging ) {
+                shipment.hasNewBestPackaging = false;
+                shipment.packagingId = shipment.bestPackagingId;
+            }
+
+            if ( shipment.packagingId > 0 ) {
+                return shipment.packagingId;
+            } else {
+                return 0;
+            }
         },
 
         get formattedShipmentWidth() {
@@ -103,7 +161,7 @@ const { state, actions } = store( 'shiptastic/fulfillments/create_shipments', {
         get currentShipmentNumber() {
             const context = getContext();
 
-            return mainStore.callbacks.getCurrentShipmentNumber( context.shipment );
+            return mainStore.callbacks.getShipmentNumber( context.shipment );
         },
     },
     actions: {
@@ -152,20 +210,10 @@ const { state, actions } = store( 'shiptastic/fulfillments/create_shipments', {
             }
         },
 
-        setShipmentPackaging( event ) {
+        setShipmentPackagingId( event ) {
             const context = getContext();
 
             context.shipment.packagingId = parseInt( event.target.value ) || 0;
-
-            const packaging = mainStore.callbacks.getPackagingById( context.shipment.packagingId );
-
-            if ( packaging ) {
-                context.shipment.length = packaging.length;
-                context.shipment.width = packaging.width;
-                context.shipment.height = packaging.height;
-            } else {
-                context.shipment.packagingId = 0;
-            }
 
             if ( 0 === context.shipment.packagingId ) {
                 context.shipment.length = '';
@@ -202,7 +250,12 @@ const { state, actions } = store( 'shiptastic/fulfillments/create_shipments', {
 
         setShipmentItemQuantity( event ) {
             const context = getContext();
-            const quantity = ( parseInt( event.target.value ) || 0 );
+            let quantity = ( parseInt( event.target.value ) || 0 );
+            const maxQuantity = state.shipmentItemMaxQuantity;
+
+            if ( quantity > maxQuantity ) {
+                quantity = maxQuantity;
+            }
 
             mainStore.actions.setShipmentItemQuantity( context.shipment, context.shipment_item, quantity );
         },
@@ -245,7 +298,7 @@ const { state, actions } = store( 'shiptastic/fulfillments/create_shipments', {
 
         done: withSyncEvent( function* ( event ) {
             const formData = new FormData();
-            formData.append( 'shipments', JSON.stringify( state.shipments ) );
+            formData.append( 'create_shipments', JSON.stringify( state.shipments ) );
 
             yield mainStore.actions.done( event, formData );
         } ),
@@ -271,16 +324,78 @@ const { state, actions } = store( 'shiptastic/fulfillments/create_shipments', {
             }
         },
 
-        onUpdateState() {
-            console.log('update create_shipments action state');
+        onInit() {
+            console.log('on init create_shipments');
+
+            state.selectedItems = [];
+            state.currentShipmentItemDragged = null;
+
+            const curLocalShipments = mainStore.actions.getLocalState( 'shipments' );
+
+            if ( curLocalShipments && curLocalShipments.dateModified > mainStore.state.shipmentsSavedAt ) {
+                const { allItemsAvailableToShip } = getServerState( 'shiptastic/fulfillments' );
+                let allItemsMap = allItemsAvailableToShip.reduce( ( ac, item ) => ({...ac, [item.id]: item }), {} );
+
+                /**
+                 * Validate shipment item quantities
+                 */
+                const validShipments = curLocalShipments.value.filter( ( shipment ) => {
+                    const validItems = shipment.items.filter( ( item ) => {
+                        if ( allItemsMap.hasOwnProperty( item.id ) ) {
+                            allItemsMap[ item.id ].maxQuantity -= item.quantity;
+
+                            if ( allItemsMap[ item.id ].maxQuantity < 0 ) {
+                                return false;
+                            }
+
+                            return true;
+                        } else {
+                            return false;
+                        }
+                    } );
+
+                    if ( validItems.length !== shipment.items.length ) {
+                        return false;
+                    }
+
+                    return true;
+                } );
+
+                if ( validShipments.length > 0 ) {
+                    console.log( 'loading shipment local state' );
+                    mainStore.state.shipments = validShipments;
+                }
+            }
         },
 
-        loadLocalState() {
-            console.log('load local create_shipments state');
+        onUpdate() {
+            const serverState = getServerState( 'shiptastic/fulfillments' );
+            const shipments = state.shipments;
+
+            shipments.map( ( shipment ) => {
+                const newWeight = shipment.weight;
+                const newLength = shipment.length;
+                const newWidth = shipment.width;
+                const newHeight = shipment.height;
+                const packagingId = shipment.packagingId;
+
+                shipment.items.map( ( item ) => {
+                    const quantity = item.quantity;
+                } );
+            } );
+
+            if ( undefined !== serverState.shipments ) {
+                console.log('persisting shipment local state');
+                console.log(shipments);
+
+                mainStore.actions.setLocalState( 'shipments', shipments );
+            }
         },
 
-        syncWithServer() {
-            console.log('sync create_shipments with server');
+        onSave() {
+            console.log('on save create_shipments');
+
+            mainStore.actions.deleteLocalState( 'shipments' );
         },
 
         renderItemAttributeLabel() {
@@ -312,10 +427,31 @@ const { state, actions } = store( 'shiptastic/fulfillments/create_shipments', {
                 const itemQuantity = item.quantity;
             } );
 
-            mainStore.actions.getBestPackagingForShipment( shipment );
+            const bestPackaging = mainStore.actions.getBestPackagingForShipment( shipment );
 
-            console.log('quantity changed?');
-            console.log();
+            if ( bestPackaging && bestPackaging.id !== shipment.bestPackagingId ) {
+                shipment.bestPackagingId = bestPackaging.id;
+                shipment.hasNewBestPackaging = true;
+            } else if ( ! bestPackaging ) {
+                shipment.bestPackagingId = 0;
+            }
+
+            console.log('best packaging id');
+            console.log(shipment.bestPackagingId);
+        },
+
+        updatePackaging() {
+            const context = getContext();
+
+            const packaging = mainStore.callbacks.getPackagingById( context.shipment.packagingId );
+
+            if ( packaging ) {
+                context.shipment.length = packaging.length;
+                context.shipment.width = packaging.width;
+                context.shipment.height = packaging.height;
+            } else {
+                context.shipment.packagingId = 0;
+            }
         },
     }
 } );

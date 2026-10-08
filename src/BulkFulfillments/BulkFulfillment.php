@@ -529,9 +529,9 @@ class BulkFulfillment extends WC_Data {
 
 		return add_query_arg(
 			array(
-				'id'          => $this->get_id(),
-				'order_id'    => $order_id,
-				'action'      => $action,
+				'id'       => $this->get_id(),
+				'order_id' => $order_id,
+				'action'   => $action,
 			),
 			admin_url( 'admin.php?page=wc-shiptastic-fulfillment' )
 		);

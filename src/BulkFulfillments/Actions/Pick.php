@@ -43,16 +43,20 @@ class Pick extends \Vendidero\Shiptastic\BulkFulfillments\FulfillmentAction {
 
 		Scripts::enqueue_script_module( 'shiptastic/fulfillments/' . self::get_name() );
 		?>
-        <ul>
-            <template
-                data-wp-each--shipment_item="state.allShipmentItems"
-                data-wp-each-key="context.shipment_item.id"
-            >
-                <li>
-                    <span data-wp-text="context.shipment_item.name"></span> x<span data-wp-text="context.shipment_item.quantity"></span>
-                </li>
-            </template>
-        </ul>
+		<ul>
+			<template
+				data-wp-each--shipment_item="state.allShipmentItems"
+				data-wp-each-key="context.shipment_item.id"
+			>
+				<li>
+					<span data-wp-text="context.shipment_item.name"></span> x<span data-wp-text="context.shipment_item.quantity"></span>
+				</li>
+			</template>
+		</ul>
 		<?php
+	}
+
+	public function process( $data ) {
+		// TODO: Implement process() method.
 	}
 }
