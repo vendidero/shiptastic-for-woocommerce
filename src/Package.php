@@ -86,6 +86,60 @@ class Package {
 		add_filter( 'woocommerce_webhook_topics', array( __CLASS__, 'register_webhook_topics' ), 10, 2 );
 
 		add_action( 'woocommerce_shiptastic_oauth_refresh_token', array( __CLASS__, 'refresh_oauth_token' ), 10 );
+
+		/**
+		 * Fallback product customs data support
+		 */
+		add_filter( 'woocommerce_product_get_customs_commodity_code', array( __CLASS__, 'add_customs_commodity_code_fallback' ), 10, 2 );
+		add_filter( 'woocommerce_product_variation_get_customs_commodity_code', array( __CLASS__, 'add_customs_commodity_code_fallback' ), 10, 2 );
+
+		add_filter( 'woocommerce_product_get_customs_description', array( __CLASS__, 'add_customs_description_fallback' ), 10, 2 );
+		add_filter( 'woocommerce_product_variation_get_customs_description', array( __CLASS__, 'add_customs_description_fallback' ), 10, 2 );
+
+		add_filter( 'woocommerce_product_get_customs_country_of_origin', array( __CLASS__, 'add_customs_country_of_origin_fallback' ), 10, 2 );
+		add_filter( 'woocommerce_product_variation_get_customs_country_of_origin', array( __CLASS__, 'add_customs_country_of_origin_fallback' ), 10, 2 );
+	}
+
+	/**
+	 * @param string $commodity_code
+	 * @param \WC_Product $product
+	 *
+	 * @return string
+	 */
+	public static function add_customs_commodity_code_fallback( $commodity_code, $product ) {
+		if ( empty( $commodity_code ) ) {
+			$commodity_code = wc_shiptastic_get_product( $product )->get_hs_code( 'edit' );
+		}
+
+		return $commodity_code;
+	}
+
+	/**
+	 * @param string $description
+	 * @param \WC_Product $product
+	 *
+	 * @return string
+	 */
+	public static function add_customs_description_fallback( $description, $product ) {
+		if ( empty( $description ) ) {
+			$description = wc_shiptastic_get_product( $product )->get_customs_description( 'edit' );
+		}
+
+		return $description;
+	}
+
+	/**
+	 * @param string $country
+	 * @param \WC_Product $product
+	 *
+	 * @return string
+	 */
+	public static function add_customs_country_of_origin_fallback( $country, $product ) {
+		if ( empty( $country ) ) {
+			$country = wc_shiptastic_get_product( $product )->get_manufacture_country( 'edit' );
+		}
+
+		return $country;
 	}
 
 	public static function refresh_oauth_token( $api_name ) {
@@ -1173,6 +1227,12 @@ class Package {
 		$woo_version = defined( 'WC_VERSION' ) ? WC_VERSION : '1.0.0';
 
 		return version_compare( $woo_version, '8.2.0', '>=' );
+	}
+
+	public static function woo_has_customs_fields() {
+		$woo_version = defined( 'WC_VERSION' ) ? WC_VERSION : '1.0.0';
+
+		return version_compare( $woo_version, '11.3.0', '>=' );
 	}
 
 	public static function register_script( $handle, $path, $dep = array(), $ver = '', $in_footer = array( 'strategy' => 'defer' ) ) {

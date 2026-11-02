@@ -68,7 +68,7 @@ class Api {
 	 */
 	public static function update_product( $product, $request ) {
 		if ( $shipments_product = wc_shiptastic_get_product( $product ) ) {
-			if ( isset( $request['customs_description'] ) ) {
+			if ( ! is_callable( array( $product, 'get_customs_description' ) ) && isset( $request['customs_description'] ) ) {
 				$shipments_product->set_customs_description( wc_clean( wp_unslash( $request['customs_description'] ) ) );
 			}
 
@@ -76,12 +76,12 @@ class Api {
 				$shipments_product->set_hs_code( wc_clean( wp_unslash( $request['hs_code'] ) ) );
 			}
 
-			if ( isset( $request['mid_code'] ) ) {
-				$shipments_product->set_mid_code( wc_clean( wp_unslash( $request['mid_code'] ) ) );
-			}
-
 			if ( isset( $request['manufacture_country'] ) ) {
 				$shipments_product->set_manufacture_country( wc_clean( wp_unslash( $request['manufacture_country'] ) ) );
+			}
+
+			if ( isset( $request['mid_code'] ) ) {
+				$shipments_product->set_mid_code( wc_clean( wp_unslash( $request['mid_code'] ) ) );
 			}
 
 			// Virtual.
@@ -125,12 +125,14 @@ class Api {
 	 * @return array
 	 */
 	public static function product_variation_schema( $schema_properties ) {
-		$schema_properties['customs_description'] = array(
-			'description' => _x( 'Customs description', 'shipments', 'shiptastic-for-woocommerce' ),
-			'type'        => 'string',
-			'context'     => array( 'view', 'edit' ),
-			'readonly'    => true,
-		);
+		if ( ! Package::woo_has_customs_fields() ) {
+			$schema_properties['customs_description'] = array(
+				'description' => _x( 'Customs description', 'shipments', 'shiptastic-for-woocommerce' ),
+				'type'        => 'string',
+				'context'     => array( 'view', 'edit' ),
+				'readonly'    => true,
+			);
+		}
 
 		$schema_properties['hs_code'] = array(
 			'description' => _x( 'HS-Code (Customs)', 'shipments', 'shiptastic-for-woocommerce' ),
@@ -201,11 +203,13 @@ class Api {
 	 * @return array
 	 */
 	public static function product_schema( $schema_properties ) {
-		$schema_properties['customs_description'] = array(
-			'description' => _x( 'Customs description', 'shipments', 'shiptastic-for-woocommerce' ),
-			'type'        => 'string',
-			'context'     => array( 'view', 'edit' ),
-		);
+		if ( ! Package::woo_has_customs_fields() ) {
+			$schema_properties['customs_description'] = array(
+				'description' => _x( 'Customs description', 'shipments', 'shiptastic-for-woocommerce' ),
+				'type'        => 'string',
+				'context'     => array( 'view', 'edit' ),
+			);
+		}
 
 		$schema_properties['hs_code'] = array(
 			'description' => _x( 'HS-Code (Customs)', 'shipments', 'shiptastic-for-woocommerce' ),

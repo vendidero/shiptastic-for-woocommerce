@@ -1056,13 +1056,35 @@ class Admin {
 		}
 	}
 
+	protected static function needs_customs_fields( $product ) {
+		return ! is_callable( array( $product, 'get_customs_commodity_code' ) );
+	}
+
 	public static function product_options() {
 		global $product_object;
 
-		$_product          = wc_get_product( $product_object );
-		$shipments_product = wc_shiptastic_get_product( $_product );
-		$countries         = WC()->countries->get_countries();
-		$countries         = array_merge( array( '0' => _x( 'Select a country', 'shipments', 'shiptastic-for-woocommerce' ) ), $countries );
+		$_product             = wc_get_product( $product_object );
+		$shipments_product    = wc_shiptastic_get_product( $_product );
+		$countries            = WC()->countries->get_countries();
+		$needs_customs_fields = self::needs_customs_fields( $_product );
+		$countries            = array_merge( array( '0' => _x( 'Select a country', 'shipments', 'shiptastic-for-woocommerce' ) ), $countries );
+
+		/**
+		 * Enrich the new Woo customs fields with our data to make sure the data
+		 * is saved to the right fields upon next save.
+		 */
+		if ( ! $needs_customs_fields && ! is_a( $product_object, 'WC_Product_Variation' ) ) {
+			try {
+				if ( ! $product_object->get_customs_commodity_code( 'edit' ) ) {
+					$product_object->set_customs_commodity_code( $shipments_product->get_hs_code( 'edit' ) );
+				}
+
+				if ( ! $product_object->get_customs_country_of_origin( 'edit' ) ) {
+					$product_object->set_customs_country_of_origin( $shipments_product->get_manufacture_country( 'edit' ) );
+				}
+			} catch ( \Exception $e ) { // phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedCatch
+			}
+		}
 
 		if ( wc_product_weight_enabled() ) {
 			$label = sprintf(
@@ -1123,33 +1145,55 @@ class Admin {
 				'desc_tip'    => true,
 			)
 		);
-		?>
-		<p class="wc-stc-product-settings-subtitle">
-			<?php echo esc_html_x( 'Customs', 'shipments', 'shiptastic-for-woocommerce' ); ?>
-			<?php if ( $help_link = apply_filters( 'woocommerce_shiptastic_product_customs_settings_help_link', '' ) ) : ?>
-				<a class="page-title-action" href="<?php echo esc_url( $help_link ); ?>"><?php echo esc_html_x( 'Help', 'shipments', 'shiptastic-for-woocommerce' ); ?></a>
-			<?php endif; ?>
-		</p>
-		<?php
-		woocommerce_wp_text_input(
-			array(
-				'id'          => '_customs_description',
-				'label'       => _x( 'Description', 'shipments', 'shiptastic-for-woocommerce' ),
-				'desc_tip'    => true,
-				'description' => _x( 'Choose a description to be used for customs documents, e.g. CN23 form.', 'shipments', 'shiptastic-for-woocommerce' ),
-				'value'       => $shipments_product->get_customs_description( 'edit' ),
-			)
-		);
 
-		woocommerce_wp_text_input(
-			array(
-				'id'          => '_hs_code',
-				'label'       => _x( 'HS-Code', 'shipments', 'shiptastic-for-woocommerce' ),
-				'desc_tip'    => true,
-				'description' => _x( 'The HS Code is a number assigned to every possible commodity that can be imported or exported from any country.', 'shipments', 'shiptastic-for-woocommerce' ),
-				'value'       => $shipments_product->get_hs_code( 'edit' ),
-			)
-		);
+		if ( $needs_customs_fields ) :
+            ?>
+            <p class="wc-stc-product-settings-subtitle">
+                <?php echo esc_html_x( 'Customs', 'shipments', 'shiptastic-for-woocommerce' ); ?>
+                <?php if ( $help_link = apply_filters( 'woocommerce_shiptastic_product_customs_settings_help_link', '' ) ) : ?>
+                    <a class="page-title-action" href="<?php echo esc_url( $help_link ); ?>"><?php echo esc_html_x( 'Help', 'shipments', 'shiptastic-for-woocommerce' ); ?></a>
+                <?php endif; ?>
+            </p>
+
+			<?php woocommerce_wp_text_input(
+				array(
+					'id'          => '_customs_description',
+					'label'       => _x( 'Description', 'shipments', 'shiptastic-for-woocommerce' ),
+					'desc_tip'    => true,
+					'description' => _x( 'Choose a description to be used for customs documents, e.g. CN23 form.', 'shipments', 'shiptastic-for-woocommerce' ),
+					'value'       => $shipments_product->get_customs_description( 'edit' ),
+				)
+			);
+		endif;
+		?>
+
+		<?php
+		if ( $needs_customs_fields ) :
+			woocommerce_wp_text_input(
+				array(
+					'id'          => '_hs_code',
+					'label'       => _x( 'HS-Code', 'shipments', 'shiptastic-for-woocommerce' ),
+					'desc_tip'    => true,
+					'description' => _x( 'The HS Code is a number assigned to every possible commodity that can be imported or exported from any country.', 'shipments', 'shiptastic-for-woocommerce' ),
+					'value'       => $shipments_product->get_hs_code( 'edit' ),
+				)
+			);
+		endif;
+		?>
+
+		<?php
+		if ( $needs_customs_fields ) :
+			woocommerce_wp_select(
+				array(
+					'options'     => $countries,
+					'id'          => '_manufacture_country',
+					'label'       => _x( 'Country of manufacture', 'shipments', 'shiptastic-for-woocommerce' ),
+					'desc_tip'    => true,
+					'description' => _x( 'The country of manufacture is needed for customs of international shipping.', 'shipments', 'shiptastic-for-woocommerce' ),
+					'value'       => $shipments_product->get_manufacture_country( 'edit' ),
+				)
+			);
+		endif;
 
 		woocommerce_wp_text_input(
 			array(
@@ -1158,17 +1202,6 @@ class Admin {
 				'desc_tip'    => true,
 				'description' => _x( 'The Manufacturer Identification Code (MID) is a standardized alphanumeric identifier created by the CBP. It serves as a unique “fingerprint” for the foreign manufacturer, producer, or exporter of the goods being imported into the U.S.', 'shipments', 'shiptastic-for-woocommerce' ),
 				'value'       => $shipments_product->get_mid_code( 'edit' ),
-			)
-		);
-
-		woocommerce_wp_select(
-			array(
-				'options'     => $countries,
-				'id'          => '_manufacture_country',
-				'label'       => _x( 'Country of manufacture', 'shipments', 'shiptastic-for-woocommerce' ),
-				'desc_tip'    => true,
-				'description' => _x( 'The country of manufacture is needed for customs of international shipping.', 'shipments', 'shiptastic-for-woocommerce' ),
-				'value'       => $shipments_product->get_manufacture_country( 'edit' ),
 			)
 		);
 
@@ -1196,10 +1229,16 @@ class Admin {
 	public static function save_product( $product ) {
 		$shipments_product = wc_shiptastic_get_product( $product );
 
-		$shipments_product->set_hs_code( isset( $_POST['_hs_code'] ) ? wc_clean( wp_unslash( $_POST['_hs_code'] ) ) : '' ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
+		if ( self::needs_customs_fields( $product ) ) {
+			$shipments_product->set_hs_code( isset( $_POST['_hs_code'] ) ? wc_clean( wp_unslash( $_POST['_hs_code'] ) ) : '' ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
+			$shipments_product->set_customs_description( isset( $_POST['_customs_description'] ) ? wc_clean( wp_unslash( $_POST['_customs_description'] ) ) : '' ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
+			$shipments_product->set_manufacture_country( isset( $_POST['_manufacture_country'] ) ? wc_clean( wp_unslash( $_POST['_manufacture_country'] ) ) : '' ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
+		} else {
+			$product->delete_meta_data( '_hs_code' );
+			$product->delete_meta_data( '_manufacture_country' );
+		}
+
 		$shipments_product->set_mid_code( isset( $_POST['_mid_code'] ) ? wc_clean( wp_unslash( $_POST['_mid_code'] ) ) : '' ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
-		$shipments_product->set_customs_description( isset( $_POST['_customs_description'] ) ? wc_clean( wp_unslash( $_POST['_customs_description'] ) ) : '' ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
-		$shipments_product->set_manufacture_country( isset( $_POST['_manufacture_country'] ) ? wc_clean( wp_unslash( $_POST['_manufacture_country'] ) ) : '' ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
 		$shipments_product->set_is_non_returnable( isset( $_POST['_is_non_returnable'] ) ? wc_clean( wp_unslash( $_POST['_is_non_returnable'] ) ) : '' ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
 		$shipments_product->set_ship_separately_via( isset( $_POST['_ship_separately_via'] ) ? wc_clean( wp_unslash( $_POST['_ship_separately_via'] ) ) : array() ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
 
