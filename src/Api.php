@@ -35,7 +35,7 @@ class Api {
 		if ( $product = wc_get_product( $product_object ) ) {
 			$context = ! empty( $request['context'] ) ? $request['context'] : 'view';
 
-			$response->set_data( array_merge_recursive( $response->data, self::get_product_data( $product, $context ) ) );
+			$response->set_data( array_replace_recursive( $response->data, self::get_product_data( $product, $context ) ) );
 		}
 
 		return $response;
@@ -45,9 +45,13 @@ class Api {
 		$data = array();
 
 		if ( $shipments_product = wc_shiptastic_get_product( $product ) ) {
-			$data['hs_code']             = $shipments_product->get_hs_code( $context );
-			$data['mid_code']            = $shipments_product->get_mid_code( $context );
-			$data['customs_description'] = $shipments_product->get_customs_description( $context );
+			$data['hs_code']  = $shipments_product->get_hs_code( $context );
+			$data['mid_code'] = $shipments_product->get_mid_code( $context );
+
+			if ( ! is_callable( array( $product, 'get_customs_description' ) ) ) {
+				$data['customs_description'] = $shipments_product->get_customs_description( $context );
+			}
+
 			$data['manufacture_country'] = $shipments_product->get_manufacture_country( $context );
 			$data['shipping_weight']     = $shipments_product->get_shipping_weight( $context );
 			$data['shipping_dimensions'] = array(

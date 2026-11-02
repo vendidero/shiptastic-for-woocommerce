@@ -93,9 +93,6 @@ class Package {
 		add_filter( 'woocommerce_product_get_customs_commodity_code', array( __CLASS__, 'add_customs_commodity_code_fallback' ), 10, 2 );
 		add_filter( 'woocommerce_product_variation_get_customs_commodity_code', array( __CLASS__, 'add_customs_commodity_code_fallback' ), 10, 2 );
 
-		add_filter( 'woocommerce_product_get_customs_description', array( __CLASS__, 'add_customs_description_fallback' ), 10, 2 );
-		add_filter( 'woocommerce_product_variation_get_customs_description', array( __CLASS__, 'add_customs_description_fallback' ), 10, 2 );
-
 		add_filter( 'woocommerce_product_get_customs_country_of_origin', array( __CLASS__, 'add_customs_country_of_origin_fallback' ), 10, 2 );
 		add_filter( 'woocommerce_product_variation_get_customs_country_of_origin', array( __CLASS__, 'add_customs_country_of_origin_fallback' ), 10, 2 );
 	}
@@ -112,20 +109,6 @@ class Package {
 		}
 
 		return $commodity_code;
-	}
-
-	/**
-	 * @param string $description
-	 * @param \WC_Product $product
-	 *
-	 * @return string
-	 */
-	public static function add_customs_description_fallback( $description, $product ) {
-		if ( empty( $description ) ) {
-			$description = wc_shiptastic_get_product( $product )->get_customs_description( 'edit' );
-		}
-
-		return $description;
 	}
 
 	/**

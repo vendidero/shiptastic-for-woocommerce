@@ -177,7 +177,7 @@ class Product {
 	}
 
 	public function get_customs_description( $context = 'view' ) {
-		return is_callable( $this->product, 'get_customs_description' ) ? $this->product->get_customs_description( $context ) : $this->get_parent_product_if_available()->get_meta( '_customs_description', true, $context );
+		return is_callable( array( $this->product, 'get_customs_description' ) ) ? $this->product->get_customs_description( $context ) : $this->get_parent_product_if_available()->get_meta( '_customs_description', true, $context );
 	}
 
 	public function is_non_returnable( $context = 'view' ) {

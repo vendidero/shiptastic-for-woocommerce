@@ -1147,15 +1147,16 @@ class Admin {
 		);
 
 		if ( $needs_customs_fields ) :
-            ?>
-            <p class="wc-stc-product-settings-subtitle">
-                <?php echo esc_html_x( 'Customs', 'shipments', 'shiptastic-for-woocommerce' ); ?>
-                <?php if ( $help_link = apply_filters( 'woocommerce_shiptastic_product_customs_settings_help_link', '' ) ) : ?>
-                    <a class="page-title-action" href="<?php echo esc_url( $help_link ); ?>"><?php echo esc_html_x( 'Help', 'shipments', 'shiptastic-for-woocommerce' ); ?></a>
-                <?php endif; ?>
-            </p>
+			?>
+			<p class="wc-stc-product-settings-subtitle">
+				<?php echo esc_html_x( 'Customs', 'shipments', 'shiptastic-for-woocommerce' ); ?>
+				<?php if ( $help_link = apply_filters( 'woocommerce_shiptastic_product_customs_settings_help_link', '' ) ) : ?>
+					<a class="page-title-action" href="<?php echo esc_url( $help_link ); ?>"><?php echo esc_html_x( 'Help', 'shipments', 'shiptastic-for-woocommerce' ); ?></a>
+				<?php endif; ?>
+			</p>
 
-			<?php woocommerce_wp_text_input(
+			<?php
+			woocommerce_wp_text_input(
 				array(
 					'id'          => '_customs_description',
 					'label'       => _x( 'Description', 'shipments', 'shiptastic-for-woocommerce' ),
