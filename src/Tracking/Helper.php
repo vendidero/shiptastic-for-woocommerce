@@ -11,7 +11,7 @@ defined( 'ABSPATH' ) || exit;
 class Helper {
 
 	public static function init() {
-		add_action( 'init', array( __CLASS__, 'setup_recurring_actions' ), 10 );
+		add_action( 'action_scheduler_ensure_recurring_actions', array( __CLASS__, 'setup_recurring_actions' ) );
 		add_action( 'woocommerce_shiptastic_shipments_tracking', array( __CLASS__, 'init_batch_tracking' ) );
 		add_action( 'woocommerce_shiptastic_shipments_tracking_single_run', array( __CLASS__, 'init_single_run' ) );
 		add_action( 'woocommerce_shiptastic_shipments_tracking_track', array( __CLASS__, 'track' ) );
@@ -265,17 +265,21 @@ class Helper {
 	}
 
 	public static function setup_recurring_actions() {
-		if ( $queue = self::get_queue() ) {
-			if ( null === $queue->get_next( 'woocommerce_shiptastic_shipments_tracking', array(), 'woocommerce_shiptastic_tracking' ) ) {
-				$timestamp = strtotime( 'now' );
+		// Check if Action Scheduler is available.
+		if ( ! function_exists( 'as_schedule_recurring_action' ) || ! function_exists( 'as_schedule_single_action' ) ) {
+			return;
+		}
 
-				$queue->cancel_all( 'woocommerce_shiptastic_shipments_tracking', array(), 'woocommerce_shiptastic_tracking' );
+		$tracking_interval         = absint( apply_filters( 'woocommerce_shiptastic_shipments_tracking_interval_in_seconds', HOUR_IN_SECONDS * 4 ) );
+		$current_tracking_interval = absint( get_option( 'woocommerce_shiptastic_shipments_tracking_interval', HOUR_IN_SECONDS * 4 ) );
 
-				$tracking_hour   = apply_filters( 'woocommerce_shiptastic_shipments_tracking_cron_hour', '20' );
-				$tracking_minute = apply_filters( 'woocommerce_shiptastic_shipments_tracking_cron_minute', '0' );
+		if ( $current_tracking_interval !== $tracking_interval ) {
+			as_unschedule_all_actions( 'woocommerce_shiptastic_shipments_tracking' );
+			update_option( 'woocommerce_shiptastic_shipments_tracking_interval', $tracking_interval, false );
+		}
 
-				$queue->schedule_cron( $timestamp, "{$tracking_minute} {$tracking_hour} * * *", 'woocommerce_shiptastic_shipments_tracking', array(), 'woocommerce_shiptastic_tracking' );
-			}
+		if ( ! as_has_scheduled_action( 'woocommerce_shiptastic_shipments_tracking' ) ) {
+			as_schedule_recurring_action( time() + wp_rand( 10, 300 ), $tracking_interval, 'woocommerce_shiptastic_shipments_tracking', array(), 'woocommerce_shiptastic_tracking', true );
 		}
 	}
 }

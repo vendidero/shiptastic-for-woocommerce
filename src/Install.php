@@ -54,6 +54,8 @@ class Install {
 			do_action( 'woocommerce_flush_rewrite_rules' );
 		}
 
+		\Vendidero\Shiptastic\Tracking\Helper::setup_recurring_actions();
+
 		do_action( 'shiptastic_installed' );
 	}
 
@@ -99,6 +101,10 @@ class Install {
 	private static function update( $db_version ) {
 		if ( version_compare( $db_version, '5.0.0', '<' ) ) {
 			update_option( 'woocommerce_shiptastic_allow_customer_self_arranged_returns', 'no' );
+		}
+
+		if ( version_compare( $db_version, '5.1.7', '<' ) && function_exists( 'as_unschedule_all_actions' ) ) {
+			as_unschedule_all_actions( 'woocommerce_shiptastic_shipments_tracking' );
 		}
 	}
 

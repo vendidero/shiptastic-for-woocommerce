@@ -16,6 +16,8 @@ class ShipmentStatus {
 
 	protected $is_in_transit = false;
 
+	protected $is_out_for_delivery = false;
+
 	protected $last_updated = null;
 
 	protected $delivered_at = null;
@@ -49,6 +51,7 @@ class ShipmentStatus {
 				'status_description'    => '',
 				'is_delivered'          => false,
 				'is_in_transit'         => false,
+				'is_out_for_delivery'   => false,
 				'last_updated'          => null,
 				'delivered_at'          => null,
 				'estimated_delivery_at' => null,
@@ -103,6 +106,10 @@ class ShipmentStatus {
 
 	public function set_is_in_transit( $is_in_transit ) {
 		$this->is_in_transit = wc_string_to_bool( $is_in_transit );
+	}
+
+	public function set_is_out_for_delivery( $is_out_for_delivery ) {
+		$this->is_out_for_delivery = wc_string_to_bool( $is_out_for_delivery );
 	}
 
 	/**
@@ -226,6 +233,57 @@ class ShipmentStatus {
 		return true === $this->get_is_in_transit();
 	}
 
+	public function get_is_out_for_delivery() {
+		return $this->is_out_for_delivery;
+	}
+
+	/**
+	 * Whether the carrier explicitly reported the shipment as being out for delivery,
+	 * e.g. loaded onto the delivery vehicle.
+	 *
+	 * @return bool
+	 */
+	public function is_out_for_delivery() {
+		return true === $this->get_is_out_for_delivery() && ! $this->is_delivered();
+	}
+
+	/**
+	 * Whether the shipment is expected to arrive today. Uses the carrier's out for delivery flag
+	 * and falls back to checking the estimated delivery date for carriers which do not provide the flag.
+	 *
+	 * @return bool
+	 */
+	public function is_expected_today() {
+		$is_expected_today = false;
+
+		if ( ! $this->is_delivered() ) {
+			$today = current_datetime()->format( 'Y-m-d' );
+
+			/**
+			 * Make sure an out for delivery status from a previous day (e.g. failed delivery without a follow-up event) is not treated as arriving today.
+			 */
+			if ( $this->is_out_for_delivery() && ( ! $this->get_last_updated() || $today === $this->get_local_date( $this->get_last_updated() ) ) ) {
+				$is_expected_today = true;
+			} elseif ( $estimated_delivery_at = $this->get_estimated_delivery_at() ) {
+				$is_expected_today = $today === $this->get_local_date( $estimated_delivery_at );
+			}
+		}
+
+		return apply_filters( 'shiptastic_shipment_status_is_expected_today', $is_expected_today, $this );
+	}
+
+	/**
+	 * @param \WC_DateTime $datetime
+	 *
+	 * @return string
+	 */
+	protected function get_local_date( $datetime ) {
+		$datetime = clone $datetime;
+		$datetime->setTimezone( wp_timezone() );
+
+		return $datetime->format( 'Y-m-d' );
+	}
+
 	/**
 	 * @return null|\WC_DateTime
 	 */
@@ -284,6 +342,7 @@ class ShipmentStatus {
 			'status_description'    => $this->get_status_description(),
 			'is_delivered'          => wc_bool_to_string( $this->get_is_delivered() ),
 			'is_in_transit'         => wc_bool_to_string( $this->get_is_in_transit() ),
+			'is_out_for_delivery'   => wc_bool_to_string( $this->get_is_out_for_delivery() ),
 			'last_updated'          => $this->get_last_updated() ? $this->get_last_updated()->getTimestamp() : null,
 			'delivered_at'          => $this->get_delivered_at() ? $this->get_delivered_at()->getTimestamp() : null,
 			'estimated_delivery_at' => $this->get_estimated_delivery_at() ? $this->get_estimated_delivery_at()->getTimestamp() : null,

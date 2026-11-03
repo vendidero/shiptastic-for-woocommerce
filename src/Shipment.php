@@ -959,6 +959,10 @@ abstract class Shipment extends WC_Data {
 			$this->set_status( 'shipped' );
 		}
 
+		if ( $est_delivery_date = $status->get_estimated_delivery_at() ) {
+			$this->set_est_delivery_date( $est_delivery_date->getTimestamp() );
+		}
+
 		Package::log( "Refreshing shipment #{$this->get_id()} remote status:", 'info', 'tracking' );
 		Package::log( wc_print_r( $status->get_data(), true ), 'info', 'tracking' );
 

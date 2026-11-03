@@ -27,7 +27,7 @@ class ReportHelper {
 		}
 
 		// Setup or cancel recurring tasks
-		add_action( 'init', array( __CLASS__, 'setup_recurring_actions' ), 10 );
+		add_action( 'action_scheduler_ensure_recurring_actions', array( __CLASS__, 'setup_recurring_actions' ) );
 		add_action( 'woocommerce_shiptastic_daily_cleanup', array( __CLASS__, 'cleanup' ), 10 );
 
 		add_action( 'admin_menu', array( __CLASS__, 'add_page' ), 25 );
