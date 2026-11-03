@@ -66,6 +66,7 @@ class ShipmentQuery extends WC_Object_Query {
 			'offset'            => '',
 			'paginate'          => false,
 			'has_tracking'      => '',
+			'tracking_due'      => '',
 			'search'            => '',
 			'search_columns'    => array(),
 			'meta_query'        => array(), // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query
@@ -196,6 +197,10 @@ class ShipmentQuery extends WC_Object_Query {
 
 		if ( ! empty( $this->args['has_tracking'] ) ) {
 			$this->args['has_tracking'] = wc_string_to_bool( $this->args['has_tracking'] );
+		}
+
+		if ( ! empty( $this->args['tracking_due'] ) ) {
+			$this->args['tracking_due'] = absint( $this->args['tracking_due'] );
 		}
 
 		if ( isset( $this->args['parent_id'] ) ) {
@@ -332,6 +337,11 @@ class ShipmentQuery extends WC_Object_Query {
 			} else {
 				$this->query_where .= ' AND (shipment_tracking_id IS NULL OR shipment_tracking_id = "")';
 			}
+		}
+
+		// Shipments which have not been tracked yet or are due for tracking (timestamp)
+		if ( ! empty( $this->args['tracking_due'] ) ) {
+			$this->query_where .= $wpdb->prepare( ' AND (shipment_next_tracking_date_gmt IS NULL OR shipment_next_tracking_date_gmt <= %s)', gmdate( 'Y-m-d H:i:s', $this->args['tracking_due'] ) );
 		}
 
 		// parent id

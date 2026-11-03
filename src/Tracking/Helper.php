@@ -170,14 +170,29 @@ class Helper {
 
 					if ( ! empty( $shipments ) ) {
 						$statuses = $provider->get_remote_status_for_shipments( $shipments );
+						$updated  = array();
 
 						Package::log( sprintf( 'Retrieved %d %s remote statuses:', count( $statuses ), $provider->get_title() ), 'info', 'tracking' );
 
-						foreach ( $statuses as $status ) {
-							if ( $shipment = $status->get_shipment() ) {
-								Package::log( wc_print_r( $status->get_data(), true ), 'info', 'tracking' );
+						if ( is_array( $statuses ) ) {
+							foreach ( $statuses as $status ) {
+								if ( $shipment = $status->get_shipment() ) {
+									Package::log( wc_print_r( $status->get_data(), true ), 'info', 'tracking' );
 
-								$shipment->update_remote_status( $status );
+									if ( $shipment->update_remote_status( $status ) ) {
+										$updated[] = $shipment->get_id();
+									}
+								}
+							}
+						}
+
+						/**
+						 * Schedule the next check for shipments without changes (or without a remote status).
+						 * Updated shipments already received their next tracking date while saving the new remote status.
+						 */
+						foreach ( $shipments as $shipment ) {
+							if ( ! in_array( $shipment->get_id(), $updated, true ) ) {
+								$shipment->get_data_store()->update_next_tracking_date( $shipment, self::get_next_tracking_date( $shipment ) );
 							}
 						}
 					}
@@ -187,6 +202,8 @@ class Helper {
 	}
 
 	public static function init_batch_tracking() {
+		$supported_providers = array();
+
 		foreach ( \Vendidero\Shiptastic\ShippingProvider\Helper::instance()->get_available_shipping_providers() as $provider ) {
 			if ( is_a( $provider, 'Vendidero\Shiptastic\Interfaces\ShippingProviderAuto' ) ) {
 				if ( $provider->supports_remote_shipment_status( 'pull' ) && $provider->enable_remote_shipment_status_update( 'pull' ) ) {
@@ -196,6 +213,27 @@ class Helper {
 		}
 
 		if ( ! empty( $supported_providers ) ) {
+			/**
+			 * Skip the run (e.g. during the night) in case none of the tracking hours
+			 * has passed since the last run. A missing last run leads to the run being executed.
+			 */
+			$cur_time = time();
+			$last_run = absint( get_option( 'woocommerce_shiptastic_shipments_tracking_last_run', 0 ) );
+
+			update_option( 'woocommerce_shiptastic_shipments_tracking_last_run', $cur_time, false );
+
+			if ( $last_run > 0 && $last_run < $cur_time ) {
+				$all_hours = array();
+
+				foreach ( self::get_tracking_hours() as $hours ) {
+					$all_hours = array_merge( $all_hours, (array) $hours );
+				}
+
+				if ( ! self::has_tracking_hour_between( $all_hours, max( $last_run, $cur_time - DAY_IN_SECONDS ), $cur_time ) ) {
+					return;
+				}
+			}
+
 			foreach ( $supported_providers as $provider ) {
 				$cutoff_date = new \WC_DateTime( 'now' );
 				$cutoff_date->modify( '-4 weeks' );
@@ -212,6 +250,7 @@ class Helper {
 						'order'             => 'ASC',
 						'status'            => array( 'shipped', 'ready-for-shipping' ),
 						'date_created'      => '>=' . $cutoff_date->getTimestamp(),
+						'tracking_due'      => $cur_time,
 						'paginate'          => true,
 						'count_total'       => true,
 						'offset'            => 0,
@@ -224,7 +263,6 @@ class Helper {
 
 				$total                = $query->get_total();
 				$pages                = ceil( $total / $per_batch_run );
-				$cur_time             = time();
 				$timeout_between_runs = 50;
 				$max_exec_time        = $cur_time + ( ( $pages - 1 ) * $timeout_between_runs );
 
@@ -260,6 +298,129 @@ class Helper {
 		}
 	}
 
+	/**
+	 * Returns the tracking hours (site time) per tracking tier.
+	 *
+	 * @return int[][]
+	 */
+	public static function get_tracking_hours() {
+		return apply_filters(
+			'woocommerce_shiptastic_shipments_tracking_hours',
+			array(
+				'expected_today'  => range( 6, 21 ),
+				'in_transit'      => array( 6, 10, 14, 18, 22 ),
+				'awaiting_pickup' => array( 6, 18 ),
+				'stale'           => array( 6 ),
+			)
+		);
+	}
+
+	/**
+	 * Determines the tracking tier of a shipment based on its last remote status.
+	 *
+	 * @param Shipment $shipment
+	 *
+	 * @return string
+	 */
+	public static function get_tracking_tier( $shipment ) {
+		$status      = $shipment->get_last_remote_status();
+		$stale_after = absint( apply_filters( 'woocommerce_shiptastic_shipments_tracking_stale_after_in_seconds', WEEK_IN_SECONDS ) );
+		$last_change = $status && $status->get_last_updated() ? $status->get_last_updated() : $shipment->get_date_created();
+
+		if ( $status && $status->is_expected_today() ) {
+			$tier = 'expected_today';
+		} elseif ( $last_change && ( time() - $last_change->getTimestamp() ) > $stale_after ) {
+			$tier = 'stale';
+		} elseif ( ! $status || ! $status->is_in_transit() ) {
+			$tier = 'awaiting_pickup';
+		} else {
+			$tier = 'in_transit';
+		}
+
+		return apply_filters( 'woocommerce_shiptastic_shipment_tracking_tier', $tier, $shipment );
+	}
+
+	/**
+	 * Determines the next date (next tracking hour of the shipment's tracking tier) the remote status should be checked.
+	 *
+	 * @param Shipment $shipment
+	 * @param int|null $after Timestamp, defaults to now.
+	 *
+	 * @return \WC_DateTime
+	 */
+	public static function get_next_tracking_date( $shipment, $after = null ) {
+		$after          = is_null( $after ) ? time() : absint( $after );
+		$tracking_hours = self::get_tracking_hours();
+		$tier           = self::get_tracking_tier( $shipment );
+		$fallback       = array_key_exists( 'in_transit', $tracking_hours ) ? (array) $tracking_hours['in_transit'] : array();
+		$hours          = array_key_exists( $tier, $tracking_hours ) ? (array) $tracking_hours[ $tier ] : $fallback;
+		$next           = null;
+
+		if ( ! empty( $hours ) ) {
+			$day = new \DateTime( "@{$after}" );
+			$day->setTimezone( wp_timezone() );
+			$day->setTime( 0, 0 );
+
+			// Today and tomorrow are sufficient as every hour exists at least once within that range.
+			for ( $i = 0; $i < 2; $i++ ) {
+				foreach ( $hours as $hour ) {
+					$slot = clone $day;
+					$slot->setTime( absint( $hour ), 0 );
+
+					if ( $slot->getTimestamp() > $after && ( is_null( $next ) || $slot->getTimestamp() < $next ) ) {
+						$next = $slot->getTimestamp();
+					}
+				}
+
+				$day->modify( '+1 day' );
+			}
+		}
+
+		/**
+		 * Re-evaluate the shipment daily in case no tracking hours are configured for its tier.
+		 */
+		if ( is_null( $next ) ) {
+			$next = $after + DAY_IN_SECONDS;
+		}
+
+		$next_date = new \WC_DateTime( "@{$next}" );
+		$next_date->setTimezone( new \DateTimeZone( 'UTC' ) );
+
+		return apply_filters( 'woocommerce_shiptastic_shipment_next_tracking_date', $next_date, $shipment, $after );
+	}
+
+	/**
+	 * @param int[] $hours Hours (0-23) in site time
+	 * @param int $start Timestamp (exclusive)
+	 * @param int $end Timestamp (inclusive)
+	 *
+	 * @return bool
+	 */
+	protected static function has_tracking_hour_between( $hours, $start, $end ) {
+		$timezone = wp_timezone();
+		$day      = new \DateTime( "@{$start}" );
+		$last_day = new \DateTime( "@{$end}" );
+
+		$day->setTimezone( $timezone );
+		$day->setTime( 0, 0 );
+		$last_day->setTimezone( $timezone );
+
+		while ( $day <= $last_day ) {
+			foreach ( $hours as $hour ) {
+				$slot = clone $day;
+				$slot->setTime( absint( $hour ), 0 );
+
+				if ( $slot->getTimestamp() > $start && $slot->getTimestamp() <= $end ) {
+					return true;
+				}
+			}
+
+			$day->modify( '+1 day' );
+		}
+
+		return false;
+	}
+
 	protected static function get_queue() {
 		return function_exists( 'WC' ) ? WC()->queue() : false;
 	}
@@ -270,8 +431,12 @@ class Helper {
 			return;
 		}
 
-		$tracking_interval         = absint( apply_filters( 'woocommerce_shiptastic_shipments_tracking_interval_in_seconds', HOUR_IN_SECONDS * 4 ) );
-		$current_tracking_interval = absint( get_option( 'woocommerce_shiptastic_shipments_tracking_interval', HOUR_IN_SECONDS * 4 ) );
+		/**
+		 * The interval in which due shipments are determined. Which shipments are actually tracked
+		 * during a run depends on the shipment's tracking hours, see Helper::get_tracking_hours().
+		 */
+		$tracking_interval         = max( 1, absint( apply_filters( 'woocommerce_shiptastic_shipments_tracking_interval_in_seconds', HOUR_IN_SECONDS ) ) );
+		$current_tracking_interval = absint( get_option( 'woocommerce_shiptastic_shipments_tracking_interval', HOUR_IN_SECONDS ) );
 
 		if ( $current_tracking_interval !== $tracking_interval ) {
 			as_unschedule_all_actions( 'woocommerce_shiptastic_shipments_tracking' );
@@ -279,7 +444,10 @@ class Helper {
 		}
 
 		if ( ! as_has_scheduled_action( 'woocommerce_shiptastic_shipments_tracking' ) ) {
-			as_schedule_recurring_action( time() + wp_rand( 10, 300 ), $tracking_interval, 'woocommerce_shiptastic_shipments_tracking', array(), 'woocommerce_shiptastic_tracking', true );
+			// Start at the next full hour (plus some random minutes to spread API requests) to run shortly after the tracking hours.
+			$next_full_hour = ( (int) floor( time() / HOUR_IN_SECONDS ) + 1 ) * HOUR_IN_SECONDS;
+
+			as_schedule_recurring_action( $next_full_hour + wp_rand( 2, 15 ) * MINUTE_IN_SECONDS, $tracking_interval, 'woocommerce_shiptastic_shipments_tracking', array(), 'woocommerce_shiptastic_tracking', true );
 		}
 	}
 }

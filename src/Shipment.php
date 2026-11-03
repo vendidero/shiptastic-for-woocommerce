@@ -184,6 +184,7 @@ abstract class Shipment extends WC_Data {
 		'subtotal'                        => 0,
 		'additional_total'                => 0,
 		'est_delivery_date'               => null,
+		'next_tracking_date'              => null,
 		'packaging_id'                    => 0,
 		'version'                         => '',
 		'is_locked'                       => false,
@@ -972,6 +973,7 @@ abstract class Shipment extends WC_Data {
 		array_unshift( $all_events, $status->get_data() );
 
 		$this->set_remote_status_events( $all_events );
+		$this->set_next_tracking_date( \Vendidero\Shiptastic\Tracking\Helper::get_next_tracking_date( $this ) );
 		$this->save();
 
 		return true;
@@ -2118,6 +2120,17 @@ abstract class Shipment extends WC_Data {
 	}
 
 	/**
+	 * Return the date the remote status of this shipment should be checked next.
+	 * Null indicates that the shipment has not yet been checked.
+	 *
+	 * @param  string $context What the value is for. Valid values are 'view' and 'edit'.
+	 * @return WC_DateTime|null object if the date is set or null if there is no date.
+	 */
+	public function get_next_tracking_date( $context = 'view' ) {
+		return $this->get_prop( 'next_tracking_date', $context );
+	}
+
+	/**
 	 * Decides whether the shipment is sent to an external pickup or not.
 	 *
 	 * @param string[]|string $types
@@ -2547,6 +2560,15 @@ abstract class Shipment extends WC_Data {
 	 */
 	public function set_est_delivery_date( $date = null ) {
 		$this->set_date_prop( 'est_delivery_date', $date );
+	}
+
+	/**
+	 * Set the date the remote status of this shipment should be checked next.
+	 *
+	 * @param  string|integer|null $date UTC timestamp, or ISO 8601 DateTime. If the DateTime string has no timezone or offset, WordPress site timezone will be assumed. Null if their is no date.
+	 */
+	public function set_next_tracking_date( $date = null ) {
+		$this->set_date_prop( 'next_tracking_date', $date );
 	}
 
 	/**

@@ -69,6 +69,7 @@ class Shipment extends WC_Data_Store_WP implements WC_Object_Data_Store_Interfac
 		'date_sent_gmt',
 		'est_delivery_date',
 		'est_delivery_date_gmt',
+		'next_tracking_date',
 		'status',
 		'shipping_provider',
 		'shipping_method',
@@ -130,6 +131,10 @@ class Shipment extends WC_Data_Store_WP implements WC_Object_Data_Store_Interfac
 		if ( is_callable( array( $shipment, 'get_est_delivery_date' ) ) && $shipment->get_est_delivery_date() ) {
 			$data['shipment_est_delivery_date']     = gmdate( 'Y-m-d H:i:s', $shipment->get_est_delivery_date( 'edit' )->getOffsetTimestamp() );
 			$data['shipment_est_delivery_date_gmt'] = gmdate( 'Y-m-d H:i:s', $shipment->get_est_delivery_date( 'edit' )->getTimestamp() );
+		}
+
+		if ( is_callable( array( $shipment, 'get_next_tracking_date' ) ) && $shipment->get_next_tracking_date( 'edit' ) ) {
+			$data['shipment_next_tracking_date_gmt'] = gmdate( 'Y-m-d H:i:s', $shipment->get_next_tracking_date( 'edit' )->getTimestamp() );
 		}
 
 		$wpdb->insert(
@@ -237,6 +242,12 @@ class Shipment extends WC_Data_Store_WP implements WC_Object_Data_Store_Interfac
 			}
 		}
 
+		// Tracking id has changed - make sure the new tracking id is checked during the next tracking run
+		if ( in_array( 'tracking_id', $changed_props, true ) && ! in_array( 'next_tracking_date', $changed_props, true ) ) {
+			$shipment->set_next_tracking_date( null );
+			$changed_props[] = 'next_tracking_date';
+		}
+
 		foreach ( $changed_props as $prop ) {
 			if ( ! in_array( $prop, $core_props, true ) ) {
 				continue;
@@ -252,6 +263,11 @@ class Shipment extends WC_Data_Store_WP implements WC_Object_Data_Store_Interfac
 				case 'est_delivery_date':
 					if ( is_callable( array( $shipment, 'get_' . $prop ) ) ) {
 						$shipment_data[ 'shipment_' . $prop ]          = $shipment->{'get_' . $prop}( 'edit' ) ? gmdate( 'Y-m-d H:i:s', $shipment->{'get_' . $prop}( 'edit' )->getOffsetTimestamp() ) : null;
+						$shipment_data[ 'shipment_' . $prop . '_gmt' ] = $shipment->{'get_' . $prop}( 'edit' ) ? gmdate( 'Y-m-d H:i:s', $shipment->{'get_' . $prop}( 'edit' )->getTimestamp() ) : null;
+					}
+					break;
+				case 'next_tracking_date':
+					if ( is_callable( array( $shipment, 'get_' . $prop ) ) ) {
 						$shipment_data[ 'shipment_' . $prop . '_gmt' ] = $shipment->{'get_' . $prop}( 'edit' ) ? gmdate( 'Y-m-d H:i:s', $shipment->{'get_' . $prop}( 'edit' )->getTimestamp() ) : null;
 					}
 					break;
@@ -349,19 +365,20 @@ class Shipment extends WC_Data_Store_WP implements WC_Object_Data_Store_Interfac
 		if ( $data ) {
 			$shipment->set_props(
 				array(
-					'order_id'          => $data->shipment_order_id,
-					'parent_id'         => $data->shipment_parent_id,
-					'country'           => $data->shipment_country,
-					'tracking_id'       => $data->shipment_tracking_id,
-					'shipping_provider' => $data->shipment_shipping_provider,
-					'shipping_method'   => $data->shipment_shipping_method,
-					'packaging_id'      => $data->shipment_packaging_id,
-					'date_created'      => Package::is_valid_mysql_date( $data->shipment_date_created_gmt ) ? wc_string_to_timestamp( $data->shipment_date_created_gmt ) : null,
-					'date_modified'     => Package::is_valid_mysql_date( $data->shipment_date_modified_gmt ) ? wc_string_to_timestamp( $data->shipment_date_modified_gmt ) : null,
-					'date_sent'         => Package::is_valid_mysql_date( $data->shipment_date_sent_gmt ) ? wc_string_to_timestamp( $data->shipment_date_sent_gmt ) : null,
-					'est_delivery_date' => Package::is_valid_mysql_date( $data->shipment_est_delivery_date_gmt ) ? wc_string_to_timestamp( $data->shipment_est_delivery_date_gmt ) : null,
-					'status'            => $this->parse_status( $data->shipment_status ),
-					'version'           => $data->shipment_version,
+					'order_id'           => $data->shipment_order_id,
+					'parent_id'          => $data->shipment_parent_id,
+					'country'            => $data->shipment_country,
+					'tracking_id'        => $data->shipment_tracking_id,
+					'shipping_provider'  => $data->shipment_shipping_provider,
+					'shipping_method'    => $data->shipment_shipping_method,
+					'packaging_id'       => $data->shipment_packaging_id,
+					'date_created'       => Package::is_valid_mysql_date( $data->shipment_date_created_gmt ) ? wc_string_to_timestamp( $data->shipment_date_created_gmt ) : null,
+					'date_modified'      => Package::is_valid_mysql_date( $data->shipment_date_modified_gmt ) ? wc_string_to_timestamp( $data->shipment_date_modified_gmt ) : null,
+					'date_sent'          => Package::is_valid_mysql_date( $data->shipment_date_sent_gmt ) ? wc_string_to_timestamp( $data->shipment_date_sent_gmt ) : null,
+					'est_delivery_date'  => Package::is_valid_mysql_date( $data->shipment_est_delivery_date_gmt ) ? wc_string_to_timestamp( $data->shipment_est_delivery_date_gmt ) : null,
+					'next_tracking_date' => isset( $data->shipment_next_tracking_date_gmt ) && Package::is_valid_mysql_date( $data->shipment_next_tracking_date_gmt ) ? wc_string_to_timestamp( $data->shipment_next_tracking_date_gmt ) : null,
+					'status'             => $this->parse_status( $data->shipment_status ),
+					'version'            => $data->shipment_version,
 				)
 			);
 
@@ -822,6 +839,27 @@ class Shipment extends WC_Data_Store_WP implements WC_Object_Data_Store_Interfac
 			'object_id_field' => $object_id_field,
 			'meta_id_field'   => $meta_id_field,
 		);
+	}
+
+	/**
+	 * Updates the next tracking date only, without triggering a full shipment save (and the corresponding hooks),
+	 * e.g. after a remote status check that did not lead to any changes.
+	 *
+	 * @param \Vendidero\Shiptastic\Shipment $shipment Shipment object.
+	 * @param \WC_DateTime|null $date
+	 *
+	 * @return void
+	 */
+	public function update_next_tracking_date( $shipment, $date ) {
+		global $wpdb;
+
+		$wpdb->update(
+			$wpdb->stc_shipments,
+			array( 'shipment_next_tracking_date_gmt' => $date ? gmdate( 'Y-m-d H:i:s', $date->getTimestamp() ) : null ),
+			array( 'shipment_id' => $shipment->get_id() )
+		);
+
+		$this->clear_caches( $shipment );
 	}
 
 	public function get_query_args( $query_vars ) {

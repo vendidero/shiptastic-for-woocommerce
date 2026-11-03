@@ -77,7 +77,7 @@ We recommend installing Shiptastic for WooCommerce through the WordPress Backend
 = 5.1.7 =
 * Improvement: WC 11.3 introduces its own customs product fields (e.g. hs code). Use those fields, if available, instead of our own
 * Improvement: Update shipment estimated delivery date based on remote status updates
-* Improvement: Run shipment tracking, if available, more regularly (every 4 hours instead of only once per day)
+* Improvement: Run shipment tracking, if available, more regularly based on the shipment status (e.g. hourly for shipments expected today, every 4 hours for shipments in transit)
 
 = 5.1.6 =
 * Improvement: Introduce new shipment status fields (current location, est delivery date, delivery located at, delivery received by)
