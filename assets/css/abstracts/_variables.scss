@@ -1,4 +1,5 @@
-@import "node_modules/@wordpress/base-styles/variables";
+@forward "@wordpress/base-styles/variables";
+@use "@wordpress/base-styles/variables" as *;
 
 // grid-unit from base-styles is 8px.
 $gap-largest:  6 * $grid-unit;		// 48px

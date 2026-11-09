@@ -23,19 +23,19 @@
     "phpunit": "docker-compose up -d db && docker-compose up -d --build wordpress-unit-tests && docker exec -it --workdir /var/www/html/wp-content/plugins/shiptastic-for-woocommerce shiptastic_wordpress_test php ./vendor/bin/phpunit"
   },
   "devDependencies": {
-    "@woocommerce/dependency-extraction-webpack-plugin": "2.3.X",
+    "@woocommerce/dependency-extraction-webpack-plugin": "^5.1.0",
     "@woocommerce/eslint-plugin": "^1.3.0",
+    "@wordpress/base-styles": "^12.1.0",
     "@wordpress/prettier-config": "^2.25.5",
-    "@wordpress/scripts": "^34.0.0",
+    "@wordpress/scripts": "^37.1.0",
     "copy-webpack-plugin": "^14.0.0",
     "css-loader": "^6.11.X",
     "css-minimizer-webpack-plugin": "^8.0.0",
     "ignore-loader": "^0.1.2",
     "mini-css-extract-plugin": "2.7.6",
-    "sass-loader": "^13.3.2",
-    "spectre.css": "*",
+    "sass-loader": "^16.0.8",
     "terser-webpack-plugin": "^5.6.1",
-    "webpack": "^5.109.2",
+    "webpack": "^5.112.2",
     "webpack-bundle-analyzer": "4.9.X",
     "webpack-cli": "5.1.X"
   },
@@ -46,15 +46,24 @@
     "classnames": "2.3.1",
     "config": "3.3.7",
     "dinero.js": "1.9.1",
-    "use-debounce": "9.0.4",
-    "react-number-format": "4.9.3"
+    "react-number-format": "4.9.3",
+    "use-debounce": "9.0.4"
   },
   "peerDependencies": {
     "@wordpress/data": "^10.0.2",
     "react": "18.3.x",
     "react-dom": "18.3.x"
   },
+  "overrides": {
+    "serialize-javascript": "^7.1.4",
+    "markdownlint-cli": "^0.50.0",
+    "minimatch@>=7.0.0 <11.0.1": "^11.0.5",
+    "katex": "^0.18.2",
+    "@woocommerce/dependency-extraction-webpack-plugin": {
+      "@wordpress/dependency-extraction-webpack-plugin": "^7.1.0"
+    }
+  },
   "engines": {
-    "node": "^20.11.1"
+    "node": "^24.22.2"
   }
 }
