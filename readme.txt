@@ -3,7 +3,7 @@ Contributors: vendidero, vdwoocommercesupport
 Tags: shipping, woocommerce, shipments, woo, fulfillment
 Requires at least: 5.4
 Tested up to: 7.2
-Stable tag: 5.1.7
+Stable tag: 5.1.8
 Requires PHP: 5.6
 License: GPLv3
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
@@ -74,6 +74,10 @@ We recommend installing Shiptastic for WooCommerce through the WordPress Backend
 6. Manage returns
 
 == Changelog ==
+= 5.1.8 =
+* Improvement: Pickup location checkout styles
+* Fix: Prevent passing the order object to deferred sync
+
 = 5.1.7 =
 * Improvement: WC 11.3 introduces its own customs product fields (e.g. hs code). Use those fields, if available, instead of our own
 * Improvement: Update shipment estimated delivery date based on remote status updates
