@@ -1,4 +1,11 @@
-@import '../../node_modules/spectre.css/src/variables';
+@use "sass:color";
+
+// Breakpoints
+$size-xs: 480px;
+$size-sm: 600px;
+$size-md: 840px;
+$size-lg: 960px;
+$size-xl: 1280px;
 
 $layout-spacing: 1rem;
 
@@ -1499,7 +1506,7 @@ a.button.wc-stc-shipment-action-button {
       }
 
       &.active > .shipment-header, .shipment-header:hover {
-        background: darken(#f8f8f8, 2%);
+        background: color.adjust(#f8f8f8, $lightness: -2%);
       }
 
       .shipment-content-wrapper {

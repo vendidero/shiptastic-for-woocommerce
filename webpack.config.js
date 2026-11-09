@@ -30,11 +30,15 @@ RemoveFilesPlugin.prototype.apply = function ( compiler ) {
     } );
 };
 
-function findModuleMatch( module, match ) {
+function findModuleMatch( module, match, moduleGraph ) {
     if ( module.request && match.test( module.request ) ) {
         return true;
-    } else if ( module.issuer ) {
-        return findModuleMatch( module.issuer, match );
+    }
+
+    const issuer = moduleGraph.getIssuer( module );
+
+    if ( issuer ) {
+        return findModuleMatch( issuer, match, moduleGraph );
     }
     return false;
 }
@@ -138,6 +142,11 @@ const requestToExternal = ( request ) => {
     if ( wcDepMap[ request ] ) {
         return wcDepMap[ request ];
     }
+
+    // Bundle the JSX runtime as the react-jsx-runtime script handle is only available since WP 6.6.
+    if ( 'react/jsx-runtime' === request ) {
+        return false;
+    }
 };
 
 const requestToHandle = ( request ) => {
@@ -176,7 +185,7 @@ const getBaseConfig = ( entry ) => {
                             loader: 'sass-loader',
                             options: {
                                 sassOptions: {
-                                    includePaths: [ 'assets/css/abstracts' ],
+                                    loadPaths: [ path.resolve( __dirname, 'assets/css' ) ],
                                 },
                                 additionalData: ( content, loaderContext ) => {
                                     const { resourcePath, rootContext } =
@@ -202,10 +211,7 @@ const getBaseConfig = ( entry ) => {
                                         '@use "sass:string";' +
                                         '@use "sass:color";' +
                                         '@use "sass:map";' +
-                                        '@import "_colors"; ' +
-                                        '@import "_variables"; ' +
-                                        '@import "_breakpoints"; ' +
-                                        '@import "_mixins"; ' +
+                                        '@use "abstracts" as *;' +
                                         content
                                     );
                                 },
@@ -295,12 +301,13 @@ const StylingConfig = {
             cacheGroups: {
                 editorStyle: {
                     // Capture all `editor` stylesheets and editor-components stylesheets.
-                    test: ( module = {} ) =>
+                    test: ( module = {}, { moduleGraph } ) =>
                         module.constructor.name === 'CssModule' &&
-                        ( findModuleMatch( module, /editor\.scss$/ ) ||
+                        ( findModuleMatch( module, /editor\.scss$/, moduleGraph ) ||
                             findModuleMatch(
                                 module,
-                                /[\\/]assets[\\/]js[\\/]editor-components[\\/]/
+                                /[\\/]assets[\\/]js[\\/]editor-components[\\/]/,
+                                moduleGraph
                             ) ),
                     name: 'wc-shiptastic-blocks-editor-style',
                     chunks: 'all',

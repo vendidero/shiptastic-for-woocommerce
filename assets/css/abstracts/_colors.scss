@@ -1,4 +1,4 @@
-@import "node_modules/@wordpress/base-styles/colors";
+@forward "@wordpress/base-styles/colors";
 
 $input-border-gray: rgba(17, 17, 17, 0.8);
 $input-border-dark: rgba(255, 255, 255, 0.4);
