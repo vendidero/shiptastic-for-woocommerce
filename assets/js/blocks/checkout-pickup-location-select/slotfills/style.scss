@@ -35,7 +35,7 @@
 
 .wc-shiptastic-pickup-location-delivery {
   h4 {
-    font-size: 1em;
+    font-size: var(--wp--preset--font-size--medium, 22px);
     margin: $gap 0;
   }
 

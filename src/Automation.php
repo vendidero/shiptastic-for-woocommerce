@@ -72,7 +72,7 @@ class Automation {
 	 */
 	public static function after_new_order( $order ) {
 		if ( self::$current_new_order_id === $order->get_id() ) {
-			self::maybe_create_shipments( $order );
+			self::maybe_create_shipments( $order->get_id() );
 
 			remove_action( 'woocommerce_after_order_object_save', array( __CLASS__, 'after_new_order' ), 150 );
 			self::$current_new_order_id = null;
@@ -255,6 +255,16 @@ class Automation {
 	}
 
 	public static function maybe_create_shipments( $order_id, $args = array() ) {
+		if ( is_a( $order_id, 'WC_Order' ) ) {
+			$order_id = $order_id->get_id();
+		}
+
+		$order_id = absint( $order_id );
+
+		if ( empty( $order_id ) ) {
+			return;
+		}
+
 		$args = wp_parse_args(
 			(array) $args,
 			array(
@@ -307,6 +317,15 @@ class Automation {
 	}
 
 	public static function auto_sync_callback( $order_id ) {
+		/**
+		 * Older versions may have queued the order object (JSON-encoded as an array) instead of the id.
+		 */
+		if ( ! is_numeric( $order_id ) ) {
+			return true;
+		}
+
+		$order_id = absint( $order_id );
+
 		/**
 		 * Maybe cancel duplicate deferred syncs.
 		 */

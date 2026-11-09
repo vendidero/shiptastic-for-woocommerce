@@ -22,7 +22,7 @@
     }
     input.components-combobox-control__input {
       @include reset-typography();
-      @include font-size(regular);
+      font-size: 16px;
       padding: em($gap + $gap-smaller) em($gap-smaller) em($gap-smaller);
       line-height: em($gap);
       box-sizing: border-box;
@@ -92,7 +92,7 @@
       }
 
       .components-form-token-field__suggestion {
-        @include font-size(regular);
+        font-size: 16px;
         color: $gray-700;
         cursor: default;
         list-style: none;
@@ -124,7 +124,7 @@
 
     label.components-base-control__label {
       @include reset-typography();
-      @include font-size(regular);
+      font-size: 16px;
       position: absolute;
       transform: translateY(em($gap));
       line-height: 1.25; // =20px when font-size is 16px.
@@ -150,7 +150,7 @@
 
   .wc-block-components-combobox-control:has(input:-webkit-autofill) {
     label {
-      transform: translateY(#{$gap-smallest}) scale(0.75);
+      transform: translateY(#{$gap-smallest}) scale(.82);
     }
   }
 
@@ -158,7 +158,7 @@
   &:focus-within {
     .wc-block-components-combobox-control
     label.components-base-control__label {
-      transform: translateY(#{$gap-smallest}) scale(0.75);
+      transform: translateY(#{$gap-smallest}) scale(.82);
     }
   }
 
