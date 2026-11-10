@@ -18,6 +18,8 @@ defined( 'ABSPATH' ) || exit;
  */
 class Label extends WC_Data_Store_WP implements WC_Object_Data_Store_Interface {
 
+	use MetaCacheTrait;
+
 	protected $core_props = array(
 		'shipment_id',
 		'parent_id',
@@ -248,12 +250,16 @@ class Label extends WC_Data_Store_WP implements WC_Object_Data_Store_Interface {
 	public function read( &$label ) {
 		global $wpdb;
 
-		$data = $wpdb->get_row(
-			$wpdb->prepare(
-				"SELECT * FROM {$wpdb->stc_shipment_labels} WHERE label_id = %d LIMIT 1",
-				$label->get_id()
-			)
-		);
+		$data = $this->get_primed_row( $label->get_id() );
+
+		if ( ! $data ) {
+			$data = $wpdb->get_row(
+				$wpdb->prepare(
+					"SELECT * FROM {$wpdb->stc_shipment_labels} WHERE label_id = %d LIMIT 1",
+					$label->get_id()
+				)
+			);
+		}
 
 		if ( $data ) {
 			$label->set_props(
@@ -268,6 +274,7 @@ class Label extends WC_Data_Store_WP implements WC_Object_Data_Store_Interface {
 				)
 			);
 
+			$this->prime_meta_cache( array( $label->get_id() ) );
 			$this->read_label_data( $label );
 			$label->read_meta_data();
 			$label->set_object_read( true );
@@ -294,7 +301,52 @@ class Label extends WC_Data_Store_WP implements WC_Object_Data_Store_Interface {
 	 *
 	 * @param \Vendidero\Shiptastic\Labels\Label $label Label object.
 	 */
+	/**
+	 * Request-local label type and shipping provider data retrieved via queries.
+	 *
+	 * @var array
+	 */
+	protected static $primed_label_data = array();
+
+	/**
+	 * Prime label rows, e.g. retrieved via a label query, to prevent
+	 * re-querying label data, rows and meta data while constructing label objects.
+	 *
+	 * @param object[] $rows
+	 */
+	public function prime_label_rows( $rows ) {
+		$rows_to_prime = array();
+		$cache         = Helper::get_cache_object( 'shipment-labels' );
+
+		foreach ( (array) $rows as $row ) {
+			if ( ! is_object( $row ) || ! isset( $row->label_id, $row->label_type, $row->label_shipping_provider, $row->label_shipment_id ) ) {
+				continue;
+			}
+
+			$label_id = absint( $row->label_id );
+
+			self::$primed_label_data[ $label_id ] = (object) array(
+				'shipping_provider' => $row->label_shipping_provider,
+				'type'              => $row->label_type,
+			);
+
+			if ( $cache && ! is_null( $cache->get( $label_id ) ) ) {
+				continue;
+			}
+
+			$rows_to_prime[ $label_id ] = $row;
+		}
+
+		if ( ! empty( $rows_to_prime ) ) {
+			$this->prime_rows( $rows_to_prime, 'label_id' );
+			$this->prime_meta_cache( array_keys( $rows_to_prime ) );
+		}
+	}
+
 	protected function clear_caches( &$label ) {
+		$this->clear_primed_meta( $label->get_id() );
+		unset( self::$primed_label_data[ absint( $label->get_id() ) ] );
+		\Vendidero\Shiptastic\Labels\Factory::clear_primed_shipment_labels( $label->get_shipment_id() );
 		wp_cache_delete( $label->get_id(), $this->meta_type . '_meta' );
 
 		if ( $cache = Helper::get_cache_object( 'shipment-labels' ) ) {
@@ -316,6 +368,12 @@ class Label extends WC_Data_Store_WP implements WC_Object_Data_Store_Interface {
 	 */
 	public function get_label_data( $label_id ) {
 		global $wpdb;
+
+		$label_id = absint( $label_id );
+
+		if ( isset( self::$primed_label_data[ $label_id ] ) ) {
+			return self::$primed_label_data[ $label_id ];
+		}
 
 		$data = $wpdb->get_row(
 			$wpdb->prepare(

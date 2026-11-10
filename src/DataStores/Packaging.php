@@ -20,6 +20,8 @@ defined( 'ABSPATH' ) || exit;
  */
 class Packaging extends WC_Data_Store_WP implements WC_Object_Data_Store_Interface {
 
+	use MetaCacheTrait;
+
 	protected $must_exist_meta_keys = array();
 
 	protected $core_props = array(
@@ -219,12 +221,16 @@ class Packaging extends WC_Data_Store_WP implements WC_Object_Data_Store_Interfa
 	public function read( &$packaging ) {
 		global $wpdb;
 
-		$data = $wpdb->get_row(
-			$wpdb->prepare(
-				"SELECT * FROM {$wpdb->stc_packaging} WHERE packaging_id = %d LIMIT 1",
-				$packaging->get_id()
-			)
-		);
+		$data = $this->get_primed_row( $packaging->get_id() );
+
+		if ( ! $data ) {
+			$data = $wpdb->get_row(
+				$wpdb->prepare(
+					"SELECT * FROM {$wpdb->stc_packaging} WHERE packaging_id = %d LIMIT 1",
+					$packaging->get_id()
+				)
+			);
+		}
 
 		if ( $data ) {
 			$packaging->set_props(
@@ -246,6 +252,7 @@ class Packaging extends WC_Data_Store_WP implements WC_Object_Data_Store_Interfa
 				)
 			);
 
+			$this->prime_meta_cache( array( $packaging->get_id() ) );
 			$this->read_packaging_data( $packaging );
 
 			$packaging->read_meta_data();
@@ -270,6 +277,7 @@ class Packaging extends WC_Data_Store_WP implements WC_Object_Data_Store_Interfa
 	 * @param \Vendidero\Shiptastic\Packaging $packaging Packaging object.
 	 */
 	protected function clear_caches( &$packaging ) {
+		$this->clear_primed_meta( $packaging->get_id() );
 		wp_cache_delete( $packaging->get_id(), $this->meta_type . '_meta' );
 		wp_cache_delete( 'packaging-list', 'shiptastic-packaging' );
 
@@ -477,7 +485,7 @@ class Packaging extends WC_Data_Store_WP implements WC_Object_Data_Store_Interfa
 
 		if ( false === $results ) {
 			$query = "
-				SELECT packaging_id FROM {$wpdb->stc_packaging} 
+				SELECT * FROM {$wpdb->stc_packaging}
 				ORDER BY packaging_order ASC
 			";
 

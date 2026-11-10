@@ -133,6 +133,8 @@ class Query extends WC_Object_Query {
 		}
 
 		if ( 'objects' === $qv['fields'] ) {
+			WC_Data_Store::load( 'shipment-label' )->prime_label_rows( $this->results );
+
 			foreach ( $this->results as $key => $label ) {
 				$this->results[ $key ] = wc_stc_get_shipment_label( $label );
 			}
@@ -145,7 +147,11 @@ class Query extends WC_Object_Query {
 	protected function parse_query() {
 
 		if ( isset( $this->args['shipment_id'] ) ) {
-			$this->args['shipment_id'] = absint( $this->args['shipment_id'] );
+			if ( is_array( $this->args['shipment_id'] ) ) {
+				$this->args['shipment_id'] = array_values( array_unique( array_filter( array_map( 'absint', $this->args['shipment_id'] ) ) ) );
+			} else {
+				$this->args['shipment_id'] = absint( $this->args['shipment_id'] );
+			}
 		}
 
 		if ( isset( $this->args['shipping_provider'] ) ) {
@@ -211,7 +217,12 @@ class Query extends WC_Object_Query {
 
 		// order id
 		if ( isset( $this->args['shipment_id'] ) ) {
-			$this->query_where .= $wpdb->prepare( ' AND label_shipment_id = %d', $this->args['shipment_id'] );
+			if ( is_array( $this->args['shipment_id'] ) ) {
+				$shipment_ids       = empty( $this->args['shipment_id'] ) ? array( 0 ) : $this->args['shipment_id'];
+				$this->query_where .= ' AND label_shipment_id IN (' . implode( ',', array_map( 'absint', $shipment_ids ) ) . ')';
+			} else {
+				$this->query_where .= $wpdb->prepare( ' AND label_shipment_id = %d', $this->args['shipment_id'] );
+			}
 		}
 
 		// parent id

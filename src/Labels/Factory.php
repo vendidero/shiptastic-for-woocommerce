@@ -21,6 +21,98 @@ defined( 'ABSPATH' ) || exit;
 class Factory {
 
 	/**
+	 * Request-local map of (latest) labels per shipment and label type, e.g. primed for list views.
+	 *
+	 * @var array
+	 */
+	protected static $shipment_labels = array();
+
+	/**
+	 * Load labels for multiple shipments at once to prevent querying labels for each shipment separately.
+	 *
+	 * @param int[] $shipment_ids
+	 */
+	public static function prime_shipment_labels( $shipment_ids ) {
+		$shipment_ids = array_values(
+			array_filter(
+				array_unique( array_map( 'absint', (array) $shipment_ids ) ),
+				function ( $shipment_id ) {
+					return $shipment_id > 0 && ! array_key_exists( $shipment_id, self::$shipment_labels );
+				}
+			)
+		);
+
+		if ( empty( $shipment_ids ) ) {
+			return;
+		}
+
+		$labels = wc_stc_get_shipment_labels(
+			array(
+				'shipment_id' => $shipment_ids,
+				'limit'       => -1,
+				'order'       => 'DESC',
+				'orderby'     => 'date_created',
+			)
+		);
+
+		foreach ( $shipment_ids as $shipment_id ) {
+			self::$shipment_labels[ $shipment_id ] = array();
+		}
+
+		foreach ( $labels as $label ) {
+			if ( ! is_a( $label, '\Vendidero\Shiptastic\Interfaces\ShipmentLabel' ) ) {
+				continue;
+			}
+
+			$shipment_id = absint( $label->get_shipment_id() );
+			$label_type  = $label->get_type();
+
+			if ( ! array_key_exists( $shipment_id, self::$shipment_labels ) ) {
+				continue;
+			}
+
+			// Labels are sorted by date created DESC - keep the first (latest) label only.
+			if ( ! array_key_exists( '_all', self::$shipment_labels[ $shipment_id ] ) ) {
+				self::$shipment_labels[ $shipment_id ]['_all'] = $label;
+			}
+
+			if ( ! array_key_exists( $label_type, self::$shipment_labels[ $shipment_id ] ) ) {
+				self::$shipment_labels[ $shipment_id ][ $label_type ] = $label;
+			}
+		}
+	}
+
+	/**
+	 * Returns the primed (latest) label for a shipment and label type. Returns null in case
+	 * labels have not been primed for the shipment.
+	 *
+	 * @param int $shipment_id
+	 * @param string $label_type
+	 *
+	 * @return null|false|ShipmentLabel
+	 */
+	public static function get_primed_shipment_label( $shipment_id, $label_type = '' ) {
+		$shipment_id = absint( $shipment_id );
+
+		if ( ! array_key_exists( $shipment_id, self::$shipment_labels ) ) {
+			return null;
+		}
+
+		$label_type = empty( $label_type ) ? '_all' : $label_type;
+
+		return array_key_exists( $label_type, self::$shipment_labels[ $shipment_id ] ) ? self::$shipment_labels[ $shipment_id ][ $label_type ] : false;
+	}
+
+	/**
+	 * Remove primed labels for a certain shipment, e.g. after a label has been created/deleted.
+	 *
+	 * @param int $shipment_id
+	 */
+	public static function clear_primed_shipment_labels( $shipment_id ) {
+		unset( self::$shipment_labels[ absint( $shipment_id ) ] );
+	}
+
+	/**
 	 * Get label.
 	 *
 	 * @param  mixed $label_id (default: false) Label id to get or empty if new.

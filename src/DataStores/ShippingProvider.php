@@ -17,6 +17,8 @@ defined( 'ABSPATH' ) || exit;
  */
 class ShippingProvider extends WC_Data_Store_WP implements WC_Object_Data_Store_Interface {
 
+	use MetaCacheTrait;
+
 	/**
 	 * Data stored in meta keys, but not considered "meta" for an order.
 	 *
@@ -255,12 +257,16 @@ class ShippingProvider extends WC_Data_Store_WP implements WC_Object_Data_Store_
 	public function read( &$provider ) {
 		global $wpdb;
 
-		$data = $wpdb->get_row(
-			$wpdb->prepare(
-				"SELECT * FROM {$wpdb->stc_shipping_provider} WHERE shipping_provider_id = %d LIMIT 1",
-				$provider->get_id()
-			)
-		);
+		$data = $this->get_primed_row( $provider->get_id() );
+
+		if ( ! $data ) {
+			$data = $wpdb->get_row(
+				$wpdb->prepare(
+					"SELECT * FROM {$wpdb->stc_shipping_provider} WHERE shipping_provider_id = %d LIMIT 1",
+					$provider->get_id()
+				)
+			);
+		}
 
 		if ( $data ) {
 			$provider->set_props(
@@ -272,6 +278,7 @@ class ShippingProvider extends WC_Data_Store_WP implements WC_Object_Data_Store_
 				)
 			);
 
+			$this->prime_meta_cache( array( $provider->get_id() ) );
 			$this->read_provider_data( $provider );
 
 			$provider->read_meta_data();
@@ -302,6 +309,7 @@ class ShippingProvider extends WC_Data_Store_WP implements WC_Object_Data_Store_
 	 * @param \Vendidero\Shiptastic\ShippingProvider\Simple $provider Shipping provider object.
 	 */
 	protected function clear_caches( &$provider ) {
+		$this->clear_primed_meta( $provider->get_id() );
 		wp_cache_delete( $provider->get_id(), $this->meta_type . '_meta' );
 		wp_cache_delete( 'all-providers', 'shiptastic-shipping-providers' );
 

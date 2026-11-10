@@ -28,7 +28,7 @@ class PackagingSorter implements \DVDoug\BoxPacker\BoxSorter {
 		}
 
 		// maximum weight capacity as decider
-		$maximum_weight_decider = ( $box_a->getMaxWeight() - $box_b->getEmptyWeight() ) <=> ( $box_b->getMaxWeight() - $box_b->getEmptyWeight() );
+		$maximum_weight_decider = ( $box_a->getMaxWeight() - $box_a->getEmptyWeight() ) <=> ( $box_b->getMaxWeight() - $box_b->getEmptyWeight() );
 
 		if ( 0 !== $maximum_weight_decider ) {
 			return $maximum_weight_decider;

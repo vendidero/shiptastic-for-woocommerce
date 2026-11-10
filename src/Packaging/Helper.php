@@ -19,9 +19,25 @@ class Helper {
 			self::$packaging_lookup = array();
 
 			try {
-				$data_store = \WC_Data_Store::load( 'packaging' );
+				$data_store    = \WC_Data_Store::load( 'packaging' );
+				$all_packaging = $data_store->get_all_packaging();
+				$rows          = array();
 
-				foreach ( $data_store->get_all_packaging() as $key => $packaging ) {
+				foreach ( $all_packaging as $packaging ) {
+					if ( is_object( $packaging ) && isset( $packaging->packaging_id, $packaging->packaging_type ) ) {
+						$rows[ absint( $packaging->packaging_id ) ] = $packaging;
+					}
+				}
+
+				/**
+				 * Prime packaging rows and meta data for all packaging options at once.
+				 */
+				if ( ! empty( $rows ) ) {
+					$data_store->prime_rows( $rows, 'packaging_id' );
+					$data_store->prime_meta_cache( array_keys( $rows ) );
+				}
+
+				foreach ( $all_packaging as $key => $packaging ) {
 					if ( $the_packaging = wc_stc_get_packaging( $packaging ) ) {
 						self::$packaging[ $key ]                            = $the_packaging;
 						self::$packaging_lookup[ $the_packaging->get_id() ] = $key;

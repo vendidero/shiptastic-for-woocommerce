@@ -176,4 +176,85 @@ class ShipmentFactory {
 
 		return $data->attachment_type;
 	}
+
+	/**
+	 * Load data related to multiple shipments (e.g. items, attachments, labels and orders) at once
+	 * to prevent querying data for each shipment separately, e.g. within list views.
+	 *
+	 * @internal
+	 *
+	 * @param Shipment[] $shipments
+	 * @param array $args
+	 */
+	public static function prime_caches( $shipments, $args = array() ) {
+		$args = wp_parse_args(
+			$args,
+			array(
+				'items'       => true,
+				'attachments' => true,
+				'labels'      => true,
+				'orders'      => true,
+			)
+		);
+
+		$shipments = array_filter(
+			(array) $shipments,
+			function ( $shipment ) {
+				return is_a( $shipment, '\Vendidero\Shiptastic\Shipment' ) && $shipment->get_id() > 0;
+			}
+		);
+
+		if ( empty( $shipments ) ) {
+			return;
+		}
+
+		$shipment_ids = array_values(
+			array_map(
+				function ( $shipment ) {
+					return $shipment->get_id();
+				},
+				$shipments
+			)
+		);
+
+		$data_store = WC_Data_Store::load( 'shipment' );
+
+		if ( $args['items'] ) {
+			$data_store->prime_items( $shipment_ids );
+		}
+
+		if ( $args['attachments'] ) {
+			$data_store->prime_attachments( $shipment_ids );
+		}
+
+		if ( $args['labels'] ) {
+			\Vendidero\Shiptastic\Labels\Factory::prime_shipment_labels( $shipment_ids );
+		}
+
+		if ( $args['orders'] && is_callable( array( '\WC_Order_Factory', 'get_orders' ) ) ) {
+			$order_ids = array();
+
+			foreach ( $shipments as $shipment ) {
+				if ( $order_id = absint( $shipment->get_order_id() ) ) {
+					$order_ids[ $order_id ] = $order_id;
+				}
+			}
+
+			$order_ids = array_values( $order_ids );
+
+			if ( ! empty( $order_ids ) ) {
+				$orders = array();
+
+				foreach ( \WC_Order_Factory::get_orders( $order_ids, true ) as $order ) {
+					$orders[ $order->get_id() ] = $order;
+				}
+
+				foreach ( $shipments as $shipment ) {
+					if ( array_key_exists( (int) $shipment->get_order_id(), $orders ) ) {
+						$shipment->set_order_instance( $orders[ (int) $shipment->get_order_id() ] );
+					}
+				}
+			}
+		}
+	}
 }

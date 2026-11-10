@@ -79,6 +79,24 @@ class SimpleShipment extends Shipment {
 	}
 
 	/**
+	 * Set the order instance for this shipment, e.g. to re-use an order object loaded in a batch.
+	 * The order instance is only set in case it matches the shipment's order id.
+	 *
+	 * @param WC_Order|\WC_Abstract_Order $order
+	 *
+	 * @return bool
+	 */
+	public function set_order_instance( $order ) {
+		if ( is_a( $order, 'WC_Abstract_Order' ) && (int) $order->get_id() === (int) $this->get_order_id() ) {
+			$this->order = $order;
+
+			return true;
+		}
+
+		return false;
+	}
+
+	/**
 	 * Tries to fetch the order for the current shipment.
 	 *
 	 * @return bool|WC_Order|null

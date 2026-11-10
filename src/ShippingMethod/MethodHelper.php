@@ -18,6 +18,27 @@ class MethodHelper {
 	protected static $methods = array();
 
 	/**
+	 * Registered shipping method (class) instances per shipping provider.
+	 *
+	 * @var ShippingMethod[]
+	 */
+	protected static $registered_methods = array();
+
+	/**
+	 * Provider-specific instance form field adjustments per (builtin) method.
+	 *
+	 * @var array
+	 */
+	protected static $builtin_method_form_field_titles = array();
+
+	/**
+	 * Whether shipping method settings have been saved (processed) during the current request.
+	 *
+	 * @var bool
+	 */
+	protected static $method_settings_saved = false;
+
+	/**
 	 * Hook in methods.
 	 */
 	public static function init() {
@@ -31,6 +52,8 @@ class MethodHelper {
 		add_filter( 'woocommerce_generate_shipping_provider_method_tabs_open_html', array( __CLASS__, 'render_method_tab_content' ), 10, 4 );
 		add_filter( 'woocommerce_generate_shipping_provider_method_tabs_close_html', array( __CLASS__, 'render_method_tab_content_close' ), 10, 4 );
 		add_filter( 'woocommerce_generate_shipping_provider_method_configuration_sets_html', array( __CLASS__, 'render_method_configuration_sets' ), 10 );
+		add_filter( 'woocommerce_generate_shipping_provider_method_lazy_settings_html', array( __CLASS__, 'render_method_lazy_settings' ), 10, 4 );
+		add_filter( 'woocommerce_generate_shipping_provider_method_settings_loaded_html', array( __CLASS__, 'render_method_settings_loaded' ), 10, 4 );
 
 		add_filter( 'woocommerce_cart_shipping_packages', array( __CLASS__, 'split_cart_packages' ), 1 );
 		add_filter( 'woocommerce_cart_shipping_packages', array( __CLASS__, 'register_cart_items_to_pack' ), 1000 );
@@ -142,8 +165,35 @@ class MethodHelper {
 			return $methods;
 		}
 
-		foreach ( Helper::instance()->get_available_shipping_providers() as $provider ) {
-			$methods[ "shipping_provider_{$provider->get_name()}" ] = new ShippingMethod( 0, $provider );
+		$providers = Helper::instance()->get_available_shipping_providers();
+
+		/**
+		 * Load the (global) method settings for all providers within a single query.
+		 */
+		if ( function_exists( 'wp_prime_option_caches' ) && ! empty( $providers ) ) {
+			$option_names = array();
+
+			foreach ( $providers as $provider ) {
+				$option_names[] = "woocommerce_shipping_provider_{$provider->get_name()}_settings";
+			}
+
+			wp_prime_option_caches( $option_names );
+		}
+
+		foreach ( $providers as $provider ) {
+			$method_id = "shipping_provider_{$provider->get_name()}";
+
+			/**
+			 * The filter is applied every time WC loads its shipping methods. Re-use the method instance
+			 * (used by WC to detect the method class name) as long as the provider instance does not change.
+			 */
+			$cache_key = $method_id . '_' . spl_object_hash( $provider );
+
+			if ( ! array_key_exists( $cache_key, self::$registered_methods ) ) {
+				self::$registered_methods[ $cache_key ] = new ShippingMethod( 0, $provider );
+			}
+
+			$methods[ $method_id ] = self::$registered_methods[ $cache_key ];
 		}
 
 		return $methods;
@@ -392,12 +442,22 @@ class MethodHelper {
 				function ( $p_settings ) use ( $method ) {
 					$p_settings = self::add_method_settings( $p_settings );
 
-					if ( self::is_builtin_method( $method ) ) {
-						if ( $provider_method = MethodHelper::get_provider_method( $method ) ) {
-							if ( isset( $p_settings['label_configuration_set_shipping_provider_title'] ) && $provider_method->get_shipping_provider_instance() ) {
-								$p_settings['label_configuration_set_shipping_provider_title']['title']       = _x( 'Additional Settings', 'shipments', 'shiptastic-for-woocommerce' );
-								$p_settings['label_configuration_set_shipping_provider_title']['description'] = sprintf( _x( 'Adjust additional settings and configure %s labels.', 'shipments', 'shiptastic-for-woocommerce' ), $provider_method->get_shipping_provider_instance()->get_title() );
+					if ( isset( $p_settings['label_configuration_set_shipping_provider_title'] ) && self::is_builtin_method( $method ) ) {
+						if ( ! array_key_exists( $method, self::$builtin_method_form_field_titles ) ) {
+							self::$builtin_method_form_field_titles[ $method ] = false;
+
+							if ( $provider_method = MethodHelper::get_provider_method( $method ) ) {
+								if ( $provider = $provider_method->get_shipping_provider_instance() ) {
+									self::$builtin_method_form_field_titles[ $method ] = array(
+										'title'       => _x( 'Additional Settings', 'shipments', 'shiptastic-for-woocommerce' ),
+										'description' => sprintf( _x( 'Adjust additional settings and configure %s labels.', 'shipments', 'shiptastic-for-woocommerce' ), $provider->get_title() ),
+									);
+								}
 							}
+						}
+
+						if ( $titles = self::$builtin_method_form_field_titles[ $method ] ) {
+							$p_settings['label_configuration_set_shipping_provider_title'] = array_merge( $p_settings['label_configuration_set_shipping_provider_title'], $titles );
 						}
 					}
 
@@ -632,6 +692,23 @@ class MethodHelper {
 		$return_costs      = isset( $p_settings['return_costs'] ) ? $p_settings['return_costs'] : '';
 		$method            = self::get_provider_method( $shipping_method );
 
+		/**
+		 * Provider settings are lazy-loaded within the shipping method modal. In case the modal was submitted
+		 * before the provider settings have been loaded, the posted data does not contain these settings.
+		 * Do not update configuration sets in that case to prevent resetting them.
+		 */
+		$update_configuration_sets = true;
+
+		if ( doing_action( 'wp_ajax_woocommerce_shipping_zone_methods_save_settings' ) && is_callable( array( $shipping_method, 'get_post_data' ) ) && is_callable( array( $shipping_method, 'get_field_key' ) ) ) {
+			$post_data = (array) $shipping_method->get_post_data();
+
+			if ( ! isset( $post_data[ $shipping_method->get_field_key( 'shipping_provider_settings_loaded' ) ] ) ) {
+				$update_configuration_sets = false;
+			}
+		}
+
+		unset( $p_settings['shipping_provider_settings_loaded'], $p_settings['shipping_provider_lazy_settings'] );
+
 		$method->set_shipping_provider( $shipping_provider );
 		$method->set_return_costs( $return_costs );
 
@@ -641,7 +718,7 @@ class MethodHelper {
 			} elseif ( $method->is_configuration_set_setting( $setting_id ) ) {
 				$args = $method->get_configuration_set_args_by_id( $setting_id );
 
-				if ( ! empty( $args['shipping_provider_name'] ) && $args['shipping_provider_name'] === $method->get_shipping_provider() ) {
+				if ( $update_configuration_sets && ! empty( $args['shipping_provider_name'] ) && $args['shipping_provider_name'] === $method->get_shipping_provider() ) {
 					if ( 'override' === $args['setting_name'] ) {
 						if ( wc_string_to_bool( $setting_val ) ) {
 							if ( $config_set = $method->get_or_create_configuration_set( $args ) ) {
@@ -666,6 +743,8 @@ class MethodHelper {
 		 */
 		$shipping_method->instance_settings = array();
 
+		self::$method_settings_saved = true;
+
 		return $p_settings;
 	}
 
@@ -688,28 +767,99 @@ class MethodHelper {
 		return $p_settings;
 	}
 
-	protected static function load_all_method_settings() {
-		$screen                  = function_exists( 'get_current_screen' ) ? get_current_screen() : false;
-		$is_shipping_tab         = isset( $_GET['tab'] ) && 'shipping' === wc_clean( wp_unslash( $_GET['tab'] ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-		$load_all_setting_fields = false;
+	/**
+	 * Determines which provider-specific method settings to load:
+	 *
+	 * - all: Load all provider settings, e.g. while saving settings or rendering legacy method settings pages.
+	 * - lazy: Load a placeholder only. Provider settings are lazy-loaded via AJAX when opening the shipping method modal.
+	 *         This prevents rendering (large) provider settings for each method, e.g. while listing shipping zones.
+	 * - none: Do not load provider settings.
+	 *
+	 * @return string
+	 */
+	protected static function get_method_settings_load_mode() {
+		$mode = 'none';
 
-		if ( $screen && isset( $screen->id ) && 'woocommerce_page_wc-settings' === $screen->id && $is_shipping_tab ) {
-			$load_all_setting_fields = true;
-		}
-
-		if (
-			doing_action( 'wp_ajax_woocommerce_shipping_zone_methods_save_settings' ) ||
+		if ( doing_action( 'wp_ajax_woocommerce_stc_get_shipping_method_provider_settings' ) ) {
+			$mode = 'all';
+		} elseif ( doing_action( 'wp_ajax_woocommerce_shipping_zone_methods_save_settings' ) ) {
+			/**
+			 * Load all settings to process (validate) the posted data. Afterward, the (re-rendered)
+			 * shipping methods returned to the modal only need to include the placeholder.
+			 */
+			$mode = self::$method_settings_saved ? 'lazy' : 'all';
+		} elseif (
 			doing_action( 'wp_ajax_woocommerce_shipping_zone_add_method' ) ||
-			doing_action( 'wp_ajax_woocommerce_shipping_zone_remove_method' )
+			doing_action( 'wp_ajax_woocommerce_shipping_zone_remove_method' ) ||
+			doing_action( 'wp_ajax_woocommerce_shipping_zone_methods_save_changes' )
 		) {
-			$load_all_setting_fields = true;
+			$mode = 'lazy';
+		} else {
+			$screen          = function_exists( 'get_current_screen' ) ? get_current_screen() : false;
+			$is_shipping_tab = isset( $_GET['tab'] ) && 'shipping' === wc_clean( wp_unslash( $_GET['tab'] ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+
+			if ( $screen && isset( $screen->id ) && 'woocommerce_page_wc-settings' === $screen->id && $is_shipping_tab ) {
+				/**
+				 * Legacy method settings (e.g. methods not supporting instances) are rendered within a separate
+				 * section (or instance) page instead of a modal.
+				 */
+				if ( isset( $_GET['section'] ) || isset( $_GET['instance_id'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+					$mode = 'all';
+				} else {
+					$mode = 'lazy';
+				}
+			}
 		}
 
-		return $load_all_setting_fields;
+		return apply_filters( 'woocommerce_shiptastic_shipping_provider_method_settings_load_mode', $mode );
 	}
 
-	public static function get_method_settings( $force_load_all = false ) {
-		$load_all_settings = $force_load_all ? true : self::load_all_method_settings();
+	/**
+	 * Returns the provider-specific settings HTML (which is lazy-loaded within the shipping method modal) for a certain method.
+	 *
+	 * @param \WC_Shipping_Method $shipping_method
+	 *
+	 * @return string
+	 */
+	public static function get_method_provider_settings_html( $shipping_method ) {
+		$provider_settings = array_diff_key( self::get_method_settings( 'all' ), self::get_method_settings( 'lazy' ) );
+
+		if ( empty( $provider_settings ) ) {
+			return '';
+		}
+
+		// Make sure the method has its instance settings including provider settings loaded.
+		$shipping_method->get_instance_form_fields();
+
+		return '<table class="form-table">' . $shipping_method->generate_settings_html( $provider_settings, false ) . '</table>';
+	}
+
+	public static function render_method_lazy_settings( $html, $key, $setting, $method ) {
+		$instance_id = isset( $method->instance_id ) ? absint( $method->instance_id ) : 0;
+
+		return '</table><div class="wc-stc-shipping-provider-method-lazy-settings" data-instance-id="' . esc_attr( $instance_id ) . '"><p class="wc-stc-shipping-provider-method-lazy-settings-loading"><span class="spinner is-active" style="float: none; margin: 0 5px 0 0;"></span>' . esc_html_x( 'Loading service provider settings…', 'shipments', 'shiptastic-for-woocommerce' ) . '</p></div><table class="form-table">';
+	}
+
+	/**
+	 * Marks the posted data as containing the (lazy-loaded) provider settings.
+	 */
+	public static function render_method_settings_loaded( $html, $key, $setting, $method ) {
+		return '</table><input type="hidden" name="' . esc_attr( $method->get_field_key( $key ) ) . '" value="yes" /><table class="form-table">';
+	}
+
+	/**
+	 * @param bool|string $load_mode Pass true to force loading all settings or a specific load mode (all, lazy, none).
+	 *
+	 * @return array
+	 */
+	public static function get_method_settings( $load_mode = false ) {
+		if ( true === $load_mode ) {
+			$load_mode = 'all';
+		} elseif ( ! in_array( $load_mode, array( 'all', 'lazy', 'none' ), true ) ) {
+			$load_mode = self::get_method_settings_load_mode();
+		}
+
+		$load_all_settings = 'all' === $load_mode;
 		$method_settings   = array(
 			'label_configuration_set_shipping_provider_title' => array(
 				'title'       => _x( 'Service Provider Settings', 'shipments', 'shiptastic-for-woocommerce' ),
@@ -830,7 +980,28 @@ class MethodHelper {
 				}
 			}
 
-			$method_settings = array_merge( $method_settings, self::$provider_method_settings );
+			$method_settings = array_merge(
+				$method_settings,
+				self::$provider_method_settings,
+				array(
+					'shipping_provider_settings_loaded' => array(
+						'id'      => 'shipping_provider_settings_loaded',
+						'type'    => 'shipping_provider_method_settings_loaded',
+						'default' => '',
+					),
+				)
+			);
+		} elseif ( 'lazy' === $load_mode ) {
+			$method_settings = array_merge(
+				$method_settings,
+				array(
+					'shipping_provider_lazy_settings' => array(
+						'id'      => 'shipping_provider_lazy_settings',
+						'type'    => 'shipping_provider_method_lazy_settings',
+						'default' => '',
+					),
+				)
+			);
 		}
 
 		/**

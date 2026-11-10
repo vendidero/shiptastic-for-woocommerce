@@ -394,6 +394,28 @@ class Helper {
 			}
 		}
 
+		/**
+		 * Prime provider rows and meta data for all providers stored in DB at once.
+		 */
+		$provider_rows = array();
+		$cache         = \Vendidero\Shiptastic\Caches\Helper::get_cache_object( 'shipping-providers' );
+
+		foreach ( $shipping_providers as $provider_name => $provider_data ) {
+			if ( is_object( $provider_data ) && isset( $provider_data->shipping_provider_id ) ) {
+				if ( $cache && is_a( $cache->get( $provider_name ), '\Vendidero\Shiptastic\Interfaces\ShippingProvider' ) ) {
+					continue;
+				}
+
+				$provider_rows[ absint( $provider_data->shipping_provider_id ) ] = $provider_data;
+			}
+		}
+
+		if ( ! empty( $provider_rows ) ) {
+			$data_store = WC_Data_Store::load( 'shipping-provider' );
+			$data_store->prime_rows( $provider_rows, 'shipping_provider_id' );
+			$data_store->prime_meta_cache( array_keys( $provider_rows ) );
+		}
+
 		// For the settings in the backend, and for non-shipping zone methods, we still need to load any registered classes here.
 		foreach ( $shipping_providers as $provider_name => $provider_class ) {
 			if ( $cache = \Vendidero\Shiptastic\Caches\Helper::get_cache_object( 'shipping-providers' ) ) {

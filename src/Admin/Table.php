@@ -359,6 +359,11 @@ class Table extends WP_List_Table {
 		$this->query = new ShipmentQuery( apply_filters( "{$this->get_hook_prefix()}query_args", $args, $this ) );
 		$this->items = $this->query->get_shipments();
 
+		/**
+		 * Load related data (e.g. items, labels, orders) for all shipments at once.
+		 */
+		\Vendidero\Shiptastic\ShipmentFactory::prime_caches( $this->items );
+
 		$this->set_pagination_args(
 			array(
 				'total_items' => $this->query->get_total(),

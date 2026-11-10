@@ -46,7 +46,7 @@ class ReportQueue {
 				$running[] = $generator->get_id();
 			}
 
-			update_option( 'woocommerce_shiptastic_packaging_reports_running', $running, false );
+			update_option( 'woocommerce_shiptastic_packaging_reports_running', $running, true );
 			self::clear_cache();
 
 			return $generator->get_id();
@@ -152,7 +152,7 @@ class ReportQueue {
 			$running = array_diff( $running, array( $id ) );
 			Package::log( sprintf( 'Cancelled %s', ReportHelper::get_report_title( $id ) ) );
 
-			update_option( 'woocommerce_shiptastic_packaging_reports_running', $running, false );
+			update_option( 'woocommerce_shiptastic_packaging_reports_running', $running, true );
 			self::clear_cache();
 			$generator->delete();
 		}
@@ -245,7 +245,7 @@ class ReportQueue {
 
 		if ( in_array( $report_id, $reports_running, true ) ) {
 			$reports_running = array_diff( $reports_running, array( $report_id ) );
-			update_option( 'woocommerce_shiptastic_packaging_reports_running', $reports_running, false );
+			update_option( 'woocommerce_shiptastic_packaging_reports_running', $reports_running, true );
 
 			if ( $queue = self::get_queue() ) {
 				$queue->cancel_all( self::get_hook_name( $report_id ) );

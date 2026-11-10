@@ -1153,6 +1153,20 @@ function wc_stc_get_shipment_setting_address_fields( $address_type = 'shipper' )
 		);
 	}
 
+	/**
+	 * Load all (potentially non-autoloaded) address options within a single query.
+	 */
+	if ( function_exists( 'wp_prime_option_caches' ) ) {
+		wp_prime_option_caches(
+			array_map(
+				function ( $prop ) use ( $address_type ) {
+					return "woocommerce_shiptastic_{$address_type}_address_{$prop}";
+				},
+				$default_address_fields
+			)
+		);
+	}
+
 	foreach ( $default_address_fields as $prop ) {
 		$key   = "woocommerce_shiptastic_{$address_type}_address_{$prop}";
 		$value = get_option( $key, null );
@@ -1356,9 +1370,14 @@ function wc_stc_get_shipment_order_shipping_sent_statuses() {
 }
 
 function wc_stc_get_shipment_counts( $type = '' ) {
-	$counts = array();
+	$counts   = array();
+	$statuses = array_keys( wc_stc_get_shipment_statuses() );
 
-	foreach ( array_keys( wc_stc_get_shipment_statuses() ) as $status ) {
+	if ( $data_store = WC_Data_Store::load( 'shipment' ) ) {
+		$data_store->prime_shipment_counts( $statuses, $type );
+	}
+
+	foreach ( $statuses as $status ) {
 		$counts[ $status ] = wc_stc_get_shipment_count( $status, $type );
 	}
 

@@ -1742,7 +1742,9 @@ abstract class Shipment extends WC_Data {
 	 * @return string
 	 */
 	public function get_vat_id( $context = 'view' ) {
-		return $this->get_address_prop( 'vat_id', $context ) ? $this->get_address_prop( 'vat_id', $context ) : '';
+		$value = $this->get_address_prop( 'vat_id', $context );
+
+		return $value ? $value : '';
 	}
 
 	/**
@@ -1752,7 +1754,9 @@ abstract class Shipment extends WC_Data {
 	 * @return string
 	 */
 	public function get_billing_vat_id( $context = 'view' ) {
-		return $this->get_billing_address_prop( 'vat_id', $context ) ? $this->get_billing_address_prop( 'vat_id', $context ) : '';
+		$value = $this->get_billing_address_prop( 'vat_id', $context );
+
+		return $value ? $value : '';
 	}
 
 	/**
@@ -1798,7 +1802,9 @@ abstract class Shipment extends WC_Data {
 	 * @return string
 	 */
 	public function get_country( $context = 'view' ) {
-		return $this->get_address_prop( 'country', $context ) ? $this->get_address_prop( 'country', $context ) : '';
+		$value = $this->get_address_prop( 'country', $context );
+
+		return $value ? $value : '';
 	}
 
 	/**
@@ -1808,7 +1814,9 @@ abstract class Shipment extends WC_Data {
 	 * @return string
 	 */
 	public function get_billing_country( $context = 'view' ) {
-		return $this->get_billing_address_prop( 'country', $context ) ? $this->get_billing_address_prop( 'country', $context ) : '';
+		$value = $this->get_billing_address_prop( 'country', $context );
+
+		return $value ? $value : '';
 	}
 
 	/**
@@ -1818,7 +1826,9 @@ abstract class Shipment extends WC_Data {
 	 * @return string
 	 */
 	public function get_customs_reference_number( $context = 'view' ) {
-		return $this->get_address_prop( 'customs_reference_number', $context ) ? $this->get_address_prop( 'customs_reference_number', $context ) : '';
+		$value = $this->get_address_prop( 'customs_reference_number', $context );
+
+		return $value ? $value : '';
 	}
 
 	/**
@@ -2068,7 +2078,9 @@ abstract class Shipment extends WC_Data {
 	 * @return string
 	 */
 	public function get_sender_customs_reference_number( $context = 'view' ) {
-		return $this->get_sender_address_prop( 'customs_reference_number', $context ) ? $this->get_sender_address_prop( 'customs_reference_number', $context ) : '';
+		$value = $this->get_sender_address_prop( 'customs_reference_number', $context );
+
+		return $value ? $value : '';
 	}
 
 	/**
@@ -2078,7 +2090,9 @@ abstract class Shipment extends WC_Data {
 	 * @return string
 	 */
 	public function get_sender_customs_uk_vat_id( $context = 'view' ) {
-		return $this->get_sender_address_prop( 'customs_uk_vat_id', $context ) ? $this->get_sender_address_prop( 'customs_uk_vat_id', $context ) : '';
+		$value = $this->get_sender_address_prop( 'customs_uk_vat_id', $context );
+
+		return $value ? $value : '';
 	}
 
 	/**
@@ -2088,7 +2102,9 @@ abstract class Shipment extends WC_Data {
 	 * @return string
 	 */
 	public function get_sender_vat_id( $context = 'view' ) {
-		return $this->get_sender_address_prop( 'vat_id', $context ) ? $this->get_sender_address_prop( 'vat_id', $context ) : '';
+		$value = $this->get_sender_address_prop( 'vat_id', $context );
+
+		return $value ? $value : '';
 	}
 
 	public function get_formatted_sender_state() {
@@ -2106,7 +2122,9 @@ abstract class Shipment extends WC_Data {
 	 * @return string
 	 */
 	public function get_sender_country( $context = 'view' ) {
-		return $this->get_sender_address_prop( 'country', $context ) ? $this->get_sender_address_prop( 'country', $context ) : '';
+		$value = $this->get_sender_address_prop( 'country', $context );
+
+		return $value ? $value : '';
 	}
 
 	/**
@@ -3376,6 +3394,17 @@ abstract class Shipment extends WC_Data {
 	 * @return bool|WC_Order|null
 	 */
 	abstract public function get_order();
+
+	/**
+	 * Set the order instance for this shipment, e.g. to re-use an order object loaded in a batch.
+	 *
+	 * @param \WC_Abstract_Order $order
+	 *
+	 * @return bool
+	 */
+	public function set_order_instance( $order ) {
+		return false;
+	}
 
 	abstract public function get_order_id();
 

@@ -19,6 +19,8 @@ defined( 'ABSPATH' ) || exit;
  */
 class Shipment extends WC_Data_Store_WP implements WC_Object_Data_Store_Interface {
 
+	use MetaCacheTrait;
+
 	protected $must_exist_meta_keys = array();
 
 	/**
@@ -355,12 +357,16 @@ class Shipment extends WC_Data_Store_WP implements WC_Object_Data_Store_Interfac
 	public function read( &$shipment ) {
 		global $wpdb;
 
-		$data = $wpdb->get_row(
-			$wpdb->prepare(
-				"SELECT * FROM {$wpdb->stc_shipments} WHERE shipment_id = %d LIMIT 1",
-				$shipment->get_id()
-			)
-		);
+		$data = $this->get_primed_row( $shipment->get_id() );
+
+		if ( ! $data ) {
+			$data = $wpdb->get_row(
+				$wpdb->prepare(
+					"SELECT * FROM {$wpdb->stc_shipments} WHERE shipment_id = %d LIMIT 1",
+					$shipment->get_id()
+				)
+			);
+		}
 
 		if ( $data ) {
 			$shipment->set_props(
@@ -382,6 +388,7 @@ class Shipment extends WC_Data_Store_WP implements WC_Object_Data_Store_Interfac
 				)
 			);
 
+			$this->prime_meta_cache( array( $shipment->get_id() ) );
 			$this->read_shipment_data( $shipment );
 
 			$shipment->read_meta_data();
@@ -411,11 +418,13 @@ class Shipment extends WC_Data_Store_WP implements WC_Object_Data_Store_Interfac
 	 * @param \Vendidero\Shiptastic\Shipment $shipment Shipment object.
 	 */
 	protected function clear_caches( &$shipment ) {
+		$this->clear_primed_meta( $shipment->get_id() );
+		\Vendidero\Shiptastic\Orders\Factory::clear_primed_shipments( $shipment->get_order_id() );
 		wp_cache_delete( 'shipment-items-' . $shipment->get_id(), 'shiptastic-shipments' );
 		wp_cache_delete( 'shipment-attachments-' . $shipment->get_id(), 'shiptastic-shipments' );
 		wp_cache_delete( $shipment->get_id(), $this->meta_type . '_meta' );
 		wp_cache_delete( 'available-packaging-' . $shipment->get_id(), 'shiptastic-shipments' );
-		wp_cache_delete( 'shipment-type' . $shipment->get_id(), 'shiptastic-shipments' );
+		wp_cache_delete( 'shipment-type-' . $shipment->get_id(), 'shiptastic-shipments' );
 
 		foreach ( array_keys( wc_stc_get_shipment_statuses() ) as $status ) {
 			$cache_key = 'shipment-count-' . $shipment->get_type() . '-' . $status;
@@ -467,6 +476,122 @@ class Shipment extends WC_Data_Store_WP implements WC_Object_Data_Store_Interfac
 	 * @param int $shipment_id Shipment id.
 	 * @return string
 	 */
+	/**
+	 * Prime shipment rows, e.g. retrieved via a shipment query, to prevent re-querying
+	 * the shipment type, the shipment row and meta data while constructing shipment objects.
+	 *
+	 * @param object[] $rows
+	 */
+	public function prime_shipment_rows( $rows ) {
+		$rows_to_prime = array();
+		$cache         = Helper::get_cache_object( 'shipments' );
+
+		foreach ( (array) $rows as $row ) {
+			if ( ! is_object( $row ) || ! isset( $row->shipment_id, $row->shipment_type, $row->shipment_status, $row->shipment_order_id ) ) {
+				continue;
+			}
+
+			$shipment_id = absint( $row->shipment_id );
+
+			if ( false === wp_cache_get( 'shipment-type-' . $shipment_id, 'shiptastic-shipments' ) ) {
+				wp_cache_set( 'shipment-type-' . $shipment_id, $row->shipment_type, 'shiptastic-shipments' );
+			}
+
+			if ( $cache && ! is_null( $cache->get( $shipment_id ) ) ) {
+				continue;
+			}
+
+			$rows_to_prime[ $shipment_id ] = $row;
+		}
+
+		if ( ! empty( $rows_to_prime ) ) {
+			$this->prime_rows( $rows_to_prime, 'shipment_id' );
+			$this->prime_meta_cache( array_keys( $rows_to_prime ) );
+		}
+	}
+
+	/**
+	 * Load items (including item meta data) for multiple shipments at once.
+	 *
+	 * @param int[] $shipment_ids
+	 */
+	public function prime_items( $shipment_ids ) {
+		global $wpdb;
+
+		$shipment_ids = array_values(
+			array_filter(
+				array_unique( array_map( 'absint', (array) $shipment_ids ) ),
+				function ( $shipment_id ) {
+					return $shipment_id > 0 && false === wp_cache_get( 'shipment-items-' . $shipment_id, 'shiptastic-shipments' );
+				}
+			)
+		);
+
+		if ( empty( $shipment_ids ) ) {
+			return;
+		}
+
+		$items          = $wpdb->get_results( "SELECT * FROM {$wpdb->stc_shipment_items} WHERE shipment_id IN (" . implode( ',', $shipment_ids ) . ') ORDER BY shipment_item_id;' ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared
+		$shipment_items = array_fill_keys( $shipment_ids, array() );
+		$item_ids       = array();
+
+		foreach ( $items as $item ) {
+			$shipment_items[ absint( $item->shipment_id ) ][] = $item;
+			$item_ids[]                                       = absint( $item->shipment_item_id );
+
+			wp_cache_set( 'item-' . $item->shipment_item_id, $item, 'shiptastic-shipment-items' );
+		}
+
+		foreach ( $shipment_items as $shipment_id => $s_items ) {
+			wp_cache_set( 'shipment-items-' . $shipment_id, $s_items, 'shiptastic-shipments' );
+		}
+
+		if ( ! empty( $item_ids ) ) {
+			\WC_Data_Store::load( 'shipment-item' )->prime_meta_cache( $item_ids );
+		}
+	}
+
+	/**
+	 * Load attachments (including attachment meta data) for multiple shipments at once.
+	 *
+	 * @param int[] $shipment_ids
+	 */
+	public function prime_attachments( $shipment_ids ) {
+		global $wpdb;
+
+		$shipment_ids = array_values(
+			array_filter(
+				array_unique( array_map( 'absint', (array) $shipment_ids ) ),
+				function ( $shipment_id ) {
+					return $shipment_id > 0 && false === wp_cache_get( 'shipment-attachments-' . $shipment_id, 'shiptastic-shipments' );
+				}
+			)
+		);
+
+		if ( empty( $shipment_ids ) ) {
+			return;
+		}
+
+		$attachments          = $wpdb->get_results( "SELECT * FROM {$wpdb->stc_shipment_attachments} WHERE attachment_shipment_id IN (" . implode( ',', $shipment_ids ) . ') ORDER BY attachment_id;' ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared
+		$shipment_attachments = array_fill_keys( $shipment_ids, array() );
+		$attachment_ids       = array();
+
+		foreach ( $attachments as $attachment ) {
+			$shipment_attachments[ absint( $attachment->attachment_shipment_id ) ][] = $attachment;
+			$attachment_ids[] = absint( $attachment->attachment_id );
+
+			wp_cache_set( 'attachment-' . $attachment->attachment_id, $attachment, 'shiptastic-shipment-attachments' );
+		}
+
+		foreach ( $shipment_attachments as $shipment_id => $s_attachments ) {
+			wp_cache_set( 'shipment-attachments-' . $shipment_id, $s_attachments, 'shiptastic-shipments' );
+		}
+
+		if ( ! empty( $attachment_ids ) ) {
+			\WC_Data_Store::load( 'shipment-attachment' )->prime_meta_cache( $attachment_ids );
+		}
+	}
+
 	public function get_shipment_type( $shipment_id ) {
 		global $wpdb;
 
@@ -864,6 +989,48 @@ class Shipment extends WC_Data_Store_WP implements WC_Object_Data_Store_Interfac
 
 	public function get_query_args( $query_vars ) {
 		return $this->get_wp_query_args( $query_vars );
+	}
+
+	/**
+	 * Count shipments for multiple statuses within a single query and store the counts in cache.
+	 *
+	 * @param string[] $statuses
+	 * @param string $type
+	 */
+	public function prime_shipment_counts( $statuses, $type = '' ) {
+		global $wpdb;
+
+		$statuses_to_count = array();
+
+		foreach ( (array) $statuses as $status ) {
+			if ( false === wp_cache_get( 'shipment-count-' . $type . '-' . $status, 'shiptastic-shipments' ) ) {
+				$statuses_to_count[] = $status;
+			}
+		}
+
+		if ( empty( $statuses_to_count ) ) {
+			return;
+		}
+
+		$status_placeholders = implode( ', ', array_fill( 0, count( $statuses_to_count ), '%s' ) );
+
+		if ( empty( $type ) ) {
+			$query = $wpdb->prepare( "SELECT shipment_status, COUNT( * ) as num_shipments FROM {$wpdb->stc_shipments} WHERE shipment_status IN ( {$status_placeholders} ) GROUP BY shipment_status", $statuses_to_count ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
+		} else {
+			$query = $wpdb->prepare( "SELECT shipment_status, COUNT( * ) as num_shipments FROM {$wpdb->stc_shipments} WHERE shipment_status IN ( {$status_placeholders} ) AND shipment_type = %s GROUP BY shipment_status", array_merge( $statuses_to_count, array( $type ) ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
+		}
+
+		$counts = array_fill_keys( $statuses_to_count, 0 );
+
+		foreach ( $wpdb->get_results( $query ) as $row ) { // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+			if ( array_key_exists( $row->shipment_status, $counts ) ) {
+				$counts[ $row->shipment_status ] = absint( $row->num_shipments );
+			}
+		}
+
+		foreach ( $counts as $status => $count ) {
+			wp_cache_set( 'shipment-count-' . $type . '-' . $status, $count, 'shiptastic-shipments' );
+		}
 	}
 
 	public function get_shipment_count( $status, $type = '' ) {

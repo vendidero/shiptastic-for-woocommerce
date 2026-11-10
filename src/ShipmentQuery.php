@@ -170,6 +170,8 @@ class ShipmentQuery extends WC_Object_Query {
 		}
 
 		if ( 'objects' === $qv['fields'] ) {
+			\WC_Data_Store::load( 'shipment' )->prime_shipment_rows( $this->results );
+
 			foreach ( $this->results as $key => $shipment ) {
 				$this->results[ $key ] = wc_stc_get_shipment( $shipment );
 			}

@@ -513,7 +513,7 @@ class Order {
 		);
 
 		foreach ( $items as $order_item_id => $item ) {
-			if ( ! $order_item = $this->get_order()->get_item( $order_item_id ) ) {
+			if ( ! $order_item = $this->get_order()->get_item( $order_item_id, false ) ) {
 				continue;
 			}
 
@@ -1287,15 +1287,25 @@ class Order {
 		);
 
 		if ( is_null( $this->shipments ) ) {
-			$this->shipments = wc_stc_get_shipments(
-				array(
-					'order_id' => $this->get_order()->get_id(),
-					'limit'    => -1,
-					'orderby'  => 'date_created',
-					'type'     => array( 'simple', 'return' ),
-					'order'    => 'ASC',
-				)
-			);
+			$primed_shipment_ids = \Vendidero\Shiptastic\Orders\Factory::get_primed_shipment_ids( $this->get_order()->get_id() );
+
+			if ( ! is_null( $primed_shipment_ids ) ) {
+				$this->shipments = array_values( array_filter( array_map( 'wc_stc_get_shipment', $primed_shipment_ids ) ) );
+
+				foreach ( $this->shipments as $shipment ) {
+					$shipment->set_order_instance( $this->get_order() );
+				}
+			} else {
+				$this->shipments = wc_stc_get_shipments(
+					array(
+						'order_id' => $this->get_order()->get_id(),
+						'limit'    => -1,
+						'orderby'  => 'date_created',
+						'type'     => array( 'simple', 'return' ),
+						'order'    => 'ASC',
+					)
+				);
+			}
 
 			/**
 			 * As by default WordPress cache engine only stores object clones
@@ -1426,7 +1436,7 @@ class Order {
 		);
 
 		if ( is_numeric( $order_item ) ) {
-			$order_item = $this->get_order()->get_item( $order_item );
+			$order_item = $this->get_order()->get_item( $order_item, false );
 		}
 
 		if ( $order_item ) {
@@ -1499,7 +1509,7 @@ class Order {
 
 	public function order_item_is_non_returnable( $order_item_id ) {
 		$is_non_returnable = false;
-		$order_item        = is_a( $order_item_id, 'WC_Order_Item' ) ? $order_item_id : $this->get_order()->get_item( $order_item_id );
+		$order_item        = is_a( $order_item_id, 'WC_Order_Item' ) ? $order_item_id : $this->get_order()->get_item( $order_item_id, false );
 
 		if ( $order_item ) {
 			if ( is_callable( array( $order_item, 'get_product' ) ) ) {

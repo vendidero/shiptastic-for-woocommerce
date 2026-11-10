@@ -60,6 +60,7 @@ class Ajax {
 			'create_return_page',
 			'calculate_return_costs',
 			'json_search_shipping_providers',
+			'get_shipping_method_provider_settings',
 		);
 
 		$ajax_nopriv_events = array(
@@ -75,6 +76,30 @@ class Ajax {
 				add_action( 'wc_ajax_woocommerce_stc_' . $ajax_event, array( __CLASS__, $ajax_event ) );
 			}
 		}
+	}
+
+	/**
+	 * Returns the (lazy-loaded) provider settings HTML for a shipping method instance.
+	 */
+	public static function get_shipping_method_provider_settings() {
+		check_ajax_referer( 'wc-stc-shipping-method-provider-settings', 'security' );
+
+		if ( ! current_user_can( 'manage_woocommerce' ) || ! isset( $_POST['instance_id'] ) ) {
+			wp_send_json_error();
+		}
+
+		$instance_id     = absint( wp_unslash( $_POST['instance_id'] ) );
+		$shipping_method = $instance_id ? \WC_Shipping_Zones::get_shipping_method( $instance_id ) : false;
+
+		if ( ! $shipping_method || \Vendidero\Shiptastic\ShippingMethod\MethodHelper::method_is_excluded( $shipping_method->id ) ) {
+			wp_send_json_error();
+		}
+
+		wp_send_json_success(
+			array(
+				'html' => \Vendidero\Shiptastic\ShippingMethod\MethodHelper::get_method_provider_settings_html( $shipping_method ),
+			)
+		);
 	}
 
 	public static function suppress_errors() {

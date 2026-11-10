@@ -198,7 +198,7 @@ class ReportHelper {
 
 		$running = array_values( $running );
 
-		update_option( 'woocommerce_shiptastic_packaging_reports_running', $running, false );
+		update_option( 'woocommerce_shiptastic_packaging_reports_running', $running, true );
 		ReportQueue::clear_cache();
 	}
 

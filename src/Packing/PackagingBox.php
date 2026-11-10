@@ -18,6 +18,16 @@ class PackagingBox implements PackingBox {
 
 	protected $inner_dimensions = array();
 
+	/**
+	 * Inner dimensions (in case no explicit inner dimensions exist) calculated
+	 * based on the outer dimensions and the inner dimension buffer.
+	 *
+	 * @var array
+	 */
+	protected $buffered_inner_dimensions = array();
+
+	protected $reference = null;
+
 	protected $max_weight = 0;
 
 	protected $weight = 0;
@@ -120,7 +130,11 @@ class PackagingBox implements PackingBox {
 	 * Reference for box type (e.g. SKU or description).
 	 */
 	public function getReference(): string {
-		return (string) $this->packaging->get_title();
+		if ( is_null( $this->reference ) ) {
+			$this->reference = (string) $this->packaging->get_title();
+		}
+
+		return $this->reference;
 	}
 
 	/**
@@ -183,13 +197,28 @@ class PackagingBox implements PackingBox {
 	}
 
 	/**
+	 * Returns the (cached) inner dimension calculated based on the outer dimension and the inner dimension buffer.
+	 *
+	 * @param string $type
+	 *
+	 * @return float
+	 */
+	protected function get_buffered_inner_dimension( $type ) {
+		if ( ! array_key_exists( $type, $this->buffered_inner_dimensions ) ) {
+			$this->buffered_inner_dimensions[ $type ] = $this->get_inner_dimension_buffer( $this->dimensions[ $type ], $type );
+		}
+
+		return $this->buffered_inner_dimensions[ $type ];
+	}
+
+	/**
 	 * Inner width in mm.
 	 */
 	public function getInnerWidth(): int {
 		if ( ! empty( $this->inner_dimensions ) ) {
 			$width = $this->inner_dimensions['width'];
 		} else {
-			$width = $this->get_inner_dimension_buffer( $this->dimensions['width'], 'width' );
+			$width = $this->get_buffered_inner_dimension( 'width' );
 		}
 
 		return $width;
@@ -202,7 +231,7 @@ class PackagingBox implements PackingBox {
 		if ( ! empty( $this->inner_dimensions ) ) {
 			$length = $this->inner_dimensions['length'];
 		} else {
-			$length = $this->get_inner_dimension_buffer( $this->dimensions['length'], 'length' );
+			$length = $this->get_buffered_inner_dimension( 'length' );
 		}
 
 		return $length;
@@ -215,7 +244,7 @@ class PackagingBox implements PackingBox {
 		if ( ! empty( $this->inner_dimensions ) ) {
 			$depth = $this->inner_dimensions['depth'];
 		} else {
-			$depth = $this->get_inner_dimension_buffer( $this->dimensions['depth'], 'depth' );
+			$depth = $this->get_buffered_inner_dimension( 'depth' );
 		}
 
 		return $depth;

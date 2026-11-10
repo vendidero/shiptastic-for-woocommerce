@@ -17,6 +17,8 @@ defined( 'ABSPATH' ) || exit;
  */
 class ShipmentItem extends WC_Data_Store_WP implements WC_Object_Data_Store_Interface {
 
+	use MetaCacheTrait;
+
 	/**
 	 * Data stored in meta keys, but not considered "meta" for an order.
 	 *
@@ -207,6 +209,7 @@ class ShipmentItem extends WC_Data_Store_WP implements WC_Object_Data_Store_Inte
 			)
 		);
 
+		$this->prime_meta_cache( array( $item->get_id() ) );
 		$this->read_item_data( $item );
 		$item->read_meta_data();
 		$item->set_object_read( true );
@@ -313,6 +316,7 @@ class ShipmentItem extends WC_Data_Store_WP implements WC_Object_Data_Store_Inte
 	 */
 	public function clear_cache( &$item ) {
 		wp_cache_delete( 'item-' . $item->get_id(), 'shiptastic-shipment-items' );
+		$this->clear_primed_meta( $item->get_id() );
 		wp_cache_delete( 'item-children-' . $item->get_id(), 'shiptastic-shipment-items' );
 		wp_cache_delete( 'shipment-items-' . $item->get_shipment_id(), 'shiptastic-shipments' );
 		wp_cache_delete( $item->get_id(), $this->meta_type . '_meta' );

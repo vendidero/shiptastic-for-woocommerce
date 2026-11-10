@@ -43,6 +43,12 @@ function wc_stc_get_label_by_shipment( $the_shipment, $type = '' ) {
 	$label       = false;
 
 	if ( $shipment_id ) {
+		$primed_label = \Vendidero\Shiptastic\Labels\Factory::get_primed_shipment_label( $shipment_id, $type );
+
+		if ( ! is_null( $primed_label ) ) {
+			return apply_filters( 'woocommerce_shiptastic_shipment_label_for_shipment', $primed_label, $the_shipment );
+		}
+
 		$args = array(
 			'shipment_id' => $shipment_id,
 			'limit'       => 1,

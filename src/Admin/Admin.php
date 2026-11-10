@@ -97,6 +97,12 @@ class Admin {
 
 		add_filter( 'woocommerce_admin_order_actions', array( __CLASS__, 'order_download_actions' ), 10, 2 );
 
+		/**
+		 * Load shipments for all orders shown within the order list at once.
+		 */
+		add_filter( 'woocommerce_order_list_table_prepare_items_query_args', array( __CLASS__, 'prepare_order_list_shipment_priming' ), 9999 );
+		add_filter( 'the_posts', array( __CLASS__, 'prime_legacy_order_list_shipments' ), 10, 2 );
+
 		add_action( 'woocommerce_admin_field_shiptastic_toggle', array( __CLASS__, 'toggle_input_field' ), 30 );
 		add_action( 'woocommerce_admin_field_shiptastic_search_shipping_provider', array( __CLASS__, 'search_shipping_provider_field' ), 10 );
 		add_action( 'woocommerce_admin_field_dimensions', array( __CLASS__, 'register_dimensions_field' ), 30 );
@@ -118,6 +124,61 @@ class Admin {
 	 * @param $actions
 	 * @param \WC_Order $order
 	 */
+	/**
+	 * Register a one-time listener to prime shipments for the orders queried within the (HPOS) order list table.
+	 *
+	 * @param array $query_args
+	 *
+	 * @return array
+	 */
+	public static function prepare_order_list_shipment_priming( $query_args ) {
+		if ( ! has_filter( 'woocommerce_order_query', array( __CLASS__, 'prime_order_list_shipments' ) ) ) {
+			add_filter( 'woocommerce_order_query', array( __CLASS__, 'prime_order_list_shipments' ), 9999, 1 );
+		}
+
+		return $query_args;
+	}
+
+	/**
+	 * @param \WC_Order[]|object $results
+	 *
+	 * @return \WC_Order[]|object
+	 */
+	public static function prime_order_list_shipments( $results ) {
+		remove_filter( 'woocommerce_order_query', array( __CLASS__, 'prime_order_list_shipments' ), 9999 );
+
+		$orders = is_object( $results ) && isset( $results->orders ) ? $results->orders : $results;
+
+		if ( is_array( $orders ) ) {
+			\Vendidero\Shiptastic\Orders\Factory::prime_shipments(
+				array_filter(
+					$orders,
+					function ( $order ) {
+						return is_a( $order, 'WC_Order' ) || is_numeric( $order );
+					}
+				)
+			);
+		}
+
+		return $results;
+	}
+
+	/**
+	 * Prime shipments for the legacy (post-based) order list.
+	 *
+	 * @param \WP_Post[] $posts
+	 * @param \WP_Query $query
+	 *
+	 * @return \WP_Post[]
+	 */
+	public static function prime_legacy_order_list_shipments( $posts, $query ) {
+		if ( ! empty( $posts ) && is_a( $query, 'WP_Query' ) && $query->is_main_query() && function_exists( 'get_current_screen' ) && ( $screen = get_current_screen() ) && 'edit-shop_order' === $screen->id ) {
+			\Vendidero\Shiptastic\Orders\Factory::prime_shipments( wp_list_pluck( $posts, 'ID' ) );
+		}
+
+		return $posts;
+	}
+
 	public static function order_download_actions( $actions, $order ) {
 		$attachment_types         = wc_stc_get_shipment_attachment_types();
 		$attachment_types_to_show = array();
@@ -175,9 +236,13 @@ class Admin {
 
 	public static function toggle_debug_mode() {
 		if ( true === Package::is_debug_mode() ) {
-			delete_option( 'woocommerce_shiptastic_enable_debug_mode' );
+			/**
+			 * Store the disabled state (instead of deleting the option) to prevent
+			 * querying the (non-existing) option on every request.
+			 */
+			update_option( 'woocommerce_shiptastic_enable_debug_mode', 'no', true );
 		} else {
-			update_option( 'woocommerce_shiptastic_enable_debug_mode', 'yes', false );
+			update_option( 'woocommerce_shiptastic_enable_debug_mode', 'yes', true );
 		}
 	}
 
@@ -2202,7 +2267,10 @@ class Admin {
 					'wc-shiptastic-admin-shipping-provider-method',
 					'wc_shiptastic_admin_shipping_provider_method_params',
 					array(
-						'shipping_providers' => $providers,
+						'shipping_providers'      => $providers,
+						'ajax_url'                => admin_url( 'admin-ajax.php' ),
+						'provider_settings_nonce' => wp_create_nonce( 'wc-stc-shipping-method-provider-settings' ),
+						'i18n_load_error'         => _x( 'The service provider settings could not be loaded. Please reload the page and try again.', 'shipments', 'shiptastic-for-woocommerce' ),
 					)
 				);
 			}

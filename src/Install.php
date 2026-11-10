@@ -22,6 +22,7 @@ class Install {
 		self::create_upload_dir();
 		self::create_tables();
 		self::create_default_options();
+		self::create_autoloaded_options();
 		self::maybe_create_return_reasons();
 		self::maybe_insert_encryption_key();
 		self::maybe_create_packaging();
@@ -153,6 +154,41 @@ class Install {
 				$autoload = (bool) $value['autoload'];
 
 				add_option( $value['id'], $value['default'], '', ( $autoload ? 'yes' : 'no' ) );
+			}
+		}
+	}
+
+	/**
+	 * Create options which are requested on (almost) every request as autoloaded options.
+	 * Otherwise, non-existing options lead to a separate DB query per option and request.
+	 */
+	protected static function create_autoloaded_options() {
+		$options = array(
+			'woocommerce_shiptastic_packaging_reports_running' => array(),
+			'woocommerce_shiptastic_enable_debug_mode' => 'no',
+		);
+
+		/**
+		 * Email settings are loaded while registering emails. An empty settings array
+		 * leads to the email defaults being used, same as for a non-existing option.
+		 */
+		foreach ( Emails::get_emails() as $email_id ) {
+			$options[ "woocommerce_{$email_id}_settings" ] = array();
+		}
+
+		$autoloaded_options = wp_load_alloptions();
+
+		foreach ( $options as $option_name => $default_value ) {
+			$current_value = get_option( $option_name, null );
+
+			/**
+			 * Re-add existing options which are not yet autoloaded (e.g. stored by older versions) as autoloaded options.
+			 */
+			if ( ! is_null( $current_value ) && ! array_key_exists( $option_name, $autoloaded_options ) ) {
+				delete_option( $option_name );
+				add_option( $option_name, $current_value, '', true );
+			} else {
+				add_option( $option_name, $default_value, '', true );
 			}
 		}
 	}

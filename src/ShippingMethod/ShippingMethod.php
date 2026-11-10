@@ -18,6 +18,20 @@ class ShippingMethod extends \WC_Shipping_Method {
 	protected $zone = null;
 
 	/**
+	 * Cached (filtered) instance form fields.
+	 *
+	 * @var null|array
+	 */
+	protected $instance_form_fields_cache = null;
+
+	/**
+	 * Cache key used to detect changes to the raw instance form fields, e.g. while injecting additional fields.
+	 *
+	 * @var null|int
+	 */
+	protected $instance_form_fields_cache_key = null;
+
+	/**
 	 * Constructor.
 	 *
 	 * @param int $instance_id Shipping method instance ID.
@@ -197,7 +211,27 @@ class ShippingMethod extends \WC_Shipping_Method {
 		return '<table class="form-table">' . $settings_html . '</table>';
 	}
 
+	/**
+	 * WC_Shipping_Method::get_instance_option() calls this method (and applies filters) on every option retrieval
+	 * of options which are not yet stored. Cache the result to prevent expensive re-calculation.
+	 *
+	 * @return array
+	 */
+	public function get_instance_form_fields() {
+		$cache_key = count( (array) $this->instance_form_fields );
+
+		if ( is_null( $this->instance_form_fields_cache ) || $cache_key !== $this->instance_form_fields_cache_key ) {
+			$this->instance_form_fields_cache     = parent::get_instance_form_fields();
+			$this->instance_form_fields_cache_key = $cache_key;
+		}
+
+		return $this->instance_form_fields_cache;
+	}
+
 	public function init_form_fields() {
+		$this->instance_form_fields_cache     = null;
+		$this->instance_form_fields_cache_key = null;
+
 		$provider_options = wc_stc_get_shipping_provider_select( false );
 		unset( $provider_options[ $this->get_shipping_provider()->get_name() ] );
 
