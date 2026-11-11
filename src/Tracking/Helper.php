@@ -44,11 +44,13 @@ class Helper {
 		foreach ( \Vendidero\Shiptastic\ShippingProvider\Helper::instance()->get_available_shipping_providers() as $provider ) {
 			if ( is_a( $provider, 'Vendidero\Shiptastic\Interfaces\ShippingProviderAuto' ) ) {
 				if ( $provider->supports_remote_shipment_status( 'push' ) && $provider->enable_remote_shipment_status_update( 'push' ) ) {
+					$methods = is_callable( array( $provider, 'get_remote_shipment_status_push_methods' ) ) ? $provider->get_remote_shipment_status_push_methods() : \WP_REST_Server::EDITABLE;
+
 					register_rest_route(
 						'shiptastic/v1',
 						"{$provider->get_name()}/track",
 						array(
-							'methods'             => \WP_REST_Server::EDITABLE,
+							'methods'             => apply_filters( 'woocommerce_shiptastic_remote_shipment_status_push_methods', $methods, $provider ),
 							'callback'            => function ( $request ) use ( $provider ) {
 								$result = $provider->handle_remote_shipment_status_update( $request );
 

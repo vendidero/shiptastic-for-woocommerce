@@ -912,6 +912,16 @@ abstract class Auto extends Simple implements ShippingProviderAuto {
 		return 20;
 	}
 
+	/**
+	 * Returns the HTTP methods accepted by the remote shipment status (push) endpoint.
+	 * Some providers (e.g. DPD) push status updates as GET requests with URL parameters.
+	 *
+	 * @return string|string[]
+	 */
+	public function get_remote_shipment_status_push_methods() {
+		return \WP_REST_Server::EDITABLE;
+	}
+
 	public function enable_remote_shipment_status_update( $type ) {
 		return wc_string_to_bool( $this->get_setting( "enable_remote_shipment_status_update_{$type}", 'no' ) );
 	}
