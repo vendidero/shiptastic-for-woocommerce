@@ -1109,6 +1109,8 @@ class Simple extends WC_Data implements ShippingProvider {
 			}
 
 			$value = $this->retrieve_password( $value );
+		} elseif ( $this->is_secret_setting( $clean_key ) && is_string( $value ) && '' !== $value ) {
+			$value = SecretBox::maybe_decrypt( $value );
 		}
 
 		return apply_filters( "{$this->get_hook_prefix()}setting_{$clean_key}", $value, $key, $default_value, $context );
@@ -1145,9 +1147,37 @@ class Simple extends WC_Data implements ShippingProvider {
 		}
 	}
 
+	/**
+	 * Returns additional setting keys (unprefixed) which contain secrets and need to be stored encrypted.
+	 * Settings containing "password" within the key are encrypted by the settings form handler and
+	 * must not be registered here to prevent double encryption.
+	 *
+	 * @return string[]
+	 */
+	protected function get_secret_setting_keys() {
+		return array();
+	}
+
+	/**
+	 * Whether a certain (unprefixed) setting key is a secret that is encrypted via update_setting().
+	 *
+	 * @param string $key
+	 *
+	 * @return bool
+	 */
+	public function is_secret_setting( $key ) {
+		$secret_keys = (array) apply_filters( "{$this->get_hook_prefix()}secret_setting_keys", $this->get_secret_setting_keys(), $this );
+
+		return ! strstr( $key, 'password' ) && in_array( $key, $secret_keys, true );
+	}
+
 	public function update_setting( $setting, $value ) {
 		$setting_name_clean = $this->unprefix_setting_key( $setting );
 		$setter             = 'set_' . $setting_name_clean;
+
+		if ( $this->is_secret_setting( $setting_name_clean ) && is_string( $value ) && '' !== $value ) {
+			$value = SecretBox::maybe_encrypt( $value );
+		}
 
 		try {
 			if ( is_callable( array( $this, $setter ) ) ) {
