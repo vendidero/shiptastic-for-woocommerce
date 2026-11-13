@@ -384,7 +384,8 @@ class Api {
 	}
 
 	public static function register_controllers( $controller ) {
-		$controller['wc/v3']['shipments'] = ShipmentsController::class;
+		$controller['wc/v3']['shipments']              = ShipmentsController::class;
+		$controller['wc/v3']['shiptastic-fulfillment'] = \Vendidero\Shiptastic\Rest\FulfillmentController::class;
 
 		return $controller;
 	}

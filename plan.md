@@ -327,7 +327,7 @@ Namespace `wc/v3/shiptastic/fulfillment` (or own `shiptastic/v1`):
 - `POST queue/{id}/heartbeat`, `POST queue/{id}/release`
 - `POST queue/{id}/steps/{step}` → submit step data (`lock_token`, `version`, `idempotency_key`)
 - `POST batch` → replay many queued mutations in one request (offline sync)
-- `POST nonce` → refresh REST nonce after long offline periods
+- nonce refresh → WordPress core `admin-ajax.php?action=rest-nonce` (REST routes are unauthenticated with an expired nonce)
 
 ### 3.10 SPA / UI
 
@@ -397,7 +397,15 @@ Namespace `wc/v3/shiptastic/fulfillment` (or own `shiptastic/v1`):
    can be restricted to a package. §2 bugs are gone with the removed legacy classes.
    Not yet: before/after queue phases are declared but only the item phase is executed (batch picking: M8), templates /
    script modules (M5), e-mail digest for continued scheduled runs, PHP-evaluated claim filters.
-4. **REST API** (§3.9) incl. batch + idempotency; drop admin-ajax handler.
+4. ✅ **REST API** (§3.9): `Rest\FulfillmentController` under `wc/v3/shiptastic/fulfillment`: workflows CRUD (+ validate,
+   run_as defaults to the saving user) + `claim` (runs each item until its first interactive step → prefetch payload)
+   + `resume`; queue list (+ counts), item (+ steps/log for a workflow), `heartbeat` (token), `run`, `steps/{key}`
+   (token, version, data), `release`, `skip`, `reset` (managers); `batch` (queue mutations only, max 50, independent).
+   Idempotency via body `idempotency_key` / header `Idempotency-Key` (`BulkFulfillments\Idempotency`, 24 h, replayed
+   responses carry `Idempotent-Replayed: true`). Lock errors → 409/403/404, step errors → 200 with `current.status =
+   error`. Permissions: fulfill = `edit_shop_orders`, manage = `manage_woocommerce` (filterable). Nonce refresh after
+   long offline periods: WordPress core `admin-ajax.php?action=rest-nonce` (a REST route cannot work with an expired
+   nonce). The legacy admin-ajax handler was already removed in M2.
 5. **SPA refactor**: shell + action templates, JSON-driven client-side navigation, IndexedDB store; queue overview +
    run screen.
 6. **Workflow editor** (filters + steps + settings forms).

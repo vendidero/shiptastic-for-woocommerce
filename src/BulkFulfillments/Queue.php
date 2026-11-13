@@ -341,15 +341,19 @@ class Queue {
 
 		$ttl = is_null( $ttl ) ? self::get_lock_ttl() : absint( $ttl );
 
-		return absint(
-			$wpdb->query(
-				$wpdb->prepare(
-					"UPDATE {$wpdb->stc_fulfillment_queue} SET queue_lock_expires_gmt = %s WHERE queue_lock_token = %s AND queue_status = 'locked'",
-					self::now( $ttl ),
-					$token
-				)
+		$wpdb->query(
+			$wpdb->prepare(
+				"UPDATE {$wpdb->stc_fulfillment_queue} SET queue_lock_expires_gmt = %s WHERE queue_lock_token = %s AND queue_status = 'locked'",
+				self::now( $ttl ),
+				$token
 			)
 		);
+
+		/**
+		 * Count the items held instead of using the affected rows (unchanged rows, e.g. within the same second,
+		 * are not reported as affected).
+		 */
+		return absint( $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->stc_fulfillment_queue} WHERE queue_lock_token = %s AND queue_status = 'locked'", $token ) ) );
 	}
 
 	/**

@@ -7,8 +7,8 @@ defined( 'ABSPATH' ) || exit;
 /**
  * Plans and executes the steps of a workflow for a queue item.
  *
- * - Step plan: the workflow's steps in order, dependencies (Action::get_requires()) not done by any workflow are
- *   injected before the step requiring them. Shipment scope steps are expanded per (unshipped) package shipment.
+ * - Step plan: the workflow's steps in order, dependencies (Action::get_requires()) are injected before the step
+ *   requiring them (marked done in case any workflow did them already). Shipment scope steps are expanded per (unshipped) package shipment.
  * - Done state is read from the shared `StepLog` (repeatable actions only count when done by the same workflow).
  * - Background steps run directly, interactive steps return the view data and process submitted data.
  * - Once no step is left, the item is released (pending for other workflows, or done when shipped).
@@ -108,7 +108,7 @@ class Runner {
 			$planned[ $action_name ] = true;
 
 			foreach ( $action::get_requires() as $required ) {
-				if ( isset( $planned[ $required ] ) || self::is_done( $log, $required, 0, $workflow ) ) {
+				if ( isset( $planned[ $required ] ) ) {
 					continue;
 				}
 
