@@ -82,11 +82,12 @@ Smaller bugs noticed while reading (to fix during refactor):
 stc_fulfillment_queue            -- THE loop: one row per (order, package) that is (or was recently) ready to ship
   queue_id            PK
   order_id
-  package_key         shipping line item id ('' = order without shipping-line packages)
+  package_key         {location}|{shipping method id}, e.g. "nord|flat_rate:1" ('' location = default location)
   location            location of the package (group or ungrouped warehouse name, '' = default location)
   UNIQUE (order_id, package_key)
   date_queued_gmt     FIFO key (date paid, fallback date created)
   status              pending | locked | error | done | removed
+  is_stale            1 = lost its eligibility while locked (e.g. order cancelled during fulfillment)
                       (done = order shipped / no longer needs fulfillment; NOT "a workflow finished")
   workflow_id         workflow of the current lock holder (0 = not locked); informational only
   locked_by           user id (scheduled/background runs: the configured run-as admin, see §3.4)
@@ -96,7 +97,9 @@ stc_fulfillment_queue            -- THE loop: one row per (order, package) that 
   version             int, ++ on every write (optimistic concurrency for offline sync)
   last_error          text
   -- denormalized filter columns, refreshed on sync, so claiming is pure SQL:
-  shipping_provider, shipping_method, country, item_count, total_weight, ...
+  shipping_provider, shipping_method, country, item_count, weight, has_backorders
+  (weight = content weight without packaging, store weight unit, recomputed on each sync of the order — e.g. for
+  "small parcels" / "freight" workflows; item_count e.g. for "single-item orders" workflows)
   KEY (status, location, date_queued_gmt), KEY (workflow_id, status), KEY (lock_expires_gmt)
 
 stc_fulfillment_workflows        -- definitions
@@ -373,8 +376,15 @@ Namespace `wc/v3/shiptastic/fulfillment` (or own `shiptastic/v1`):
 1. ✅ **Warehouse packages + backorders** (§3.6, §3.7): warehouse groups/locations + settings UI, cart/order package split,
    shipping line meta, shipment `location` + item `warehouse`, backorder recording + warnings. Valuable on its own (also
    without bulk fulfillment) and the queue depends on it.
-2. **Data model + sync + locking** (PHP only): new tables, queue sync per package (events + reconcile),
-   claim/heartbeat/release, unit tests for claim races and lock expiry. Remove `bulk_fulfillment(s)` tables/classes.
+2. ✅ **Data model + sync + locking** (PHP only): tables `stc_fulfillment_queue`, `stc_fulfillment_steps`,
+   `stc_fulfillment_workflows(+meta)`; classes `BulkFulfillments\Queue` (atomic FIFO claim via single
+   `UPDATE … ORDER BY … LIMIT`, heartbeat, verify_lock/version, release, mark_error, reset, expired lock reset),
+   `QueueItem`, `QueueSync` (events → Action Scheduler, 5 min reconcile with modification cursor, only while an active
+   workflow exists), `StepLog`, `Workflow` + data store. Queue package key = `{location}|{shipping method}`; packages
+   come from items not yet in shipments plus shipments not yet shipped. Old `BulkFulfillment(Order)` model, tables,
+   data stores, REST controller and AJAX handler removed; the legacy page is no longer loaded — its action classes,
+   View and Scripts stay in the repo (unloaded) as source for porting in milestones 3 and 5.
+   Open for M3: shipment-scope steps (claim currently checks order-scope step entries only), PHP-evaluated filters.
 3. **Actions API v2 + runner**: registry, phases/scopes/modes, step log, Action Scheduler background runner,
    exception inbox data. Port `create_shipments`, `pick`, `pack`. Fix the bugs listed in §2.
 4. **REST API** (§3.9) incl. batch + idempotency; drop admin-ajax handler.

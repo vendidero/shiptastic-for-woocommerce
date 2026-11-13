@@ -38,13 +38,13 @@ class Bootstrap {
 		if ( is_admin() ) {
 			$this->container->get( Admin::class )::init();
 			$this->container->get( Wizard::class )::init();
-			$this->container->get( BulkFulfillments\View::class )::init();
 		}
 
 		$this->container->get( Ajax::class )::init();
 		$this->container->get( MethodHelper::class )::init();
 		$this->container->get( Automation::class )::init();
 		$this->container->get( Backorders::class )::init();
+		BulkFulfillments\QueueSync::init();
 		$this->container->get( Labels\Automation::class )::init();
 		$this->container->get( DownloadHandler::class )::init();
 		$this->container->get( Emails::class )::init();

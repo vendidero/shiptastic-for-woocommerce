@@ -583,7 +583,7 @@ class Order {
 	 *
 	 * @return array
 	 */
-	protected function get_packages() {
+	public function get_packages() {
 		$this->package_data  = array();
 		$shipping_method_ids = array_keys( $this->get_order_item_packages( 'raw' ) );
 
@@ -621,7 +621,11 @@ class Order {
 					)
 				);
 
-				if ( empty( $package_data['item_map'] ) ) {
+				/**
+				 * Keep packages consisting of backordered units only (e.g. for the fulfillment queue),
+				 * shipment creation skips packages without items.
+				 */
+				if ( empty( $package_data['item_map'] ) && ! $has_backorders ) {
 					continue;
 				}
 
