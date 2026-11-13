@@ -2,335 +2,352 @@
 
 namespace Vendidero\Shiptastic\BulkFulfillments\Actions;
 
-use Vendidero\Shiptastic\BulkFulfillments\Scripts;
+use Vendidero\Shiptastic\BulkFulfillments\Action;
+use Vendidero\Shiptastic\BulkFulfillments\StepResult;
 use Vendidero\Shiptastic\Package;
 
-class CreateShipments extends \Vendidero\Shiptastic\BulkFulfillments\FulfillmentAction {
+defined( 'ABSPATH' ) || exit;
 
-	public static function get_title() {
-		return _x( 'Create Shipments', 'fulfillments', 'shiptastic-for-woocommerce' );
-	}
+/**
+ * Creates the shipments of a queue item's package: automatically by packaging rules (background) or based on a
+ * layout submitted by the user (interactive). Backordered units are never added automatically.
+ */
+class CreateShipments extends Action {
 
 	public static function get_name() {
 		return 'create_shipments';
 	}
 
-	public static function get_description() {
-		return _x( 'Create shipments from the order items available to ship.', 'fulfillments', 'shiptastic-for-woocommerce' );
+	public static function get_title() {
+		return _x( 'Create shipments', 'shipments', 'shiptastic-for-woocommerce' );
 	}
 
-	public static function get_must_run_before_actions() {
+	public static function get_description() {
+		return _x( 'Create shipments from the items available to ship.', 'shipments', 'shiptastic-for-woocommerce' );
+	}
+
+	public static function get_modes() {
+		return array( 'interactive', 'background' );
+	}
+
+	public static function get_requires() {
 		return array();
 	}
 
-	public function process( $data ) {
-		$shipment_order = $this->get_order()->get_shipment_order();
-		$wc_order       = $shipment_order->get_order();
-		$shipment_ids   = array();
+	protected static function get_default_status() {
+		$status = Package::get_setting( 'auto_default_status' );
 
-		foreach ( $data as $shipment ) {
-			$shipment = wp_parse_args(
-				$shipment,
-				array(
-					'id'               => '',
-					'status'           => '',
-					'weight'           => '',
-					'length'           => '',
-					'width'            => '',
-					'height'           => '',
-					'weightUnit'       => '',
-					'dimensionUnit'    => '',
-					'shippingProvider' => '',
-					'packagingId'      => '',
-					'items'            => array(),
-				)
+		return empty( $status ) ? 'processing' : $status;
+	}
+
+	/**
+	 * @param \Vendidero\Shiptastic\BulkFulfillments\StepContext $context
+	 *
+	 * @return StepResult
+	 */
+	public function run( $context ) {
+		$order_shipment = $context->order_shipment;
+
+		if ( ! $order_shipment ) {
+			return StepResult::error( _x( 'The order does not exist.', 'shipments', 'shiptastic-for-woocommerce' ), 'order_not_found' );
+		}
+
+		$created = $order_shipment->create_shipments(
+			self::get_default_status(),
+			array(
+				'location'        => $context->queue_item->get_location(),
+				'shipping_method' => $context->queue_item->get_shipping_method(),
+			)
+		);
+
+		if ( is_wp_error( $created ) ) {
+			return StepResult::from_wp_error( $created );
+		}
+
+		$shipments = $context->get_package_shipments();
+
+		if ( empty( $shipments ) ) {
+			return StepResult::error( _x( 'No shipment could be created, e.g. because all items are on backorder.', 'shipments', 'shiptastic-for-woocommerce' ), 'no_shipments' );
+		}
+
+		return StepResult::done( array( 'shipment_ids' => array_keys( $shipments ) ) );
+	}
+
+	/**
+	 * Returns the items of the package which may be part of a shipment: order_item_id => available quantity
+	 * (incl. backordered units, which may be added manually) + backordered quantity.
+	 *
+	 * @param \Vendidero\Shiptastic\BulkFulfillments\StepContext $context
+	 *
+	 * @return array
+	 */
+	protected function get_package_items( $context ) {
+		$order_shipment = $context->order_shipment;
+		$item           = $context->queue_item;
+		$items          = array();
+
+		foreach ( $order_shipment->get_packages() as $package ) {
+			if ( $package['location'] !== $item->get_location() || $order_shipment->get_shipping_method_id( $package['method_id'] ) !== $item->get_shipping_method() ) {
+				continue;
+			}
+
+			foreach ( $package['item_map'] as $order_item_id => $quantity ) {
+				$items[ $order_item_id ] = array(
+					'available'   => $quantity,
+					'backordered' => 0,
+				);
+			}
+		}
+
+		foreach ( $order_shipment->get_backordered_items_left_for_shipping() as $order_item_id => $data ) {
+			$product = $order_shipment->get_order_item_product( $data['item'] );
+
+			if ( wc_stc_get_product_location_name( $product ) !== $item->get_location() ) {
+				continue;
+			}
+
+			if ( ! isset( $items[ $order_item_id ] ) ) {
+				$items[ $order_item_id ] = array(
+					'available'   => 0,
+					'backordered' => 0,
+				);
+			}
+
+			$items[ $order_item_id ]['backordered'] = $data['quantity'];
+		}
+
+		return $items;
+	}
+
+	/**
+	 * @param \Vendidero\Shiptastic\Order $order_shipment
+	 * @param \WC_Order_Item $order_item
+	 *
+	 * @return array
+	 */
+	public static function get_item_data( $order_shipment, $order_item ) {
+		$product = $order_shipment->get_order_item_product( $order_item );
+
+		return array(
+			'id'     => $order_item->get_id(),
+			'name'   => html_entity_decode( wp_strip_all_tags( $order_item->get_name() ), ENT_QUOTES, get_bloginfo( 'charset' ) ),
+			'sku'    => $product ? $product->get_sku() : '',
+			'gtin'   => $product && is_callable( array( $product->get_product(), 'get_global_unique_id' ) ) ? $product->get_product()->get_global_unique_id() : '',
+			'image'  => $product && $product->get_product() ? wp_get_attachment_image_url( $product->get_product()->get_image_id(), 'thumbnail' ) : '',
+			'weight' => $product ? (float) $product->get_shipping_weight() : 0.0,
+			'length' => $product ? (float) $product->get_shipping_length() : 0.0,
+			'width'  => $product ? (float) $product->get_shipping_width() : 0.0,
+			'height' => $product ? (float) $product->get_shipping_height() : 0.0,
+		);
+	}
+
+	public static function get_packaging_data() {
+		$packaging_list = array();
+
+		foreach ( wc_stc_get_packaging_list() as $packaging ) {
+			$packaging_list[] = array(
+				'id'        => $packaging->get_id(),
+				'title'     => $packaging->get_title(),
+				'weight'    => (float) $packaging->get_weight(),
+				'maxWeight' => (float) $packaging->get_max_content_weight(),
+				'length'    => (float) $packaging->get_inner_length(),
+				'width'     => (float) $packaging->get_inner_width(),
+				'height'    => (float) $packaging->get_inner_height(),
+				'providers' => $packaging->get_available_shipping_provider(),
 			);
+		}
 
-			$props = array(
-				'status'            => wc_clean( $shipment['status'] ),
-				'weight'            => wc_clean( $shipment['weight'] ),
-				'length'            => wc_clean( $shipment['length'] ),
-				'width'             => wc_clean( $shipment['width'] ),
-				'height'            => wc_clean( $shipment['height'] ),
-				'shipping_provider' => wc_clean( $shipment['shippingProvider'] ),
-				'packaging_id'      => absint( $shipment['packagingId'] ),
+		return $packaging_list;
+	}
+
+	/**
+	 * @param \Vendidero\Shiptastic\BulkFulfillments\StepContext $context
+	 *
+	 * @return array
+	 */
+	public function get_view_data( $context ) {
+		$order_shipment = $context->order_shipment;
+		$order          = $order_shipment->get_order();
+		$items          = array();
+		$shipments      = array();
+
+		foreach ( $this->get_package_items( $context ) as $order_item_id => $quantities ) {
+			if ( $order_item = $order->get_item( $order_item_id ) ) {
+				$items[] = array_merge(
+					self::get_item_data( $order_shipment, $order_item ),
+					array(
+						'quantity'    => $quantities['available'],
+						'backordered' => $quantities['backordered'],
+					)
+				);
+			}
+		}
+
+		foreach ( $context->get_package_shipments() as $shipment ) {
+			$shipment_items = array();
+
+			foreach ( $shipment->get_items() as $shipment_item ) {
+				$shipment_items[] = array(
+					'id'       => $shipment_item->get_order_item_id(),
+					'name'     => $shipment_item->get_name(),
+					'quantity' => $shipment_item->get_quantity(),
+				);
+			}
+
+			$shipments[] = array(
+				'id'          => $shipment->get_id(),
+				'status'      => $shipment->get_status(),
+				'editable'    => $shipment->is_editable(),
+				'packagingId' => $shipment->get_packaging_id(),
+				'items'       => $shipment_items,
+			);
+		}
+
+		return array(
+			'items'      => $items,
+			'shipments'  => $shipments,
+			'packaging'  => self::get_packaging_data(),
+			'weightUnit' => get_option( 'woocommerce_weight_unit', 'kg' ),
+			'dimUnit'    => get_option( 'woocommerce_dimension_unit', 'cm' ),
+		);
+	}
+
+	/**
+	 * Applies the submitted shipment layout of the package:
+	 * shipments: list of [ id (existing id or temporary key for new shipments), packaging_id, items: order_item_id => quantity ].
+	 * Package shipments missing from the layout are removed (in case editable).
+	 *
+	 * @param \Vendidero\Shiptastic\BulkFulfillments\StepContext $context
+	 * @param array $data
+	 *
+	 * @return StepResult
+	 */
+	public function process( $context, $data ) {
+		$order_shipment = $context->order_shipment;
+		$order          = $order_shipment->get_order();
+		$allowed_items  = $this->get_package_items( $context );
+		$existing       = $context->get_package_shipments();
+		$id_map         = array();
+		$kept           = array();
+
+		foreach ( $existing as $shipment ) {
+			foreach ( $shipment->get_items() as $shipment_item ) {
+				$allowed_items[ $shipment_item->get_order_item_id() ] = true;
+			}
+		}
+
+		foreach ( (array) ( isset( $data['shipments'] ) ? $data['shipments'] : array() ) as $shipment_data ) {
+			$shipment_data = wp_parse_args(
+				(array) $shipment_data,
+				array(
+					'id'           => '',
+					'packaging_id' => 0,
+					'items'        => array(),
+				)
 			);
 
 			$items = array();
 
-			foreach ( $shipment['items'] as $item ) {
-				$items[ absint( $item['id'] ) ] = absint( $item['quantity'] );
+			foreach ( (array) $shipment_data['items'] as $order_item_id => $quantity ) {
+				$order_item_id = absint( $order_item_id );
+				$quantity      = absint( $quantity );
+
+				if ( $quantity > 0 && isset( $allowed_items[ $order_item_id ] ) && $order->get_item( $order_item_id ) ) {
+					$items[ $order_item_id ] = $quantity;
+				}
 			}
 
-			/**
-			 * Remove empty elements to prevent override
-			 */
-			$props = array_filter( $props );
-
-			if ( ! is_numeric( $shipment['id'] ) ) {
-				$shipment = wc_stc_create_shipment(
-					$shipment_order,
-					array(
-						'items' => $items,
-						'props' => $props,
-					)
-				);
-
-				if ( ! is_wp_error( $shipment ) ) {
-					$shipment_order->add_shipment( $shipment );
-
-					$shipment_ids[] = $shipment->get_id();
-				}
-			} elseif ( $shipment = $shipment_order->get_shipment( absint( $shipment['id'] ) ) ) {
-				foreach ( $items as $order_item_id => $quantity ) {
-					$order_item = $wc_order->get_item( $order_item_id );
-
-					if ( $order_item ) {
-						if ( $item = $shipment->get_item_by_order_item_id( $order_item_id ) ) {
-							$item->sync( array( 'quantity' => $quantity ) );
-						} else {
-							$shipment_item = wc_stc_create_shipment_item( $this, $order_item, array( 'quantity' => $quantity ) );
-							$shipment->add_item( $shipment_item );
-						}
-					}
-				}
-
-				/**
-				 * Remove non-existent items
-				 */
-				foreach ( $shipment->get_items() as $item ) {
-					$item_is_missing_from_sync = ! empty( $items ) && ! isset( $items[ $item->get_order_item_id() ] );
-					$order_item_is_missing     = ! $wc_order->get_item( $item->get_order_item_id() );
-
-					if ( $order_item_is_missing || $item_is_missing_from_sync ) {
-						$shipment->remove_item( $item->get_id() );
-					}
-				}
-
-				$shipment->sync( $props );
-				$shipment->save();
-
-				$shipment_ids[] = $shipment->get_id();
+			if ( empty( $items ) ) {
+				continue;
 			}
-		}
 
-		foreach ( $shipment_order->get_simple_shipments() as $shipment ) {
-			if ( ! in_array( $shipment->get_id(), $shipment_ids, true ) ) {
-				$shipment_order->remove_shipment( $shipment->get_id() );
-			}
-		}
-
-		$shipment_order->validate_shipments();
-	}
-
-	public function render() {
-		Scripts::register_script_module(
-			'shiptastic/fulfillments/' . self::get_name(),
-			Package::get_assets_url( 'static/fulfillments/create-shipments.js' ),
-			array(
-				'@wordpress/interactivity',
+			$props = array_filter(
 				array(
-					'id'     => '@wordpress/interactivity-router',
-					'import' => 'dynamic',
-				),
-			),
-			Package::get_version()
-		);
+					'packaging_id' => absint( $shipment_data['packaging_id'] ),
+				)
+			);
 
-		wp_interactivity()->add_client_navigation_support_to_script_module(
-			'shiptastic/fulfillments/' . self::get_name()
-		);
+			if ( is_numeric( $shipment_data['id'] ) && isset( $existing[ absint( $shipment_data['id'] ) ] ) ) {
+				$shipment = $existing[ absint( $shipment_data['id'] ) ];
 
-		wp_interactivity_state(
-			'shiptastic/fulfillments/' . self::get_name(),
+				if ( $shipment->is_editable() ) {
+					$this->sync_shipment_items( $shipment, $order, $items );
+
+					if ( ! empty( $props ) ) {
+						$shipment->sync( $props );
+					}
+
+					$shipment->save();
+				}
+
+				$kept[] = $shipment->get_id();
+				continue;
+			}
+
+			$shipment = wc_stc_create_shipment(
+				$order_shipment,
+				array(
+					'items' => $items,
+					'props' => array_merge(
+						$props,
+						array(
+							'status'          => self::get_default_status(),
+							'location'        => $context->queue_item->get_location(),
+							'shipping_method' => $context->queue_item->get_shipping_method(),
+						)
+					),
+				)
+			);
+
+			if ( is_wp_error( $shipment ) ) {
+				return StepResult::from_wp_error( $shipment );
+			}
+
+			$order_shipment->add_shipment( $shipment );
+
+			$id_map[ (string) $shipment_data['id'] ] = $shipment->get_id();
+			$kept[]                                  = $shipment->get_id();
+		}
+
+		foreach ( $existing as $shipment_id => $shipment ) {
+			if ( ! in_array( $shipment_id, $kept, true ) && $shipment->is_editable() ) {
+				$order_shipment->remove_shipment( $shipment_id );
+			}
+		}
+
+		$order_shipment->validate_shipment_item_quantities();
+		$order_shipment->save();
+
+		if ( empty( $kept ) ) {
+			return StepResult::error( _x( 'Please add at least one shipment.', 'shipments', 'shiptastic-for-woocommerce' ), 'no_shipments' );
+		}
+
+		return StepResult::done(
 			array(
-				'shipments'            => function () {
-					$state = wp_interactivity_state( 'shiptastic/fulfillments' );
-					return $state['shipments'];
-				},
-				'packagingOptions'     => function () {
-					$state = wp_interactivity_config( 'shiptastic/fulfillments' );
-					return $state['packagingOptions'];
-				},
-				'itemsAvailableToShip' => function () {
-					$state = wp_interactivity_state( 'shiptastic/fulfillments' );
-					return $state['allItemsAvailableToShip'];
-				},
+				'shipment_ids' => $kept,
+				'id_map'       => $id_map,
 			)
 		);
+	}
 
-		Scripts::enqueue_script_module( 'shiptastic/fulfillments/' . self::get_name() );
-		?>
-		<div>
-			<template
-				data-wp-each--item="state.itemsAvailableToShip"
-				data-wp-each-key="context.item.id"
-			>
-				<div
-					data-wp-on--click="actions.toggleSelectItem"
-					data-wp-class--is-selected="state.isItemSelected"
-					draggable="true"
-					data-wp-on--dragstart="actions.onShipmentItemDrag"
-				>
-					<div class="item-column item-img-column">
-						<img data-wp-bind--src="context.item.image" />
-					</div>
-					<div class="item-column item-details-column">
-						<h4 data-wp-text="context.item.name"></h4>
-						<div class="item-ids">
-							<span data-wp-text="context.item.globalUniqueId"></span>
-							<span data-wp-text="context.item.sku"></span>
-						</div>
-						<div class="item-attributes">
-							<template
-								data-wp-each--attribute="context.item.attributes"
-								data-wp-each-key="context.item.attribute.id"
-							>
-								<div class="attribute-label" data-wp-watch="callbacks.renderItemAttributeLabel"></div>
-								<div class="attribute-value" data-wp-watch="callbacks.renderItemAttributeValue"></div>
-							</template>
-						</div>
-					</div>
-					<div class="item-column item-qty-column">
-						<input
-							type="number"
-							name="quantity"
-							data-wp-bind--value="context.item.quantity"
-							data-wp-on--click="actions.stopPropagation"
-							data-wp-on--input="actions.setItemQuantity"
-							min="1"
-							step="1"
-							data-wp-bind--max="context.item.maxQuantity"
-						/>
-					</div>
-				</div>
-			</template>
-		</div>
+	/**
+	 * @param \Vendidero\Shiptastic\SimpleShipment $shipment
+	 * @param \WC_Order $order
+	 * @param array $items order_item_id => quantity
+	 */
+	protected function sync_shipment_items( $shipment, $order, $items ) {
+		foreach ( $items as $order_item_id => $quantity ) {
+			if ( $shipment_item = $shipment->get_item_by_order_item_id( $order_item_id ) ) {
+				$shipment_item->sync( array( 'quantity' => $quantity ) );
+			} elseif ( $order_item = $order->get_item( $order_item_id ) ) {
+				$shipment->add_item( wc_stc_create_shipment_item( $shipment, $order_item, array( 'quantity' => $quantity ) ) );
+			}
+		}
 
-		<button
-			data-wp-on--click="actions.createShipment"
-			data-wp-bind--hidden="!state.hasSelectedItems"
-		>
-			Create shipment
-		</button>
-
-		<template
-			data-wp-each--shipment="state.shipments"
-			data-wp-each-key="context.shipment.id"
-		>
-			<div
-				data-wp-init="callbacks.setupShipment"
-				data-wp-watch="callbacks.findBestPackaging"
-				data-wp-on--dragover="actions.onShipmentItemDragOver"
-				data-wp-on--drop="actions.onShipmentItemDrop"
-			>
-				<h3>Shipment <span data-wp-text="state.currentShipmentNumber"></span>/<span data-wp-text="state.shipmentCount"></span></h3>
-
-				<div class="shipment-attribute shipment-attribute-weight">
-					<label><?php echo wp_kses_post( sprintf( _x( 'Content (%s)', 'shipments', 'shiptastic-for-woocommerce' ), '<span data-wp-text="context.shipment.weightUnit"></span>' ) ); ?></label>
-
-					<input
-						type="text"
-						data-wp-bind--value="state.formattedShipmentWeight"
-						data-wp-on--input="actions.setShipmentWeight"
-						name="weight"
-						pattern="^\d+([.,]\d+)?$"
-						inputmode="decimal"
-						data-wp-bind--placeholder="state.shipmentContentWeight"
-					/>
-				</div>
-
-				<div class="shipment-attribute shipment-attribute-dimensions">
-					<label><?php echo wp_kses_post( sprintf( _x( 'Dimensions (%s)', 'shipments', 'shiptastic-for-woocommerce' ), '<span data-wp-text="context.shipment.dimensionUnit"></span>' ) ); ?></label>
-
-					<input
-						type="text"
-						data-wp-bind--value="state.formattedShipmentLength"
-						data-wp-on--input="actions.setShipmentLength"
-						name="length"
-						pattern="^\d+([.,]\d+)?$"
-						inputmode="decimal"
-						data-wp-bind--placeholder="state.shipmentContentLength"
-					/>
-
-					<input
-						type="text"
-						data-wp-bind--value="state.formattedShipmentWidth"
-						data-wp-on--input="actions.setShipmentWidth"
-						name="width"
-						pattern="^\d+([.,]\d+)?$"
-						inputmode="decimal"
-						data-wp-bind--placeholder="state.shipmentContentWidth"
-					/>
-
-					<input
-						type="text"
-						data-wp-bind--value="state.formattedShipmentHeight"
-						data-wp-on--input="actions.setShipmentHeight"
-						name="height"
-						pattern="^\d+([.,]\d+)?$"
-						inputmode="decimal"
-						data-wp-bind--placeholder="state.shipmentContentHeight"
-					/>
-				</div>
-
-				<div class="shipment-attribute shipment-attribute-packaging">
-					<label><?php echo esc_html_x( 'Packaging', 'shipments', 'shiptastic-for-woocommerce' ); ?></label>
-
-					<select
-						data-wp-bind--value="state.shipmentPackagingId"
-						data-wp-on--change="actions.setShipmentPackagingId"
-						data-wp-watch="callbacks.updatePackaging"
-					>
-						<option value="0">None</option>
-						<template
-							data-wp-each--packaging="state.packagingOptions"
-							data-wp-each-key="context.packaging.id"
-						>
-							<option
-								data-wp-bind--value="context.packaging.id"
-								data-wp-watch="callbacks.renderPackagingTitle"
-							>
-							</option>
-						</template>
-					</select>
-				</div>
-
-				<a data-wp-on--click="actions.deleteShipment">Delete shipment</a>
-
-				<template
-					data-wp-each--shipment_item="context.shipment.items"
-					data-wp-each-key="context.shipment_item.itemId"
-				>
-					<div
-						draggable="true"
-						data-wp-on--dragstart="actions.onShipmentItemDrag"
-					>
-						<span data-wp-text="context.shipment_item.name"></span>
-						<input
-							type="number"
-							name="quantity"
-							data-wp-bind--value="state.shipmentItemQuantity"
-							data-wp-on--click="actions.stopPropagation"
-							data-wp-on--input="actions.setShipmentItemQuantity"
-							min="0"
-							step="1"
-							data-wp-bind--max="state.shipmentItemMaxQuantity"
-						/>
-						<a data-wp-on--click="actions.deleteShipmentItem">Delete item</a>
-					</div>
-				</template>
-			</div>
-		</template>
-
-		<template
-			data-wp-each--shipment_item="state.allShipmentItems"
-			data-wp-each-key="context.shipment_item.id"
-		>
-			<div>
-				<span data-wp-text="context.shipment_item.name"></span> x<span data-wp-text="context.shipment_item.quantity"></span>
-			</div>
-		</template>
-		<?php
+		foreach ( $shipment->get_items() as $shipment_item ) {
+			if ( ! isset( $items[ $shipment_item->get_order_item_id() ] ) ) {
+				$shipment->remove_item( $shipment_item->get_id() );
+			}
+		}
 	}
 }

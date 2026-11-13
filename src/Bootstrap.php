@@ -45,6 +45,7 @@ class Bootstrap {
 		$this->container->get( Automation::class )::init();
 		$this->container->get( Backorders::class )::init();
 		BulkFulfillments\QueueSync::init();
+		BulkFulfillments\Scheduler::init();
 		$this->container->get( Labels\Automation::class )::init();
 		$this->container->get( DownloadHandler::class )::init();
 		$this->container->get( Emails::class )::init();

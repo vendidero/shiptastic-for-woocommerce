@@ -1046,18 +1046,34 @@ class Order {
 	 * Backordered units are never included (see `get_packages()`).
 	 *
 	 * @param string $default_status
+	 * @param array $args Optionally restrict to a package: location (location name), shipping_method (e.g. flat_rate:1).
 	 *
 	 * @return array|\WP_Error
 	 */
-	public function create_shipments( $default_status = 'processing' ) {
+	public function create_shipments( $default_status = 'processing', $args = array() ) {
 		$shipments_created = array();
 		$errors            = new \WP_Error();
+		$args              = wp_parse_args(
+			$args,
+			array(
+				'location'        => null,
+				'shipping_method' => null,
+			)
+		);
 
 		if ( $this->needs_shipping() ) {
 			foreach ( $this->get_packages() as $package ) {
 				$method_id = $package['method_id'];
 
 				if ( empty( $package['item_map'] ) ) {
+					continue;
+				}
+
+				if ( ! is_null( $args['location'] ) && (string) $args['location'] !== $package['location'] ) {
+					continue;
+				}
+
+				if ( ! is_null( $args['shipping_method'] ) && (string) $args['shipping_method'] !== $this->get_shipping_method_id( $method_id ) ) {
 					continue;
 				}
 

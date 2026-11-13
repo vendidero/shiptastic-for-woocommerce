@@ -385,8 +385,18 @@ Namespace `wc/v3/shiptastic/fulfillment` (or own `shiptastic/v1`):
    data stores, REST controller and AJAX handler removed; the legacy page is no longer loaded — its action classes,
    View and Scripts stay in the repo (unloaded) as source for porting in milestones 3 and 5.
    Open for M3: shipment-scope steps (claim currently checks order-scope step entries only), PHP-evaluated filters.
-3. **Actions API v2 + runner**: registry, phases/scopes/modes, step log, Action Scheduler background runner,
-   exception inbox data. Port `create_shipments`, `pick`, `pack`. Fix the bugs listed in §2.
+3. ✅ **Actions API v2 + runner**: `Action` base (scopes, phases, modes, requires, repeatable, requires_network,
+   settings schema; `run()` / `get_view_data()` / `process()`), `ActionRegistry` (filter
+   `woocommerce_shiptastic_fulfillment_actions`), `Step`/`StepContext`/`StepResult`, `Runner` (step plan with injected
+   dependencies + shipment scope expansion, execute until input/error/completion, order scope roll-up for shipment
+   steps, `process_chunk()` with scheduled continue/stop and user-started stop-and-keep-locked, `skip()`), `Scheduler`
+   (interval/daily schedules in site timezone via single actions, one run at a time, chunks of 25, run as user with
+   capability check, pause + admin notice + e-mail, resume). Workflow: `create_shipments_mode`, paused state, `validate()`.
+   Ported `create_shipments` (per package, background + interactive layout with temp ids), `pick` (sorted pick list,
+   short pick error), `pack` (shipment scope, packaging/measures, status after packing). `Order::create_shipments()`
+   can be restricted to a package. §2 bugs are gone with the removed legacy classes.
+   Not yet: before/after queue phases are declared but only the item phase is executed (batch picking: M8), templates /
+   script modules (M5), e-mail digest for continued scheduled runs, PHP-evaluated claim filters.
 4. **REST API** (§3.9) incl. batch + idempotency; drop admin-ajax handler.
 5. **SPA refactor**: shell + action templates, JSON-driven client-side navigation, IndexedDB store; queue overview +
    run screen.

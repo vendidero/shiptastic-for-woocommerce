@@ -20,17 +20,24 @@ class Workflow extends WC_Data {
 	protected $cache_group = 'fulfillment_workflow';
 
 	protected $data = array(
-		'date_created'  => null,
-		'date_modified' => null,
-		'title'         => '',
-		'status'        => 'active',
-		'priority'      => 0,
-		'mode'          => 'interactive',
-		'filters'       => array(),
-		'steps'         => array(),
-		'on_error'      => 'continue',
-		'run_as'        => 0,
-		'schedule'      => array(),
+		'date_created'          => null,
+		'date_modified'         => null,
+		'title'                 => '',
+		'status'                => 'active',
+		'priority'              => 0,
+		'mode'                  => 'interactive',
+		'filters'               => array(),
+		'steps'                 => array(),
+		'on_error'              => 'continue',
+		'run_as'                => 0,
+		'schedule'              => array(
+			'type'    => 'none',
+			'minutes' => 15,
+			'times'   => array(),
+		),
+		'create_shipments_mode' => 'background',
+		'paused'                => false,
+		'paused_reason'         => '',
 	);
 
 	/**
@@ -271,11 +278,184 @@ class Workflow extends WC_Data {
 		$this->set_prop( 'run_as', absint( $user_id ) );
 	}
 
+	/**
+	 * Schedule for background workflows:
+	 * - type none: not scheduled
+	 * - type interval: minutes (e.g. every 15 minutes)
+	 * - type daily: times (e.g. 13:30 before carrier pickup, site timezone)
+	 *
+	 * @param string $context
+	 *
+	 * @return array
+	 */
 	public function get_schedule( $context = 'view' ) {
 		return $this->get_prop( 'schedule', $context );
 	}
 
 	public function set_schedule( $schedule ) {
-		$this->set_prop( 'schedule', (array) $schedule );
+		$schedule = wp_parse_args(
+			(array) $schedule,
+			array(
+				'type'    => 'none',
+				'minutes' => 15,
+				'times'   => array(),
+			)
+		);
+
+		$times = array();
+
+		foreach ( (array) $schedule['times'] as $time ) {
+			if ( preg_match( '/^([01]?\d|2[0-3]):([0-5]\d)$/', trim( (string) $time ), $matches ) ) {
+				$times[] = sprintf( '%02d:%02d', $matches[1], $matches[2] );
+			}
+		}
+
+		$this->set_prop(
+			'schedule',
+			array(
+				'type'    => in_array( $schedule['type'], array( 'none', 'interval', 'daily' ), true ) ? $schedule['type'] : 'none',
+				'minutes' => max( 5, absint( $schedule['minutes'] ) ),
+				'times'   => array_values( array_unique( $times ) ),
+			)
+		);
+	}
+
+	public function is_scheduled() {
+		$schedule = $this->get_schedule();
+
+		return $this->is_active() && 'background' === $this->get_mode() && ! $this->is_paused() && ! empty( $schedule['type'] ) && 'none' !== $schedule['type'];
+	}
+
+	/**
+	 * How missing shipments are created in case create_shipments is injected as a dependency:
+	 * background (automatically, by packaging rules) or interactive (manually).
+	 */
+	public function get_create_shipments_mode( $context = 'view' ) {
+		return $this->get_prop( 'create_shipments_mode', $context );
+	}
+
+	public function set_create_shipments_mode( $mode ) {
+		$this->set_prop( 'create_shipments_mode', 'interactive' === $mode ? 'interactive' : 'background' );
+	}
+
+	/**
+	 * Whether the schedule is paused (scheduled run stopped on an error).
+	 */
+	public function get_paused( $context = 'view' ) {
+		return $this->get_prop( 'paused', $context );
+	}
+
+	public function set_paused( $paused ) {
+		$this->set_prop( 'paused', wc_string_to_bool( $paused ) );
+	}
+
+	public function is_paused() {
+		return true === $this->get_paused();
+	}
+
+	public function get_paused_reason( $context = 'view' ) {
+		return $this->get_prop( 'paused_reason', $context );
+	}
+
+	public function set_paused_reason( $reason ) {
+		$this->set_prop( 'paused_reason', wp_strip_all_tags( (string) $reason ) );
+	}
+
+	/**
+	 * Returns the mode (interactive|background) a step of this workflow runs in.
+	 *
+	 * @param string $action_name
+	 * @param array $settings Step settings (may contain a preferred mode).
+	 * @param bool $injected Whether the step is injected as a dependency.
+	 *
+	 * @return string
+	 */
+	public function get_step_mode( $action_name, $settings = array(), $injected = false ) {
+		$action = ActionRegistry::get( $action_name );
+
+		if ( ! $action ) {
+			return 'interactive';
+		}
+
+		$preferred = isset( $settings['mode'] ) ? $settings['mode'] : '';
+
+		if ( 'background' === $this->get_mode() ) {
+			$preferred = 'background';
+		} elseif ( $injected && empty( $preferred ) ) {
+			$preferred = 'create_shipments' === $action_name ? $this->get_create_shipments_mode() : 'background';
+		}
+
+		if ( $preferred && $action::supports_mode( $preferred ) ) {
+			return $preferred;
+		}
+
+		$modes = $action::get_modes();
+
+		return in_array( 'interactive', $modes, true ) ? 'interactive' : $modes[0];
+	}
+
+	/**
+	 * @param string $action_name
+	 *
+	 * @return array|null The workflow's settings for an action in case it is part of the step list.
+	 */
+	public function get_step_settings( $action_name ) {
+		foreach ( $this->get_steps() as $step ) {
+			if ( $step['action'] === $action_name ) {
+				return $step['settings'];
+			}
+		}
+
+		return null;
+	}
+
+	/**
+	 * Validates the workflow configuration.
+	 *
+	 * @return true|\WP_Error
+	 */
+	public function validate() {
+		$errors = new \WP_Error();
+
+		if ( empty( $this->get_steps() ) ) {
+			$errors->add( 'workflow_no_steps', _x( 'Please add at least one step.', 'shipments', 'shiptastic-for-woocommerce' ) );
+		}
+
+		$actions = array();
+
+		foreach ( $this->get_steps() as $step ) {
+			$actions[] = $step['action'];
+
+			foreach ( ActionRegistry::exists( $step['action'] ) ? ActionRegistry::get( $step['action'] )::get_requires() : array() as $required ) {
+				$actions[] = $required;
+			}
+		}
+
+		foreach ( array_unique( $actions ) as $action_name ) {
+			$action = ActionRegistry::get( $action_name );
+
+			if ( ! $action ) {
+				/* translators: %s action name */
+				$errors->add( 'workflow_unknown_action', sprintf( _x( 'The action %s does not exist.', 'shipments', 'shiptastic-for-woocommerce' ), $action_name ) );
+				continue;
+			}
+
+			if ( 'background' === $this->get_mode() && ! $action::supports_mode( 'background' ) ) {
+				/* translators: %s action title */
+				$errors->add( 'workflow_action_requires_interaction', sprintf( _x( '%s cannot run in the background. Background workflows may only contain steps which support the background.', 'shipments', 'shiptastic-for-woocommerce' ), $action::get_title() ) );
+			}
+		}
+
+		$schedule = $this->get_schedule();
+
+		if ( 'none' !== $schedule['type'] && 'background' !== $this->get_mode() ) {
+			$errors->add( 'workflow_schedule_requires_background', _x( 'Only background workflows can run on a schedule.', 'shipments', 'shiptastic-for-woocommerce' ) );
+		}
+
+		if ( 'daily' === $schedule['type'] && empty( $schedule['times'] ) ) {
+			$errors->add( 'workflow_schedule_no_times', _x( 'Please add at least one time for the daily schedule.', 'shipments', 'shiptastic-for-woocommerce' ) );
+		}
+
+		return $errors->has_errors() ? $errors : true;
 	}
 }
