@@ -253,7 +253,7 @@ class Runner {
 					$result,
 					array(
 						'status'    => 'needs_input',
-						'view_data' => $action->get_view_data( $context ),
+						'view_data' => self::get_view_data( $item, $step, $context ),
 					)
 				);
 			}
@@ -295,6 +295,83 @@ class Runner {
 				'code'    => 'too_many_steps',
 			)
 		);
+	}
+
+	/**
+	 * The view data of an interactive step. Data submitted before (a reopened or failed step) is passed as `previous`
+	 * to prefill the form.
+	 *
+	 * @param QueueItem $item
+	 * @param Step $step
+	 * @param StepContext $context
+	 *
+	 * @return array
+	 */
+	protected static function get_view_data( $item, $step, $context ) {
+		$view_data = (array) $step->get_action()->get_view_data( $context );
+		$log       = self::get_log( $item );
+
+		if ( isset( $log[ $step->action ][ $step->shipment_id ] ) && ! empty( $log[ $step->action ][ $step->shipment_id ]['data'] ) ) {
+			$view_data['previous'] = $log[ $step->action ][ $step->shipment_id ]['data'];
+		}
+
+		return $view_data;
+	}
+
+	/**
+	 * Reopens a done interactive step of a locked item (e.g. the user navigates back), its data is kept to prefill
+	 * the form. Shipment scope steps reopen the order scope roll-up as well.
+	 *
+	 * @param int $queue_id
+	 * @param Workflow $workflow
+	 * @param string $token
+	 * @param string $key The step key, e.g. pick or pack:123
+	 *
+	 * @return true|\WP_Error
+	 */
+	public static function reopen( $queue_id, $workflow, $token, $key ) {
+		$verified = Queue::verify_lock( $queue_id, $token );
+
+		if ( is_wp_error( $verified ) ) {
+			return $verified;
+		}
+
+		$item = Queue::get( $queue_id );
+		$step = null;
+
+		foreach ( self::get_steps( $item, $workflow ) as $candidate ) {
+			if ( $candidate->get_key() === $key ) {
+				$step = $candidate;
+				break;
+			}
+		}
+
+		if ( ! $step || ! $step->is_done || 'interactive' !== $step->mode ) {
+			return new \WP_Error( 'step_not_reopenable', _x( 'This step cannot be reopened.', 'shipments', 'shiptastic-for-woocommerce' ), array( 'status' => 400 ) );
+		}
+
+		$log = self::get_log( $item );
+
+		foreach ( array_unique( array( $step->shipment_id, 0 ) ) as $shipment_id ) {
+			if ( ! isset( $log[ $step->action ][ $shipment_id ] ) ) {
+				continue;
+			}
+
+			StepLog::record(
+				$queue_id,
+				$step->action,
+				array(
+					'status'      => 'open',
+					'shipment_id' => $shipment_id,
+					'data'        => $log[ $step->action ][ $shipment_id ]['data'],
+					'workflow_id' => $workflow->get_id(),
+				)
+			);
+		}
+
+		Queue::bump_version( $queue_id, $token );
+
+		return true;
 	}
 
 	/**

@@ -8,6 +8,7 @@ use Vendidero\Shiptastic\BulkFulfillments\Queue;
 use Vendidero\Shiptastic\BulkFulfillments\QueueItem;
 use Vendidero\Shiptastic\BulkFulfillments\Runner;
 use Vendidero\Shiptastic\BulkFulfillments\Scheduler;
+use Vendidero\Shiptastic\BulkFulfillments\ShipmentLayout;
 use Vendidero\Shiptastic\BulkFulfillments\StepLog;
 use Vendidero\Shiptastic\BulkFulfillments\Workflow;
 use Vendidero\Shiptastic\DataStores\FulfillmentWorkflow;
@@ -87,14 +88,20 @@ class FulfillmentController extends \WC_REST_Controller {
 				'callback'            => array( $this, 'claim' ),
 				'permission_callback' => array( $this, 'can_fulfill' ),
 				'args'                => array(
-					'limit' => array(
+					'limit'   => array(
 						'type'    => 'integer',
 						'minimum' => 1,
 						'maximum' => 100,
 					),
-					'run'   => array(
+					'run'     => array(
 						'type'    => 'boolean',
 						'default' => true,
+					),
+					'exclude' => array(
+						'description' => _x( 'Queue item ids not to claim, e.g. items put back during the current run.', 'shipments', 'shiptastic-for-woocommerce' ),
+						'type'        => 'array',
+						'items'       => array( 'type' => 'integer' ),
+						'default'     => array(),
 					),
 				),
 			)
@@ -118,15 +125,19 @@ class FulfillmentController extends \WC_REST_Controller {
 				'callback'            => array( $this, 'get_queue' ),
 				'permission_callback' => array( $this, 'can_fulfill' ),
 				'args'                => array(
-					'status'   => array( 'type' => array( 'string', 'array' ) ),
-					'location' => array( 'type' => 'string' ),
-					'order_id' => array( 'type' => 'integer' ),
-					'page'     => array(
+					'status'      => array( 'type' => array( 'string', 'array' ) ),
+					'location'    => array( 'type' => 'string' ),
+					'order_id'    => array( 'type' => 'integer' ),
+					'workflow_id' => array(
+						'description' => _x( 'Limit to items of a workflow: matching its filters, open items only in case they have open steps for it.', 'shipments', 'shiptastic-for-woocommerce' ),
+						'type'        => 'integer',
+					),
+					'page'        => array(
 						'type'    => 'integer',
 						'default' => 1,
 						'minimum' => 1,
 					),
-					'per_page' => array(
+					'per_page'    => array(
 						'type'    => 'integer',
 						'default' => 50,
 						'minimum' => 1,
@@ -196,6 +207,33 @@ class FulfillmentController extends \WC_REST_Controller {
 
 		register_rest_route(
 			$this->namespace,
+			$base . '/queue/(?P<id>[\d]+)/steps/(?P<step>[a-z0-9_\-]+(?::[\d]+)?)/reopen',
+			array(
+				'methods'             => WP_REST_Server::CREATABLE,
+				'callback'            => array( $this, 'reopen_step' ),
+				'permission_callback' => array( $this, 'can_fulfill' ),
+			)
+		);
+
+		register_rest_route(
+			$this->namespace,
+			$base . '/queue/(?P<id>[\d]+)/shipments',
+			array(
+				'methods'             => WP_REST_Server::CREATABLE,
+				'callback'            => array( $this, 'update_shipments' ),
+				'permission_callback' => array( $this, 'can_fulfill' ),
+				'args'                => array(
+					'shipments' => array(
+						'description' => _x( 'Shipment layout of the package: id (shipment id or temporary key), items (order item id => quantity), props (packaging_id, provider, weight, length, width, height).', 'shipments', 'shiptastic-for-woocommerce' ),
+						'type'        => 'array',
+						'required'    => true,
+					),
+				),
+			)
+		);
+
+		register_rest_route(
+			$this->namespace,
 			$base . '/batch',
 			array(
 				'methods'             => WP_REST_Server::CREATABLE,
@@ -256,21 +294,27 @@ class FulfillmentController extends \WC_REST_Controller {
 		}
 
 		return array(
-			'id'                    => $workflow->get_id(),
-			'title'                 => $workflow->get_title(),
-			'status'                => $workflow->get_status(),
-			'priority'              => $workflow->get_priority(),
-			'mode'                  => $workflow->get_mode(),
-			'filters'               => Workflow::sanitize_filters( $workflow->get_filters() ),
-			'steps'                 => $actions,
-			'on_error'              => $workflow->get_on_error(),
-			'run_as'                => $workflow->get_run_as(),
-			'schedule'              => $workflow->get_schedule(),
-			'create_shipments_mode' => $workflow->get_create_shipments_mode(),
-			'paused'                => $workflow->is_paused(),
-			'paused_reason'         => $workflow->get_paused_reason(),
-			'date_created'          => wc_rest_prepare_date_response( $workflow->get_date_created() ),
-			'date_modified'         => wc_rest_prepare_date_response( $workflow->get_date_modified() ),
+			'id'            => $workflow->get_id(),
+			'title'         => $workflow->get_title(),
+			'status'        => $workflow->get_status(),
+			'priority'      => $workflow->get_priority(),
+			'mode'          => $workflow->get_mode(),
+			'filters'       => Workflow::sanitize_filters( $workflow->get_filters() ),
+			'steps'         => $actions,
+			'on_error'      => $workflow->get_on_error(),
+			'run_as'        => $workflow->get_run_as(),
+			'schedule'      => $workflow->get_schedule(),
+			'paused'        => $workflow->is_paused(),
+			'paused_reason' => $workflow->get_paused_reason(),
+			// Orders waiting for this workflow.
+			'open_count'    => $workflow->get_id() ? Queue::count(
+				array(
+					'status'   => 'pending',
+					'workflow' => $workflow,
+				)
+			) : 0,
+			'date_created'  => wc_rest_prepare_date_response( $workflow->get_date_created() ),
+			'date_modified' => wc_rest_prepare_date_response( $workflow->get_date_modified() ),
 		);
 	}
 
@@ -314,7 +358,7 @@ class FulfillmentController extends \WC_REST_Controller {
 	protected function save_workflow( $workflow, $request ) {
 		$props = array();
 
-		foreach ( array( 'title', 'status', 'priority', 'mode', 'filters', 'steps', 'on_error', 'run_as', 'schedule', 'create_shipments_mode' ) as $prop ) {
+		foreach ( array( 'title', 'status', 'priority', 'mode', 'filters', 'steps', 'on_error', 'run_as', 'schedule' ) as $prop ) {
 			if ( isset( $request[ $prop ] ) ) {
 				$props[ $prop ] = $request[ $prop ];
 			}
@@ -399,6 +443,21 @@ class FulfillmentController extends \WC_REST_Controller {
 	 *
 	 * @return array
 	 */
+	/**
+	 * @param string $location_name
+	 *
+	 * @return string The location's (warehouse or group) title, empty for the default location.
+	 */
+	protected static function get_location_title( $location_name ) {
+		if ( '' === $location_name ) {
+			return '';
+		}
+
+		$location = \Vendidero\Shiptastic\Warehouse\Helper::get_location( $location_name );
+
+		return $location ? $location->get_title() : $location_name;
+	}
+
 	public static function prepare_queue_item( $item, $args = array() ) {
 		$args  = wp_parse_args(
 			$args,
@@ -416,6 +475,7 @@ class FulfillmentController extends \WC_REST_Controller {
 			'order_number'      => $order ? $order->get_order_number() : (string) $item->get_order_id(),
 			'package_key'       => $item->get_package_key(),
 			'location'          => $item->get_location(),
+			'location_title'    => self::get_location_title( $item->get_location() ),
 			'shipping_method'   => $item->get_shipping_method(),
 			'shipping_provider' => $item->get_shipping_provider(),
 			'country'           => $item->get_country(),
@@ -445,6 +505,11 @@ class FulfillmentController extends \WC_REST_Controller {
 			);
 		}
 
+		// The shipments overlay is available during the whole run.
+		if ( $args['execution'] && 'completed' !== $args['execution']['status'] ) {
+			$data['layout'] = ShipmentLayout::get_data( $item );
+		}
+
 		if ( $args['execution'] ) {
 			$execution       = $args['execution'];
 			$data['current'] = array(
@@ -459,28 +524,74 @@ class FulfillmentController extends \WC_REST_Controller {
 		return $data;
 	}
 
+	/**
+	 * @return array workflow_id => number of orders waiting for the (active) workflow
+	 */
+	protected static function get_open_counts() {
+		$counts = array();
+
+		foreach ( FulfillmentWorkflow::get_active_workflow_ids() as $workflow_id ) {
+			$counts[ $workflow_id ] = Queue::count(
+				array(
+					'status'   => 'pending',
+					'workflow' => new Workflow( $workflow_id ),
+				)
+			);
+		}
+
+		return $counts;
+	}
+
 	public function get_queue( $request ) {
+		$workflow = null;
+
+		if ( ! empty( $request['workflow_id'] ) ) {
+			$workflow = $this->get_workflow_object( $request['workflow_id'] );
+
+			if ( is_wp_error( $workflow ) ) {
+				return $workflow;
+			}
+		}
+
+		$args = array(
+			'status'   => isset( $request['status'] ) ? (array) $request['status'] : array(),
+			'location' => isset( $request['location'] ) ? $request['location'] : null,
+			'order_id' => isset( $request['order_id'] ) ? $request['order_id'] : 0,
+			'workflow' => $workflow,
+		);
+
 		$items = Queue::query(
-			array(
-				'status'   => isset( $request['status'] ) ? (array) $request['status'] : array(),
-				'location' => isset( $request['location'] ) ? $request['location'] : null,
-				'order_id' => isset( $request['order_id'] ) ? $request['order_id'] : 0,
-				'limit'    => $request['per_page'],
-				'offset'   => ( $request['page'] - 1 ) * $request['per_page'],
+			array_merge(
+				$args,
+				array(
+					'limit'  => $request['per_page'],
+					'offset' => ( $request['page'] - 1 ) * $request['per_page'],
+				)
 			)
 		);
 
-		return rest_ensure_response(
+		$total    = Queue::count( $args );
+		$pages    = (int) ceil( $total / $request['per_page'] );
+		$response = rest_ensure_response(
 			array(
-				'items'  => array_map(
+				'items'       => array_map(
 					function ( $item ) {
 						return self::prepare_queue_item( $item );
 					},
 					$items
 				),
-				'counts' => Queue::count_by_status(),
+				'counts'      => Queue::count_by_status( $workflow ),
+				'total'       => $total,
+				'pages'       => $pages,
+				// Orders waiting per active workflow (overview).
+				'open_counts' => (object) self::get_open_counts(),
 			)
 		);
+
+		$response->header( 'X-WP-Total', $total );
+		$response->header( 'X-WP-TotalPages', $pages );
+
+		return $response;
 	}
 
 	protected function get_queue_item_object( $id ) {
@@ -540,6 +651,7 @@ class FulfillmentController extends \WC_REST_Controller {
 				'limit'   => isset( $request['limit'] ) ? absint( $request['limit'] ) : null,
 				'user_id' => get_current_user_id(),
 				'source'  => 'interactive',
+				'exclude' => (array) $request['exclude'],
 			)
 		);
 
@@ -724,6 +836,70 @@ class FulfillmentController extends \WC_REST_Controller {
 		);
 	}
 
+	/**
+	 * Reopens a done interactive step (navigating back) and continues the workflow, i.e. the reopened step is the
+	 * current step afterwards (its previous data is part of the view data).
+	 */
+	public function reopen_step( $request ) {
+		return $this->idempotent(
+			$request,
+			function () use ( $request ) {
+				$context = $this->get_locked_context( $request );
+
+				if ( is_wp_error( $context ) ) {
+					return $context;
+				}
+
+				$token    = (string) $request['token'];
+				$reopened = Runner::reopen( $context['item']->get_id(), $context['workflow'], $token, (string) $request['step'] );
+
+				if ( is_wp_error( $reopened ) ) {
+					return $reopened;
+				}
+
+				$execution = Runner::execute( $context['item']->get_id(), $context['workflow'], $token );
+
+				return $this->execution_response( $context['item']->get_id(), $context['workflow'], $token, $execution );
+			}
+		);
+	}
+
+	/**
+	 * Applies the shipment layout (shipments overlay) of a locked item and continues the workflow, e.g. steps of
+	 * changed shipments are reopened.
+	 */
+	public function update_shipments( $request ) {
+		return $this->idempotent(
+			$request,
+			function () use ( $request ) {
+				$context = $this->get_locked_context( $request );
+
+				if ( is_wp_error( $context ) ) {
+					return $context;
+				}
+
+				$item    = $context['item'];
+				$token   = (string) $request['token'];
+				$applied = ShipmentLayout::apply( $item, (array) $request['shipments'] );
+
+				if ( is_wp_error( $applied ) ) {
+					return $applied;
+				}
+
+				Queue::bump_version( $item->get_id(), $token );
+
+				$execution = Runner::execute( $item->get_id(), $context['workflow'], $token );
+				$response  = $this->execution_response( $item->get_id(), $context['workflow'], $token, $execution );
+
+				if ( is_array( $response ) ) {
+					$response['id_map'] = (object) $applied['id_map'];
+				}
+
+				return $response;
+			}
+		);
+	}
+
 	public function release_queue_item( $request ) {
 		return $this->idempotent(
 			$request,
@@ -793,7 +969,7 @@ class FulfillmentController extends \WC_REST_Controller {
 
 			$path = ltrim( (string) $sub_request['path'], '/' );
 
-			if ( 'POST' !== strtoupper( $sub_request['method'] ) || ! preg_match( '#^queue/[\d]+/(run|release|skip|steps/[a-z0-9_\-]+(?::[\d]+)?)$#', $path ) ) {
+			if ( 'POST' !== strtoupper( $sub_request['method'] ) || ! preg_match( '#^queue/[\d]+/(run|release|skip|shipments|steps/[a-z0-9_\-]+(?::[\d]+)?(?:/reopen)?)$#', $path ) ) {
 				$responses[] = array(
 					'status' => 400,
 					'body'   => array(

@@ -391,7 +391,7 @@ Namespace `wc/v3/shiptastic/fulfillment` (or own `shiptastic/v1`):
    dependencies + shipment scope expansion, execute until input/error/completion, order scope roll-up for shipment
    steps, `process_chunk()` with scheduled continue/stop and user-started stop-and-keep-locked, `skip()`), `Scheduler`
    (interval/daily schedules in site timezone via single actions, one run at a time, chunks of 25, run as user with
-   capability check, pause + admin notice + e-mail, resume). Workflow: `create_shipments_mode`, paused state, `validate()`.
+   capability check, pause + admin notice + e-mail, resume). Workflow: paused state, `validate()` (`create_shipments_mode` removed in M5: shipments are edited via the overlay).
    Ported `create_shipments` (per package, background + interactive layout with temp ids), `pick` (sorted pick list,
    short pick error), `pack` (shipment scope, packaging/measures, status after packing). `Order::create_shipments()`
    can be restricted to a package. §2 bugs are gone with the removed legacy classes.
@@ -406,8 +406,53 @@ Namespace `wc/v3/shiptastic/fulfillment` (or own `shiptastic/v1`):
    error`. Permissions: fulfill = `edit_shop_orders`, manage = `manage_woocommerce` (filterable). Nonce refresh after
    long offline periods: WordPress core `admin-ajax.php?action=rest-nonce` (a REST route cannot work with an expired
    nonce). The legacy admin-ajax handler was already removed in M2.
-5. **SPA refactor**: shell + action templates, JSON-driven client-side navigation, IndexedDB store; queue overview +
-   run screen.
+5. ✅ **SPA refactor**: `BulkFulfillments\App` (page `admin.php?page=wc-shiptastic-fulfillment`, submenu WooCommerce →
+   Fulfillment, standalone document, no wp-admin CSS/JS) replaces the legacy `View` + `admin-fulfillments.js`. Shell
+   `includes/admin/views/fulfillment/app.php` + one template per action (`Action::get_template()`, default
+   `views/fulfillment/actions/{name}.php`, filter `woocommerce_shiptastic_fulfillment_action_template`; partials
+   `partials/check-list.php`, `partials/shipment-fields.php`), processed once via `wp_interactivity_process_directives`.
+   Script modules are served unbuilt from `assets/js/fulfillment/` (`app.js` store `shiptastic/fulfillment`, `api.js`
+   fetch + nonce refresh, `db.js` IndexedDB kv, `gestures.js` pointer-based swipe (`data-stc-swipe` → `stcswipe`) and
+   drag & drop (`data-stc-drag-handle` / `data-stc-drop` → `stcdrop`), `checklist.js` item verification shared by
+   pick/pack (scan, swipe right +1 / left −1, steppers, all), `shipments.js` overlay; per action `actions/{name}.js` via
+   `Action::get_script_module()` contributing `callbacks.initForm_{name}` / `collect_{name}`).
+   **Shipments overlay** (`views/fulfillment/shipments.php`): available during the whole run (button in the order
+   header, also in step errors) instead of a create-shipments step — `create_shipments` is background-only (default
+   layout by packaging rules, backorders never added automatically). Pool of items not in a shipment (incl.
+   backordered units) + shipments; items are added/removed/moved via drag & drop, swipe or steppers; per shipment
+   packaging, shipping provider, content weight (empty = calculated) and dimensions (locked while a packaging is
+   chosen). Saved via `POST queue/{id}/shipments` (`BulkFulfillments\ShipmentLayout::apply()`), which continues the
+   run: changed shipments reopen their shipment-scope steps (+ roll-ups), changed totals reopen order-scope steps of
+   actions with `Action::resets_on_shipment_changes()` (pick). Packed (ready-for-shipping) shipments without label
+   stay editable and go back to the default status when their items change; shipped/labelled ones are locked
+   (filter `woocommerce_shiptastic_fulfillment_can_edit_shipment`). The run payload carries `layout` per item.
+   Pack verifies the shipment items (`packed`, error `short_pack`) and shows the packaging + package dimensions to use
+   (read-only, "Change" opens the overlay where shipment details are edited).
+   "Add shipment" is offered only while items are not part of a shipment (one empty shipment at a time).
+   **Back navigation**: done interactive steps of the current order can be reopened (step bar or Back button,
+   `POST queue/{id}/steps/{key}/reopen`, `Runner::reopen()`): the log entry becomes `open` and keeps its data, which is
+   passed as `view_data.previous` to prefill the form (also after failed submits). Finished orders are released and
+   cannot be reopened from the run.
+   **Header**: no fixed top bar; a page header following the WordPress admin UI page header (light, breadcrumbs
+   "Fulfillment / workflow / #order" — the root navigates back to the overview —, subtitle "Order x of y", actions
+   Shipments + Exit). The overlay uses the same light header. Below the WordPress mobile breakpoint (782px) the run
+   header collapses to "← #order" with "workflow · Order x of y" as subtitle (Exit only on the overview).
+   **Step navigation** (scales to many steps, e.g. per-shipment label/document steps): "Step x of y" + current step
+   title, a segmented progress bar (one segment per interactive step) and a step list on demand (done steps can be
+   redone, upcoming ones are disabled; closes on outside click or Escape).
+   **Validation**: steps may register `callbacks.validate_{action}()` (client side, nothing is sent while invalid; the
+   message and highlighted rows update live). Pick/pack use `callbacks.validateChecklist()` and show "x/y items" + a
+   progress bar. The shipments overlay covers the full viewport (content centered at the app width).
+   **Queue overview**: skeleton rows while loading (stale responses are ignored), paginated (25 per page, `total`/`pages` + `X-WP-Total`), FIFO like claims, filterable by
+   workflow (`workflow_id`: its filters + open steps), open orders per workflow (`open_count`, `open_counts`).
+   Styles `assets/css/fulfillment.scss` → `build/static/fulfillment-styles.css`. Screens: overview (workflows, queue
+   tabs with counts, reset of exceptions) and run (claim → current order → steps; refill at ≤ 5 left, heartbeat every
+   2 min, put back = release + excluded from further claims of the run (`claim` arg `exclude`), back = batch release).
+   The current run is stored in IndexedDB and refreshed via `run` after a reload. Errors of interactive steps (e.g.
+   short pick) keep the form for corrections; background step errors offer retry / move to exceptions.
+   Filters: `woocommerce_shiptastic_fulfillment_app_config`, `…_app_state`; actions `…_app_register_modules`,
+   `…_fulfillment_head`, `…_fulfillment_print_footer_scripts`.
+   Not yet: relative imports carry no `?ver` (cache busting), keyboard-wedge scanning outside the scan field.
 6. **Workflow editor** (filters + steps + settings forms).
 7. **Offline**: outbox replay, prefetch, conflicts, service worker.
 8. **Batch picking** (storage location sorting ✅ done early, §3.8) (before_queue phase, pick list, sort-to-order, short picks) + **more actions**: labels, documents,

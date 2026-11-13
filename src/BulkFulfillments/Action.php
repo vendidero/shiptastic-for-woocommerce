@@ -72,6 +72,16 @@ abstract class Action {
 	}
 
 	/**
+	 * Whether a done order scope step of this action is reopened once the total quantities of the package's shipments
+	 * change (e.g. items added within the shipments overlay). Shipment scope steps are always reopened for changed shipments.
+	 *
+	 * @return bool
+	 */
+	public static function resets_on_shipment_changes() {
+		return false;
+	}
+
+	/**
 	 * Settings fields used by the workflow editor, keyed by setting name: type, label, default, options.
 	 *
 	 * @return array
@@ -95,21 +105,34 @@ abstract class Action {
 	}
 
 	/**
-	 * Markup (with Interactivity API directives) rendered once per app load for this action's view.
+	 * Markup (with Interactivity API directives) rendered once per app load for this action's view, shown while the
+	 * action is the current step. Defaults to includes/admin/views/fulfillment/actions/{name}.php (underscores replaced by hyphens). The current step's
+	 * view data is available as `state.view`, local form data as `state.form`.
 	 *
 	 * @return string
 	 */
 	public static function get_template() {
-		return '';
+		return App::render_view( 'actions/' . str_replace( '_', '-', static::get_name() ) );
 	}
 
 	/**
-	 * Optional script module (handle => url) providing the action's client store.
+	 * Optional script module providing the action's client logic (id, src). Defaults to
+	 * assets/js/fulfillment/actions/{name}.js in case it exists. The module extends the `shiptastic/fulfillment` store,
+	 * e.g. with `callbacks.collect_{name}()` returning the data to submit for the step.
 	 *
 	 * @return array|null
 	 */
 	public static function get_script_module() {
-		return null;
+		$file = 'assets/js/fulfillment/actions/' . static::get_name() . '.js';
+
+		if ( ! file_exists( \Vendidero\Shiptastic\Package::get_path( $file ) ) ) {
+			return null;
+		}
+
+		return array(
+			'id'  => 'shiptastic/fulfillment-' . static::get_name(),
+			'src' => \Vendidero\Shiptastic\Package::get_url( $file ),
+		);
 	}
 
 	/**

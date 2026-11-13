@@ -21,7 +21,6 @@ class FulfillmentWorkflow extends WC_Data_Store_WP implements WC_Object_Data_Sto
 		'_on_error',
 		'_run_as',
 		'_schedule',
-		'_create_shipments_mode',
 		'_paused',
 		'_paused_reason',
 	);

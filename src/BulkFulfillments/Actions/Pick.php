@@ -33,6 +33,10 @@ class Pick extends Action {
 	 *
 	 * @return array order_item_id => quantity to pick
 	 */
+	public static function resets_on_shipment_changes() {
+		return true;
+	}
+
 	public static function get_required_quantities( $context ) {
 		$quantities = array();
 
@@ -69,7 +73,7 @@ class Pick extends Action {
 			$product_id = is_callable( array( $order_item, 'get_variation_id' ) ) && $order_item->get_variation_id() ? $order_item->get_variation_id() : ( is_callable( array( $order_item, 'get_product_id' ) ) ? $order_item->get_product_id() : 0 );
 
 			$items[ $order_item_id ] = array_merge(
-				CreateShipments::get_item_data( $order_shipment, $order_item ),
+				\Vendidero\Shiptastic\BulkFulfillments\ShipmentLayout::get_item_data( $order_shipment, $order_item ),
 				array(
 					'quantity'   => $quantity,
 					'product_id' => $product_id,

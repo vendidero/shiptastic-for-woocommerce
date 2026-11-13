@@ -90,23 +90,14 @@ class Queue {
 	}
 
 	/**
-	 * @param array $args status (string|array), location, order_id, limit, offset
+	 * @param array $args status (string|array), location, order_id, workflow (Workflow: items matching its filters,
+	 *                    pending items only in case they have open steps for it)
 	 *
-	 * @return QueueItem[]
+	 * @return string[] SQL conditions
 	 */
-	public static function query( $args = array() ) {
+	protected static function get_query_conditions( $args ) {
 		global $wpdb;
 
-		$args  = wp_parse_args(
-			$args,
-			array(
-				'status'   => array(),
-				'location' => null,
-				'order_id' => 0,
-				'limit'    => 50,
-				'offset'   => 0,
-			)
-		);
 		$where = array( '1=1' );
 
 		if ( ! empty( $args['status'] ) ) {
@@ -121,6 +112,39 @@ class Queue {
 			$where[] = $wpdb->prepare( 'queue_order_id = %d', $args['order_id'] );
 		}
 
+		if ( ! empty( $args['workflow'] ) && is_a( $args['workflow'], '\Vendidero\Shiptastic\BulkFulfillments\Workflow' ) ) {
+			$where   = array_merge( $where, self::get_filter_conditions( $args['workflow'] ) );
+			$where[] = "( queue_status <> 'pending' OR " . self::get_open_steps_condition( $args['workflow'] ) . ' )';
+		}
+
+		return $where;
+	}
+
+	protected static function parse_query_args( $args ) {
+		return wp_parse_args(
+			$args,
+			array(
+				'status'   => array(),
+				'location' => null,
+				'order_id' => 0,
+				'workflow' => null,
+				'limit'    => 50,
+				'offset'   => 0,
+			)
+		);
+	}
+
+	/**
+	 * @param array $args status (string|array), location, order_id, workflow, limit, offset
+	 *
+	 * @return QueueItem[] Ordered like claims (first in, first out).
+	 */
+	public static function query( $args = array() ) {
+		global $wpdb;
+
+		$args  = self::parse_query_args( $args );
+		$where = self::get_query_conditions( $args );
+
 		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- Conditions are prepared fragments.
 		$rows = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$wpdb->stc_fulfillment_queue} WHERE " . implode( ' AND ', $where ) . ' ORDER BY queue_date_queued_gmt ASC, queue_id ASC LIMIT %d, %d', absint( $args['offset'] ), absint( $args['limit'] ) ) );
 		// phpcs:enable
@@ -134,18 +158,58 @@ class Queue {
 	}
 
 	/**
+	 * @param array $args see query()
+	 *
+	 * @return int
+	 */
+	public static function count( $args = array() ) {
+		global $wpdb;
+
+		$where = self::get_query_conditions( self::parse_query_args( $args ) );
+
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- Conditions are prepared fragments.
+		return absint( $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->stc_fulfillment_queue} WHERE " . implode( ' AND ', $where ) ) );
+	}
+
+	/**
+	 * @param Workflow|null $workflow Count items of a workflow only (see query()).
+	 *
 	 * @return array status => count
 	 */
-	public static function count_by_status() {
+	public static function count_by_status( $workflow = null ) {
 		global $wpdb;
 
 		$counts = array_fill_keys( array( 'pending', 'locked', 'error', 'done', 'removed' ), 0 );
+		$where  = self::get_query_conditions( self::parse_query_args( array( 'workflow' => $workflow ) ) );
 
-		foreach ( $wpdb->get_results( "SELECT queue_status AS status, COUNT(*) AS count FROM {$wpdb->stc_fulfillment_queue} GROUP BY queue_status" ) as $row ) {
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- Conditions are prepared fragments.
+		foreach ( $wpdb->get_results( "SELECT queue_status AS status, COUNT(*) AS count FROM {$wpdb->stc_fulfillment_queue} WHERE " . implode( ' AND ', $where ) . ' GROUP BY queue_status' ) as $row ) {
 			$counts[ $row->status ] = absint( $row->count );
 		}
 
 		return $counts;
+	}
+
+	/**
+	 * @param Workflow $workflow
+	 *
+	 * @return string SQL condition: the item still has open (not done) steps for the workflow.
+	 */
+	public static function get_open_steps_condition( $workflow ) {
+		global $wpdb;
+
+		$actions = $workflow->get_step_actions();
+		$table   = $wpdb->stc_fulfillment_queue;
+
+		if ( empty( $actions ) ) {
+			return '1=0';
+		}
+
+		return $wpdb->prepare(
+			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
+			"( SELECT COUNT( DISTINCT steps.step_action ) FROM {$wpdb->stc_fulfillment_steps} AS steps WHERE steps.step_queue_id = {$table}.queue_id AND steps.step_shipment_id = 0 AND steps.step_status = 'done' AND steps.step_action IN (" . implode( ',', array_fill( 0, count( $actions ), '%s' ) ) . ') ) < %d',
+			array_merge( $actions, array( count( $actions ) ) )
+		);
 	}
 
 	protected static function in_sql( $column, $values, $format = '%s' ) {
@@ -239,7 +303,7 @@ class Queue {
 	 * steps for the workflow. The claim is atomic: concurrent claims never return the same item.
 	 *
 	 * @param Workflow $workflow
-	 * @param array $args limit, user_id, source (interactive|background|scheduled), ttl
+	 * @param array $args limit, user_id, source (interactive|background|scheduled), ttl, exclude (queue ids, e.g. items put back during a run)
 	 *
 	 * @return QueueItem[] The claimed items, all sharing the same lock token.
 	 */
@@ -253,6 +317,7 @@ class Queue {
 				'user_id' => get_current_user_id(),
 				'source'  => 'interactive',
 				'ttl'     => null,
+				'exclude' => array(),
 			)
 		);
 
@@ -273,14 +338,16 @@ class Queue {
 				$wpdb->prepare( "( queue_status = 'pending' OR ( queue_status = 'locked' AND queue_lock_expires_gmt < %s ) )", $now ),
 				'queue_is_stale = 0',
 				// The item must still have open (not done) steps for this workflow.
-				$wpdb->prepare(
-					// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
-					"( SELECT COUNT( DISTINCT steps.step_action ) FROM {$wpdb->stc_fulfillment_steps} AS steps WHERE steps.step_queue_id = {$table}.queue_id AND steps.step_shipment_id = 0 AND steps.step_status = 'done' AND steps.step_action IN (" . implode( ',', array_fill( 0, count( $actions ), '%s' ) ) . ') ) < %d',
-					array_merge( $actions, array( count( $actions ) ) )
-				),
+				self::get_open_steps_condition( $workflow ),
 			),
 			self::get_filter_conditions( $workflow )
 		);
+
+		$exclude = array_filter( array_map( 'absint', (array) $args['exclude'] ) );
+
+		if ( ! empty( $exclude ) ) {
+			$conditions[] = 'queue_id NOT IN (' . implode( ',', $exclude ) . ')';
+		}
 
 		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- Conditions are prepared fragments.
 		$wpdb->query(

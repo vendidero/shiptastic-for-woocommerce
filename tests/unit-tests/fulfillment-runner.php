@@ -6,6 +6,7 @@ use Vendidero\Shiptastic\BulkFulfillments\Queue;
 use Vendidero\Shiptastic\BulkFulfillments\QueueSync;
 use Vendidero\Shiptastic\BulkFulfillments\Runner;
 use Vendidero\Shiptastic\BulkFulfillments\Scheduler;
+use Vendidero\Shiptastic\BulkFulfillments\ShipmentLayout;
 use Vendidero\Shiptastic\BulkFulfillments\StepLog;
 use Vendidero\Shiptastic\BulkFulfillments\StepResult;
 use Vendidero\Shiptastic\BulkFulfillments\Workflow;
@@ -196,15 +197,11 @@ class FulfillmentRunnerTest extends \Vendidero\Shiptastic\Tests\Framework\UnitTe
 		$this->assertEquals( 'background', $steps[0]->mode );
 		$this->assertEquals( 'interactive', $steps[1]->mode );
 
-		// Manual shipment creation in case the dependency is injected
-		$workflow->set_create_shipments_mode( 'interactive' );
-		$this->assertEquals( 'interactive', Runner::get_steps( $item, $workflow )[0]->mode );
-
-		// Listing create_shipments explicitly uses its settings
+		// Shipments are edited via the overlay - create_shipments always runs in the background
 		$explicit = $this->create_workflow( array( array( 'action' => 'create_shipments', 'settings' => array( 'mode' => 'interactive' ) ), 'pick' ) );
 		$steps    = Runner::get_steps( $item, $explicit );
 		$this->assertFalse( $steps[0]->injected );
-		$this->assertEquals( 'interactive', $steps[0]->mode );
+		$this->assertEquals( 'background', $steps[0]->mode );
 	}
 
 	public function test_interactive_run() {
@@ -253,13 +250,28 @@ class FulfillmentRunnerTest extends \Vendidero\Shiptastic\Tests\Framework\UnitTe
 		$this->assertGreaterThan( 0, $shipment_id );
 
 		$packaging = current( wc_stc_get_packaging_list() );
-		$result    = Runner::execute(
+
+		// Short pack: all items of the shipment need to be packed
+		$result = Runner::execute(
+			$item->get_id(),
+			$workflow,
+			$token,
+			array(
+				'step' => 'pack:' . $shipment_id,
+				'data' => array( 'packed' => array( $order_item_id => 1 ) ),
+			)
+		);
+		$this->assertEquals( 'error', $result['status'] );
+		$this->assertEquals( 'short_pack', $result['code'] );
+
+		$result = Runner::execute(
 			$item->get_id(),
 			$workflow,
 			$token,
 			array(
 				'step' => 'pack:' . $shipment_id,
 				'data' => array(
+					'packed'       => array( $order_item_id => 2 ),
 					'packaging_id' => $packaging->get_id(),
 					'weight'       => '1.5',
 				),
@@ -290,7 +302,7 @@ class FulfillmentRunnerTest extends \Vendidero\Shiptastic\Tests\Framework\UnitTe
 		$result   = Runner::execute( $item->get_id(), $packing, $item->get_lock_token() );
 		$shipment = $result['step']->shipment_id;
 
-		$this->assertEquals( 'completed', Runner::execute( $item->get_id(), $packing, $item->get_lock_token(), array( 'step' => 'pack:' . $shipment, 'data' => array() ) )['status'] );
+		$this->assertEquals( 'completed', Runner::execute( $item->get_id(), $packing, $item->get_lock_token(), array( 'step' => 'pack:' . $shipment, 'data' => array( 'packed' => array( $this->get_item_id( $order ) => 2 ) ) ) )['status'] );
 
 		// pack (and create_shipments) are done - the background workflow only creates the label
 		$chunk = Runner::process_chunk( $labels, array( 'source' => 'scheduled', 'user_id' => 1 ) );
@@ -301,59 +313,133 @@ class FulfillmentRunnerTest extends \Vendidero\Shiptastic\Tests\Framework\UnitTe
 		$this->assertEquals( $order->get_id(), $item->get_order_id() );
 	}
 
-	public function test_create_shipments_interactive_layout() {
+	public function test_shipment_layout_reopens_steps() {
 		$this->expect_shipment_items();
 
 		$order         = $this->create_order( 4 );
 		$order_item_id = $this->get_item_id( $order );
-		$workflow      = $this->create_workflow( array( array( 'action' => 'create_shipments', 'settings' => array( 'mode' => 'interactive' ) ) ) );
+		$workflow      = $this->create_workflow( array( 'pick', 'pack' ) );
 		$item          = current( Queue::claim( $workflow, array( 'user_id' => 1 ) ) );
+		$token         = $item->get_lock_token();
 
-		$result = Runner::execute( $item->get_id(), $workflow, $item->get_lock_token() );
-		$this->assertEquals( 'needs_input', $result['status'] );
-		$this->assertEquals( 4, $result['view_data']['items'][0]['quantity'] );
-		$this->assertEquals( array(), $result['view_data']['shipments'] );
+		// create_shipments (background) creates one shipment containing all units
+		$result = Runner::execute( $item->get_id(), $workflow, $token );
+		$this->assertEquals( 'pick', $result['step']->action );
 
-		$result = Runner::execute(
-			$item->get_id(),
-			$workflow,
-			$item->get_lock_token(),
+		$layout = ShipmentLayout::get_data( $item );
+		$this->assertEquals( 4, $layout['items'][0]['total'] );
+		$this->assertCount( 1, $layout['shipments'] );
+		$first = $layout['shipments'][0]['id'];
+
+		Runner::execute( $item->get_id(), $workflow, $token, array( 'step' => 'pick', 'data' => array( 'picked' => array( $order_item_id => 4 ) ) ) );
+		$result = Runner::execute( $item->get_id(), $workflow, $token, array( 'step' => 'pack:' . $first, 'data' => array( 'packed' => array( $order_item_id => 4 ) ) ) );
+		$this->assertEquals( 'completed', $result['status'] );
+		$this->assertEquals( 'ready-for-shipping', wc_stc_get_shipment( $first )->get_status() );
+
+		// Lock the item again (a workflow with open steps), e.g. a user editing the shipments while creating labels
+		$item = current( Queue::claim( $this->create_workflow( array( 'test_label' ) ), array( 'user_id' => 1 ) ) );
+
+		// Too many units
+		$this->assertWPError( ShipmentLayout::apply( $item, array( array( 'id' => $first, 'items' => array( $order_item_id => 5 ) ) ) ) );
+		// No shipment left
+		$this->assertWPError( ShipmentLayout::apply( $item, array() ) );
+
+		// Split: the packed shipment is changed (back to processing) and a new one is created
+		$applied = ShipmentLayout::apply(
+			$item,
 			array(
-				'step' => 'create_shipments',
-				'data' => array(
-					'shipments' => array(
-						array(
-							'id'    => 'new-1',
-							'items' => array( $order_item_id => 3 ),
-						),
-						array(
-							'id'    => 'new-2',
-							'items' => array(
-								$order_item_id => 1,
-								// Not part of the order/package: ignored
-								999999         => 5,
-							),
-						),
+				array(
+					'id'    => $first,
+					'items' => array( $order_item_id => 3 ),
+					'props' => array( 'weight' => '2.5' ),
+				),
+				array(
+					'id'    => 'new-1',
+					'items' => array(
+						$order_item_id => 1,
+						// Not part of the order/package: ignored
+						999999         => 5,
 					),
 				),
 			)
 		);
 
-		$this->assertEquals( 'completed', $result['status'] );
+		$this->assertEqualsCanonicalizing( array( $first, $applied['id_map']['new-1'] ), $applied['changed'] );
 
-		$entry = current( StepLog::get_entries( $item->get_id() ) );
-		$this->assertEquals( array( 'new-1', 'new-2' ), array_keys( $entry['data']['id_map'] ) );
+		$first_shipment = wc_stc_get_shipment( $first );
+		$new_shipment   = wc_stc_get_shipment( $applied['id_map']['new-1'] );
 
-		$quantities = array();
+		$this->assertEquals( 'processing', $first_shipment->get_status() );
+		$this->assertEquals( 3, $first_shipment->get_item_count() );
+		$this->assertEquals( 2.5, (float) $first_shipment->get_weight() );
+		$this->assertEquals( 1, $new_shipment->get_item_count() );
+		$this->assertEquals( 'flat_rate:1', $new_shipment->get_shipping_method() );
 
-		foreach ( $entry['data']['id_map'] as $shipment_id ) {
-			$shipment     = wc_stc_get_shipment( $shipment_id );
-			$quantities[] = $shipment->get_item_count();
-			$this->assertEquals( '', $shipment->get_location() );
-			$this->assertEquals( 'flat_rate:1', $shipment->get_shipping_method() );
-		}
+		// Total quantities unchanged: pick stays done, pack is reopened (per shipment + roll-up)
+		$done = StepLog::get_done_actions( $item->get_id() );
+		$this->assertContains( 'pick', $done );
+		$this->assertNotContains( 'pack', $done );
 
-		$this->assertEquals( array( 3, 1 ), $quantities );
+		$steps = Runner::get_steps( $item, $workflow );
+		$this->assertEquals( array( 'pack:' . $first, 'pack:' . $new_shipment->get_id() ), array_values( array_map( fn( $s ) => $s->get_key(), array_filter( $steps, fn( $s ) => ! $s->is_done ) ) ) );
+
+		// Removing a unit changes the totals: pick is reopened as well
+		ShipmentLayout::apply(
+			$item,
+			array(
+				array(
+					'id'    => $first,
+					'items' => array( $order_item_id => 3 ),
+				),
+			)
+		);
+
+		$this->assertNotContains( 'pick', StepLog::get_done_actions( $item->get_id() ) );
+		$this->assertEquals( array( $first ), array_keys( Runner::get_package_shipments( $item ) ) );
+
+		// Shipped shipments cannot be changed
+		$first_shipment = wc_stc_get_shipment( $first );
+		$this->assertTrue( ShipmentLayout::can_edit( $first_shipment ) );
+		$first_shipment->set_status( 'shipped' );
+		$this->assertFalse( ShipmentLayout::can_edit( $first_shipment ) );
+	}
+
+	public function test_shipment_props_keep_dimensions_without_packaging() {
+		$this->expect_shipment_items();
+
+		$order    = $this->create_order( 1 );
+		$workflow = $this->create_workflow( array( 'pick' ) );
+		$item     = current( Queue::claim( $workflow, array( 'user_id' => 1 ) ) );
+		Runner::execute( $item->get_id(), $workflow, $item->get_lock_token() );
+
+		$shipment  = current( Runner::get_package_shipments( $item ) );
+		$packaging = current( wc_stc_get_packaging_list() );
+
+		ShipmentLayout::apply_props( $shipment, array( 'packaging_id' => $packaging->get_id() ) );
+		$shipment->save();
+
+		$shipment = wc_stc_get_shipment( $shipment->get_id() );
+		$length   = $shipment->get_length( 'edit' );
+		$this->assertNotEmpty( $length );
+
+		// Packaging removed, the (former packaging) dimensions are kept, the length is changed
+		ShipmentLayout::apply_props(
+			$shipment,
+			array(
+				'packaging_id' => 0,
+				'length'       => '99',
+				'width'        => $shipment->get_width( 'edit' ),
+				'height'       => $shipment->get_height( 'edit' ),
+			)
+		);
+		$width = $shipment->get_width( 'edit' );
+		$shipment->save();
+
+		$shipment = wc_stc_get_shipment( $shipment->get_id() );
+		$this->assertEquals( 0, $shipment->get_packaging_id() );
+		$this->assertEquals( 99, (float) $shipment->get_length( 'edit' ) );
+		$this->assertEquals( (float) $width, (float) $shipment->get_width( 'edit' ) );
+		$this->assertNotEquals( '', $shipment->get_width( 'edit' ) );
 	}
 
 	public function test_scheduled_chunk_continue_and_stop() {

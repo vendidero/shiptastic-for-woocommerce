@@ -20,24 +20,23 @@ class Workflow extends WC_Data {
 	protected $cache_group = 'fulfillment_workflow';
 
 	protected $data = array(
-		'date_created'          => null,
-		'date_modified'         => null,
-		'title'                 => '',
-		'status'                => 'active',
-		'priority'              => 0,
-		'mode'                  => 'interactive',
-		'filters'               => array(),
-		'steps'                 => array(),
-		'on_error'              => 'continue',
-		'run_as'                => 0,
-		'schedule'              => array(
+		'date_created'  => null,
+		'date_modified' => null,
+		'title'         => '',
+		'status'        => 'active',
+		'priority'      => 0,
+		'mode'          => 'interactive',
+		'filters'       => array(),
+		'steps'         => array(),
+		'on_error'      => 'continue',
+		'run_as'        => 0,
+		'schedule'      => array(
 			'type'    => 'none',
 			'minutes' => 15,
 			'times'   => array(),
 		),
-		'create_shipments_mode' => 'background',
-		'paused'                => false,
-		'paused_reason'         => '',
+		'paused'        => false,
+		'paused_reason' => '',
 	);
 
 	/**
@@ -327,18 +326,6 @@ class Workflow extends WC_Data {
 	}
 
 	/**
-	 * How missing shipments are created in case create_shipments is injected as a dependency:
-	 * background (automatically, by packaging rules) or interactive (manually).
-	 */
-	public function get_create_shipments_mode( $context = 'view' ) {
-		return $this->get_prop( 'create_shipments_mode', $context );
-	}
-
-	public function set_create_shipments_mode( $mode ) {
-		$this->set_prop( 'create_shipments_mode', 'interactive' === $mode ? 'interactive' : 'background' );
-	}
-
-	/**
 	 * Whether the schedule is paused (scheduled run stopped on an error).
 	 */
 	public function get_paused( $context = 'view' ) {
@@ -382,7 +369,7 @@ class Workflow extends WC_Data {
 		if ( 'background' === $this->get_mode() ) {
 			$preferred = 'background';
 		} elseif ( $injected && empty( $preferred ) ) {
-			$preferred = 'create_shipments' === $action_name ? $this->get_create_shipments_mode() : 'background';
+			$preferred = 'background';
 		}
 
 		if ( $preferred && $action::supports_mode( $preferred ) ) {

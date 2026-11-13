@@ -152,6 +152,166 @@ class FulfillmentControllerTest extends \Vendidero\Shiptastic\Tests\Framework\Un
 		$this->assertEquals( 404, $this->request( 'GET', '/workflows/' . $workflow['id'] )->get_status() );
 	}
 
+	public function test_queue_pagination_and_workflow_filter() {
+		$warehouse = new \Vendidero\Shiptastic\Warehouse();
+		$warehouse->set_title( 'Berlin' );
+		$warehouse->save();
+
+		for ( $i = 0; $i < 3; $i++ ) {
+			$this->create_order( 1 );
+		}
+
+		$workflow = $this->create_workflow( array( 'pick' ) );
+		$other    = $this->create_workflow( array( 'pick' ), array( 'filters' => array( 'locations' => array( $warehouse->get_name() ) ) ) );
+		wp_set_current_user( $this->picker );
+
+		$page = $this->request(
+			'GET',
+			'/queue',
+			array(
+				'status'   => 'pending',
+				'per_page' => 2,
+				'page'     => 2,
+			)
+		);
+		$data = $page->get_data();
+
+		$this->assertCount( 1, $data['items'] );
+		$this->assertEquals( 3, $data['total'] );
+		$this->assertEquals( 2, $data['pages'] );
+		$this->assertEquals( 3, $page->get_headers()['X-WP-Total'] );
+
+		// Items of a workflow only (its filters)
+		$this->assertEquals( 3, $this->request( 'GET', '/queue', array( 'status' => 'pending', 'workflow_id' => $workflow->get_id() ) )->get_data()['total'] );
+		$this->assertEquals( 0, $this->request( 'GET', '/queue', array( 'status' => 'pending', 'workflow_id' => $other->get_id() ) )->get_data()['counts']['pending'] );
+
+		wp_set_current_user( $this->admin );
+		$workflows = wp_list_pluck( $this->request( 'GET', '/workflows' )->get_data(), 'open_count', 'id' );
+		$this->assertEquals( 3, $workflows[ $workflow->get_id() ] );
+		$this->assertEquals( 0, $workflows[ $other->get_id() ] );
+	}
+
+	public function test_reopen_step() {
+		$this->setExpectedIncorrectUsage( 'is_internal_meta_key' );
+
+		$order         = $this->create_order( 2 );
+		$order_item_id = current( $order->get_items() )->get_id();
+		$workflow      = $this->create_workflow();
+		wp_set_current_user( $this->picker );
+
+		$claim = $this->request( 'POST', '/workflows/' . $workflow->get_id() . '/claim' )->get_data();
+		$item  = $claim['items'][0];
+
+		// Pick is not done yet
+		$this->assertEquals( 400, $this->request( 'POST', '/queue/' . $item['id'] . '/steps/pick/reopen', array( 'token' => $claim['token'] ) )->get_status() );
+
+		$data = $this->request(
+			'POST',
+			'/queue/' . $item['id'] . '/steps/pick',
+			array(
+				'token' => $claim['token'],
+				'data'  => array( 'picked' => array( $order_item_id => 2 ) ),
+			)
+		)->get_data();
+		$this->assertEquals( 'pack', $data['current']['step']['action'] );
+		// The packaging + dimensions to use are shown when packing
+		$this->assertArrayHasKey( 'packaging', $data['current']['view_data'] );
+		$this->assertNotEmpty( $data['current']['view_data']['dimensions'] );
+
+		// Back to pick: the picked quantities prefill the form
+		$data = $this->request( 'POST', '/queue/' . $item['id'] . '/steps/pick/reopen', array( 'token' => $claim['token'] ) )->get_data();
+		$this->assertEquals( 'pick', $data['current']['step']['key'] );
+		$this->assertEquals( array( $order_item_id => 2 ), $data['current']['view_data']['previous']['picked'] );
+		$this->assertFalse( wp_list_pluck( $data['steps'], 'is_done', 'key' )['pick'] );
+
+		// Background steps cannot be reopened
+		$this->assertEquals( 400, $this->request( 'POST', '/queue/' . $item['id'] . '/steps/create_shipments/reopen', array( 'token' => $claim['token'] ) )->get_status() );
+	}
+
+	public function test_update_shipments() {
+		$this->setExpectedIncorrectUsage( 'is_internal_meta_key' );
+
+		$order         = $this->create_order( 3 );
+		$order_item_id = current( $order->get_items() )->get_id();
+		$workflow      = $this->create_workflow();
+		wp_set_current_user( $this->picker );
+
+		$claim = $this->request( 'POST', '/workflows/' . $workflow->get_id() . '/claim' )->get_data();
+		$item  = $claim['items'][0];
+
+		// The layout is part of the run payload (shipments overlay)
+		$this->assertEquals( 3, $item['layout']['items'][0]['total'] );
+		$this->assertCount( 1, $item['layout']['shipments'] );
+
+		$first     = $item['layout']['shipments'][0]['id'];
+		$packaging = current( wc_stc_get_packaging_list() );
+		$response  = $this->request(
+			'POST',
+			'/queue/' . $item['id'] . '/shipments',
+			array(
+				'token'           => $claim['token'],
+				'idempotency_key' => 'layout-1',
+				'shipments'       => array(
+					array(
+						'id'    => $first,
+						'items' => array( $order_item_id => 2 ),
+						'props' => array(
+							'packaging_id' => $packaging->get_id(),
+							// Ignored: the packaging defines the dimensions
+							'length'       => '99',
+						),
+					),
+					array(
+						'id'    => 'new-1',
+						'items' => array( $order_item_id => 1 ),
+						'props' => array(
+							// No packaging: dimensions may be set
+							'packaging_id' => 0,
+							'weight'       => '0.7',
+							'length'       => '30',
+						),
+					),
+				),
+			)
+		);
+
+		$this->assertEquals( 200, $response->get_status() );
+		$data = $response->get_data();
+
+		$new_id = $data['id_map']->{'new-1'};
+		$this->assertEquals( array( $first, $new_id ), wp_list_pluck( $data['layout']['shipments'], 'id' ) );
+		$this->assertEquals( 'pick', $data['current']['step']['key'] );
+		$this->assertEquals( array( 'pick', 'pack:' . $first, 'pack:' . $new_id ), array_values( array_diff( wp_list_pluck( $data['steps'], 'key' ), array( 'create_shipments' ) ) ) );
+
+		$first_shipment = wc_stc_get_shipment( $first );
+		$new_shipment   = wc_stc_get_shipment( $new_id );
+
+		$this->assertEquals( $packaging->get_id(), $first_shipment->get_packaging_id() );
+		$this->assertNotEquals( 99, (float) $first_shipment->get_length() );
+		$this->assertEquals( 0.7, (float) $new_shipment->get_weight() );
+		$this->assertEquals( 30, (float) $new_shipment->get_length() );
+
+		// Invalid layout
+		$invalid = $this->request(
+			'POST',
+			'/queue/' . $item['id'] . '/shipments',
+			array(
+				'token'     => $claim['token'],
+				'shipments' => array(
+					array(
+						'id'    => $first,
+						'items' => array( $order_item_id => 4 ),
+					),
+				),
+			)
+		);
+
+		$this->assertEquals( 400, $invalid->get_status() );
+
+		// Wrong token
+		$this->assertEquals( 409, $this->request( 'POST', '/queue/' . $item['id'] . '/shipments', array( 'token' => 'invalid', 'shipments' => array() ) )->get_status() );
+	}
+
 	public function test_claim_steps_idempotency_and_batch() {
 		// Pre-existing: creating shipment items triggers an incorrect usage notice (customs description meta).
 		$this->setExpectedIncorrectUsage( 'is_internal_meta_key' );
@@ -208,7 +368,10 @@ class FulfillmentControllerTest extends \Vendidero\Shiptastic\Tests\Framework\Un
 						'body' => array(
 							'token'           => $claim['token'],
 							'idempotency_key' => 'pack-1',
-							'data'            => array( 'weight' => '2' ),
+							'data'            => array(
+								'weight' => '2',
+								'packed' => array( $order_item_id => 2 ),
+							),
 						),
 					),
 					array(

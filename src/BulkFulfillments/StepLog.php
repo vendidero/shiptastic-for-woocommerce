@@ -99,6 +99,27 @@ class StepLog {
 		return $wpdb->get_col( $wpdb->prepare( "SELECT step_action FROM {$wpdb->stc_fulfillment_steps} WHERE step_queue_id = %d AND step_shipment_id = 0 AND step_status = 'done'", absint( $queue_id ) ) );
 	}
 
+	/**
+	 * Deletes (reopens) a step entry.
+	 *
+	 * @param int $queue_id
+	 * @param string $action
+	 * @param int $shipment_id
+	 */
+	public static function delete( $queue_id, $action, $shipment_id = 0 ) {
+		global $wpdb;
+
+		$wpdb->delete(
+			$wpdb->stc_fulfillment_steps,
+			array(
+				'step_queue_id'    => absint( $queue_id ),
+				'step_action'      => $action,
+				'step_shipment_id' => absint( $shipment_id ),
+			),
+			array( '%d', '%s', '%d' )
+		);
+	}
+
 	public static function delete_for_queue_item( $queue_id ) {
 		global $wpdb;
 

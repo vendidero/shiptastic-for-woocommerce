@@ -38,6 +38,7 @@ class Bootstrap {
 		if ( is_admin() ) {
 			$this->container->get( Admin::class )::init();
 			$this->container->get( Wizard::class )::init();
+			BulkFulfillments\App::init();
 		}
 
 		$this->container->get( Ajax::class )::init();
@@ -133,12 +134,7 @@ class Bootstrap {
 				return Labels\Automation::class;
 			}
 		);
-		$this->container->register(
-			BulkFulfillments\View::class,
-			function ( $container ) {
-				return BulkFulfillments\View::class;
-			}
-		);
+
 		$this->container->register(
 			DownloadHandler::class,
 			function ( $container ) {

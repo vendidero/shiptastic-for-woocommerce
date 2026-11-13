@@ -238,6 +238,22 @@ class FulfillmentQueueTest extends \Vendidero\Shiptastic\Tests\Framework\UnitTes
 		$this->assertEquals( 'pending', current( $this->sync( $order ) )->get_status() );
 	}
 
+	public function test_claim_exclude() {
+		$product = $this->create_product();
+		$first   = current( $this->sync( $this->create_order( array( array( $product, 1 ) ), 'processing', time() - 100 ) ) );
+		$second  = current( $this->sync( $this->create_order( array( array( $product, 1 ) ), 'processing', time() - 50 ) ) );
+
+		$claimed = Queue::claim(
+			$this->create_workflow(),
+			array(
+				'user_id' => 1,
+				'exclude' => array( $first->get_id() ),
+			)
+		);
+
+		$this->assertEquals( array( $second->get_id() ), array_values( array_map( fn( $item ) => $item->get_id(), $claimed ) ) );
+	}
+
 	public function test_backorder_only_package() {
 		$product = $this->create_product(
 			array(

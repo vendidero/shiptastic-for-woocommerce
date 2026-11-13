@@ -3,13 +3,14 @@
 namespace Vendidero\Shiptastic\BulkFulfillments\Actions;
 
 use Vendidero\Shiptastic\BulkFulfillments\Action;
+use Vendidero\Shiptastic\BulkFulfillments\ShipmentLayout;
 use Vendidero\Shiptastic\BulkFulfillments\StepResult;
 
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Packs a shipment: confirm packaging (and optionally weight/dimensions), then updates the shipment status
- * (default: ready for shipping).
+ * Packs a shipment: verify the items (scan, swipe or count), confirm packaging, provider, weight and dimensions, then
+ * updates the shipment status (default: ready for shipping).
  */
 class Pack extends Action {
 
@@ -41,6 +42,9 @@ class Pack extends Action {
 	}
 
 	/**
+	 * The shipment's items to verify (by scanning, swiping or counting) and its packaging + dimensions to use.
+	 * Shipment details are edited via the shipments overlay.
+	 *
 	 * @param \Vendidero\Shiptastic\BulkFulfillments\StepContext $context
 	 *
 	 * @return array
@@ -52,32 +56,37 @@ class Pack extends Action {
 			return array();
 		}
 
-		$items = array();
+		$order_shipment = $context->order_shipment;
+		$order          = $order_shipment->get_order();
+		$items          = array();
 
-		foreach ( $shipment->get_items() as $item ) {
-			$items[] = array(
-				'id'       => $item->get_order_item_id(),
-				'name'     => $item->get_name(),
-				'sku'      => $item->get_sku(),
-				'gtin'     => $item->get_global_unique_id(),
-				'quantity' => $item->get_quantity(),
-			);
+		foreach ( ShipmentLayout::get_shipment_item_map( $shipment ) as $order_item_id => $quantity ) {
+			if ( $order_item = $order->get_item( $order_item_id ) ) {
+				$items[] = array_merge(
+					ShipmentLayout::get_item_data( $order_shipment, $order_item ),
+					array(
+						'quantity' => $quantity,
+						'location' => '',
+					)
+				);
+			}
 		}
 
+		$packaging = $shipment->get_packaging();
+
 		return array(
-			'shipmentId'  => $shipment->get_id(),
-			'items'       => $items,
-			'packagingId' => $shipment->get_packaging_id(),
-			'packaging'   => CreateShipments::get_packaging_data(),
-			'weight'      => (float) $shipment->get_weight(),
-			'length'      => (float) $shipment->get_length(),
-			'width'       => (float) $shipment->get_width(),
-			'height'      => (float) $shipment->get_height(),
+			'shipmentId' => $shipment->get_id(),
+			'items'      => $items,
+			// Shown to make sure the right packaging is used (changed via the shipments overlay).
+			'packaging'  => $packaging ? html_entity_decode( wp_strip_all_tags( $packaging->get_title() ), ENT_QUOTES, get_bloginfo( 'charset' ) ) : '',
+			'dimensions' => html_entity_decode( wp_strip_all_tags( wc_stc_format_shipment_dimensions( $shipment->get_package_dimensions(), $shipment->get_dimension_unit() ) ), ENT_QUOTES, get_bloginfo( 'charset' ) ),
 		);
 	}
 
 	/**
-	 * Expects packaging_id and optionally weight, length, width, height.
+	 * Expects packed (order_item_id => quantity, all items of the shipment must be packed) and optionally the
+	 * shipment props packaging_id, provider, weight, length, width, height (see ShipmentLayout::apply_props()).
+	 * Missing items need to be removed from the shipment via the shipments overlay.
 	 *
 	 * @param \Vendidero\Shiptastic\BulkFulfillments\StepContext $context
 	 * @param array $data
@@ -91,28 +100,36 @@ class Pack extends Action {
 			return StepResult::error( _x( 'There is no shipment to pack, e.g. because all items are on backorder.', 'shipments', 'shiptastic-for-woocommerce' ), 'no_shipment' );
 		}
 
-		$data         = wp_parse_args( (array) $data, array( 'packaging_id' => 0 ) );
-		$packaging_id = absint( $data['packaging_id'] );
+		$data   = (array) $data;
+		$packed = array();
+		$short  = array();
 
-		if ( $packaging_id && ! wc_stc_get_packaging( $packaging_id ) ) {
-			return StepResult::error( _x( 'The packaging does not exist.', 'shipments', 'shiptastic-for-woocommerce' ), 'invalid_packaging' );
+		foreach ( (array) ( isset( $data['packed'] ) ? $data['packed'] : array() ) as $order_item_id => $quantity ) {
+			$packed[ absint( $order_item_id ) ] = absint( $quantity );
 		}
 
-		$props = array();
+		foreach ( ShipmentLayout::get_shipment_item_map( $shipment ) as $order_item_id => $quantity ) {
+			$packed_quantity = isset( $packed[ $order_item_id ] ) ? $packed[ $order_item_id ] : 0;
 
-		if ( $packaging_id ) {
-			$props['packaging_id'] = $packaging_id;
-		}
-
-		foreach ( array( 'weight', 'length', 'width', 'height' ) as $prop ) {
-			if ( isset( $data[ $prop ] ) && '' !== $data[ $prop ] ) {
-				$props[ $prop ] = wc_format_decimal( $data[ $prop ] );
+			if ( $packed_quantity < $quantity ) {
+				$shipment_item = $shipment->get_item_by_order_item_id( $order_item_id );
+				$short[]       = sprintf( '%1$d/%2$d × %3$s', $packed_quantity, $quantity, $shipment_item ? $shipment_item->get_name() : $order_item_id );
 			}
 		}
 
-		$status = $context->get_setting( 'status_after_packing', 'ready-for-shipping' );
+		if ( ! empty( $short ) ) {
+			/* translators: %s list of items */
+			return StepResult::error( sprintf( _x( 'Not packed yet: %s. Remove missing items from the shipment in case they are not available.', 'shipments', 'shiptastic-for-woocommerce' ), implode( ', ', $short ) ), 'short_pack', array( 'packed' => $packed ) );
+		}
 
-		$shipment->set_props( $props );
+		$props   = array_intersect_key( $data, array_flip( array( 'packaging_id', 'provider', 'weight', 'length', 'width', 'height' ) ) );
+		$applied = ShipmentLayout::apply_props( $shipment, $props );
+
+		if ( is_wp_error( $applied ) ) {
+			return StepResult::from_wp_error( $applied );
+		}
+
+		$status = $context->get_setting( 'status_after_packing', 'ready-for-shipping' );
 
 		if ( array_key_exists( $status, wc_stc_get_shipment_statuses() ) ) {
 			$shipment->set_status( $status );
