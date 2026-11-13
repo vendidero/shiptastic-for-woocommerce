@@ -657,9 +657,11 @@ CREATE TABLE {$wpdb->prefix}woocommerce_stc_shipments (
   shipment_search_index longtext NULL,
   shipment_shipping_provider varchar(200) NOT NULL DEFAULT '',
   shipment_shipping_method varchar(200) NOT NULL DEFAULT '',
+  shipment_location varchar(200) NOT NULL DEFAULT '',
   PRIMARY KEY  (shipment_id),
   KEY shipment_order_id (shipment_order_id),
   KEY shipment_packaging_id (shipment_packaging_id),
+  KEY shipment_location (shipment_location),
   KEY shipment_parent_id (shipment_parent_id)
 ) $collate;
 CREATE TABLE {$wpdb->prefix}woocommerce_stc_shipment_attachments (

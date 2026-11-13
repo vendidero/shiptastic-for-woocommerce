@@ -35,7 +35,12 @@ class Warehouse extends WC_Data_Store_WP implements WC_Object_Data_Store_Interfa
 	 *
 	 * @var array
 	 */
-	protected $internal_meta_keys = array();
+	protected $internal_meta_keys = array(
+		'_group',
+		'_address',
+		'_override_address',
+		'_location_schema',
+	);
 
 	protected $meta_type = 'stc_warehouse';
 
@@ -58,6 +63,13 @@ class Warehouse extends WC_Data_Store_WP implements WC_Object_Data_Store_Interfa
 
 		if ( empty( $warehouse->get_type( 'edit' ) ) ) {
 			$warehouse->set_type( 'self' );
+		}
+
+		/**
+		 * New warehouses start with a default storage location schema (e.g. aisle and rack).
+		 */
+		if ( ! $warehouse->is_group() && empty( $warehouse->get_location_schema( 'edit' ) ) ) {
+			$warehouse->set_location_schema( \Vendidero\Shiptastic\Warehouse\LocationSchema::get_default_data() );
 		}
 
 		$data = array(

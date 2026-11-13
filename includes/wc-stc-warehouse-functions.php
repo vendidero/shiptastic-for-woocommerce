@@ -45,3 +45,45 @@ function wc_stc_get_warehouse_select( $args = array() ) {
 
 	return $select;
 }
+
+/**
+ * Returns the location (warehouse group, ungrouped warehouse or empty string for the default location)
+ * a product ships from. Packages and shipments are split by location.
+ *
+ * @param WC_Product|\Vendidero\Shiptastic\Product|int $product
+ *
+ * @return string
+ */
+function wc_stc_get_product_location_name( $product ) {
+	return \Vendidero\Shiptastic\Warehouse\Helper::get_product_location_name( $product );
+}
+
+/**
+ * Returns the name of the (existing) warehouse a product is stored in or an empty string.
+ *
+ * @param WC_Product|\Vendidero\Shiptastic\Product|int $product
+ *
+ * @return string
+ */
+function wc_stc_get_product_warehouse_name( $product ) {
+	return \Vendidero\Shiptastic\Warehouse\Helper::get_product_warehouse_name( $product );
+}
+
+/**
+ * @return \Vendidero\Shiptastic\Warehouse[]
+ */
+function wc_stc_get_warehouse_group_list( $args = array() ) {
+	return \Vendidero\Shiptastic\Warehouse\Helper::get_group_list( $args );
+}
+
+function wc_stc_get_warehouse_group_select() {
+	$select = array(
+		'' => _x( 'None (own location)', 'shipments-warehouse-group', 'shiptastic-for-woocommerce' ),
+	);
+
+	foreach ( wc_stc_get_warehouse_group_list() as $group ) {
+		$select[ $group->get_name() ] = $group->get_title();
+	}
+
+	return $select;
+}

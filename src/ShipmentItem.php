@@ -50,6 +50,7 @@ class ShipmentItem extends WC_Data {
 		'customs_description' => '',
 		'manufacture_country' => '',
 		'attributes'          => array(),
+		'warehouse'           => '',
 	);
 
 	/**
@@ -520,6 +521,7 @@ class ShipmentItem extends WC_Data {
 					'mid_code'            => $product ? $product->get_mid_code() : '',
 					'customs_description' => $product ? $product->get_customs_description() : '',
 					'manufacture_country' => $product ? $product->get_manufacture_country() : '',
+					'warehouse'           => $product ? wc_stc_get_product_warehouse_name( $product ) : '',
 					'attributes'          => $attributes,
 					'item_parent_id'      => $this->get_item_parent_id() ? $this->get_item_parent_id() : 0,
 					'parent'              => null,
@@ -846,6 +848,24 @@ class ShipmentItem extends WC_Data {
 	 */
 	public function set_attributes( $attributes ) {
 		$this->set_prop( 'attributes', array_filter( (array) $attributes ) );
+	}
+
+	/**
+	 * The name of the warehouse the item is picked from (empty string = no warehouse).
+	 *
+	 * @param string $context
+	 *
+	 * @return string
+	 */
+	public function get_warehouse( $context = 'view' ) {
+		return $this->get_prop( 'warehouse', $context );
+	}
+
+	/**
+	 * @param string $warehouse
+	 */
+	public function set_warehouse( $warehouse ) {
+		$this->set_prop( 'warehouse', wc_clean( (string) $warehouse ) );
 	}
 
 	/*

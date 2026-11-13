@@ -47,12 +47,16 @@ class Warehouse extends WC_Data {
 	 * @var array
 	 */
 	protected $data = array(
-		'date_created' => null,
-		'order'        => 0,
-		'type'         => '',
-		'description'  => '',
-		'title'        => '',
-		'name'         => '',
+		'date_created'     => null,
+		'order'            => 0,
+		'type'             => '',
+		'description'      => '',
+		'title'            => '',
+		'name'             => '',
+		'group'            => '',
+		'address'          => array(),
+		'override_address' => false,
+		'location_schema'  => array(),
 	);
 
 	/**
@@ -232,5 +236,189 @@ class Warehouse extends WC_Data {
 	 */
 	public function set_description( $description ) {
 		$this->set_prop( 'description', $description );
+	}
+
+	/**
+	 * Whether this entry is a warehouse group (location) rather than a warehouse.
+	 *
+	 * @return bool
+	 */
+	public function is_group() {
+		return 'group' === $this->get_type();
+	}
+
+	/**
+	 * The name of the group (location) the warehouse belongs to. Warehouses within the same group ship together.
+	 *
+	 * @param string $context
+	 *
+	 * @return string
+	 */
+	public function get_group( $context = 'view' ) {
+		return $this->get_prop( 'group', $context );
+	}
+
+	public function set_group( $group ) {
+		$this->set_prop( 'group', wc_clean( (string) $group ) );
+	}
+
+	/**
+	 * @return Warehouse|null
+	 */
+	public function get_group_instance() {
+		if ( $this->is_group() || '' === $this->get_group() ) {
+			return null;
+		}
+
+		$group = \Vendidero\Shiptastic\Warehouse\Helper::get_warehouse_by_name( $this->get_group() );
+
+		return ( $group && $group->is_group() ) ? $group : null;
+	}
+
+	/**
+	 * Returns the location this warehouse ships from: its group or, in case it does not belong
+	 * to an (existing) group, the warehouse itself. Location settings (e.g. the sender address)
+	 * are read from the location.
+	 *
+	 * @return Warehouse
+	 */
+	public function get_location() {
+		$group = $this->get_group_instance();
+
+		return $group ? $group : $this;
+	}
+
+	/**
+	 * Returns the raw warehouse address.
+	 *
+	 * @param string $context
+	 *
+	 * @return array
+	 */
+	public function get_address( $context = 'view' ) {
+		return (array) $this->get_prop( 'address', $context );
+	}
+
+	public function set_address( $address ) {
+		$address = array_filter( array_map( 'wc_clean', (array) $address ) );
+
+		$this->set_prop( 'address', array_intersect_key( $address, array_flip( self::get_address_props() ) ) );
+	}
+
+	public function get_address_prop( $prop, $context = 'view' ) {
+		$address = $this->get_address( $context );
+
+		return array_key_exists( $prop, $address ) ? $address[ $prop ] : '';
+	}
+
+	public static function get_address_props() {
+		return array( 'company', 'first_name', 'last_name', 'address_1', 'address_2', 'postcode', 'city', 'country', 'phone', 'email' );
+	}
+
+	/**
+	 * Raw storage location schema data, see `Warehouse\LocationSchema`. Only warehouses (not groups) have a schema.
+	 *
+	 * @param string $context
+	 *
+	 * @return array
+	 */
+	public function get_location_schema( $context = 'view' ) {
+		return (array) $this->get_prop( 'location_schema', $context );
+	}
+
+	public function set_location_schema( $schema ) {
+		$this->set_prop( 'location_schema', \Vendidero\Shiptastic\Warehouse\LocationSchema::sanitize( $schema ) );
+	}
+
+	/**
+	 * @return \Vendidero\Shiptastic\Warehouse\LocationSchema
+	 */
+	public function get_location_schema_instance() {
+		return new \Vendidero\Shiptastic\Warehouse\LocationSchema( $this->is_group() ? array() : $this->get_location_schema() );
+	}
+
+	/**
+	 * Converts a storage location code within this warehouse into a sortable pick sequence.
+	 *
+	 * @param string $code
+	 *
+	 * @return string
+	 */
+	public function get_pick_sequence( $code ) {
+		return $this->get_location_schema_instance()->get_pick_sequence( $code );
+	}
+
+	/**
+	 * @param string $code
+	 *
+	 * @return true|\WP_Error
+	 */
+	public function validate_location_code( $code ) {
+		return $this->get_location_schema_instance()->validate( $code );
+	}
+
+	/**
+	 * Whether the group overrides the (shipper) address. Addresses may only be overridden for groups.
+	 *
+	 * @param string $context
+	 *
+	 * @return bool
+	 */
+	public function get_override_address( $context = 'view' ) {
+		return $this->get_prop( 'override_address', $context );
+	}
+
+	public function set_override_address( $override ) {
+		$this->set_prop( 'override_address', wc_string_to_bool( $override ) );
+	}
+
+	/**
+	 * Whether a custom address is used for this location. Only groups may override the address,
+	 * warehouses (grouped or not) and the default location use the shipper address.
+	 *
+	 * @return bool
+	 */
+	public function has_address() {
+		return $this->is_group() && true === $this->get_override_address() && '' !== $this->get_address_prop( 'address_1' ) && '' !== $this->get_address_prop( 'country' );
+	}
+
+	/**
+	 * Returns the formatted sender address used for shipments from this location,
+	 * in the same format as `wc_stc_get_shipment_setting_address_fields()`.
+	 * Falls back to the shipper address in case the location does not override the address.
+	 *
+	 * @return array
+	 */
+	public function get_sender_address() {
+		$shipper = wc_stc_get_shipment_setting_address_fields( 'shipper' );
+
+		if ( ! $this->has_address() ) {
+			return $shipper;
+		}
+
+		$address = array_merge(
+			$shipper,
+			array_fill_keys( self::get_address_props(), '' ),
+			$this->get_address()
+		);
+
+		$country_state      = wc_format_country_state_string( $address['country'] );
+		$address['country'] = $country_state['country'];
+		$address['state']   = $country_state['state'];
+
+		$split                    = wc_stc_split_shipment_street( $address['address_1'] );
+		$address['street']        = $split['street'];
+		$address['street_number'] = $split['number'];
+		$address['full_name']     = trim( sprintf( _x( '%1$s %2$s', 'full name', 'shiptastic-for-woocommerce' ), $address['first_name'], $address['last_name'] ) );
+
+		/**
+		 * Filter to adjust the sender address of a warehouse.
+		 *
+		 * @param array     $address The address.
+		 * @param Warehouse $warehouse The warehouse.
+		 *
+		 * @package Vendidero/Shiptastic
+		 */
+		return apply_filters( "{$this->get_general_hook_prefix()}sender_address", $address, $this );
 	}
 }

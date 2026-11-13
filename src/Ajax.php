@@ -1170,11 +1170,16 @@ class Ajax {
 			wp_send_json( $response_error );
 		}
 
+		/**
+		 * Backordered units are excluded and may be added manually.
+		 */
 		$shipments = $order_shipment->create_shipments();
 
 		if ( is_wp_error( $shipments ) || empty( $shipments ) ) {
 			if ( is_wp_error( $shipments ) ) {
 				$response_error['message'] = $shipments->get_error_message();
+			} elseif ( $notice = self::get_backorder_notice( $order_shipment ) ) {
+				$response_error['message'] = $notice['message'];
 			}
 
 			wp_send_json( $response_error );
@@ -1209,7 +1214,36 @@ class Ajax {
 			'.order-return-status'   => self::get_order_return_status_html( $order_shipment ),
 		);
 
+		if ( $notice = self::get_backorder_notice( $order_shipment ) ) {
+			$response['notices'] = array( $notice );
+		}
+
 		self::send_json_success( $response, $order_shipment );
+	}
+
+	/**
+	 * Returns a warning notice in case backordered units were not added to shipments.
+	 *
+	 * @param Order $order_shipment
+	 *
+	 * @return array|null message and type
+	 */
+	protected static function get_backorder_notice( $order_shipment ) {
+		$lines = array();
+
+		foreach ( $order_shipment->get_backordered_items_left_for_shipping() as $data ) {
+			$lines[] = sprintf( '%1$s &times; %2$s', $data['quantity'], esc_html( $data['item']->get_name() ) );
+		}
+
+		if ( empty( $lines ) ) {
+			return null;
+		}
+
+		return array(
+			/* translators: 1: list of backordered items 2: "Add item" button label */
+			'message' => sprintf( esc_html_x( 'Not added due to backorder: %1$s. You may add these items manually by increasing the quantity within a shipment or via "%2$s".', 'shipments', 'shiptastic-for-woocommerce' ), implode( ', ', $lines ), esc_html_x( 'Add item', 'shipments', 'shiptastic-for-woocommerce' ) ),
+			'type'    => 'warning',
+		);
 	}
 
 	public static function decline_return_request_submit() {
@@ -1465,6 +1499,10 @@ class Ajax {
 			'#shipment-' . $shipment->get_id() . ' .shipment-item-list:first' => '<div class="shipment-item-list">' . $html . '</div>',
 			'#shipment-' . $shipment->get_id() . ' .item-count:first' => self::get_item_count_html( $shipment, $order_shipment ),
 		);
+
+		if ( $notice = self::get_backorder_notice( $order_shipment ) ) {
+			$response['notices'] = array( $notice );
+		}
 
 		self::send_json_success( $response, $order_shipment, $shipment );
 	}

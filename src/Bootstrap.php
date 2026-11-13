@@ -44,6 +44,7 @@ class Bootstrap {
 		$this->container->get( Ajax::class )::init();
 		$this->container->get( MethodHelper::class )::init();
 		$this->container->get( Automation::class )::init();
+		$this->container->get( Backorders::class )::init();
 		$this->container->get( Labels\Automation::class )::init();
 		$this->container->get( DownloadHandler::class )::init();
 		$this->container->get( Emails::class )::init();
@@ -117,6 +118,12 @@ class Bootstrap {
 			Automation::class,
 			function ( $container ) {
 				return Automation::class;
+			}
+		);
+		$this->container->register(
+			Backorders::class,
+			function ( $container ) {
+				return Backorders::class;
 			}
 		);
 		$this->container->register(

@@ -274,6 +274,28 @@ class Product {
 		$this->product->update_meta_data( '_warehouse_name', $name );
 	}
 
+	/**
+	 * The storage location code within the product's warehouse, e.g. A-03-2-B.
+	 * Variations may define their own location, otherwise the parent's location is used.
+	 *
+	 * @param string $context
+	 *
+	 * @return string
+	 */
+	public function get_warehouse_location( $context = 'view' ) {
+		$location = (string) $this->product->get_meta( '_warehouse_location', true, $context );
+
+		if ( '' === $location && 'view' === $context && $this->product->get_parent_id() > 0 ) {
+			$location = (string) $this->get_parent_product_if_available()->get_meta( '_warehouse_location', true, $context );
+		}
+
+		return $location;
+	}
+
+	public function set_warehouse_location( $location ) {
+		$this->product->update_meta_data( '_warehouse_location', \Vendidero\Shiptastic\Warehouse\LocationSchema::normalize_code( wc_clean( (string) $location ) ) );
+	}
+
 	public function set_shipping_weight( $weight ) {
 		$this->product->update_meta_data( '_shipping_weight', wc_format_decimal( $weight ) );
 	}

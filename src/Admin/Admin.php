@@ -72,6 +72,9 @@ class Admin {
 		// Observe base country setting
 		add_action( 'woocommerce_settings_save_general', array( __CLASS__, 'observe_base_country_setting' ), 100 );
 
+		// Warehouses (list + edit page)
+		WarehouseSettings::init();
+
 		// Edit packaging page
 		add_action( 'admin_menu', array( __CLASS__, 'add_packaging_page' ), 25 );
 		add_action( 'admin_head', array( __CLASS__, 'hide_packaging_page_from_menu' ) );
@@ -720,6 +723,14 @@ class Admin {
 						),
 						_x( 'Edit packaging', 'shipments', 'shiptastic-for-woocommerce' ),
 					);
+				} elseif ( 'woocommerce_page_' . WarehouseSettings::PAGE === $screen->id ) {
+					$breadcrumbs = array(
+						array(
+							esc_url_raw( add_query_arg( 'page', 'wc-settings', 'admin.php' ) ),
+							$core_pages['wc-settings']['title'],
+						),
+						_x( 'Edit warehouse', 'shipments', 'shiptastic-for-woocommerce' ),
+					);
 				} else {
 					$page = isset( $_GET['page'] ) ? wc_clean( wp_unslash( $_GET['page'] ) ) : 'wc-stc-shipments'; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 
@@ -1054,6 +1065,19 @@ class Admin {
 			</p>
 			<?php
 		}
+
+		woocommerce_wp_text_input(
+			array(
+				'id'            => "_variable_warehouse_location_{$loop}",
+				'name'          => "variable_warehouse_location[{$loop}]",
+				'label'         => _x( 'Storage location', 'shipments', 'shiptastic-for-woocommerce' ),
+				'desc_tip'      => true,
+				'description'   => _x( 'Leave empty to use the parent product\'s storage location.', 'shipments', 'shiptastic-for-woocommerce' ),
+				'value'         => $shipments_product->get_warehouse_location( 'edit' ),
+				'placeholder'   => $shipments_parent_product ? $shipments_parent_product->get_warehouse_location() : '',
+				'wrapper_class' => 'form-row form-row-full hide_if_variation_virtual',
+			)
+		);
 	}
 
 	public static function product_options() {
@@ -1142,6 +1166,19 @@ class Admin {
 			)
 		);
 
+		$location_warehouse = wc_stc_get_warehouse( $shipments_product->get_warehouse_name() );
+
+		woocommerce_wp_text_input(
+			array(
+				'id'          => '_warehouse_location',
+				'label'       => _x( 'Storage location', 'shipments', 'shiptastic-for-woocommerce' ),
+				'desc_tip'    => true,
+				'description' => _x( 'The storage location within the warehouse, e.g. aisle, rack and bin. Used to sort pick lists along the walking path.', 'shipments', 'shiptastic-for-woocommerce' ),
+				'placeholder' => sprintf( _x( 'e.g. %s', 'shipments-storage-location', 'shiptastic-for-woocommerce' ), $location_warehouse ? $location_warehouse->get_location_schema_instance()->get_example() : 'A-03-2-B' ),
+				'value'       => $shipments_product->get_warehouse_location( 'edit' ),
+			)
+		);
+
 		?>
 		<p class="wc-stc-product-settings-subtitle">
 			<?php echo esc_html_x( 'Customs', 'shipments', 'shiptastic-for-woocommerce' ); ?>
@@ -1206,6 +1243,33 @@ class Admin {
 			$shipments_product->set_shipping_length( isset( $_POST['variable_shipping_length'][ $i ] ) ? wc_clean( wp_unslash( $_POST['variable_shipping_length'][ $i ] ) ) : '' ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
 			$shipments_product->set_shipping_width( isset( $_POST['variable_shipping_width'][ $i ] ) ? wc_clean( wp_unslash( $_POST['variable_shipping_width'][ $i ] ) ) : '' ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
 			$shipments_product->set_shipping_height( isset( $_POST['variable_shipping_height'][ $i ] ) ? wc_clean( wp_unslash( $_POST['variable_shipping_height'][ $i ] ) ) : '' ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
+
+			if ( isset( $_POST['variable_warehouse_location'][ $i ] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Missing
+				$shipments_product->set_warehouse_location( wc_clean( wp_unslash( $_POST['variable_warehouse_location'][ $i ] ) ) ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
+				self::validate_warehouse_location( $shipments_product );
+			}
+		}
+	}
+
+	/**
+	 * Validates the product's storage location against the schema of its warehouse and adds an admin error.
+	 * The location is stored anyway (invalid locations are sorted last).
+	 *
+	 * @param \Vendidero\Shiptastic\Product $shipments_product
+	 *
+	 * @return void
+	 */
+	protected static function validate_warehouse_location( $shipments_product ) {
+		$code = $shipments_product->get_warehouse_location( 'edit' );
+
+		if ( '' === $code || ! ( $warehouse = wc_stc_get_warehouse( $shipments_product->get_warehouse_name() ) ) ) {
+			return;
+		}
+
+		$result = $warehouse->validate_location_code( $code );
+
+		if ( is_wp_error( $result ) && class_exists( 'WC_Admin_Meta_Boxes' ) ) {
+			\WC_Admin_Meta_Boxes::add_error( $result->get_error_message() );
 		}
 	}
 
@@ -1221,6 +1285,10 @@ class Admin {
 		$shipments_product->set_manufacture_country( isset( $_POST['_manufacture_country'] ) ? wc_clean( wp_unslash( $_POST['_manufacture_country'] ) ) : '' ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
 		$shipments_product->set_is_non_returnable( isset( $_POST['_is_non_returnable'] ) ? wc_clean( wp_unslash( $_POST['_is_non_returnable'] ) ) : '' ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
 		$shipments_product->set_ship_separately_via( isset( $_POST['_ship_separately_via'] ) ? wc_clean( wp_unslash( $_POST['_ship_separately_via'] ) ) : array() ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
+		$shipments_product->set_warehouse_name( isset( $_POST['_warehouse_name'] ) ? wc_clean( wp_unslash( $_POST['_warehouse_name'] ) ) : '' ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
+		$shipments_product->set_warehouse_location( isset( $_POST['_warehouse_location'] ) ? wc_clean( wp_unslash( $_POST['_warehouse_location'] ) ) : '' ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
+
+		self::validate_warehouse_location( $shipments_product );
 
 		$shipments_product->set_shipping_weight( isset( $_POST['_shipping_weight'] ) ? wc_clean( wp_unslash( $_POST['_shipping_weight'] ) ) : '' ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
 		$shipments_product->set_shipping_length( isset( $_POST['_shipping_length'] ) ? wc_clean( wp_unslash( $_POST['_shipping_length'] ) ) : '' ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
@@ -1684,7 +1752,7 @@ class Admin {
 							<th style="width: 5ch;"><?php printf( esc_html_x( 'Weight (%s)', 'shipments', 'shiptastic-for-woocommerce' ), esc_html( wc_stc_get_packaging_weight_unit() ) ); ?> <?php echo wc_help_tip( _x( 'The weight of the packaging.', 'shipments', 'shiptastic-for-woocommerce' ) ); ?></th>
 							<th style="width: 15ch;"><?php printf( esc_html_x( 'Dimensions (LxWxH, %s)', 'shipments', 'shiptastic-for-woocommerce' ), esc_html( wc_stc_get_packaging_dimension_unit() ) ); ?></th>
 							<th style="width: 5ch;"><?php printf( esc_html_x( 'Load capacity (%s)', 'shipments', 'shiptastic-for-woocommerce' ), esc_html( wc_stc_get_packaging_weight_unit() ) ); ?> <?php echo wc_help_tip( _x( 'The maximum weight this packaging can hold. Leave empty to not restrict maximum weight.', 'shipments', 'shiptastic-for-woocommerce' ) ); ?></th>
-							<th style="width: 5ch;"><?php echo esc_html_x( 'Actions', 'shipments', 'shiptastic-for-woocommerce' ); ?></th>
+							<th class="actions" style="width: 5ch;"><?php echo esc_html_x( 'Actions', 'shipments', 'shiptastic-for-woocommerce' ); ?></th>
 						</tr>
 						</thead>
 						<tbody class="packaging_list">
@@ -1776,7 +1844,7 @@ class Admin {
 	public static function menu_highlight() {
 		global $parent_file, $submenu_file;
 
-		if ( isset( $_GET['page'] ) && in_array( wp_unslash( $_GET['page'] ), array( 'shipment-packaging', 'shipment-packaging-report' ), true ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		if ( isset( $_GET['page'] ) && in_array( wp_unslash( $_GET['page'] ), array( 'shipment-packaging', 'shipment-packaging-report', WarehouseSettings::PAGE ), true ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 			$parent_file  = 'woocommerce'; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
 			$submenu_file = 'wc-settings'; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
 		}
@@ -2301,6 +2369,7 @@ class Admin {
 			'woocommerce_page_wc-stc-return-shipments',
 			'woocommerce_page_shipment-packaging',
 			'woocommerce_page_shipment-packaging-report',
+			'woocommerce_page_' . WarehouseSettings::PAGE,
 			'wc-shiptastic-setup',
 		);
 

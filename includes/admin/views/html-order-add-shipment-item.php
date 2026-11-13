@@ -8,8 +8,17 @@ defined( 'ABSPATH' ) || exit;
 <tr>
 	<td>
 		<select id="wc-stc-shipment-add-items-select" name="item_id">
-			<?php foreach ( $items as $item_id => $item_data ) : ?>
-				<option data-max-quantity="<?php echo esc_attr( $item_data['max_quantity'] ); ?>" value="<?php echo esc_attr( $item_id ); ?>"><?php echo esc_html( $item_data['name'] ); ?></option>
+			<?php
+			foreach ( $items as $item_id => $item_data ) :
+				$item_backordered = ( isset( $order_shipment, $shipment ) && 'return' !== $shipment->get_type() ) ? min( $order_shipment->get_item_backordered_quantity( $item_id ), $item_data['max_quantity'] ) : 0;
+				$item_label       = $item_data['name'];
+
+				if ( $item_backordered > 0 ) {
+					/* translators: 1: item name 2: backordered quantity */
+					$item_label = sprintf( _x( '%1$s (%2$d on backorder)', 'shipments', 'shiptastic-for-woocommerce' ), $item_label, $item_backordered );
+				}
+				?>
+				<option data-max-quantity="<?php echo esc_attr( $item_data['max_quantity'] ); ?>" value="<?php echo esc_attr( $item_id ); ?>"><?php echo esc_html( $item_label ); ?></option>
 			<?php endforeach; ?>
 		</select>
 	</td>

@@ -574,12 +574,45 @@ function wc_stc_create_shipment( $order_shipment, $args = array() ) {
 		$shipment->set_order_shipment( $order_shipment );
 		$shipment->sync( $args['props'] );
 		$shipment->sync_items( $args );
+
+		/**
+		 * Determine the location based on the items in case it was not passed explicitly.
+		 */
+		if ( ! array_key_exists( 'location', $args['props'] ) ) {
+			$shipment->set_location( wc_stc_get_shipment_items_location_name( $shipment ) );
+		}
+
 		$shipment->save();
 	} catch ( Exception $e ) {
 		return new WP_Error( 'error', $e->getMessage() );
 	}
 
 	return $shipment;
+}
+
+/**
+ * Returns the location a shipment's items are shipped from. In case items belong to different
+ * locations (or no items exist) the default location (empty string) is returned.
+ *
+ * @param \Vendidero\Shiptastic\Shipment $shipment
+ *
+ * @return string
+ */
+function wc_stc_get_shipment_items_location_name( $shipment ) {
+	$locations = array();
+
+	foreach ( $shipment->get_items() as $item ) {
+		if ( $item->get_item_parent_id() > 0 ) {
+			continue;
+		}
+
+		$location    = \Vendidero\Shiptastic\Warehouse\Helper::get_location_by_warehouse_name( $item->get_warehouse() );
+		$locations[] = $location ? $location->get_name() : '';
+	}
+
+	$locations = array_unique( $locations );
+
+	return 1 === count( $locations ) ? (string) current( $locations ) : '';
 }
 
 /**

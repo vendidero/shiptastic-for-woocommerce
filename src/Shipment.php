@@ -175,6 +175,7 @@ abstract class Shipment extends WC_Data {
 		'shipping_provider'               => '',
 		'shipping_provider_title'         => '',
 		'shipping_method'                 => '',
+		'location'                        => '',
 		'pickup_location_code'            => '',
 		'pickup_location_customer_number' => '',
 		'tracking_secret'                 => '',
@@ -435,6 +436,41 @@ abstract class Shipment extends WC_Data {
 	 */
 	public function get_shipping_method( $context = 'view' ) {
 		return $this->get_prop( 'shipping_method', $context );
+	}
+
+	/**
+	 * Returns the location (warehouse group or ungrouped warehouse name) the shipment is shipped from.
+	 * Empty string refers to the default location.
+	 *
+	 * @param string $context
+	 *
+	 * @return string
+	 */
+	public function get_location( $context = 'view' ) {
+		return $this->get_prop( 'location', $context );
+	}
+
+	/**
+	 * @return Warehouse|null
+	 */
+	public function get_location_instance() {
+		return \Vendidero\Shiptastic\Warehouse\Helper::get_location( $this->get_location() );
+	}
+
+	/**
+	 * Returns the (unique) warehouse names the shipment's items are stored in.
+	 * An empty string refers to items without a warehouse (default location).
+	 *
+	 * @return string[]
+	 */
+	public function get_warehouses() {
+		$warehouses = array();
+
+		foreach ( $this->get_items() as $item ) {
+			$warehouses[] = $item->get_warehouse();
+		}
+
+		return array_values( array_unique( $warehouses ) );
 	}
 
 	public function get_shipping_method_instance() {
@@ -1827,7 +1863,15 @@ abstract class Shipment extends WC_Data {
 	protected function get_sender_address_prop( $prop, $context = 'view' ) {
 		$value = null;
 
-		if ( $provider = $this->get_shipping_provider_instance() ) {
+		$location = $this->get_location_instance();
+
+		if ( $location && $location->has_address() ) {
+			$sender_address = $location->get_sender_address();
+
+			if ( array_key_exists( $prop, $sender_address ) ) {
+				$value = $sender_address[ $prop ];
+			}
+		} elseif ( $provider = $this->get_shipping_provider_instance() ) {
 			$getter = "get_shipper_{$prop}";
 
 			if ( is_callable( array( $provider, $getter ) ) ) {
@@ -2482,6 +2526,16 @@ abstract class Shipment extends WC_Data {
 		$this->remote_status_events = null;
 
 		$this->set_prop( 'remote_status_events', empty( $events ) ? array() : array_filter( (array) $events ) );
+	}
+
+	/**
+	 * Set the location (warehouse group or ungrouped warehouse name) the shipment is shipped from.
+	 * Empty string refers to the default location.
+	 *
+	 * @param string $location The location name.
+	 */
+	public function set_location( $location ) {
+		$this->set_prop( 'location', wc_clean( (string) $location ) );
 	}
 
 	/**

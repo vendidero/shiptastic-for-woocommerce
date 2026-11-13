@@ -72,6 +72,7 @@ class Shipment extends WC_Data_Store_WP implements WC_Object_Data_Store_Interfac
 		'status',
 		'shipping_provider',
 		'shipping_method',
+		'location',
 		'packaging_id',
 		'version',
 	);
@@ -115,6 +116,7 @@ class Shipment extends WC_Data_Store_WP implements WC_Object_Data_Store_Interfac
 			'shipment_type'              => $shipment->get_type(),
 			'shipment_shipping_provider' => $shipment->get_shipping_provider(),
 			'shipment_shipping_method'   => $shipment->get_shipping_method(),
+			'shipment_location'          => $shipment->get_location( 'edit' ),
 			'shipment_date_created'      => gmdate( 'Y-m-d H:i:s', $shipment->get_date_created( 'edit' )->getOffsetTimestamp() ),
 			'shipment_date_created_gmt'  => gmdate( 'Y-m-d H:i:s', $shipment->get_date_created( 'edit' )->getTimestamp() ),
 			'shipment_date_modified'     => gmdate( 'Y-m-d H:i:s', $shipment->get_date_modified( 'edit' )->getOffsetTimestamp() ),
@@ -355,6 +357,7 @@ class Shipment extends WC_Data_Store_WP implements WC_Object_Data_Store_Interfac
 					'tracking_id'       => $data->shipment_tracking_id,
 					'shipping_provider' => $data->shipment_shipping_provider,
 					'shipping_method'   => $data->shipment_shipping_method,
+					'location'          => isset( $data->shipment_location ) ? $data->shipment_location : '',
 					'packaging_id'      => $data->shipment_packaging_id,
 					'date_created'      => Package::is_valid_mysql_date( $data->shipment_date_created_gmt ) ? wc_string_to_timestamp( $data->shipment_date_created_gmt ) : null,
 					'date_modified'     => Package::is_valid_mysql_date( $data->shipment_date_modified_gmt ) ? wc_string_to_timestamp( $data->shipment_date_modified_gmt ) : null,

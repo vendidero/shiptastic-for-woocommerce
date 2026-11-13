@@ -262,6 +262,19 @@ class SimpleShipment extends Shipment {
 				if ( $order_item = $order->get_item( $item_id ) ) {
 					$quantity = $item_data['max_quantity'];
 
+					/**
+					 * Backordered units are not added automatically (e.g. syncing all items).
+					 * Units already part of this shipment (e.g. added manually) are kept.
+					 */
+					if ( empty( $args['items'] ) && ( $backordered = $order_shipment->get_item_backordered_quantity( $order_item ) ) > 0 ) {
+						$existing_item = $this->get_item_by_order_item_id( $item_id );
+						$quantity      = max( $quantity - $backordered, $existing_item ? absint( $existing_item->get_quantity() ) : 0 );
+
+						if ( $quantity <= 0 ) {
+							continue;
+						}
+					}
+
 					if ( ! empty( $args['items'] ) ) {
 						if ( isset( $args['items'][ $item_id ] ) ) {
 							$new_quantity = absint( $args['items'][ $item_id ] );

@@ -286,6 +286,13 @@ window.shiptastic.admin = window.shiptastic.admin || {};
 
                         cSuccess.apply( $wrapper, [ data ] );
 
+                        // Optional notices for successful requests, e.g. warnings.
+                        if ( data.hasOwnProperty( 'notices' ) ) {
+                            $.each( data.notices, function( i, notice ) {
+                                self.addNotice( notice.message, notice.type || 'info' );
+                            });
+                        }
+
                         self.refresh( data );
                         self.initTiptip();
                     } else {

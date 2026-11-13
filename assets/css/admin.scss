@@ -2563,6 +2563,136 @@ a.button.wc-stc-shipment-action-button {
   }
 }
 
+/**
+ * Woo's embed page styles reset the padding of dismissible notices - keep space for the dismiss button.
+ */
+.shiptastic-shipments .notice-wrapper .notice.is-dismissible {
+  padding-right: 48px;
+}
+
+/**
+ * Input tables (e.g. packaging, warehouses) within Shiptastic settings and the warehouse edit page.
+ */
+body.wc-shiptastic-settings, .wc-shiptastic-warehouse {
+  .woocommerce table.form-table table.wc_input_table thead th, table.form-table table.wc_input_table thead th {
+    padding-top: 10px;
+    width: auto;
+  }
+
+  .woocommerce table.form-table table.wc_input_table th.sort, table.form-table table.wc_input_table th.sort {
+    width: 17px;
+  }
+
+  .woocommerce table.form-table table.wc_input_table tfoot th, table.form-table table.wc_input_table tfoot th {
+    padding-top: 10px;
+  }
+
+  table.wc_input_table {
+    th.actions, td.actions {
+      text-align: right;
+      padding-right: 10px;
+    }
+
+    /**
+     * Cells containing plain text (no input field) - align with the text of input fields.
+     */
+    td.text {
+      padding: 0 12px;
+      line-height: 40px;
+      vertical-align: middle;
+    }
+
+    /**
+     * Toggle columns are narrow and centered.
+     */
+    th.toggle, td.toggle {
+      text-align: center;
+      padding-left: 0;
+      padding-right: 0;
+    }
+
+    td a.woocommerce-shiptastic-input-toggle-trigger {
+      display: inline-block;
+      line-height: 40px;
+    }
+
+    td.actions a.wc-stc-shipment-action-button {
+      float: none;
+      margin-right: 0;
+    }
+  }
+
+  table.wc_input_table {
+
+    td select {
+      width: 100%;
+      max-width: none;
+      min-height: 40px;
+      margin: 0;
+      border: 0;
+      border-radius: 0;
+      box-shadow: none;
+      background-color: transparent;
+    }
+  }
+}
+
+.wc-shiptastic-warehouse {
+  #warehouse_location_preview.is-loading {
+    opacity: .5;
+  }
+
+  /**
+   * Scroll the wrapper - list markers (numbers) are placed outside the list and would be clipped.
+   */
+  .wc-stc-location-preview-wrapper {
+    margin-top: .5em;
+    max-height: 320px;
+    overflow: auto;
+  }
+
+  #warehouse_location_preview {
+    max-width: 600px;
+    padding: .5em 1em 1em;
+
+    > :first-child {
+      margin-top: .5em;
+    }
+  }
+
+  h4.wc-stc-location-preview-title {
+    margin: 1.5em 0 0;
+  }
+
+  ol.wc-stc-location-preview {
+    margin: 0 0 0 2.5em;
+    list-style: decimal outside;
+
+    li.entered code {
+      background: #f0f6fc;
+      outline: 1px solid #72aee6;
+    }
+
+    li {
+      margin-bottom: .25em;
+
+      code {
+        margin-right: .5em;
+      }
+
+      &.invalid code {
+        color: #a00;
+      }
+    }
+  }
+
+  .wc-shiptastic-admin-settings {
+    > h2, > p, > div, > table {
+      flex-basis: 100%;
+    }
+  }
+}
+
 .wc-shiptastic-packaging {
   .nav-tab-wrapper {
     margin: 1.5em 0 1em;

@@ -50,13 +50,28 @@ class MethodHelper {
 
 			foreach ( $args['package']['contents'] as $cart_item_key => $item ) {
 				if ( $product = $item['data'] ) {
-					$items_in_package[ $product->get_id() ] = array(
-						'quantity' => $item['quantity'],
-					);
+					/**
+					 * The same product may be contained in multiple cart items (e.g. different custom options).
+					 */
+					if ( ! isset( $items_in_package[ $product->get_id() ] ) ) {
+						$items_in_package[ $product->get_id() ] = array(
+							'quantity' => 0,
+						);
+					}
+
+					$items_in_package[ $product->get_id() ]['quantity'] += $item['quantity'];
 				}
 			}
 
 			$rate->add_meta_data( '_packaged_items', $items_in_package );
+
+			/**
+			 * Store the location the package is shipped from. Rate meta is copied to the order
+			 * shipping item during checkout.
+			 */
+			if ( ! empty( $args['package']['location'] ) ) {
+				$rate->add_meta_data( '_location', $args['package']['location'] );
+			}
 		}
 
 		if ( $method = wc_stc_get_shipping_provider_method( $method ) ) {
@@ -149,6 +164,17 @@ class MethodHelper {
 		return $methods;
 	}
 
+	/**
+	 * Splits cart packages based on locations (warehouse groups or ungrouped warehouses) and,
+	 * within each location package, based on products shipped separately via a certain provider.
+	 *
+	 * Package keys: '' (default location), `{location}`, `{location}:{provider}` or `:{provider}`.
+	 * Equal keys are merged across original packages.
+	 *
+	 * @param array $packages
+	 *
+	 * @return array
+	 */
 	public static function split_cart_packages( $packages ) {
 		$new_packages = array();
 
@@ -162,29 +188,41 @@ class MethodHelper {
 					continue;
 				}
 
-				$s_product = wc_shiptastic_get_product( $product );
+				$s_product     = wc_shiptastic_get_product( $product );
+				$location_name = wc_stc_get_product_location_name( $s_product );
+				$provider_name = $s_product->is_shipped_separately() ? $s_product->get_ship_separately_via() : '';
+				$package_key   = self::get_cart_package_key( $location_name, $provider_name );
 
-				if ( $s_product->is_shipped_separately() ) {
-					$provider_name = $s_product->get_ship_separately_via();
+				if ( '' === $package_key ) {
+					continue;
+				}
 
-					if ( ! isset( $new_packages[ $provider_name ] ) ) {
-						$new_packages[ $provider_name ] = $package_details;
+				if ( ! isset( $new_packages[ $package_key ] ) ) {
+					$new_packages[ $package_key ] = $package_details;
 
-						$new_packages[ $provider_name ]['contents']          = array();
-						$new_packages[ $provider_name ]['shipping_provider'] = $provider_name;
-						$new_packages[ $provider_name ]['applied_coupons']   = array();
-						$new_packages[ $provider_name ]['contents_cost']     = 0.0;
+					$new_packages[ $package_key ]['contents']      = array();
+					$new_packages[ $package_key ]['contents_cost'] = 0.0;
+					$new_packages[ $package_key ]['location']      = $location_name;
+
+					/**
+					 * Coupons (e.g. free shipping) are not applied to packages shipped separately via a certain provider.
+					 */
+					if ( ! empty( $provider_name ) ) {
+						$new_packages[ $package_key ]['shipping_provider'] = $provider_name;
+						$new_packages[ $package_key ]['applied_coupons']   = array();
 					}
+				}
 
-					$new_packages[ $provider_name ]['contents'][ $content_key ] = $item;
-					$new_packages[ $provider_name ]['contents_cost']           += $item['line_total'];
+				$line_total = isset( $item['line_total'] ) ? (float) $item['line_total'] : 0.0;
 
-					$packages[ $index ]['contents_cost'] -= $item['line_total'];
-					unset( $packages[ $index ]['contents'][ $content_key ] );
+				$new_packages[ $package_key ]['contents'][ $content_key ] = $item;
+				$new_packages[ $package_key ]['contents_cost']           += $line_total;
 
-					if ( empty( $packages[ $index ]['contents'] ) ) {
-						unset( $packages[ $index ] );
-					}
+				$packages[ $index ]['contents_cost'] -= $line_total;
+				unset( $packages[ $index ]['contents'][ $content_key ] );
+
+				if ( empty( $packages[ $index ]['contents'] ) ) {
+					unset( $packages[ $index ] );
 				}
 			}
 		}
@@ -194,6 +232,22 @@ class MethodHelper {
 		}
 
 		return $packages;
+	}
+
+	/**
+	 * @param string $location_name
+	 * @param string $provider_name
+	 *
+	 * @return string
+	 */
+	protected static function get_cart_package_key( $location_name, $provider_name = '' ) {
+		$key = (string) $location_name;
+
+		if ( ! empty( $provider_name ) ) {
+			$key .= ':' . $provider_name;
+		}
+
+		return $key;
 	}
 
 	public static function register_cart_items_to_pack( $packages ) {

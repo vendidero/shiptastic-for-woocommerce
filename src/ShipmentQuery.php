@@ -194,6 +194,11 @@ class ShipmentQuery extends WC_Object_Query {
 			$this->args['shipping_provider'] = array_map( 'wc_clean', $this->args['shipping_provider'] );
 		}
 
+		if ( isset( $this->args['location'] ) ) {
+			$this->args['location'] = (array) $this->args['location'];
+			$this->args['location'] = array_map( 'wc_clean', $this->args['location'] );
+		}
+
 		if ( ! empty( $this->args['has_tracking'] ) ) {
 			$this->args['has_tracking'] = wc_string_to_bool( $this->args['has_tracking'] );
 		}
@@ -406,6 +411,21 @@ class ShipmentQuery extends WC_Object_Query {
 
 			if ( ! empty( $where_provider ) ) {
 				$this->query_where .= " AND ($where_provider)";
+			}
+		}
+
+		// location
+		if ( isset( $this->args['location'] ) ) {
+			$p_locations = array();
+
+			foreach ( $this->args['location'] as $location ) {
+				$p_locations[] = $wpdb->prepare( 'shipment_location = %s', $location );
+			}
+
+			$where_location = implode( ' OR ', $p_locations );
+
+			if ( ! empty( $where_location ) ) {
+				$this->query_where .= " AND ($where_location)";
 			}
 		}
 

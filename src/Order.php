@@ -570,41 +570,173 @@ class Order {
 		return $package_data;
 	}
 
+	/**
+	 * Returns the packages left for shipping. Packages are based on the order's shipping lines (in case the order
+	 * contains multiple separate packages) and are further split by location (warehouse group or ungrouped warehouse).
+	 *
+	 * Each package contains the package data (see `get_package_data()`) and additionally:
+	 * - method_id: The shipping line item id ('' for items not belonging to a separate shipping line)
+	 * - location: The location name ('' for the default location)
+	 * - has_backorders: Whether the package contains backordered units (which are excluded from items)
+	 *
+	 * Package keys equal the method id for packages of the default location, otherwise `{method_id}@{location}`.
+	 *
+	 * @return array
+	 */
 	protected function get_packages() {
-		if ( is_null( $this->package_data ) || ! isset( $this->package_data[''] ) ) {
-			if ( ! is_array( $this->package_data ) ) {
-				$this->package_data = array();
+		$this->package_data  = array();
+		$shipping_method_ids = array_keys( $this->get_order_item_packages( 'raw' ) );
+
+		foreach ( $shipping_method_ids as $shipping_method_id ) {
+			$items = $this->get_available_items_for_packing( $shipping_method_id );
+
+			if ( empty( $items ) ) {
+				continue;
 			}
 
-			$other_items         = $this->get_available_items_for_packing( '' );
-			$shipping_method_ids = array_keys( $this->get_order_item_packages( 'raw' ) );
+			foreach ( $this->split_items_by_location( $items, $shipping_method_id ) as $location_name => $location_items ) {
+				$location_name  = (string) $location_name;
+				$has_backorders = false;
 
-			foreach ( $shipping_method_ids as $shipping_method_id ) {
-				$items = '' === $shipping_method_id ? $other_items : $this->get_available_items_for_packing( $shipping_method_id );
+				foreach ( $location_items as $item_id => $item_data ) {
+					$backordered = min( $item_data['max_quantity'], $this->get_item_backordered_quantity( $item_id ) );
 
-				if ( empty( $items ) ) {
-					continue;
-				}
+					if ( $backordered > 0 ) {
+						$has_backorders = true;
 
-				$package_data = $this->get_package_data( $items );
+						$location_items[ $item_id ]['max_quantity'] -= $backordered;
 
-				if ( ! empty( $method_id ) ) {
-					foreach ( $package_data['item_map'] as $order_item_id => $quantity ) {
-						if ( array_key_exists( $order_item_id, $other_items ) ) {
-							$other_items[ $order_item_id ]['max_quantity'] -= $quantity;
-
-							if ( $other_items[ $order_item_id ]['max_quantity'] <= 0 ) {
-								unset( $other_items[ $order_item_id ] );
-							}
+						if ( $location_items[ $item_id ]['max_quantity'] <= 0 ) {
+							unset( $location_items[ $item_id ] );
 						}
 					}
 				}
 
-				$this->package_data[ $shipping_method_id ] = $package_data;
+				$package_data = array_merge(
+					$this->get_package_data( $location_items ),
+					array(
+						'method_id'      => $shipping_method_id,
+						'location'       => $location_name,
+						'has_backorders' => $has_backorders,
+					)
+				);
+
+				if ( empty( $package_data['item_map'] ) ) {
+					continue;
+				}
+
+				$this->package_data[ self::get_package_key( $shipping_method_id, $location_name ) ] = $package_data;
 			}
 		}
 
 		return apply_filters( 'woocommerce_shiptastic_shipment_order_package_data', $this->package_data, $this );
+	}
+
+	/**
+	 * @param string|int $method_id
+	 * @param string $location_name
+	 *
+	 * @return string
+	 */
+	protected static function get_package_key( $method_id, $location_name = '' ) {
+		$key = (string) $method_id;
+
+		if ( '' !== $location_name ) {
+			$key .= '@' . $location_name;
+		}
+
+		return $key;
+	}
+
+	/**
+	 * Splits items (available for shipping) by location.
+	 *
+	 * Packages created during checkout (shipping lines containing packaged items) have already been split
+	 * by location - the location stored within the shipping line is used. Otherwise (e.g. manually created orders)
+	 * items are split based on the product's location.
+	 *
+	 * @param array $items item_id => item data
+	 * @param string|int $method_id The shipping line item id or empty string.
+	 *
+	 * @return array location_name => items
+	 */
+	public function split_items_by_location( $items, $method_id = '' ) {
+		$split       = array();
+		$method_line = '' === $method_id ? ( $this->has_multiple_packages() ? false : $this->get_shipping_method_by_id( '' ) ) : $this->get_shipping_method_by_id( $method_id );
+
+		if ( $method_line && ! empty( $method_line->get_meta( '_packaged_items', true ) ) ) {
+			$split[ (string) $method_line->get_meta( '_location', true ) ] = $items;
+		} else {
+			foreach ( $items as $item_id => $item_data ) {
+				$location_name = '';
+
+				if ( ( $order_item = $this->get_order()->get_item( $item_id ) ) && ( $product = $this->get_order_item_product( $order_item ) ) ) {
+					$location_name = wc_stc_get_product_location_name( $product );
+				}
+
+				if ( ! isset( $split[ $location_name ] ) ) {
+					$split[ $location_name ] = array();
+				}
+
+				$split[ $location_name ][ $item_id ] = $item_data;
+			}
+		}
+
+		/**
+		 * Filter to adjust how items are split by location.
+		 *
+		 * @param array      $split location_name => items
+		 * @param array      $items The items to split.
+		 * @param string|int $method_id The shipping method (line) id.
+		 * @param Order      $order The shipment order.
+		 *
+		 * @package Vendidero/Shiptastic
+		 */
+		return apply_filters( 'woocommerce_shiptastic_shipment_order_split_items_by_location', $split, $items, $method_id, $this );
+	}
+
+	/**
+	 * @param \WC_Order_Item|int $order_item
+	 *
+	 * @return int
+	 */
+	public function get_item_backordered_quantity( $order_item ) {
+		if ( is_numeric( $order_item ) ) {
+			$order_item = $this->get_order()->get_item( $order_item );
+		}
+
+		return $order_item ? Backorders::get_item_backordered_quantity( $order_item ) : 0;
+	}
+
+	/**
+	 * Whether the order contains units on backorder which are still needed for shipping.
+	 *
+	 * @return bool
+	 */
+	public function has_backorders() {
+		return ! empty( $this->get_backordered_items_left_for_shipping() );
+	}
+
+	/**
+	 * Returns backordered units which are not yet part of a shipment.
+	 *
+	 * @return array item_id => [ item, quantity ]
+	 */
+	public function get_backordered_items_left_for_shipping() {
+		$items = array();
+
+		foreach ( $this->get_shippable_items() as $item ) {
+			$quantity = min( $this->get_item_backordered_quantity( $item ), $this->get_item_quantity_left_for_shipping( $item ) );
+
+			if ( $quantity > 0 ) {
+				$items[ $item->get_id() ] = array(
+					'item'     => $item,
+					'quantity' => $quantity,
+				);
+			}
+		}
+
+		return $items;
 	}
 
 	/**
@@ -907,6 +1039,8 @@ class Order {
 	/**
 	 * Create shipments (if needed) based on current packing configuration.
 	 *
+	 * Backordered units are never included (see `get_packages()`).
+	 *
 	 * @param string $default_status
 	 *
 	 * @return array|\WP_Error
@@ -916,7 +1050,13 @@ class Order {
 		$errors            = new \WP_Error();
 
 		if ( $this->needs_shipping() ) {
-			foreach ( $this->get_packages() as $method_id => $package ) {
+			foreach ( $this->get_packages() as $package ) {
+				$method_id = $package['method_id'];
+
+				if ( empty( $package['item_map'] ) ) {
+					continue;
+				}
+
 				if ( $this->has_auto_packing( $method_id ) ) {
 					if ( $method = $this->get_builtin_shipping_method( $method_id ) ) {
 						$packaging_boxes = $method->get_method()->get_available_packaging_boxes( $package );
@@ -941,6 +1081,7 @@ class Order {
 								'props' => array(
 									'status'          => $default_status,
 									'shipping_method' => $this->get_shipping_method_id( $method_id ),
+									'location'        => $package['location'],
 								),
 							)
 						);
@@ -979,6 +1120,7 @@ class Order {
 										'packaging_id'    => $packaging->get_id(),
 										'status'          => $default_status,
 										'shipping_method' => $this->get_shipping_method_id( $method_id ),
+										'location'        => $package['location'],
 									),
 								)
 							);
@@ -1007,6 +1149,7 @@ class Order {
 							'props' => array(
 								'status'          => $default_status,
 								'shipping_method' => $this->get_shipping_method_id( $method_id ),
+								'location'        => $package['location'],
 							),
 						)
 					);
@@ -1599,9 +1742,7 @@ class Order {
 	 * @return ItemList|OrderItem[]
 	 */
 	public function get_items_to_pack_left_for_shipping( $legacy_group_by_product_group = null ) {
-		$items_to_be_packed = $this->get_packages()['']['items'];
-
-		return $items_to_be_packed;
+		return $this->get_package_data( $this->get_available_items_for_packing( '' ) )['items'];
 	}
 
 	public function get_selectable_items_for_shipment( $args = array() ) {

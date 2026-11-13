@@ -4,6 +4,7 @@ namespace Vendidero\Shiptastic\Admin\Tabs;
 
 use Vendidero\Shiptastic\Admin\Settings;
 use Vendidero\Shiptastic\Admin\Tutorial;
+use Vendidero\Shiptastic\Admin\WarehouseSettings;
 use Vendidero\Shiptastic\Package;
 use Vendidero\Shiptastic\Packaging\ReportHelper;
 use Vendidero\Shiptastic\Packaging\ReportQueue;
@@ -11,7 +12,7 @@ use Vendidero\Shiptastic\Packaging\ReportQueue;
 class Packaging extends Tab {
 
 	public function get_description() {
-		return _x( 'Manage available packaging options and create packaging reports.', 'shipments', 'shiptastic-for-woocommerce' );
+		return _x( 'Manage available packaging options, warehouses and create packaging reports.', 'shipments', 'shiptastic-for-woocommerce' );
 	}
 
 	public function get_label() {
@@ -24,8 +25,9 @@ class Packaging extends Tab {
 
 	public function get_sections() {
 		$sections = array(
-			''        => _x( 'Packaging', 'shipments', 'shiptastic-for-woocommerce' ),
-			'reports' => _x( 'Reports', 'shipments', 'shiptastic-for-woocommerce' ),
+			''           => _x( 'Packaging', 'shipments', 'shiptastic-for-woocommerce' ),
+			'warehouses' => _x( 'Warehouses', 'shipments', 'shiptastic-for-woocommerce' ),
+			'reports'    => _x( 'Reports', 'shipments', 'shiptastic-for-woocommerce' ),
 		);
 
 		if ( Package::is_packing_supported() ) {
@@ -292,6 +294,8 @@ class Packaging extends Tab {
 			$settings = $this->get_packing_settings();
 		} elseif ( 'reports' === $current_section ) {
 			$settings = $this->get_reports_settings();
+		} elseif ( 'warehouses' === $current_section ) {
+			$settings = WarehouseSettings::get_section_settings();
 		}
 
 		return $settings;
