@@ -828,6 +828,30 @@ class PickupDelivery {
 		return $excluded_gateways;
 	}
 
+	/**
+	 * The cart contents weight (shop weight unit). Products shipped within inner boxes count with the weight of
+	 * their boxes instead of the product weight.
+	 *
+	 * @return float
+	 */
+	protected static function get_cart_contents_weight() {
+		$weight = (float) wc()->cart->get_cart_contents_weight();
+
+		foreach ( wc()->cart->get_cart() as $values ) {
+			if ( empty( $values['data'] ) || ! is_a( $values['data'], 'WC_Product' ) ) {
+				continue;
+			}
+
+			if ( $inner_boxes = \Vendidero\Shiptastic\Packing\InnerBoxes::get_cart_item_boxes( $values ) ) {
+				$quantity = (float) $values['quantity'];
+				$weight  -= (float) $values['data']->get_weight() * $quantity;
+				$weight  += array_sum( wp_list_pluck( $inner_boxes, 'weight' ) ) * $quantity;
+			}
+		}
+
+		return max( 0.0, $weight );
+	}
+
 	public static function get_pickup_delivery_cart_args() {
 		if ( ! wc()->cart ) {
 			return array(
@@ -842,7 +866,7 @@ class PickupDelivery {
 			);
 		}
 
-		$max_weight      = wc_get_weight( (float) wc()->cart->get_cart_contents_weight(), wc_stc_get_packaging_weight_unit() );
+		$max_weight      = wc_get_weight( self::get_cart_contents_weight(), wc_stc_get_packaging_weight_unit() );
 		$shipping_method = wc_stc_get_current_shipping_provider_method();
 		$max_dimensions  = array(
 			'length' => 0.0,
@@ -894,6 +918,23 @@ class PickupDelivery {
 
 		if ( empty( $max_dimensions['length'] ) ) {
 			foreach ( wc()->cart->get_cart() as $values ) {
+				/**
+				 * Products shipped within inner boxes: use the largest box instead of the product itself.
+				 */
+				if ( $inner_boxes = \Vendidero\Shiptastic\Packing\InnerBoxes::get_cart_item_boxes( $values ) ) {
+					foreach ( $inner_boxes as $box ) {
+						foreach ( array( 'length', 'width', 'height' ) as $dimension ) {
+							$value = (float) wc_get_dimension( (float) $box[ $dimension ], wc_stc_get_packaging_dimension_unit() );
+
+							if ( $value > $max_dimensions[ $dimension ] ) {
+								$max_dimensions[ $dimension ] = $value;
+							}
+						}
+					}
+
+					continue;
+				}
+
 				if ( $product = wc_shiptastic_get_product( $values['data'] ) ) {
 					if ( $product->has_dimensions() ) {
 						$length = (float) wc_get_dimension( (float) $product->get_shipping_length(), wc_stc_get_packaging_dimension_unit() );

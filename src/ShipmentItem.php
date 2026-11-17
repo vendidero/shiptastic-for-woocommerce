@@ -2,6 +2,8 @@
 
 namespace Vendidero\Shiptastic;
 
+use Vendidero\Shiptastic\Packing\InnerBoxes;
+
 use WC_Data;
 use WC_Data_Store;
 use Exception;
@@ -51,6 +53,7 @@ class ShipmentItem extends WC_Data {
 		'manufacture_country' => '',
 		'attributes'          => array(),
 		'warehouse'           => '',
+		'inner_box'           => '',
 	);
 
 	/**
@@ -333,7 +336,8 @@ class ShipmentItem extends WC_Data {
 		if ( 'view' === $context && empty( $prop ) ) {
 			if ( $product = $this->get_product() ) {
 				$stc_product = wc_shiptastic_get_product( $product );
-				$prop        = $stc_product->get_hs_code();
+				$shipment    = $this->get_shipment();
+				$prop        = $stc_product->get_hs_code( 'view', $shipment ? $shipment->get_country() : '' );
 			}
 		}
 
@@ -452,7 +456,17 @@ class ShipmentItem extends WC_Data {
 			}
 
 			$default_data['parent_id'] = $item->get_id();
-			$args                      = wp_parse_args( $args, $default_data );
+
+			/**
+			 * Return items always refer to (complete) units - convert data of an inner box parent item.
+			 */
+			if ( $item->has_inner_box() ) {
+				$default_data = $this->get_unit_data_from_inner_box_item( $item, $default_data );
+			}
+
+			unset( $default_data['inner_box'] );
+
+			$args = wp_parse_args( $args, $default_data );
 		} elseif ( is_a( $item, 'WC_Order_Item' ) ) {
 			if ( is_callable( array( $item, 'get_variation_id' ) ) && is_callable( array( $item, 'get_product_id' ) ) ) {
 				$this->set_product_id( $item->get_variation_id() ? $item->get_variation_id() : $item->get_product_id() );
@@ -517,7 +531,7 @@ class ShipmentItem extends WC_Data {
 					'length'              => $product ? wc_get_dimension( (float) $product->get_shipping_length(), $shipment->get_dimension_unit() ) : '',
 					'width'               => $product ? wc_get_dimension( (float) $product->get_shipping_width(), $shipment->get_dimension_unit() ) : '',
 					'height'              => $product ? wc_get_dimension( (float) $product->get_shipping_height(), $shipment->get_dimension_unit() ) : '',
-					'hs_code'             => $product ? $product->get_hs_code() : '',
+					'hs_code'             => $product ? $product->get_hs_code( 'view', $shipment ? $shipment->get_country() : '' ) : '',
 					'mid_code'            => $product ? $product->get_mid_code() : '',
 					'customs_description' => $product ? $product->get_customs_description() : '',
 					'manufacture_country' => $product ? $product->get_manufacture_country() : '',
@@ -530,6 +544,17 @@ class ShipmentItem extends WC_Data {
 
 			if ( ! is_null( $args['parent'] ) && is_a( $args['parent'], 'Vendidero\Shiptastic\ShipmentItem' ) ) {
 				$this->set_parent( $args['parent'] );
+			}
+
+			$inner_box_key = array_key_exists( 'inner_box', $args ) ? (string) $args['inner_box'] : $this->get_inner_box();
+
+			if ( '' !== $inner_box_key ) {
+				if ( $box = InnerBoxes::get_order_item_box( $item, $inner_box_key ) ) {
+					$args = $this->apply_inner_box_data( $args, $box, $shipment );
+				} else {
+					// The inner box does not exist (anymore) - fall back to the complete unit.
+					$args['inner_box'] = '';
+				}
 			}
 		}
 
@@ -545,6 +570,93 @@ class ShipmentItem extends WC_Data {
 		 * @package Vendidero/Shiptastic
 		 */
 		do_action( 'woocommerce_shiptastic_shipment_item_synced', $this, $item, $args );
+	}
+
+	/**
+	 * Overrides unit data (e.g. dimensions, weight, totals) with the data of a certain inner box.
+	 *
+	 * @param array    $args
+	 * @param array    $box
+	 * @param Shipment $shipment
+	 *
+	 * @return array
+	 */
+	protected function apply_inner_box_data( $args, $box, $shipment ) {
+		$count = max( 1, absint( $box['count'] ) );
+
+		$args['inner_box'] = $box['key'];
+		$args['name']      = sprintf( '%1$s (%2$s)', $args['name'], InnerBoxes::get_box_label( $box ) );
+		$args['weight']    = wc_get_weight( $box['weight'], $shipment->get_weight_unit() );
+		$args['length']    = wc_get_dimension( $box['length'], $shipment->get_dimension_unit() );
+		$args['width']     = wc_get_dimension( $box['width'], $shipment->get_dimension_unit() );
+		$args['height']    = wc_get_dimension( $box['height'], $shipment->get_dimension_unit() );
+		$args['total']     = (float) $args['total'] / $count;
+		$args['subtotal']  = (float) $args['subtotal'] / $count;
+
+		return apply_filters( "{$this->get_hook_prefix()}inner_box_data", $args, $box, $this );
+	}
+
+	/**
+	 * Converts the data of an inner box item to (complete) unit data.
+	 *
+	 * @param ShipmentItem $box_item
+	 * @param array        $data
+	 *
+	 * @return array
+	 */
+	protected function get_unit_data_from_inner_box_item( $box_item, $data ) {
+		$boxes = InnerBoxes::get_order_item_boxes( $box_item->get_order_item_id() );
+		$count = max( 1, count( $boxes ) );
+		$data  = array_merge(
+			$data,
+			array(
+				'total'    => (float) $box_item->get_total() / max( 1, $box_item->get_quantity() ) * $count * absint( isset( $data['quantity'] ) ? $data['quantity'] : 1 ),
+				'subtotal' => (float) $box_item->get_subtotal() / max( 1, $box_item->get_quantity() ) * $count * absint( isset( $data['quantity'] ) ? $data['quantity'] : 1 ),
+			)
+		);
+
+		if ( $order_item = $box_item->get_order_item() ) {
+			$data['name'] = $order_item->get_name();
+		}
+
+		if ( ! empty( $boxes ) && ( $shipment = $this->get_shipment() ) ) {
+			$data['weight'] = wc_get_weight( array_sum( wp_list_pluck( $boxes, 'weight' ) ), $shipment->get_weight_unit() );
+		}
+
+		return $data;
+	}
+
+	/**
+	 * The key of the inner box this item represents (empty string in case it represents complete units).
+	 *
+	 * @param string $context
+	 *
+	 * @return string
+	 */
+	public function get_inner_box( $context = 'view' ) {
+		return (string) $this->get_prop( 'inner_box', $context );
+	}
+
+	public function has_inner_box() {
+		return '' !== $this->get_inner_box();
+	}
+
+	/**
+	 * @return array|false
+	 */
+	public function get_inner_box_data() {
+		if ( ! $this->has_inner_box() ) {
+			return false;
+		}
+
+		return InnerBoxes::get_order_item_box( $this->get_order_item_id(), $this->get_inner_box() );
+	}
+
+	/**
+	 * @param string $key
+	 */
+	public function set_inner_box( $key ) {
+		$this->set_prop( 'inner_box', sanitize_key( (string) $key ) );
 	}
 
 	public function get_order_item() {

@@ -63,6 +63,56 @@ class StorageLocations {
 	}
 
 	/**
+	 * Sorts entries (e.g. pick lines) along the picking path: by warehouse (warehouse order, default location last),
+	 * then by pick sequence. Entries without a storage location are placed at the end of their warehouse.
+	 *
+	 * @param array $entries key => array( 'warehouse' => warehouse name, 'location' => location code (may be empty) )
+	 *
+	 * @return array Sorted keys.
+	 */
+	public static function sort_entries( $entries ) {
+		$warehouse_order = array();
+		$keys            = array();
+		$position        = 0;
+
+		foreach ( wc_stc_get_warehouse_list() as $index => $warehouse ) {
+			$warehouse_order[ $warehouse->get_name() ] = $index;
+		}
+
+		foreach ( $entries as $key => $entry ) {
+			$warehouse_name = isset( $entry['warehouse'] ) ? (string) $entry['warehouse'] : '';
+			$code           = isset( $entry['location'] ) ? LocationSchema::normalize_code( $entry['location'] ) : '';
+
+			$keys[ $key ] = array(
+				isset( $warehouse_order[ $warehouse_name ] ) ? $warehouse_order[ $warehouse_name ] : PHP_INT_MAX,
+				'' === $code ? '~' : self::get_pick_sequence( $code, $warehouse_name ),
+				$position++,
+			);
+		}
+
+		$sorted = array_keys( $entries );
+
+		usort(
+			$sorted,
+			function ( $a, $b ) use ( $keys ) {
+				if ( $keys[ $a ][0] !== $keys[ $b ][0] ) {
+					return $keys[ $a ][0] < $keys[ $b ][0] ? -1 : 1;
+				}
+
+				$compare = strcmp( $keys[ $a ][1], $keys[ $b ][1] );
+
+				if ( 0 !== $compare ) {
+					return $compare < 0 ? -1 : 1;
+				}
+
+				return $keys[ $a ][2] < $keys[ $b ][2] ? -1 : 1;
+			}
+		);
+
+		return $sorted;
+	}
+
+	/**
 	 * Sorts product ids along the picking path: by warehouse (warehouse order, default location last), then by
 	 * pick sequence. Products without a storage location are placed at the end of their warehouse.
 	 *

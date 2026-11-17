@@ -17,6 +17,8 @@ class StepResult {
 
 	protected $data = array();
 
+	protected $files = array();
+
 	/**
 	 * @param string $status done|error|skipped
 	 * @param string $message
@@ -69,5 +71,49 @@ class StepResult {
 
 	public function get_data() {
 		return $this->data;
+	}
+
+	/**
+	 * Adds a file created by the step (e.g. a label PDF) to the export of the automation run executing the step
+	 * (see RunExport). The file is copied, the original is kept.
+	 *
+	 * @param string $path Absolute path of a readable file.
+	 * @param string $name File name within the export, defaults to the file's name.
+	 *
+	 * @return $this
+	 */
+	public function add_file( $path, $name = '' ) {
+		$this->files[] = array(
+			'path'    => (string) $path,
+			'name'    => '' !== $name ? (string) $name : wp_basename( (string) $path ),
+			'content' => null,
+		);
+
+		return $this;
+	}
+
+	/**
+	 * Adds generated content (e.g. a CSV) as a file to the export of the automation run executing the step.
+	 *
+	 * @param string $name File name within the export.
+	 * @param string $content
+	 *
+	 * @return $this
+	 */
+	public function add_file_content( $name, $content ) {
+		$this->files[] = array(
+			'path'    => '',
+			'name'    => (string) $name,
+			'content' => (string) $content,
+		);
+
+		return $this;
+	}
+
+	/**
+	 * @return array[] path, name, content (null in case a path is used)
+	 */
+	public function get_files() {
+		return $this->files;
 	}
 }

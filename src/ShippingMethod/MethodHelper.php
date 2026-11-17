@@ -330,11 +330,23 @@ class MethodHelper {
 					break 2;
 				}
 
-				$width  = ( empty( $s_product->get_shipping_width() ) ? 0 : (float) wc_format_decimal( $s_product->get_shipping_width() ) ) * $quantity;
-				$length = ( empty( $s_product->get_shipping_length() ) ? 0 : (float) wc_format_decimal( $s_product->get_shipping_length() ) ) * $quantity;
-				$height = ( empty( $s_product->get_shipping_height() ) ? 0 : (float) wc_format_decimal( $s_product->get_shipping_height() ) ) * $quantity;
-				$weight = ( empty( $s_product->get_shipping_weight() ) ? 0 : (float) wc_format_decimal( $s_product->get_shipping_weight() ) ) * $quantity;
-				$volume = ( $width * $length * $height );
+				$inner_boxes = \Vendidero\Shiptastic\Packing\InnerBoxes::get_cart_item_boxes( $item );
+
+				if ( ! empty( $inner_boxes ) ) {
+					$weight = 0.0;
+					$volume = 0.0;
+
+					foreach ( $inner_boxes as $inner_box ) {
+						$weight += $inner_box['weight'] * $quantity;
+						$volume += ( $inner_box['width'] * $inner_box['length'] * $inner_box['height'] ) * $quantity;
+					}
+				} else {
+					$width  = ( empty( $s_product->get_shipping_width() ) ? 0 : (float) wc_format_decimal( $s_product->get_shipping_width() ) ) * $quantity;
+					$length = ( empty( $s_product->get_shipping_length() ) ? 0 : (float) wc_format_decimal( $s_product->get_shipping_length() ) ) * $quantity;
+					$height = ( empty( $s_product->get_shipping_height() ) ? 0 : (float) wc_format_decimal( $s_product->get_shipping_height() ) ) * $quantity;
+					$weight = ( empty( $s_product->get_shipping_weight() ) ? 0 : (float) wc_format_decimal( $s_product->get_shipping_weight() ) ) * $quantity;
+					$volume = ( $width * $length * $height );
+				}
 
 				$package_data['shipping_package_total']      += $line_total;
 				$package_data['shipping_package_subtotal']   += $line_subtotal;
@@ -364,8 +376,14 @@ class MethodHelper {
 				$cart_data['volume']     += $volume;
 				$cart_data['item_count'] += $quantity;
 
-				$cart_item = new CartItem( $item, wc()->cart->display_prices_including_tax() );
-				$items->insert( $cart_item, $quantity );
+				if ( ! empty( $inner_boxes ) ) {
+					foreach ( $inner_boxes as $inner_box ) {
+						$items->insert( new CartItem( $item, wc()->cart->display_prices_including_tax(), $inner_box ), $quantity );
+					}
+				} else {
+					$cart_item = new CartItem( $item, wc()->cart->display_prices_including_tax() );
+					$items->insert( $cart_item, $quantity );
+				}
 			}
 
 			/**

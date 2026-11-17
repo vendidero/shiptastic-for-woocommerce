@@ -877,6 +877,7 @@ class ShippingMethod extends \WC_Shipping_Method {
 			$packaging_ids         = array();
 			$total_packed_item_map = array();
 			$total_packed_items    = 0;
+			$applied_rule_costs    = array();
 			$packed_boxes          = Helper::pack( $package['items_to_pack'], $boxes, 'cart' );
 			$unpacked_items        = Helper::get_last_unpacked_items();
 
@@ -938,18 +939,19 @@ class ShippingMethod extends \WC_Shipping_Method {
 					foreach ( array_reverse( $this->get_shipping_rules_by_packaging( $packaging->get_id() ) ) as $rule ) {
 						$rule         = $this->parse_rule( $rule );
 						$rule_applies = $this->rule_applies( $rule, $package_data );
+						$rule_costs   = $rule_applies ? $this->get_rule_costs( $rule, $package_data ) : 0.0;
 
 						if ( $rule_applies ) {
-							$applicable_rule_costs[] = $rule['costs'];
-							$package_applied_rules[] = $rule['rule_id'];
+							$applicable_rule_costs[ $rule['rule_id'] ] = $rule_costs;
+							$package_applied_rules[]                   = $rule['rule_id'];
 						}
 
 						/**
 						 * In case a free shipping option is detected, stop + reset.
 						 */
-						if ( $rule_applies && 0.0 === $rule['costs'] ) {
+						if ( $rule_applies && 0.0 === $rule_costs ) {
 							$applicable_rule_costs = array(
-								$rule['costs'],
+								$rule['rule_id'] => $rule_costs,
 							);
 
 							$package_applied_rules = array(
@@ -967,18 +969,19 @@ class ShippingMethod extends \WC_Shipping_Method {
 						foreach ( array_reverse( $this->get_fallback_shipping_rules() ) as $rule ) {
 							$rule         = $this->parse_rule( $rule );
 							$rule_applies = $this->rule_applies( $rule, $package_data );
+							$rule_costs   = $rule_applies ? $this->get_rule_costs( $rule, $package_data ) : 0.0;
 
 							if ( $rule_applies ) {
-								$applicable_rule_costs[] = $rule['costs'];
-								$package_applied_rules[] = $rule['rule_id'];
+								$applicable_rule_costs[ $rule['rule_id'] ] = $rule_costs;
+								$package_applied_rules[]                   = $rule['rule_id'];
 							}
 
 							/**
 							 * In case a free shipping option is detected, stop + reset.
 							 */
-							if ( $rule_applies && 0.0 === $rule['costs'] ) {
+							if ( $rule_applies && 0.0 === $rule_costs ) {
 								$applicable_rule_costs = array(
-									$rule['costs'],
+									$rule['rule_id'] => $rule_costs,
 								);
 
 								$package_applied_rules = array(
@@ -1032,14 +1035,21 @@ class ShippingMethod extends \WC_Shipping_Method {
 								$item_map[ $product_key ] = 1;
 							}
 
-							if ( array_key_exists( $product_key, $total_packed_item_map ) ) {
-								++$total_packed_item_map[ $product_key ];
-							} else {
-								$total_packed_item_map[ $product_key ] = 1;
-							}
+							/**
+							 * Count units only (instead of inner boxes) for the total item map.
+							 */
+							if ( $cart_item_wrapper->is_first_unit_part() ) {
+								if ( array_key_exists( $product_key, $total_packed_item_map ) ) {
+									++$total_packed_item_map[ $product_key ];
+								} else {
+									$total_packed_item_map[ $product_key ] = 1;
+								}
 
-							++$total_packed_items;
+								++$total_packed_items;
+							}
 						}
+
+						$applied_rule_costs[] = $applicable_rule_costs;
 
 						$applied_rules[] = array(
 							'packaging_id' => $packaging->get_id(),
@@ -1057,14 +1067,14 @@ class ShippingMethod extends \WC_Shipping_Method {
 					if ( $is_debug_mode ) {
 						$package_count = 0;
 
-						foreach ( $applied_rules as $applied_rule ) {
+						foreach ( $applied_rules as $applied_rule_index => $applied_rule ) {
 							if ( $packaging = wc_stc_get_packaging( $applied_rule['packaging_id'] ) ) {
 								++$package_count;
 								$debug_notices[] = sprintf( _x( '## Package %1$d/%2$d: %3$s: ', 'shipments', 'shiptastic-for-woocommerce' ), $package_count, count( $applied_rules ), $packaging->get_title() );
 
 								foreach ( $applied_rule['rules'] as $rule ) {
-									if ( $the_rule = $this->get_shipping_rule_by_id( $rule, $applied_rule['packaging_id'] ) ) {
-										$debug_notices[] = sprintf( _x( 'Rule %1$d: %2$s', 'shipments', 'shiptastic-for-woocommerce' ), $rule, wc_price( $the_rule['costs'] ) );
+									if ( isset( $applied_rule_costs[ $applied_rule_index ][ $rule ] ) ) {
+										$debug_notices[] = sprintf( _x( 'Rule %1$d: %2$s', 'shipments', 'shiptastic-for-woocommerce' ), $rule, wc_price( $applied_rule_costs[ $applied_rule_index ][ $rule ] ) );
 									}
 								}
 
@@ -1178,6 +1188,33 @@ class ShippingMethod extends \WC_Shipping_Method {
 		$rule['costs'] = (float) wc_format_decimal( $rule['costs'] );
 
 		return $rule;
+	}
+
+	/**
+	 * Returns the effective costs of an (applicable) rule for a certain package.
+	 *
+	 * @param array $rule The parsed rule.
+	 * @param array $package_data Package data, e.g. package weight (g) and item count.
+	 *
+	 * @return float
+	 */
+	public function get_rule_costs( $rule, $package_data ) {
+		$rule  = $this->parse_rule( $rule );
+		$costs = $rule['costs'];
+
+		/**
+		 * Filter the effective costs of a shipping rule applied to a certain (packed) package.
+		 *
+		 * @param float          $costs The rule costs.
+		 * @param array          $rule The rule.
+		 * @param array          $package_data The package data, e.g. package_weight (in g), package_item_count.
+		 * @param ShippingMethod $method The shipping method instance.
+		 *
+		 * @package Vendidero/Shiptastic
+		 */
+		$costs = (float) apply_filters( 'woocommerce_shiptastic_shipping_method_rule_costs', $costs, $rule, $package_data, $this );
+
+		return max( 0.0, $costs );
 	}
 
 	protected function parse_rule_condition( $condition ) {
@@ -1584,6 +1621,18 @@ class ShippingMethod extends \WC_Shipping_Method {
 				$rule['conditions'][ "condition_{$condition_id}" ] = $new_condition;
 			}
 
+			/**
+			 * Filter a validated shipping rule before saving, e.g. to store additional rule meta data.
+			 *
+			 * @param array          $rule The validated rule.
+			 * @param string         $id The rule id as submitted.
+			 * @param array          $option_value The raw (submitted) shipping rules data.
+			 * @param ShippingMethod $method The shipping method instance.
+			 *
+			 * @package Vendidero/Shiptastic
+			 */
+			$rule = apply_filters( 'woocommerce_shiptastic_shipping_method_validate_shipping_rule', $rule, $id, $option_value, $this );
+
 			if ( ! isset( $rules[ $packaging ] ) ) {
 				$rules[ $packaging ] = array();
 			}
@@ -1700,6 +1749,17 @@ class ShippingMethod extends \WC_Shipping_Method {
 						<input type="text" class="short wc_input_price" name="<?php echo esc_attr( $field_key ); ?>[costs][{{ data.rule_id }}]" value="{{ data.costs }}" data-attribute="costs">
 						<span class="description"><?php echo wp_kses_post( get_woocommerce_currency_symbol() ); ?></span>
 					</p>
+					<?php
+					/**
+					 * Output additional (underscore template) markup within the rule costs column.
+					 *
+					 * @param string         $field_key The shipping rules field key.
+					 * @param ShippingMethod $method The shipping method instance.
+					 *
+					 * @package Vendidero/Shiptastic
+					 */
+					do_action( 'woocommerce_shiptastic_shipping_method_rule_costs_after', $field_key, $this );
+					?>
 				</td>
 				<td class="actions">
 					<a class="button wc-stc-shipment-action-button shipping-rule-add add" href="#"></a>
@@ -1828,6 +1888,16 @@ class ShippingMethod extends \WC_Shipping_Method {
 			</tr>
 		</script>
 		<?php
+		/**
+		 * Output additional templates/markup after the shipping rules table.
+		 *
+		 * @param string         $field_key The shipping rules field key.
+		 * @param ShippingMethod $method The shipping method instance.
+		 *
+		 * @package Vendidero/Shiptastic
+		 */
+		do_action( 'woocommerce_shiptastic_shipping_method_rules_after', $field_key, $this );
+
 		$html = ob_get_clean();
 
 		return $html;

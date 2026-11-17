@@ -59,6 +59,8 @@ class Step {
 			'key'         => $this->get_key(),
 			'action'      => $this->action,
 			'title'       => $action ? $action::get_title() : $this->action,
+			'description' => $action ? $action::get_description() : '',
+			'modes'       => $action ? array_values( $action::get_modes() ) : array(),
 			'shipment_id' => $this->shipment_id,
 			'mode'        => $this->mode,
 			'injected'    => $this->injected,

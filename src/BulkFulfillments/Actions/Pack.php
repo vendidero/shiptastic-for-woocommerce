@@ -30,17 +30,6 @@ class Pack extends Action {
 		return array( 'shipment' );
 	}
 
-	public static function get_settings_schema() {
-		return array(
-			'status_after_packing' => array(
-				'type'    => 'select',
-				'label'   => _x( 'Shipment status after packing', 'shipments', 'shiptastic-for-woocommerce' ),
-				'default' => 'ready-for-shipping',
-				'options' => array_intersect_key( wc_stc_get_shipment_statuses(), array_flip( array( 'processing', 'ready-for-shipping' ) ) ),
-			),
-		);
-	}
-
 	/**
 	 * The shipment's items to verify (by scanning, swiping or counting) and its packaging + dimensions to use.
 	 * Shipment details are edited via the shipments overlay.
@@ -60,10 +49,12 @@ class Pack extends Action {
 		$order          = $order_shipment->get_order();
 		$items          = array();
 
-		foreach ( ShipmentLayout::get_shipment_item_map( $shipment ) as $order_item_id => $quantity ) {
+		foreach ( ShipmentLayout::get_shipment_item_map( $shipment ) as $line_key => $quantity ) {
+			list( $order_item_id, $inner_box ) = ShipmentLayout::parse_line_key( $line_key );
+
 			if ( $order_item = $order->get_item( $order_item_id ) ) {
 				$items[] = array_merge(
-					ShipmentLayout::get_item_data( $order_shipment, $order_item ),
+					ShipmentLayout::get_item_data( $order_shipment, $order_item, $inner_box ),
 					array(
 						'quantity' => $quantity,
 						'location' => '',
@@ -75,11 +66,13 @@ class Pack extends Action {
 		$packaging = $shipment->get_packaging();
 
 		return array(
-			'shipmentId' => $shipment->get_id(),
-			'items'      => $items,
-			// Shown to make sure the right packaging is used (changed via the shipments overlay).
-			'packaging'  => $packaging ? html_entity_decode( wp_strip_all_tags( $packaging->get_title() ), ENT_QUOTES, get_bloginfo( 'charset' ) ) : '',
-			'dimensions' => html_entity_decode( wp_strip_all_tags( wc_stc_format_shipment_dimensions( $shipment->get_package_dimensions(), $shipment->get_dimension_unit() ) ), ENT_QUOTES, get_bloginfo( 'charset' ) ),
+			'shipmentId'  => $shipment->get_id(),
+			'items'       => $items,
+			// Shown to make sure the right packaging is used, the best fitting packaging is suggested (packing.js).
+			'packaging'   => $packaging ? html_entity_decode( wp_strip_all_tags( $packaging->get_title() ), ENT_QUOTES, get_bloginfo( 'charset' ) ) : '',
+			'packagingId' => $shipment->get_packaging_id(),
+			'provider'    => $shipment->get_shipping_provider(),
+			'dimensions'  => html_entity_decode( wp_strip_all_tags( wc_stc_format_shipment_dimensions( $shipment->get_package_dimensions(), $shipment->get_dimension_unit() ) ), ENT_QUOTES, get_bloginfo( 'charset' ) ),
 		);
 	}
 
@@ -104,16 +97,17 @@ class Pack extends Action {
 		$packed = array();
 		$short  = array();
 
-		foreach ( (array) ( isset( $data['packed'] ) ? $data['packed'] : array() ) as $order_item_id => $quantity ) {
-			$packed[ absint( $order_item_id ) ] = absint( $quantity );
+		foreach ( (array) ( isset( $data['packed'] ) ? $data['packed'] : array() ) as $line_key => $quantity ) {
+			$packed[ ShipmentLayout::normalize_line_key( $line_key ) ] = absint( $quantity );
 		}
 
-		foreach ( ShipmentLayout::get_shipment_item_map( $shipment ) as $order_item_id => $quantity ) {
-			$packed_quantity = isset( $packed[ $order_item_id ] ) ? $packed[ $order_item_id ] : 0;
+		foreach ( ShipmentLayout::get_shipment_item_map( $shipment ) as $line_key => $quantity ) {
+			$packed_quantity = isset( $packed[ $line_key ] ) ? $packed[ $line_key ] : 0;
 
 			if ( $packed_quantity < $quantity ) {
-				$shipment_item = $shipment->get_item_by_order_item_id( $order_item_id );
-				$short[]       = sprintf( '%1$d/%2$d × %3$s', $packed_quantity, $quantity, $shipment_item ? $shipment_item->get_name() : $order_item_id );
+				list( $order_item_id, $inner_box ) = ShipmentLayout::parse_line_key( $line_key );
+				$shipment_item                     = $shipment->get_item_by_order_item_id( $order_item_id, $inner_box );
+				$short[]                           = sprintf( '%1$d/%2$d × %3$s', $packed_quantity, $quantity, $shipment_item ? $shipment_item->get_name() : $order_item_id );
 			}
 		}
 
@@ -129,12 +123,7 @@ class Pack extends Action {
 			return StepResult::from_wp_error( $applied );
 		}
 
-		$status = $context->get_setting( 'status_after_packing', 'ready-for-shipping' );
-
-		if ( array_key_exists( $status, wc_stc_get_shipment_statuses() ) ) {
-			$shipment->set_status( $status );
-		}
-
+		// The shipment status is not changed: marking it as ready for shipping is a separate step (mark_ready).
 		$shipment->save();
 
 		return StepResult::done( $props );

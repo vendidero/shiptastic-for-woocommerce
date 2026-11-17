@@ -166,7 +166,7 @@ Notes:
 ### 3.4 Workflows
 
 - CRUD via REST, UI built with the same SPA (list + DataForm-like editor).
-- Filters: warehouse(s) (multi-select; most workflows will be per warehouse), shipping provider, shipping method, country/zone, item count/weight ranges, order date,
+- Filters: warehouse(s) (multi-select; most workflows will be per warehouse), shipping provider, country/zone, item count/weight ranges, order date,
   custom (filter hook registering extra filter types with SQL + PHP evaluators).
 - Steps: ordered list of actions with per-action settings (schema provided by the action → rendered as a form).
 - An order matching several workflows can go through all of them, one at a time (whoever claims it first holds the
@@ -393,12 +393,12 @@ Namespace `wc/v3/shiptastic/fulfillment` (or own `shiptastic/v1`):
    (interval/daily schedules in site timezone via single actions, one run at a time, chunks of 25, run as user with
    capability check, pause + admin notice + e-mail, resume). Workflow: paused state, `validate()` (`create_shipments_mode` removed in M5: shipments are edited via the overlay).
    Ported `create_shipments` (per package, background + interactive layout with temp ids), `pick` (sorted pick list,
-   short pick error), `pack` (shipment scope, packaging/measures, status after packing). `Order::create_shipments()`
+   short pick error), `pack` (shipment scope, packaging/measures; the status is changed by the separate `mark_ready` step). `Order::create_shipments()`
    can be restricted to a package. §2 bugs are gone with the removed legacy classes.
    Not yet: before/after queue phases are declared but only the item phase is executed (batch picking: M8), templates /
    script modules (M5), e-mail digest for continued scheduled runs, PHP-evaluated claim filters.
 4. ✅ **REST API** (§3.9): `Rest\FulfillmentController` under `wc/v3/shiptastic/fulfillment`: workflows CRUD (+ validate,
-   run_as defaults to the saving user) + `claim` (runs each item until its first interactive step → prefetch payload)
+   run_as = the user who saved last) + `claim` (runs each item until its first interactive step → prefetch payload)
    + `resume`; queue list (+ counts), item (+ steps/log for a workflow), `heartbeat` (token), `run`, `steps/{key}`
    (token, version, data), `release`, `skip`, `reset` (managers); `batch` (queue mutations only, max 50, independent).
    Idempotency via body `idempotency_key` / header `Idempotency-Key` (`BulkFulfillments\Idempotency`, 24 h, replayed
@@ -453,14 +453,229 @@ Namespace `wc/v3/shiptastic/fulfillment` (or own `shiptastic/v1`):
    Filters: `woocommerce_shiptastic_fulfillment_app_config`, `…_app_state`; actions `…_app_register_modules`,
    `…_fulfillment_head`, `…_fulfillment_print_footer_scripts`.
    Not yet: relative imports carry no `?ver` (cache busting), keyboard-wedge scanning outside the scan field.
-6. **Workflow editor** (filters + steps + settings forms).
+5b. ✅ **Automation runs** (`BulkFulfillments\Run`, `RunProcessor`, tables `stc_fulfillment_runs` + `_run_errors`):
+   a run automates a whole workflow (all steps support the background) or one automatable step of a workflow
+   (`Queue::get_scope_conditions()`: earlier listed steps done, step open; injected dependencies run too) for all
+   orders of the workflow. `RunProcessor::tick()` = one step (claim 1 → next step in scope → `Runner::run_step()`).
+   Modes: **autonomous** (errors recorded per order + step, order → exceptions, run continues; report afterwards,
+   retry per error = back to the queue) and **supervised** (stops at the first error, order stays locked for the run;
+   retry / skip (→ exceptions) / stop). Runs are always processed in the background (Action Scheduler jobs, 20 s time
+   box; the async queue runner is dispatched explicitly since runs are started/polled via REST, stalled runs are
+   kicked on status requests). The automation screen in the app opens right after starting (progress, current
+   order/step, pause/continue/stop, retry/skip, report; polled every 2 s, leaving it keeps the run going). Other admin
+   pages show a minimal overlay for the starting user (`AutomationOverlay`, `assets/js/static/fulfillment-automation.js`:
+   status, progress, current order/step, link to the screen, dismiss when finished). Scheduled workflows start runs
+   as well (on_error continue → autonomous, stop → supervised + paused schedule); `Runner::process_chunk()` removed.
+   **Fixing**: when a supervised run stops, the app jumps into the failed order (order screen with the failed step
+   and its error, `GET runs/{id}/item` — the run keeps the lock): fix it (e.g. "Edit shipments", saved with
+   `continue: false` so the order is not continued on its own, or within the order), then "Continue automation"
+   (= resume/retry), "Skip order" or "Stop automation" → back to the automation's progress.
+   Errors of the report (autonomous runs) can be fixed the same way: "Fix" locks the order from the exception
+   inbox (`POST runs/{id}/errors/{error_id}/fix`, `Queue::lock_exception()`) and opens it at the failed step;
+   "Retry" (`/retry-fix`) runs the run's (scope) steps for the order — on success it moves back to the queue, the error
+   is marked fixed and the run counts it as succeeded, on a new error the order stays open; "Back to report"
+   (`/abandon-fix`) returns it to the exception inbox.
+   Retries happen automatically after a fix: saving the shipments (overlay) continues a stopped run / retries the order
+   of a report error, the same happens when returning to the app after "Open order" (window focus/visibility). The
+   Retry/Continue buttons remain as fallback.
+   Run lists (app "Automations", admin overlay) only show active runs and finished runs with unresolved errors
+   (`open_errors`: open or skipped). The admin overlay additionally hides finished runs 10 minutes after they finished
+   (filter `woocommerce_shiptastic_fulfillment_overlay_finished_ttl`, runs carry `finished_at`).
+   **Order details**: the order number in the header opens a full overlay (`views/fulfillment/order.php`, `order.js`)
+   with fulfillment relevant data (date, status, shipping/payment method, customer note, link to the order) and the
+   editable shipping address incl. email. Read/saved via the WooCommerce core REST API (`wc/v3/orders/{id}`,
+   permissions checked by WooCommerce, e.g. `read_private_shop_orders` / `edit_shop_order`). The address form renders
+   the edit order page's shipping fields incl. custom fields (`woocommerce_admin_shipping_fields`, with the order as
+   context): `stc_address_fields=1` adds `stc_shipping_fields` (key, label, type, options, value, wide, required) to
+   the core order response, `stc_shipping` (key => value) on update is saved like the edit order page does (update
+   callback, setter or meta). Countries/states are loaded on demand from `wc/v3/data/countries`. Shiptastic syncs editable shipments on order updates;
+   `OrderDetails` additionally updates packed (ready for shipping) shipments without label once the shipping address
+   changed. While fixing an automation error, saving the address retries automatically.
+   REST: `runs` (list/start), `runs/{id}` (incl. errors + `url` of its screen), `/pause|resume|skip|cancel|dismiss`,
+   `runs/{id}/errors/{error_id}/retry`; workflows expose `can_automate` (background workflows run as a whole, no step scopes). App: "Automate" panel per workflow
+   (autonomous/supervised, hidden while no orders are waiting), "Automations" list, automation screen/report (`?run=ID`).
+   New automatable action `mark_ready` ("Mark as ready for shipping": validates items, shipping provider (setting),
+   packaging (setting), filter `woocommerce_shiptastic_fulfillment_validate_ready_for_shipping`).
+6. ✅ **Workflow editor** (managers, `workflows.js`, `views/fulfillment/workflow-editor.php`): "+ New workflow" and
+   "Edit" in the overview (managers see inactive workflows as well), full overlay with General (title, active,
+   interactive/background, priority), Steps (actions in order, reorder/remove/add, settings forms from
+   `Action::get_settings_schema()`, mode/scope choice for actions supporting several, dependency hints; in background mode,
+   steps requiring interaction are hidden, not offered and not saved, switching back restores them), Orders (locations, shipping providers,
+   countries, items, weight, backorders) and Automation (schedule, scheduled runs on errors). Saved via the
+   existing workflow CRUD (server-side validation messages are shown), delete with confirmation. Choices are loaded on
+   demand: `GET workflows/editor` (actions incl. settings, locations, providers, users), countries
+   (`wc/v3/data/countries`) from WooCommerce core. The Automation section shows up for background workflows and for
+   interactive workflows with at least one step running automatically. No shipping method filter (removed).
+   Step order follows the dependencies (`Workflow::sort_steps()` on save, `get_required_actions()` transitive): a
+   required action (e.g. create_shipments) is inserted before the first step requiring it and steps cannot be moved
+   across their dependencies. Interactive workflows always stop at the first error (`get_on_error()` = stop); "on
+   errors" setting for background workflows only. No "run as" choice: scheduled runs execute as the user who saved the workflow last (`run_as` is set on save,
+   the schedule pauses in case the user lost `manage_woocommerce`), filter
+   `woocommerce_shiptastic_fulfillment_scheduled_run_user`.
+   List filters (locations, shipping providers, countries) share one control: "All …" (default, empty filter) or
+   "Only selected" (chips + add list); switching back to "All" clears the selection.
+   Item count/weight: "from – to" inputs with unit, empty bound = no limit, summary text below; "from" > "to" blocks
+   saving (also validated server-side: `workflow_invalid_item_range`/`workflow_invalid_weight_range`).
+   Step mode/scope: each action declares its modes (first = default, `Action::get_default_mode()`) and scopes
+   (default `order` if supported). Actions supporting both modes get an "Automatically / Interactive" switch per
+   step (stored as step setting `mode`, set explicitly when the step is added), actions supporting both scopes a
+   "Once per order / Once per shipment" switch (setting `scope`); single values are shown as hints. Background capable
+   actions without a dedicated view use the generic review screen (`views/fulfillment/actions/confirm.php`, `process()`
+   runs `run()`), e.g. `mark_ready` (modes background, interactive). Automation runs execute background capable steps
+   regardless of the step mode.
+6b. ✅ **Run exports** (`BulkFulfillments\RunExport`): actions add files to their result
+   (`StepResult::add_file( $path, $name )`, `add_file_content( $name, $content )`), automation runs collect them in one
+   zip per run (`fulfillment-exports/run-{id}-{random}.zip` within the Shiptastic upload dir, columns `run_export`,
+   `run_export_files`), one folder per step (`02-create-label/`), files prefixed with order number + shipment id,
+   duplicate names suffixed. Collected during tick and the error fix retries. Download via
+   `admin-post.php?action=stc_fulfillment_run_export` (nonce, run user or shop managers) during and after the run:
+   automation screen ("Download files (zip)") and the admin overlay (↓). REST run data: `export_files`, `export_url`.
+   Exports of runs finished more than 7 days ago are removed daily (Action Scheduler,
+   `woocommerce_shiptastic_fulfillment_export_retention_days`). Not yet: web server rules for nginx (the folder relies
+   on `.htaccess` + random file names, like labels).
+6c. ✅ **Interactive runs + URLs/history**: working through a workflow in the app is a server-side run (source/mode
+   `interactive`, `RunProcessor::start_interactive()` returns the user's active run of the workflow instead of a
+   second one). All claims of the run share the run's lock token (`Queue::claim( token )`), so the server attributes
+   step results to it (`Runner::execute( run )`: export files, processed/succeeded counts; skip → failed, put back →
+   total-1) and returns its locked orders for resuming (`GET runs/{id}/items`, e.g. reload without IndexedDB or
+   another device). `POST runs/{id}/finish` ends it (orders released, export kept); idle runs (12 h,
+   `woocommerce_shiptastic_fulfillment_interactive_run_idle_hours`) are finished by the daily cleanup. Interactive
+   runs are excluded from automation lists/checks (`GET runs?source=interactive`), the workflow card shows
+   "Continue" for an active one, the run screen offers "Download files (n)", ending a run with files shows its
+   report; finished runs with files are listed in the overview for a day.
+   URLs (`router.js`, query args of the admin page): `&workflow={id|new}` (editor), `&run={id}` (interactive run or
+   automation screen/report), `&run={id}&item={queue id}&step={key}` (current order/step, replaceState only). Screens
+   push history entries; back/forward/reload apply the URL (`actions.applyRoute`); browser back from a run ends it
+   (like the header back button) without showing the report. Unsaved editor changes keep the editor on back.
+6d. ✅ **Automatic steps within interactive work**: interactive workflows cannot be automated (no "Automate" button,
+   `Processor::can_automate()` false → `POST runs` 400), only background workflows run as automation runs. Steps set
+   to "Automatically" run within the app while working through an order (`Runner::execute()` runs them right after
+   the preceding interactive step, `current.automated` lists the ones which succeeded). App: automatic steps are part
+   of the step bar ("Automatic" tag, striped segment, not redoable), the action bar names the steps running
+   automatically after the current one ("Then automatically: …" / "Running automatically: …" while submitting), a
+   notice confirms them afterwards ("Done automatically: …", with the order number in case the order finished). A
+   failed automatic step stops the order at that step (error + Retry / Move to exceptions).
+   **One by one**: the app runs automatic steps one request each (`auto_steps` arg of `queue/{id}/steps/{key}` and
+   `queue/{id}/run`: number of the workflow's automatic steps to run, 0 = return the next one with status
+   `automatic`; injected dependencies always run). Progress panel (`actions.runAutomaticSteps()`): steps with their
+   descriptions as waiting/running/done, "keep this window open" (longer hint after 5 s per step), check marks for a
+   moment once done, then a notice. **Pause at errors**: the error shows inline at the step; Retry (runs the failed
+   step again, then the remaining ones), "Open step" (actions supporting the interactive mode: `manual` arg =
+   step key → the step is handled interactively with the error as hint, submitting it continues the automation) or
+   "Show details" (error view incl. Edit shipments / Open order / Retry), Move to exceptions. Resuming (reload)
+   continues pending automatic steps the same way. Notices on the run screen show in the bottom right corner.
+6e. ✅ **Free/Pro split**: automations are part of **Shiptastic for WooCommerce Pro**
+   (`~/dev/wp/plugins/shiptastic-for-woocommerce-pro`, github vendidero/shiptastic-for-woocommerce-pro, symlinked into
+   the test site), similar to Germanized/Germanized Pro. Shiptastic (free) supports interactive workflows only: steps
+   of actions supporting user interaction run interactively (no "Automatically" choice), actions without user
+   interaction (e.g. creating shipments, injected dependencies) run automatically (one by one with progress panel),
+   interactive runs incl. exports/report screen, URLs. Pro adds: background workflows, "Automatically" per step,
+   automation runs (`Pro\Automation\Processor`, autonomous/supervised, Action Scheduler), schedules
+   (`Pro\Automation\Scheduler`), workflow automation settings as workflow meta (`_on_error`, `_schedule`, `_run_as`,
+   `_paused`, `_paused_reason` - same keys as before, `Pro\Automation\Settings`), run errors (table
+   `woocommerce_stc_fulfillment_run_errors`, installed by pro), REST routes (`Pro\Automation\RestController` extends
+   `FulfillmentController`: workflows/{id}/resume, runs/{id}/pause|resume|skip|cancel, runs/{id}/item,
+   runs/{id}/errors/{id}/fix|retry-fix|abandon-fix|retry), the admin overlay and the app module/views/styles.
+   **Extension points (free)**:
+   - PHP filters: `woocommerce_shiptastic_fulfillment_workflow_modes`, `_workflow_mode_hints`, `_action_modes`
+     (`Workflow::get_action_modes()`), `_workflow_step_mode`, `_validate_workflow` (action), `_rest_prepare_workflow`,
+     `_rest_before_save_workflow` (action), `_rest_workflow_editor_data`, `_rest_run_modes`, `_rest_start_run`,
+     `_rest_prepare_run`, `_rest_get_run` (action), existing `_app_config`, `_app_state`, `_app_register_modules`,
+     `_head`.
+   - Template actions: `woocommerce_shiptastic_fulfillment_app_workflow_card_actions`, `_workflow_card_after`,
+     `_app_screens`, `_report_summary`, `_report_after`, `_step_error_before`, `_step_error_actions`,
+     `_step_error_after`, `_workflow_editor_after_steps`, `_workflow_editor_after`.
+   - JS: `hooks.js` (filters, sync/async), exported by the app module with `api`: `import { hooks, api } from
+     'shiptastic/fulfillment'` (see the list of filters in hooks.js). `automation.js` became `report.js` (run list +
+     report screen: `state.report`, screen `report`).
+   - REST defaults changed: `POST runs` mode defaults to `interactive`, `GET runs` source defaults to `interactive`.
+   Tests: automation tests live in the pro repo (`tests/`, run with Shiptastic's test container and bootstrap).
+   **Pro markers** (like Germanized's pro markers): without Pro (`App::has_automation()` = no background mode), the
+   workflow editor presents the "Background" mode and "Automatically" per step (actions supporting both modes, REST
+   `pro_modes`) disabled with a "pro" badge (`App::get_pro_badge()`, `.stc-pro-badge`) linking to
+   `App::get_pro_url()` (filter `woocommerce_shiptastic_fulfillment_pro_url`). Config `pro.automation`/`pro.url`.
 7. **Offline**: outbox replay, prefetch, conflicts, service worker.
 8. **Batch picking** (storage location sorting ✅ done early, §3.8) (before_queue phase, pick list, sort-to-order, short picks) + **more actions**: labels, documents,
    mark shipped, after-queue (bulk print, manifest).
+8b. ✅ **Packaging suggestions (bin packing)** (with M8 or after 6d): when shipments are edited in the app (shipments
+   overlay, Pack step), suggest the best fitting packaging per shipment instead of the full packaging list; staff
+   confirm or change it. Splitting into several shipments only happens when the shipments are first created (decided).
+   **Client-side packing:** shipments are composed client-side (moving items between shipments in the overlay,
+   offline-capable), so suggestions are computed in the browser with **binpackingjs** (npm `binpackingjs` ^4.1.0,
+   MIT, ESM build vendored in `assets/js/static/binpackingjs/`, added in 877bf3f for the original fulfillment
+   implementation; the 3D entry `binpackingjs/3d/index.js` exports `pack3D( { bins, items } )` →
+   `{ packedBins, unfitItems }`; bins: name/width/height/depth/maxWeight, items: name/width/height/depth/weight).
+   The app imports it relatively (`../static/binpackingjs/3d/index.js`, like the other app modules - no build step).
+   The original attempt (877bf3f `admin-fulfillments.js` `getBestPackagingForShipment()`) stayed unfinished
+   (console output only) and passed the outer packaging dimensions.
+   **Server side stays for server-side creation:** `Order::create_shipments()` (Create shipments step, background
+   automation) keeps using `src/Packing` (dvdoug/boxpacker, `Packing\Helper::pack()`, `PackagingSorter`,
+   `Shipment::get_default_packaging()`) in case auto packing is enabled - a step setting "Packaging: best fit /
+   default packaging / shop setting" may override the global option. Decided: the PHP packer stays the reference
+   for server-side creation (no shared ranking definition); the client mirrors its ranking. Client and server should rank alike
+   (mirror `PackagingSorter`: shipping class restricted boxes first, smallest volume, smallest empty weight, max
+   weight, costs; prefer the default packaging setting on ties like `find_best_match_for_shipment()`). Decided: costs
+   stay the last criterion.
+   **To do:**
+   - Layout data (`ShipmentLayout`): packaging with **inner** dimensions, max content weight, empty weight, costs,
+     restrictions (shipping classes, providers) and the default packaging id; items with dimensions + weight
+     (+ shipping class). All converted to one unit (packaging units: `wc_stc_get_packaging_dimension_unit()` /
+     `wc_stc_get_packaging_weight_unit()`), products without dimensions flagged.
+   - `assets/js/fulfillment/packing.js`: wraps `pack3D` - per shipment the fitting packaging (one `pack3D` call per
+     candidate box with a single bin: all items packed, no unfit items; naive volume/weight pre-check first), ranked
+     like the server; the suggestion = first fitting; fill rate (volume, weight) per option. Split (first creation
+     only, see below): distribute the package items into several shipments (pack3D places each bin once - repeat the
+     candidate bins as needed, prefer the fewest packages). Memoize per shipment composition (item ids + quantities), cap the item count
+     (weight-only heuristic above, like `get_max_qty_to_pack()`).
+   - Overlay + Pack step: the suggestion is **applied automatically** (decided): the shipment's packaging is set to the
+     best fitting one whenever its items change, marked "Suggested"; the user may select any other option (fitting
+     options first with fill indicator, others marked "does not fit"). A manual choice is kept while the items change
+     as long as it still fits; otherwise the suggestion is applied again with a hint ("Box S no longer fits, changed
+     to Box M").
+   - Splitting only on first creation (decided): server-side by the Create shipments step (PHP packer, auto packing);
+     client-side in the overlay when the package has no shipments yet and its items are assigned from the pool for
+     the first time (packing.js split → the proposed shipments with their packaging, saved via `POST
+     queue/{id}/shipments`). Afterwards no automatic splitting and no "Repack": moving items between existing
+     shipments or adding a shipment manually only updates the packaging suggestion per shipment. Items fitting no
+     packaging: warning ("Item too large for all packaging"), the Pack step requires a manual choice. Products
+     without dimensions: weight only + hint.
+   - Tests: JS unit tests for `packing.js` (single item fits / doesn't fit, split on first creation only, max weight,
+     missing dimensions, ranking incl. default packaging, restrictions and costs last, keeping a fitting manual
+     choice, memoization) + PHP test for the layout data (inner dimensions,
+     units, item dimensions).
+   **Done:**
+   - `ShipmentLayout::get_item_packing_data()` / `get_packaging_packing_data()`: items (`packing`: width, length,
+     depth, weight, shippingClass) and packaging (`packing`: inner width/length/depth, emptyWeight, maxWeight =
+     content, 0 = no limit, costs, shippingClasses) in **mm/g** - the units of the server-side packer
+     (`Packing\OrderItem`, `PackagingBox` incl. the inner buffer setting and its filters) instead of the packaging
+     units. Filter `woocommerce_shiptastic_fulfillment_packaging_packing_data`. Config `packing`: defaultPackaging,
+     maxItems (filter `woocommerce_shiptastic_fulfillment_packing_max_items`, 100), dimensionUnit.
+   - `assets/js/fulfillment/packing.js` (pure, no store): `getPackagingOptions()` (availability: provider + shipping
+     class restrictions, naive checks, `pack3D` with one bin per candidate, fill rates, tooLarge, missingDimensions),
+     `compare()` (PackagingSorter), `proposeShipments()` (one shipment if possible, otherwise as few packages of the
+     largest available packaging as possible, then the best packaging per package; split by shipping class in case
+     no packaging holds all; too large items as a separate shipment without packaging), `choosePackaging()`
+     (keep a fitting manual choice), memoized by composition incl. packing data. Above maxItems units: volume +
+     weight only.
+   - Default packaging: preferred whenever it fits (like `find_best_match_for_shipment()`, which prefers it among all
+     fitting packaging - not only on ties).
+   - Costs: depend on the shipping method rules (cart), not available in the app (0), the criterion is supported.
+   - Overlay (`shipments.js`): suggestion applied whenever items/provider change ("Suggested" tag), stored packaging
+     treated as a manual choice (kept while it fits), replaced manual choice → hint; select lists fitting options
+     first with fill rate, others "(does not fit)"; warnings for too large items / items without dimensions.
+     No shipments yet → shipments proposed on open (hint, dirty), no automatic splitting afterwards.
+   - Pack step (`actions/pack.js`, view `packagingId`/`provider`): packaging select; stored packaging kept while it
+     fits, otherwise the suggestion (submitted as `packaging_id` with the step); no packaging fits → validation
+     requires a manual choice.
+   - Tests: `npm run test:js` (node --test, `tests/js/packing.test.mjs`, 18 tests), PHP
+     `tests/unit-tests/fulfillment-packing.php`.
+   - Lists rendered client-side only (wp-each within selects) must be empty while the page hydrates, otherwise
+     Preact reports "Expected a DOM node of type option but found template" (the Pack select's options are empty
+     unless a pack step is shown).
 9. **Polish**: scanner support, gestures, a11y, performance budget check, docs for third-party actions.
 
 ---
 
 ## 5. Open questions
 
-- None at the moment.
+- Packaging suggestions (8b): remember manual overrides per product combination?

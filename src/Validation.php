@@ -441,7 +441,7 @@ class Validation {
 					foreach ( $order_shipment->get_shipments() as $shipment ) {
 
 						if ( $shipment->is_editable() ) {
-							if ( $item = $shipment->get_item_by_order_item_id( $order_item_id ) ) {
+							foreach ( $shipment->get_items_by_order_item_id( $order_item_id ) as $item ) {
 								$shipment->remove_item( $item->get_id() );
 							}
 						}

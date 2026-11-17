@@ -28,6 +28,7 @@ class ActionRegistry {
 				'create_shipments' => '\Vendidero\Shiptastic\BulkFulfillments\Actions\CreateShipments',
 				'pick'             => '\Vendidero\Shiptastic\BulkFulfillments\Actions\Pick',
 				'pack'             => '\Vendidero\Shiptastic\BulkFulfillments\Actions\Pack',
+				'mark_ready'       => '\Vendidero\Shiptastic\BulkFulfillments\Actions\MarkReady',
 			)
 		);
 	}

@@ -15,8 +15,9 @@ class ShipmentItem extends Item {
 	 * Box constructor.
 	 *
 	 * @param \Vendidero\Shiptastic\ShipmentItem $item
+	 * @param array|null $inner_box Inner box to split a (complete) unit item into.
 	 */
-	public function __construct( $item ) {
+	public function __construct( $item, $inner_box = null ) {
 		$this->item = $item;
 
 		if ( $shipment = $item->get_shipment() ) {
@@ -46,6 +47,13 @@ class ShipmentItem extends Item {
 
 		$this->total    = $quantity > 0 ? NumberUtil::round( $line_total / $quantity ) : 0;
 		$this->subtotal = $quantity > 0 ? NumberUtil::round( $line_subtotal / $quantity ) : 0;
+
+		if ( ! empty( $inner_box ) ) {
+			$this->apply_inner_box( $inner_box );
+		} elseif ( $item->has_inner_box() && ( $box = $item->get_inner_box_data() ) ) {
+			// Dimensions, weight and totals of inner box items already refer to the inner box.
+			$this->inner_box = $box;
+		}
 	}
 
 	/**

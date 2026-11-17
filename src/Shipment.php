@@ -575,8 +575,16 @@ abstract class Shipment extends WC_Data {
 				$this->items_to_pack = new ItemList();
 
 				foreach ( $this->get_items() as $item ) {
-					$box_item = new Packing\ShipmentItem( $item );
-					$this->items_to_pack->insert( $box_item, $item->get_quantity() );
+					$boxes = ! $item->has_inner_box() ? Packing\InnerBoxes::get_order_item_boxes( $item->get_order_item_id() ) : array();
+
+					if ( ! empty( $boxes ) ) {
+						foreach ( $boxes as $box ) {
+							$this->items_to_pack->insert( new Packing\ShipmentItem( $item, $box ), $item->get_quantity() );
+						}
+					} else {
+						$box_item = new Packing\ShipmentItem( $item );
+						$this->items_to_pack->insert( $box_item, $item->get_quantity() );
+					}
 				}
 			}
 
@@ -3284,16 +3292,80 @@ abstract class Shipment extends WC_Data {
 	 *
 	 * @return bool|ShipmentItem
 	 */
-	public function get_item_by_order_item_id( $order_item_id ) {
-		$items = $this->get_items();
-
-		foreach ( $items as $item ) {
-			if ( $item->get_order_item_id() === (int) $order_item_id ) {
+	/**
+	 * Finds a ShipmentItem based on an order item id.
+	 *
+	 * @param integer     $order_item_id
+	 * @param string|null $inner_box Optionally restrict to items representing a certain inner box ('' = complete units). Null returns the first item found.
+	 *
+	 * @return bool|ShipmentItem
+	 */
+	public function get_item_by_order_item_id( $order_item_id, $inner_box = null ) {
+		foreach ( $this->get_items_by_order_item_id( $order_item_id ) as $item ) {
+			if ( is_null( $inner_box ) || (string) $inner_box === $item->get_inner_box() ) {
 				return $item;
 			}
 		}
 
 		return false;
+	}
+
+	/**
+	 * Returns all items belonging to a certain order item, e.g. one item per inner box.
+	 *
+	 * @param integer $order_item_id
+	 *
+	 * @return ShipmentItem[]
+	 */
+	public function get_items_by_order_item_id( $order_item_id ) {
+		$found = array();
+
+		foreach ( $this->get_items() as $key => $item ) {
+			if ( $item->get_order_item_id() === (int) $order_item_id ) {
+				$found[ $key ] = $item;
+			}
+		}
+
+		return $found;
+	}
+
+	/**
+	 * Returns the quantity of a certain order item contained within this shipment.
+	 * In case an inner box is passed, the quantity of that inner box is returned (items representing complete
+	 * units count for every inner box). Otherwise, the number of complete units is returned.
+	 *
+	 * @param integer     $order_item_id
+	 * @param string|null $inner_box
+	 *
+	 * @return integer
+	 */
+	public function get_order_item_quantity( $order_item_id, $inner_box = null ) {
+		$unit_quantity = 0;
+		$box_quantity  = array();
+
+		foreach ( $this->get_items_by_order_item_id( $order_item_id ) as $item ) {
+			if ( $item->has_inner_box() ) {
+				$box_quantity[ $item->get_inner_box() ] = ( isset( $box_quantity[ $item->get_inner_box() ] ) ? $box_quantity[ $item->get_inner_box() ] : 0 ) + absint( $item->get_quantity() );
+			} else {
+				$unit_quantity += absint( $item->get_quantity() );
+			}
+		}
+
+		if ( ! is_null( $inner_box ) && '' !== (string) $inner_box ) {
+			return $unit_quantity + ( isset( $box_quantity[ (string) $inner_box ] ) ? $box_quantity[ (string) $inner_box ] : 0 );
+		} elseif ( empty( $box_quantity ) ) {
+			return $unit_quantity;
+		}
+
+		$boxes = Packing\InnerBoxes::get_order_item_boxes( $order_item_id );
+		$min   = null;
+
+		foreach ( array_keys( $boxes ) as $box_key ) {
+			$qty = isset( $box_quantity[ $box_key ] ) ? $box_quantity[ $box_key ] : 0;
+			$min = is_null( $min ) ? $qty : min( $min, $qty );
+		}
+
+		return $unit_quantity + ( is_null( $min ) ? 0 : $min );
 	}
 
 	/**

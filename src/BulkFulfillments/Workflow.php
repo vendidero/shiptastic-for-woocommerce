@@ -28,15 +28,6 @@ class Workflow extends WC_Data {
 		'mode'          => 'interactive',
 		'filters'       => array(),
 		'steps'         => array(),
-		'on_error'      => 'continue',
-		'run_as'        => 0,
-		'schedule'      => array(
-			'type'    => 'none',
-			'minutes' => 15,
-			'times'   => array(),
-		),
-		'paused'        => false,
-		'paused_reason' => '',
 	);
 
 	/**
@@ -76,11 +67,59 @@ class Workflow extends WC_Data {
 		);
 	}
 
+	/**
+	 * Workflow modes: interactive (staff works through the orders in the fulfillment app). Extensions may add modes,
+	 * e.g. workflows running in the background.
+	 *
+	 * @return array mode => title
+	 */
 	public static function get_modes() {
-		return array(
-			'interactive' => _x( 'Interactive', 'shipments-workflow-mode', 'shiptastic-for-woocommerce' ),
-			'background'  => _x( 'Background', 'shipments-workflow-mode', 'shiptastic-for-woocommerce' ),
+		/**
+		 * Filter to adjust the available fulfillment workflow modes.
+		 *
+		 * @param array $modes mode => title
+		 *
+		 * @package Vendidero/Shiptastic
+		 */
+		$modes = (array) apply_filters(
+			'woocommerce_shiptastic_fulfillment_workflow_modes',
+			array(
+				'interactive' => _x( 'Interactive', 'shipments-workflow-mode', 'shiptastic-for-woocommerce' ),
+			)
 		);
+
+		return array_merge( array( 'interactive' => _x( 'Interactive', 'shipments-workflow-mode', 'shiptastic-for-woocommerce' ) ), $modes );
+	}
+
+	/**
+	 * The modes a step of an action may run in within workflows. Actions supporting user interaction run
+	 * interactively, actions without user interaction (e.g. creating shipments) run automatically. Extensions may
+	 * allow choosing the mode per step.
+	 *
+	 * @param string $action_name
+	 *
+	 * @return string[] The first mode is the default.
+	 */
+	public static function get_action_modes( $action_name ) {
+		$action = ActionRegistry::get( $action_name );
+
+		if ( ! $action ) {
+			return array( 'interactive' );
+		}
+
+		$modes = $action::supports_mode( 'interactive' ) ? array( 'interactive' ) : array_values( $action::get_modes() );
+
+		/**
+		 * Filter to adjust the modes a step of a fulfillment action may run in within workflows.
+		 *
+		 * @param string[] $modes The modes, the first one is the default.
+		 * @param string   $action_name
+		 *
+		 * @package Vendidero/Shiptastic
+		 */
+		$modes = array_values( array_filter( (array) apply_filters( 'woocommerce_shiptastic_fulfillment_action_modes', $modes, $action_name ), array( $action, 'supports_mode' ) ) );
+
+		return empty( $modes ) ? array( $action::get_default_mode() ) : $modes;
 	}
 
 	/**
@@ -88,7 +127,6 @@ class Workflow extends WC_Data {
 	 *
 	 * - locations: Location names (warehouse group, ungrouped warehouse, '' = default location)
 	 * - shipping_providers: Shipping provider names
-	 * - shipping_methods: Shipping method ids, either with instance (flat_rate:1) or without (flat_rate)
 	 * - countries: Shipping countries
 	 * - min_items/max_items: Number of items to ship
 	 * - min_weight/max_weight: Weight to ship (store weight unit)
@@ -104,7 +142,6 @@ class Workflow extends WC_Data {
 			array(
 				'locations'          => array(),
 				'shipping_providers' => array(),
-				'shipping_methods'   => array(),
 				'countries'          => array(),
 				'min_items'          => '',
 				'max_items'          => '',
@@ -116,7 +153,7 @@ class Workflow extends WC_Data {
 
 		$sanitized = array();
 
-		foreach ( array( 'locations', 'shipping_providers', 'shipping_methods', 'countries' ) as $list ) {
+		foreach ( array( 'locations', 'shipping_providers', 'countries' ) as $list ) {
 			$values = array_map( 'wc_clean', array_map( 'strval', (array) $filters[ $list ] ) );
 
 			if ( 'countries' === $list ) {
@@ -245,7 +282,69 @@ class Workflow extends WC_Data {
 	}
 
 	public function set_steps( $steps ) {
-		$this->set_prop( 'steps', self::sanitize_steps( $steps ) );
+		$this->set_prop( 'steps', self::sort_steps( self::sanitize_steps( $steps ) ) );
+	}
+
+	/**
+	 * Actions (transitively) required by an action.
+	 *
+	 * @param string $action_name
+	 *
+	 * @return string[]
+	 */
+	public static function get_required_actions( $action_name ) {
+		$required = array();
+		$pending  = array( $action_name );
+
+		while ( ! empty( $pending ) ) {
+			$action = ActionRegistry::get( array_shift( $pending ) );
+
+			if ( ! $action ) {
+				continue;
+			}
+
+			foreach ( $action::get_requires() as $name ) {
+				if ( ! in_array( $name, $required, true ) && $name !== $action_name ) {
+					$required[] = $name;
+					$pending[]  = $name;
+				}
+			}
+		}
+
+		return $required;
+	}
+
+	/**
+	 * Enforces the dependency order: steps required by other steps (e.g. create_shipments) come before them. The
+	 * chosen order is kept otherwise (stable).
+	 *
+	 * @param array $steps Sanitized steps.
+	 *
+	 * @return array
+	 */
+	public static function sort_steps( $steps ) {
+		$sorted  = array();
+		$pending = array_values( $steps );
+
+		while ( ! empty( $pending ) ) {
+			$listed = wp_list_pluck( $pending, 'action' );
+			$next   = 0;
+
+			foreach ( $pending as $index => $step ) {
+				$blocked = array_intersect( self::get_required_actions( $step['action'] ), $listed );
+
+				// The first step whose listed requirements are already sorted (cycles: keep the order).
+				if ( empty( array_diff( $blocked, array( $step['action'] ) ) ) ) {
+					$next = $index;
+					break;
+				}
+			}
+
+			$sorted[] = $pending[ $next ];
+			array_splice( $pending, $next, 1 );
+		}
+
+		return $sorted;
 	}
 
 	/**
@@ -256,100 +355,8 @@ class Workflow extends WC_Data {
 	}
 
 	/**
-	 * Error handling for scheduled runs: continue (skip the item, inbox) or stop (pause the schedule).
-	 */
-	public function get_on_error( $context = 'view' ) {
-		return $this->get_prop( 'on_error', $context );
-	}
-
-	public function set_on_error( $on_error ) {
-		$this->set_prop( 'on_error', 'stop' === $on_error ? 'stop' : 'continue' );
-	}
-
-	/**
-	 * The user scheduled runs are executed as.
-	 */
-	public function get_run_as( $context = 'view' ) {
-		return $this->get_prop( 'run_as', $context );
-	}
-
-	public function set_run_as( $user_id ) {
-		$this->set_prop( 'run_as', absint( $user_id ) );
-	}
-
-	/**
-	 * Schedule for background workflows:
-	 * - type none: not scheduled
-	 * - type interval: minutes (e.g. every 15 minutes)
-	 * - type daily: times (e.g. 13:30 before carrier pickup, site timezone)
-	 *
-	 * @param string $context
-	 *
-	 * @return array
-	 */
-	public function get_schedule( $context = 'view' ) {
-		return $this->get_prop( 'schedule', $context );
-	}
-
-	public function set_schedule( $schedule ) {
-		$schedule = wp_parse_args(
-			(array) $schedule,
-			array(
-				'type'    => 'none',
-				'minutes' => 15,
-				'times'   => array(),
-			)
-		);
-
-		$times = array();
-
-		foreach ( (array) $schedule['times'] as $time ) {
-			if ( preg_match( '/^([01]?\d|2[0-3]):([0-5]\d)$/', trim( (string) $time ), $matches ) ) {
-				$times[] = sprintf( '%02d:%02d', $matches[1], $matches[2] );
-			}
-		}
-
-		$this->set_prop(
-			'schedule',
-			array(
-				'type'    => in_array( $schedule['type'], array( 'none', 'interval', 'daily' ), true ) ? $schedule['type'] : 'none',
-				'minutes' => max( 5, absint( $schedule['minutes'] ) ),
-				'times'   => array_values( array_unique( $times ) ),
-			)
-		);
-	}
-
-	public function is_scheduled() {
-		$schedule = $this->get_schedule();
-
-		return $this->is_active() && 'background' === $this->get_mode() && ! $this->is_paused() && ! empty( $schedule['type'] ) && 'none' !== $schedule['type'];
-	}
-
-	/**
-	 * Whether the schedule is paused (scheduled run stopped on an error).
-	 */
-	public function get_paused( $context = 'view' ) {
-		return $this->get_prop( 'paused', $context );
-	}
-
-	public function set_paused( $paused ) {
-		$this->set_prop( 'paused', wc_string_to_bool( $paused ) );
-	}
-
-	public function is_paused() {
-		return true === $this->get_paused();
-	}
-
-	public function get_paused_reason( $context = 'view' ) {
-		return $this->get_prop( 'paused_reason', $context );
-	}
-
-	public function set_paused_reason( $reason ) {
-		$this->set_prop( 'paused_reason', wp_strip_all_tags( (string) $reason ) );
-	}
-
-	/**
-	 * Returns the mode (interactive|background) a step of this workflow runs in.
+	 * Returns the mode (interactive|background) a step of this workflow runs in: one of the modes allowed for the
+	 * action (see get_action_modes()), the step's preferred mode in case it is allowed.
 	 *
 	 * @param string $action_name
 	 * @param array $settings Step settings (may contain a preferred mode).
@@ -364,21 +371,24 @@ class Workflow extends WC_Data {
 			return 'interactive';
 		}
 
+		$modes     = self::get_action_modes( $action_name );
 		$preferred = isset( $settings['mode'] ) ? $settings['mode'] : '';
+		$mode      = in_array( $preferred, $modes, true ) ? $preferred : $modes[0];
 
-		if ( 'background' === $this->get_mode() ) {
-			$preferred = 'background';
-		} elseif ( $injected && empty( $preferred ) ) {
-			$preferred = 'background';
-		}
+		/**
+		 * Filter to adjust the mode a step runs in within a workflow.
+		 *
+		 * @param string   $mode
+		 * @param string   $action_name
+		 * @param array    $settings The step's settings.
+		 * @param bool     $injected Whether the step is injected as a dependency.
+		 * @param Workflow $workflow
+		 *
+		 * @package Vendidero/Shiptastic
+		 */
+		$mode = apply_filters( 'woocommerce_shiptastic_fulfillment_workflow_step_mode', $mode, $action_name, $settings, $injected, $this );
 
-		if ( $preferred && $action::supports_mode( $preferred ) ) {
-			return $preferred;
-		}
-
-		$modes = $action::get_modes();
-
-		return in_array( 'interactive', $modes, true ) ? 'interactive' : $modes[0];
+		return $action::supports_mode( $mode ) ? $mode : $action::get_default_mode();
 	}
 
 	/**
@@ -426,22 +436,27 @@ class Workflow extends WC_Data {
 				$errors->add( 'workflow_unknown_action', sprintf( _x( 'The action %s does not exist.', 'shipments', 'shiptastic-for-woocommerce' ), $action_name ) );
 				continue;
 			}
-
-			if ( 'background' === $this->get_mode() && ! $action::supports_mode( 'background' ) ) {
-				/* translators: %s action title */
-				$errors->add( 'workflow_action_requires_interaction', sprintf( _x( '%s cannot run in the background. Background workflows may only contain steps which support the background.', 'shipments', 'shiptastic-for-woocommerce' ), $action::get_title() ) );
-			}
 		}
 
-		$schedule = $this->get_schedule();
+		$filters = self::sanitize_filters( $this->get_filters() );
 
-		if ( 'none' !== $schedule['type'] && 'background' !== $this->get_mode() ) {
-			$errors->add( 'workflow_schedule_requires_background', _x( 'Only background workflows can run on a schedule.', 'shipments', 'shiptastic-for-woocommerce' ) );
+		if ( '' !== $filters['min_items'] && '' !== $filters['max_items'] && $filters['min_items'] > $filters['max_items'] ) {
+			$errors->add( 'workflow_invalid_item_range', _x( 'The minimum number of items must not exceed the maximum.', 'shipments', 'shiptastic-for-woocommerce' ) );
 		}
 
-		if ( 'daily' === $schedule['type'] && empty( $schedule['times'] ) ) {
-			$errors->add( 'workflow_schedule_no_times', _x( 'Please add at least one time for the daily schedule.', 'shipments', 'shiptastic-for-woocommerce' ) );
+		if ( '' !== $filters['min_weight'] && '' !== $filters['max_weight'] && $filters['min_weight'] > $filters['max_weight'] ) {
+			$errors->add( 'workflow_invalid_weight_range', _x( 'The minimum weight must not exceed the maximum.', 'shipments', 'shiptastic-for-woocommerce' ) );
 		}
+
+		/**
+		 * Action to validate a fulfillment workflow, e.g. settings added by extensions. Add errors to the WP_Error.
+		 *
+		 * @param \WP_Error $errors
+		 * @param Workflow  $workflow
+		 *
+		 * @package Vendidero/Shiptastic
+		 */
+		do_action( 'woocommerce_shiptastic_fulfillment_validate_workflow', $errors, $this );
 
 		return $errors->has_errors() ? $errors : true;
 	}

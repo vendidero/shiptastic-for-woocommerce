@@ -42,6 +42,59 @@ class App {
 		return admin_url( 'admin.php?page=' . self::PAGE );
 	}
 
+	/**
+	 * Whether fulfillment automations (background workflows, steps running automatically) are available, i.e. an
+	 * extension (Shiptastic Pro) added the background workflow mode. Otherwise the automation options are presented
+	 * as pro features.
+	 *
+	 * @return bool
+	 */
+	public static function has_automation() {
+		return array_key_exists( 'background', Workflow::get_modes() );
+	}
+
+	/**
+	 * Pro marker (badge linking to Shiptastic Pro), like the pro markers within the settings.
+	 *
+	 * @param array $attributes Additional HTML attributes.
+	 *
+	 * @return string
+	 */
+	public static function get_pro_badge( $attributes = array() ) {
+		$attributes = array_merge(
+			array(
+				'class'  => 'stc-pro-badge',
+				'href'   => self::get_pro_url(),
+				'target' => '_blank',
+				'rel'    => 'noopener noreferrer',
+				'title'  => _x( 'Available with Shiptastic Pro', 'shipments', 'shiptastic-for-woocommerce' ),
+			),
+			$attributes
+		);
+
+		$html = '';
+
+		foreach ( $attributes as $name => $value ) {
+			$html .= ' ' . esc_attr( $name ) . '="' . ( 'href' === $name ? esc_url( $value ) : esc_attr( $value ) ) . '"';
+		}
+
+		return '<a' . $html . '>' . esc_html_x( 'pro', 'shipments', 'shiptastic-for-woocommerce' ) . '</a>';
+	}
+
+	/**
+	 * @return string URL to learn more about/upgrade to Shiptastic Pro.
+	 */
+	public static function get_pro_url() {
+		/**
+		 * Filter to adjust the URL of the pro markers shown for pro features within the fulfillment app.
+		 *
+		 * @param string $url
+		 *
+		 * @package Vendidero/Shiptastic
+		 */
+		return apply_filters( 'woocommerce_shiptastic_fulfillment_pro_url', 'https://vendidero.com/shiptastic-pro' );
+	}
+
 	public static function add_page() {
 		add_submenu_page( 'woocommerce', _x( 'Fulfillment', 'shipments', 'shiptastic-for-woocommerce' ), _x( 'Fulfillment', 'shipments', 'shiptastic-for-woocommerce' ), 'edit_shop_orders', self::PAGE, '__return_null' );
 	}
@@ -81,6 +134,7 @@ class App {
 			'woocommerce_shiptastic_fulfillment_app_config',
 			array(
 				'restUrl'           => esc_url_raw( rest_url( 'wc/v3/shiptastic/fulfillment' ) ),
+				'restRoot'          => esc_url_raw( rest_url() ),
 				'nonce'             => wp_create_nonce( 'wp_rest' ),
 				'nonceUrl'          => esc_url_raw( admin_url( 'admin-ajax.php?action=rest-nonce' ) ),
 				'adminUrl'          => esc_url_raw( admin_url() ),
@@ -91,6 +145,25 @@ class App {
 				'refillAt'          => 5,
 				'weightUnit'        => get_option( 'woocommerce_weight_unit', 'kg' ),
 				'dimensionUnit'     => get_option( 'woocommerce_dimension_unit', 'cm' ),
+				// Packaging suggestions (packing.js): default packaging (setting), units packed in 3D at most.
+				'packing'           => array(
+					'defaultPackaging' => absint( Package::get_setting( 'default_packaging' ) ),
+					/**
+					 * Filter to adjust the number of units packed in 3D for packaging suggestions within the fulfillment
+					 * app, above only volume and weight are checked.
+					 *
+					 * @param int $max_items
+					 *
+					 * @package Vendidero/Shiptastic
+					 */
+					'maxItems'         => absint( apply_filters( 'woocommerce_shiptastic_fulfillment_packing_max_items', 100 ) ),
+					'dimensionUnit'    => wc_stc_get_packaging_dimension_unit(),
+				),
+				// Pro features (automations) are presented with a pro marker in case they are not available.
+				'pro'               => array(
+					'automation' => self::has_automation(),
+					'url'        => esc_url_raw( self::get_pro_url() ),
+				),
 				'i18n'              => array(
 					'title'             => _x( 'Fulfillment', 'shipments', 'shiptastic-for-woocommerce' ),
 					'continue'          => _x( 'Continue', 'shipments', 'shiptastic-for-woocommerce' ),
@@ -109,6 +182,98 @@ class App {
 					'orderProgress'     => _x( 'Order %1$d of %2$d', 'shipments', 'shiptastic-for-woocommerce' ),
 					/* translators: 1: current step 2: number of steps */
 					'stepCount'         => _x( 'Step %1$d of %2$d', 'shipments', 'shiptastic-for-woocommerce' ),
+					'autoNext'          => _x( 'Then automatically: %s', 'shipments', 'shiptastic-for-woocommerce' ),
+					'autoDone'          => _x( 'Done automatically: %s', 'shipments', 'shiptastic-for-woocommerce' ),
+					'autoRunTitle'      => _x( 'Running automatically…', 'shipments', 'shiptastic-for-woocommerce' ),
+					'autoRunDone'       => _x( 'Done', 'shipments', 'shiptastic-for-woocommerce' ),
+					'autoPaused'        => _x( 'Paused: a step failed', 'shipments', 'shiptastic-for-woocommerce' ),
+					'autoOpenStep'      => _x( 'Open step', 'shipments', 'shiptastic-for-woocommerce' ),
+					'autoShowError'     => _x( 'Show details', 'shipments', 'shiptastic-for-woocommerce' ),
+					/* translators: %s error message */
+					'manualStep'        => _x( 'This step failed while running automatically: %s Check it and continue, the remaining steps run automatically afterwards.', 'shipments', 'shiptastic-for-woocommerce' ),
+					'backReleases'      => _x( 'End and back to overview (unfinished orders are put back into the queue)', 'shipments', 'shiptastic-for-woocommerce' ),
+					/* translators: %d number of files */
+					'downloadFiles'     => _x( 'Download files (%d)', 'shipments', 'shiptastic-for-woocommerce' ),
+					'workflowEditor'    => array(
+						'newTitle'       => _x( 'New workflow', 'shipments', 'shiptastic-for-woocommerce' ),
+						'editTitle'      => _x( 'Edit workflow', 'shipments', 'shiptastic-for-woocommerce' ),
+						'saved'          => _x( 'Workflow saved.', 'shipments', 'shiptastic-for-woocommerce' ),
+						'deleted'        => _x( 'Workflow deleted.', 'shipments', 'shiptastic-for-woocommerce' ),
+						'confirmDelete'  => _x( 'Delete this workflow? Orders are not affected.', 'shipments', 'shiptastic-for-woocommerce' ),
+						'discardChanges' => _x( 'Discard your changes to the workflow?', 'shipments', 'shiptastic-for-woocommerce' ),
+						'inactive'       => _x( 'Inactive', 'shipments', 'shiptastic-for-woocommerce' ),
+						'rangeAny'       => _x( 'All orders, no limit.', 'shipments', 'shiptastic-for-woocommerce' ),
+						/* translators: %s minimum incl. unit */
+						'rangeMin'       => _x( 'Orders with at least %s.', 'shipments', 'shiptastic-for-woocommerce' ),
+						/* translators: %s maximum incl. unit */
+						'rangeMax'       => _x( 'Orders with at most %s.', 'shipments', 'shiptastic-for-woocommerce' ),
+						/* translators: 1: minimum 2: maximum incl. unit */
+						'rangeBetween'   => _x( 'Orders with %1$s to %2$s.', 'shipments', 'shiptastic-for-woocommerce' ),
+						/* translators: %s list of steps */
+						'requires'       => _x( 'Requires %s (added automatically).', 'shipments', 'shiptastic-for-woocommerce' ),
+						'modes'          => array(
+							'background'  => _x( 'Automatically', 'shipments', 'shiptastic-for-woocommerce' ),
+							'interactive' => _x( 'Interactive', 'shipments', 'shiptastic-for-woocommerce' ),
+						),
+						'modeHints'      => array(
+							'background'  => _x( 'Automatically', 'shipments', 'shiptastic-for-woocommerce' ),
+							'interactive' => _x( 'Interactive', 'shipments', 'shiptastic-for-woocommerce' ),
+						),
+						'proMode'        => _x( 'Available with Shiptastic Pro', 'shipments', 'shiptastic-for-woocommerce' ),
+						'scopes'         => array(
+							'order'    => _x( 'Once per order', 'shipments', 'shiptastic-for-woocommerce' ),
+							'shipment' => _x( 'Once per shipment', 'shipments', 'shiptastic-for-woocommerce' ),
+						),
+					),
+					'orderDetails'      => array(
+						'saved'          => _x( 'Address saved.', 'shipments', 'shiptastic-for-woocommerce' ),
+						'discardChanges' => _x( 'Discard your changes to the address?', 'shipments', 'shiptastic-for-woocommerce' ),
+						/* translators: %s list of fields */
+						'required'       => _x( 'Please fill in: %s', 'shipments', 'shiptastic-for-woocommerce' ),
+						'emailLabel'     => _x( 'Email', 'shipments', 'shiptastic-for-woocommerce' ),
+						'selectOption'   => _x( 'Select an option…', 'shipments', 'shiptastic-for-woocommerce' ),
+						'statuses'       => array_combine(
+							array_map(
+								function ( $status ) {
+									return 'wc-' === substr( $status, 0, 3 ) ? substr( $status, 3 ) : $status;
+								},
+								array_keys( wc_get_order_statuses() )
+							),
+							array_values( wc_get_order_statuses() )
+						),
+					),
+					// Runs (e.g. the report of a finished interactive run with files).
+					'runs'              => array(
+						'listTitle'         => _x( 'Recent runs', 'shipments', 'shiptastic-for-woocommerce' ),
+						'backOverview'      => _x( 'Back to overview', 'shipments', 'shiptastic-for-woocommerce' ),
+						/* translators: %s scope, e.g. a step title */
+						'screenTitle'       => _x( 'Run: %s', 'shipments', 'shiptastic-for-woocommerce' ),
+						'sessionTitle'      => _x( 'Session', 'shipments', 'shiptastic-for-woocommerce' ),
+						'startSession'      => _x( 'Start', 'shipments', 'shiptastic-for-woocommerce' ),
+						'continueSession'   => _x( 'Continue', 'shipments', 'shiptastic-for-woocommerce' ),
+						/* translators: %d number of files */
+						'files'             => _x( '%d file(s)', 'shipments', 'shiptastic-for-woocommerce' ),
+						/* translators: 1: processed orders 2: total orders */
+						'progress'          => _x( '%1$d of %2$d orders', 'shipments', 'shiptastic-for-woocommerce' ),
+						/* translators: 1: succeeded orders 2: failed orders */
+						'counts'            => _x( '%1$d done, %2$d failed', 'shipments', 'shiptastic-for-woocommerce' ),
+						/* translators: %d number of files */
+						'exportFiles'       => _x( '%d file(s) created by the steps.', 'shipments', 'shiptastic-for-woocommerce' ),
+						/* translators: %d number of files */
+						'exportFilesActive' => _x( '%d file(s) created so far, more are added while the run continues.', 'shipments', 'shiptastic-for-woocommerce' ),
+						/* translators: %d number of errors */
+						'errors'            => _x( '%d error(s)', 'shipments', 'shiptastic-for-woocommerce' ),
+						'status'            => array(
+							'running'   => _x( 'Running', 'shipments-run-status', 'shiptastic-for-woocommerce' ),
+							'paused'    => _x( 'Paused', 'shipments-run-status', 'shiptastic-for-woocommerce' ),
+							'stopped'   => _x( 'Stopped on an error', 'shipments-run-status', 'shiptastic-for-woocommerce' ),
+							'completed' => _x( 'Finished', 'shipments-run-status', 'shiptastic-for-woocommerce' ),
+							'cancelled' => _x( 'Cancelled', 'shipments-run-status', 'shiptastic-for-woocommerce' ),
+						),
+						'modes'             => array(
+							'interactive' => _x( 'Worked in the app', 'shipments', 'shiptastic-for-woocommerce' ),
+						),
+					),
 					/* translators: 1: checked items 2: total items */
 					'checklistProgress' => _x( '%1$d/%2$d items', 'shipments', 'shiptastic-for-woocommerce' ),
 					/* translators: %s list of items */
@@ -126,6 +291,24 @@ class App {
 					/* translators: %s weight incl. unit */
 					'totalWeight'       => _x( 'Total weight incl. packaging: %s', 'shipments', 'shiptastic-for-woocommerce' ),
 					'discardChanges'    => _x( 'Discard your changes to the shipments?', 'shipments', 'shiptastic-for-woocommerce' ),
+					// Packaging suggestions
+					'packaging'         => array(
+						'suggested'         => _x( 'Suggested', 'shipments-packaging', 'shiptastic-for-woocommerce' ),
+						'none'              => _x( 'No packaging', 'shipments', 'shiptastic-for-woocommerce' ),
+						/* translators: 1: packaging title 2: fill rate, e.g. 72 % */
+						'option'            => _x( '%1$s · %2$s full', 'shipments-packaging', 'shiptastic-for-woocommerce' ),
+						/* translators: %s packaging title */
+						'doesNotFit'        => _x( '%s (does not fit)', 'shipments-packaging', 'shiptastic-for-woocommerce' ),
+						/* translators: 1: packaging title 2: packaging title */
+						'changed'           => _x( '%1$s no longer fits, changed to %2$s.', 'shipments-packaging', 'shiptastic-for-woocommerce' ),
+						'noneFits'          => _x( 'No packaging fits the items.', 'shipments-packaging', 'shiptastic-for-woocommerce' ),
+						'chooseManually'    => _x( 'No packaging fits the items. Please choose a packaging.', 'shipments-packaging', 'shiptastic-for-woocommerce' ),
+						/* translators: %s list of items */
+						'tooLarge'          => _x( 'Item too large for all packaging: %s', 'shipments-packaging', 'shiptastic-for-woocommerce' ),
+						/* translators: %s list of items */
+						'missingDimensions' => _x( 'Without dimensions (checked by weight only): %s', 'shipments-packaging', 'shiptastic-for-woocommerce' ),
+						'proposed'          => _x( 'Suggested shipments based on the packaging. Adjust them if needed and save.', 'shipments-packaging', 'shiptastic-for-woocommerce' ),
+					),
 				),
 			)
 		);
@@ -139,17 +322,37 @@ class App {
 
 		$workflows = array();
 
-		foreach ( $wpdb->get_col( "SELECT workflow_id FROM {$wpdb->stc_fulfillment_workflows} WHERE workflow_status = 'active' ORDER BY workflow_priority DESC, workflow_id ASC" ) as $workflow_id ) {
+		// Managers see (and edit) inactive workflows as well.
+		$where = current_user_can( 'manage_woocommerce' ) ? '' : "WHERE workflow_status = 'active'";
+
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Fixed condition.
+		foreach ( $wpdb->get_col( "SELECT workflow_id FROM {$wpdb->stc_fulfillment_workflows} {$where} ORDER BY workflow_priority DESC, workflow_id ASC" ) as $workflow_id ) {
 			$workflows[] = FulfillmentController::prepare_workflow( new Workflow( $workflow_id ) );
 		}
 
 		return apply_filters(
 			'woocommerce_shiptastic_fulfillment_app_state',
 			array(
-				'screen'         => 'overview',
-				'workflows'      => $workflows,
-				'counts'         => Queue::count_by_status(),
-				'queue'          => array(
+				'screen'          => 'overview',
+				// Active interactive runs of the user (continued instead of started anew).
+				'sessions'        => array_map(
+					function ( $run ) {
+						return array(
+							'id'          => $run->get_id(),
+							'workflow_id' => $run->workflow_id,
+						);
+					},
+					Run::query(
+						array(
+							'user_id' => get_current_user_id(),
+							'source'  => 'interactive',
+							'status'  => array( 'running' ),
+						)
+					)
+				),
+				'workflows'       => $workflows,
+				'counts'          => Queue::count_by_status(),
+				'queue'           => array(
 					'status'     => 'pending',
 					'items'      => array(),
 					'page'       => 1,
@@ -159,7 +362,7 @@ class App {
 					'loading'    => true,
 					'workflowId' => 0,
 				),
-				'run'            => array(
+				'run'             => array(
 					'workflowId' => 0,
 					'items'      => array(),
 					'total'      => 0,
@@ -167,24 +370,81 @@ class App {
 					'exhausted'  => false,
 					'skipped'    => array(),
 				),
-				'currentKey'     => '',
-				'showValidation' => false,
-				'stepListOpen'   => false,
-				'packaging'      => ShipmentLayout::get_packaging_data(),
-				'providers'      => ShipmentLayout::get_provider_data(),
-				'overlay'        => array(
+				'currentKey'      => '',
+				'showValidation'  => false,
+				'stepListOpen'    => false,
+				// Progress panel of the automatic steps (app.js actions.runAutomaticSteps()).
+				'autoSteps'       => array(
+					'active' => false,
+					'paused' => false,
+					'slow'   => false,
+					'steps'  => array(),
+				),
+				// An automatic step handled interactively after it failed (key + error message).
+				'manualStep'      => array(
+					'key'     => '',
+					'message' => '',
+				),
+				'workflowEditor'  => array(
+					'open'    => false,
+					'loading' => false,
+					'saving'  => false,
+					'dirty'   => false,
+					'error'   => '',
+					'limited' => new \stdClass(),
+					'form'    => array(
+						'id'       => 0,
+						'title'    => '',
+						'status'   => 'active',
+						'priority' => 0,
+						'mode'     => 'interactive',
+						'steps'    => array(),
+						'filters'  => Workflow::sanitize_filters( array() ),
+					),
+				),
+				// Loaded on demand (workflow editor).
+				'workflowChoices' => array(
+					'loaded'    => false,
+					'actions'   => array(),
+					'locations' => array(),
+					'providers' => array(),
+					'methods'   => array(),
+					'modes'     => array(),
+				),
+				// Loaded on demand (order details).
+				'countries'       => array(),
+				'orderDetails'    => array(
+					'open'    => false,
+					'loading' => false,
+					'saving'  => false,
+					'dirty'   => false,
+					'error'   => '',
+					'data'    => null,
+					'form'    => new \stdClass(),
+				),
+				// Runs listed in the overview, the run shown on the report screen.
+				'runs'            => array(),
+				'report'          => array(
+					'run'     => null,
+					'loading' => false,
+				),
+				'packaging'       => ShipmentLayout::get_packaging_data(),
+				'providers'       => ShipmentLayout::get_provider_data(),
+				'overlay'         => array(
 					'open'      => false,
 					'saving'    => false,
 					'dirty'     => false,
 					'activeKey' => '',
 					'items'     => array(),
 					'shipments' => array(),
+					// Shipments proposed for items assigned for the first time (packaging suggestions).
+					'proposed'  => false,
 				),
-				'view'           => new \stdClass(),
-				'form'           => new \stdClass(),
-				'busy'           => false,
-				'online'         => true,
-				'notice'         => array(
+				'view'            => new \stdClass(),
+				'form'            => new \stdClass(),
+				'busy'            => false,
+				'online'          => true,
+				'notice'          => array(
 					'type'    => '',
 					'message' => '',
 				),

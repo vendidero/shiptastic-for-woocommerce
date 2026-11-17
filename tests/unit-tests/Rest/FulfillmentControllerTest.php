@@ -11,6 +11,37 @@ use WP_REST_Request;
 /**
  * Bulk fulfillment REST API.
  */
+if ( ! class_exists( __NAMESPACE__ . '\Test_Rest_Document_Action' ) ) {
+	/**
+	 * A background action creating a file per shipment (e.g. a delivery note).
+	 */
+	class Test_Rest_Document_Action extends \Vendidero\Shiptastic\BulkFulfillments\Action {
+		public static function get_name() {
+			return 'test_document';
+		}
+
+		public static function get_title() {
+			return 'Test document';
+		}
+
+		public static function get_description() {
+			return '';
+		}
+
+		public static function get_modes() {
+			return array( 'background' );
+		}
+
+		public static function get_scopes() {
+			return array( 'shipment' );
+		}
+
+		public function run( $context ) {
+			return \Vendidero\Shiptastic\BulkFulfillments\StepResult::done()->add_file_content( 'document.pdf', '%PDF-document' );
+		}
+	}
+}
+
 class FulfillmentControllerTest extends \Vendidero\Shiptastic\Tests\Framework\UnitRestTestCase {
 
 	const BASE = '/wc/v3/shiptastic/fulfillment';
@@ -54,9 +85,8 @@ class FulfillmentControllerTest extends \Vendidero\Shiptastic\Tests\Framework\Un
 		$workflow->set_props(
 			array_merge(
 				array(
-					'title'  => 'Pick & Pack',
-					'steps'  => $steps,
-					'run_as' => $this->admin,
+					'title' => 'Pick & Pack',
+					'steps' => $steps,
 				),
 				$props
 			)
@@ -128,7 +158,8 @@ class FulfillmentControllerTest extends \Vendidero\Shiptastic\Tests\Framework\Un
 		$this->assertEquals( 201, $response->get_status() );
 		$workflow = $response->get_data();
 		$this->assertEquals( 'DHL Pick & Pack', $workflow['title'] );
-		$this->assertEquals( $this->admin, $workflow['run_as'] );
+		$this->assertArrayNotHasKey( 'run_as', $workflow );
+		$this->assertArrayNotHasKey( 'schedule', $workflow );
 		$this->assertEquals( array( 'dhl' ), $workflow['filters']['shipping_providers'] );
 		$this->assertEquals( array( 'pick', 'pack' ), wp_list_pluck( $workflow['steps'], 'action' ) );
 		$this->assertEquals( 'interactive', $workflow['steps'][0]['mode'] );
@@ -138,11 +169,14 @@ class FulfillmentControllerTest extends \Vendidero\Shiptastic\Tests\Framework\Un
 			'PUT',
 			'/workflows/' . $workflow['id'],
 			array(
-				'mode' => 'background',
+				'steps' => array( 'pick', 'unknown' ),
 			)
 		);
 		$this->assertEquals( 400, $response->get_status() );
-		$this->assertEquals( 'interactive', ( new Workflow( $workflow['id'] ) )->get_mode() );
+		$this->assertEquals( array( 'pick', 'pack' ), ( new Workflow( $workflow['id'] ) )->get_step_actions() );
+
+		// Interactive workflows only (extensions may add modes): unknown modes fall back to interactive
+		$this->assertEquals( 'interactive', $this->request( 'PUT', '/workflows/' . $workflow['id'], array( 'mode' => 'background' ) )->get_data()['mode'] );
 
 		$response = $this->request( 'PUT', '/workflows/' . $workflow['id'], array( 'title' => 'Renamed' ) );
 		$this->assertEquals( 'Renamed', $response->get_data()['title'] );
@@ -228,6 +262,146 @@ class FulfillmentControllerTest extends \Vendidero\Shiptastic\Tests\Framework\Un
 		$this->assertEquals( 400, $this->request( 'POST', '/queue/' . $item['id'] . '/steps/create_shipments/reopen', array( 'token' => $claim['token'] ) )->get_status() );
 	}
 
+	public function test_order_address_fields_via_core_api() {
+		$callback_values = array();
+
+		// Custom fields, like plugins add them to the edit order page
+		$add_fields = function ( $fields ) use ( &$callback_values ) {
+			$fields['title']       = array(
+				'label'   => 'Title',
+				'type'    => 'select',
+				'options' => array(
+					''   => 'None',
+					'mr' => 'Mr.',
+					'ms' => 'Ms.',
+				),
+			);
+			$fields['post_number'] = array(
+				'label'           => 'Post number',
+				'update_callback' => function ( $id, $value, $order ) use ( &$callback_values ) {
+					$callback_values[ $id ] = $value;
+					$order->update_meta_data( 'custom_post_number', $value );
+				},
+				'value'           => 'from-callback',
+			);
+
+			return $fields;
+		};
+		add_filter( 'woocommerce_admin_shipping_fields', $add_fields );
+
+		$order = $this->create_order( 1 );
+		$order->update_meta_data( '_shipping_title', 'ms' );
+		$order->save();
+
+		wp_set_current_user( $this->admin );
+
+		// Without the flag, the core response is unchanged
+		$request = new WP_REST_Request( 'GET', '/wc/v3/orders/' . $order->get_id() );
+		$this->assertArrayNotHasKey( 'stc_shipping_fields', $this->server->dispatch( $request )->get_data() );
+
+		$request = new WP_REST_Request( 'GET', '/wc/v3/orders/' . $order->get_id() );
+		$request->set_query_params( array( 'stc_address_fields' => 1 ) );
+		$fields = array_column( $this->server->dispatch( $request )->get_data()['stc_shipping_fields'], null, 'key' );
+
+		$this->assertEquals( 'Max', $fields['first_name']['value'] );
+		$this->assertEquals( 'country', $fields['country']['type'] );
+		$this->assertEquals( 'tel', $fields['phone']['type'] );
+		$this->assertEquals( 'select', $fields['title']['type'] );
+		$this->assertEquals( 'ms', $fields['title']['value'] );
+		$this->assertCount( 3, $fields['title']['options'] );
+		$this->assertEquals( 'from-callback', $fields['post_number']['value'] );
+
+		// Save like the edit order page: setter, meta, update callback
+		$request = new WP_REST_Request( 'PUT', '/wc/v3/orders/' . $order->get_id() );
+		$request->set_header( 'Content-Type', 'application/json' );
+		$request->set_body(
+			wp_json_encode(
+				array(
+					'stc_address_fields' => 1,
+					'stc_shipping'       => array(
+						'first_name'  => 'Erika',
+						'city'        => 'Hamburg',
+						'title'       => 'mr',
+						'post_number' => '12345',
+					),
+					'billing'            => array( 'email' => 'fulfillment@example.org' ),
+				)
+			)
+		);
+		$response = $this->server->dispatch( $request );
+		$this->assertEquals( 200, $response->get_status() );
+		$this->assertArrayHasKey( 'stc_shipping_fields', $response->get_data() );
+
+		$order = wc_get_order( $order->get_id() );
+		$this->assertEquals( 'Erika', $order->get_shipping_first_name() );
+		$this->assertEquals( 'Hamburg', $order->get_shipping_city() );
+		$this->assertEquals( 'mr', $order->get_meta( '_shipping_title' ) );
+		$this->assertEquals( '12345', $order->get_meta( 'custom_post_number' ) );
+		$this->assertEquals( array( '_shipping_post_number' => '12345' ), $callback_values );
+		$this->assertEquals( 'fulfillment@example.org', $order->get_billing_email() );
+
+		remove_filter( 'woocommerce_admin_shipping_fields', $add_fields );
+	}
+
+	public function test_workflow_editor_data() {
+		$group = new \Vendidero\Shiptastic\Warehouse();
+		$group->set_props(
+			array(
+				'title' => 'North',
+				'type'  => 'group',
+			)
+		);
+		$group->save();
+
+		$grouped = new \Vendidero\Shiptastic\Warehouse();
+		$grouped->set_props(
+			array(
+				'title' => 'Hamburg',
+				'group' => $group->get_name(),
+			)
+		);
+		$grouped->save();
+
+		$single = new \Vendidero\Shiptastic\Warehouse();
+		$single->set_title( 'Berlin' );
+		$single->save();
+
+		\Vendidero\Shiptastic\Warehouse\Helper::clear_cache();
+
+		// Managers only
+		wp_set_current_user( $this->picker );
+		$this->assertEquals( 403, $this->request( 'GET', '/workflows/editor' )->get_status() );
+
+		wp_set_current_user( $this->admin );
+		$data = $this->request( 'GET', '/workflows/editor' )->get_data();
+
+		$actions = array_column( $data['actions'], null, 'name' );
+		// Steps of actions supporting user interaction run interactively, others (e.g. creating shipments) automatically
+		$this->assertEquals( array( 'interactive' ), $actions['mark_ready']['modes'] );
+		$this->assertEquals( 'interactive', $actions['mark_ready']['default_mode'] );
+		$this->assertEquals( array( 'background' ), $actions['create_shipments']['modes'] );
+		$this->assertEquals( array( 'interactive' ), wp_list_pluck( $data['modes'], 'value' ) );
+		// Running steps supporting user interaction automatically requires Shiptastic Pro (presented with a pro marker)
+		$this->assertFalse( \Vendidero\Shiptastic\BulkFulfillments\App::has_automation() );
+		$this->assertEquals( array( 'background' ), $actions['mark_ready']['pro_modes'] );
+		$this->assertEquals( array(), $actions['create_shipments']['pro_modes'] );
+		$this->assertEquals( array(), $actions['pick']['pro_modes'] );
+		$this->assertEquals( 'interactive', $actions['pick']['default_mode'] );
+		$this->assertEquals( 'shipment', $actions['pack']['default_scope'] );
+		$this->assertEquals( array( 'shipment' ), $actions['pack']['scopes'] );
+		$this->assertEmpty( $actions['pack']['settings'] );
+		$this->assertEquals( 'checkbox', array_column( $actions['mark_ready']['settings'], null, 'key' )['require_shipping_provider']['type'] );
+
+		// Locations: default, groups and warehouses without group
+		$locations = wp_list_pluck( $data['locations'], 'value' );
+		$this->assertContains( '', $locations );
+		$this->assertContains( $group->get_name(), $locations );
+		$this->assertContains( $single->get_name(), $locations );
+		$this->assertNotContains( $grouped->get_name(), $locations );
+
+		$this->assertArrayNotHasKey( 'users', $data );
+	}
+
 	public function test_update_shipments() {
 		$this->setExpectedIncorrectUsage( 'is_internal_meta_key' );
 
@@ -310,6 +484,137 @@ class FulfillmentControllerTest extends \Vendidero\Shiptastic\Tests\Framework\Un
 
 		// Wrong token
 		$this->assertEquals( 409, $this->request( 'POST', '/queue/' . $item['id'] . '/shipments', array( 'token' => 'invalid', 'shipments' => array() ) )->get_status() );
+	}
+
+	public function register_document_action( $actions ) {
+		$actions['test_document'] = Test_Rest_Document_Action::class;
+
+		return $actions;
+	}
+
+	public function test_interactive_run() {
+		$this->setExpectedIncorrectUsage( 'is_internal_meta_key' );
+		add_filter( 'woocommerce_shiptastic_fulfillment_actions', array( $this, 'register_document_action' ) );
+
+		$order    = $this->create_order( 2 );
+		$workflow = $this->create_workflow( array( 'pick', 'test_document' ) );
+		wp_set_current_user( $this->picker );
+
+		// Starting twice continues the active run
+		$response = $this->request( 'POST', '/runs', array( 'workflow_id' => $workflow->get_id(), 'mode' => 'interactive' ) ); // phpcs:ignore WordPress.Arrays.ArrayDeclarationSpacing.AssociativeArrayFound
+		$this->assertEquals( 201, $response->get_status() );
+		$run = $response->get_data();
+		$this->assertTrue( $run['is_interactive'] );
+		$this->assertEquals( 'running', $run['status'] );
+		$this->assertEquals( $run['id'], $this->request( 'POST', '/runs', array( 'workflow_id' => $workflow->get_id(), 'mode' => 'interactive' ) )->get_data()['id'] ); // phpcs:ignore WordPress.Arrays.ArrayDeclarationSpacing.AssociativeArrayFound
+
+		// Claims share the run's token, the run's orders can be loaded again (reload, other device)
+		$claim = $this->request( 'POST', '/workflows/' . $workflow->get_id() . '/claim', array( 'run_id' => $run['id'] ) )->get_data();
+		$this->assertCount( 1, $claim['items'] );
+		$this->assertEquals( 1, $claim['run']['total'] );
+		$item  = $claim['items'][0];
+		$items = $this->request( 'GET', '/runs/' . $run['id'] . '/items' )->get_data();
+		$this->assertEquals( array( $item['id'] ), wp_list_pluck( $items['items'], 'id' ) );
+		$this->assertEquals( $claim['token'], $items['items'][0]['lock_token'] );
+
+		// Listed as interactive run (default), not within runs of other sources (e.g. automations of extensions)
+		$this->assertContains( $run['id'], wp_list_pluck( $this->request( 'GET', '/runs' )->get_data(), 'id' ) );
+		$this->assertNotContains( $run['id'], wp_list_pluck( $this->request( 'GET', '/runs', array( 'source' => 'automation' ) )->get_data(), 'id' ) );
+
+		// Other run modes are not supported without extensions
+		$this->assertEquals( 400, $this->request( 'POST', '/runs', array( 'workflow_id' => $workflow->get_id(), 'mode' => 'autonomous' ) )->get_status() ); // phpcs:ignore WordPress.Arrays.ArrayDeclarationSpacing.AssociativeArrayFound
+
+		// Picking completes the order: the document step's file is added to the run's export
+		$order_item_id = current( $order->get_items() )->get_id();
+		$data          = $this->request(
+			'POST',
+			'/queue/' . $item['id'] . '/steps/pick',
+			array(
+				'token'           => $claim['token'],
+				'version'         => $item['version'],
+				'idempotency_key' => 'interactive-pick',
+				'data'            => array( 'picked' => array( $order_item_id => 2 ) ),
+			)
+		)->get_data();
+
+		$this->assertEquals( 'completed', $data['current']['status'] );
+		// The step running automatically after picking is reported (shown in the app)
+		$this->assertEquals( array( 'test_document' ), wp_list_pluck( $data['current']['automated'], 'action' ) );
+		$this->assertEquals( 1, $data['run']['export_files'] );
+		$this->assertNotEmpty( $data['run']['export_url'] );
+
+		// Ending the run keeps the export
+		$finished = $this->request( 'POST', '/runs/' . $run['id'] . '/finish' )->get_data();
+		$this->assertEquals( 'completed', $finished['status'] );
+		$this->assertEquals( 1, $finished['succeeded'] );
+		$this->assertEquals( 1, $finished['export_files'] );
+		$this->assertEquals( 409, $this->request( 'POST', '/workflows/' . $workflow->get_id() . '/claim', array( 'run_id' => $run['id'] ) )->get_status() );
+
+		// Another user cannot use the run
+		wp_set_current_user( $this->admin );
+		$this->assertEquals( 404, $this->request( 'GET', '/runs/' . $run['id'] . '/items' )->get_status() );
+
+		// Idle runs are finished by the daily cleanup, their orders released
+		wp_set_current_user( $this->picker );
+		$this->create_order( 1 );
+		$idle  = \Vendidero\Shiptastic\BulkFulfillments\RunProcessor::start_interactive( $workflow, $this->picker );
+		$claim = $this->request( 'POST', '/workflows/' . $workflow->get_id() . '/claim', array( 'run_id' => $idle->get_id() ) )->get_data();
+		$this->assertCount( 1, $claim['items'] );
+
+		global $wpdb;
+		$wpdb->update( $wpdb->stc_fulfillment_runs, array( 'run_date_modified_gmt' => gmdate( 'Y-m-d H:i:s', time() - 13 * HOUR_IN_SECONDS ) ), array( 'run_id' => $idle->get_id() ) );
+		\Vendidero\Shiptastic\BulkFulfillments\RunProcessor::finish_idle_interactive();
+
+		$this->assertEquals( 'completed', \Vendidero\Shiptastic\BulkFulfillments\Run::get( $idle->get_id() )->status );
+		$this->assertEquals( 'pending', \Vendidero\Shiptastic\BulkFulfillments\Queue::get( $claim['items'][0]['id'] )->get_status() );
+
+		remove_filter( 'woocommerce_shiptastic_fulfillment_actions', array( $this, 'register_document_action' ) );
+	}
+
+	/**
+	 * Steps running automatically (actions without user interaction) run one by one within the app (progress).
+	 */
+	public function test_automatic_steps_one_by_one() {
+		$this->setExpectedIncorrectUsage( 'is_internal_meta_key' );
+		add_filter( 'woocommerce_shiptastic_fulfillment_actions', array( $this, 'register_document_action' ) );
+
+		$order    = $this->create_order( 1 );
+		$workflow = $this->create_workflow( array( 'pick', 'test_document' ) );
+		wp_set_current_user( $this->picker );
+
+		$claim         = $this->request( 'POST', '/workflows/' . $workflow->get_id() . '/claim' )->get_data();
+		$item          = $claim['items'][0];
+		$order_item_id = current( $order->get_items() )->get_id();
+
+		// Submitting the interactive step returns the next automatic step instead of running it
+		$data = $this->request(
+			'POST',
+			'/queue/' . $item['id'] . '/steps/pick',
+			array(
+				'token'           => $claim['token'],
+				'version'         => $item['version'],
+				'idempotency_key' => 'one-by-one-pick',
+				'data'            => array( 'picked' => array( $order_item_id => 1 ) ),
+				'auto_steps'      => 0,
+			)
+		)->get_data();
+		$this->assertEquals( 'automatic', $data['current']['status'] );
+		$this->assertEquals( 0, strpos( $data['current']['step']['key'], 'test_document' ) );
+		$this->assertEquals( array( 'background' ), $data['current']['step']['modes'] );
+
+		// One step per request
+		$data = $this->request(
+			'POST',
+			'/queue/' . $item['id'] . '/run',
+			array(
+				'token'      => $claim['token'],
+				'auto_steps' => 1,
+			)
+		)->get_data();
+		$this->assertEquals( 'completed', $data['current']['status'] );
+		$this->assertEquals( array( 'test_document' ), wp_list_pluck( $data['current']['automated'], 'action' ) );
+
+		remove_filter( 'woocommerce_shiptastic_fulfillment_actions', array( $this, 'register_document_action' ) );
 	}
 
 	public function test_claim_steps_idempotency_and_batch() {

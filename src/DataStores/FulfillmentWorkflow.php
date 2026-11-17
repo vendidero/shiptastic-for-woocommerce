@@ -17,13 +17,12 @@ class FulfillmentWorkflow extends WC_Data_Store_WP implements WC_Object_Data_Sto
 
 	protected $meta_type = 'stc_fulfillment_workflow';
 
-	protected $internal_meta_keys = array(
-		'_on_error',
-		'_run_as',
-		'_schedule',
-		'_paused',
-		'_paused_reason',
-	);
+	/**
+	 * Settings of extensions (e.g. automation) are stored as regular meta data.
+	 *
+	 * @var string[]
+	 */
+	protected $internal_meta_keys = array();
 
 	protected $core_props = array(
 		'title',

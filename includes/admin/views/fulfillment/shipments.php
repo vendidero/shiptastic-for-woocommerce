@@ -14,6 +14,7 @@ defined( 'ABSPATH' ) || exit;
 		</header>
 
 		<div class="stc-sheet-body" data-stc-scroll>
+			<p class="stc-inline-notice stc-shipments-proposed" data-wp-bind--hidden="!state.overlay.proposed"><?php echo esc_html_x( 'Suggested shipments based on the packaging. Adjust them if needed and save.', 'shipments-packaging', 'shiptastic-for-woocommerce' ); ?></p>
 			<section class="stc-pool" data-stc-drop="pool">
 				<h3 class="stc-section-title"><?php echo esc_html_x( 'Not in a shipment', 'shipments', 'shiptastic-for-woocommerce' ); ?></h3>
 				<ul class="stc-item-list">

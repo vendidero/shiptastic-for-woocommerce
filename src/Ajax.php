@@ -1969,6 +1969,19 @@ class Ajax {
 			wp_send_json( $response_error );
 		}
 
+		// Inner boxes: Add all inner boxes still available.
+		if ( \Vendidero\Shiptastic\Packing\InnerBoxes::order_item_has_boxes( $order_item ) ) {
+			$added = $shipment->add_order_item( $order_item, $quantity ? $quantity : false );
+
+			if ( empty( $added ) ) {
+				wp_send_json( $response_error );
+			}
+
+			$shipment->save();
+
+			return $added[0];
+		}
+
 		// No duplicates allowed
 		if ( $shipment->get_item_by_order_item_id( $order_item_id ) ) {
 			wp_send_json( $response_error );

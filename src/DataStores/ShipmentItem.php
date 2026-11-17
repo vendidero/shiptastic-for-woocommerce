@@ -38,6 +38,7 @@ class ShipmentItem extends WC_Data_Store_WP implements WC_Object_Data_Store_Inte
 		'_manufacture_country',
 		'_attributes',
 		'_warehouse',
+		'_inner_box',
 	);
 
 	protected $core_props = array(

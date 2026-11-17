@@ -154,6 +154,8 @@ class Runner {
 	/**
 	 * @param QueueItem $item
 	 * @param Workflow $workflow
+	 * @param string $scope Limit to steps of an action (automation of a single step) and its injected dependencies
+	 *                      (e.g. creating shipments), empty for all steps.
 	 *
 	 * @return Step|null
 	 */
@@ -165,6 +167,75 @@ class Runner {
 		}
 
 		return null;
+	}
+
+	/**
+	 * Runs a single step in the background (automation) for a locked item and records the result.
+	 *
+	 * @param int $queue_id
+	 * @param Workflow $workflow
+	 * @param string $token
+	 * @param Step $step
+	 * @param string $source background|scheduled
+	 *
+	 * @return StepResult
+	 */
+	public static function run_step( $queue_id, $workflow, $token, $step, $source = 'background' ) {
+		$verified = Queue::verify_lock( $queue_id, $token );
+
+		if ( is_wp_error( $verified ) ) {
+			return StepResult::from_wp_error( $verified );
+		}
+
+		$action = $step->get_action();
+
+		if ( ! $action || ! $action::supports_mode( 'background' ) ) {
+			/* translators: %s action title */
+			return StepResult::error( sprintf( _x( '%s requires user interaction.', 'shipments', 'shiptastic-for-woocommerce' ), $action ? $action::get_title() : $step->action ), 'requires_interaction' );
+		}
+
+		$item = Queue::get( $queue_id );
+		self::refresh_order_cache( $item->get_order_id() );
+
+		$step_result = $action->run( new StepContext( $item, $workflow, $step, $source, $token ) );
+
+		return self::record_result( $item, $workflow, $step, $step_result, $token );
+	}
+
+	/**
+	 * Records the result of a step (log, roll-up, version).
+	 *
+	 * @param QueueItem $item
+	 * @param Workflow $workflow
+	 * @param Step $step
+	 * @param StepResult|mixed $step_result
+	 * @param string $token
+	 *
+	 * @return StepResult
+	 */
+	protected static function record_result( $item, $workflow, $step, $step_result, $token ) {
+		if ( ! is_a( $step_result, '\Vendidero\Shiptastic\BulkFulfillments\StepResult' ) ) {
+			$step_result = StepResult::error( _x( 'The action returned an invalid result.', 'shipments', 'shiptastic-for-woocommerce' ) );
+		}
+
+		StepLog::record(
+			$item->get_id(),
+			$step->action,
+			array(
+				'status'      => $step_result->get_status(),
+				'shipment_id' => $step->shipment_id,
+				'data'        => $step_result->get_data(),
+				'workflow_id' => $workflow->get_id(),
+				'error'       => $step_result->is_error() ? $step_result->get_message() : '',
+			)
+		);
+
+		if ( ! $step_result->is_error() ) {
+			self::maybe_record_rollup( $item, $workflow, $step );
+			Queue::bump_version( $item->get_id(), $token );
+		}
+
+		return $step_result;
 	}
 
 	protected static function refresh_order_cache( $order_id ) {
@@ -180,9 +251,14 @@ class Runner {
 	 * @param int $queue_id
 	 * @param Workflow $workflow
 	 * @param string $token The lock token.
-	 * @param array $args source (interactive|background|scheduled), step (key of the step the data belongs to), data
+	 * @param array $args source (interactive|background|scheduled), step (key of the step the data belongs to), data,
+	 *                    auto_steps (max. number of the workflow's automatic steps to run within this call, null for
+	 *                    unlimited: the app runs them one by one to show the progress), manual (key of an automatic
+	 *                    step to handle interactively, e.g. to fix an error, in case its action supports it)
 	 *
-	 * @return array status (completed|needs_input|error), step (Step|null), message, code, view_data, version
+	 * @return array status (completed|needs_input|automatic|error), step (Step|null: automatic = the automatic step
+	 *               to run next), message, code, view_data, version,
+	 *               automated (Step[]: workflow steps which ran automatically and succeeded within this call)
 	 */
 	public static function execute( $queue_id, $workflow, $token, $args = array() ) {
 		$args = wp_parse_args(
@@ -191,9 +267,15 @@ class Runner {
 				'source' => 'interactive',
 				'step'   => '',
 				'data'   => null,
+				// The run the item is processed in (e.g. an interactive run): files of the steps are added to its export.
+				'run'        => null,
+				'auto_steps' => null,
+				'manual'     => '',
 			)
 		);
+		$auto_ran = 0;
 
+		$run    = is_a( $args['run'], Run::class ) ? $args['run'] : null;
 		$result = array(
 			'status'    => 'error',
 			'step'      => null,
@@ -201,6 +283,7 @@ class Runner {
 			'code'      => '',
 			'view_data' => array(),
 			'version'   => 0,
+			'automated' => array(),
 		);
 
 		for ( $i = 0; $i < self::MAX_STEPS_PER_CALL; $i++ ) {
@@ -225,15 +308,34 @@ class Runner {
 			if ( ! $step ) {
 				Queue::release( $queue_id, $token );
 
+				// Interactive runs count their orders here (automation runs within RunProcessor).
+				if ( $run && $run->is_interactive() ) {
+					Run::update( $run->get_id(), array( 'increment' => array( 'processed', 'succeeded' ) ) );
+				}
+
 				return array_merge( $result, array( 'status' => 'completed' ) );
 			}
 
 			$action  = $step->get_action();
 			$context = new StepContext( $item, $workflow, $step, $args['source'], $token );
 
+			// An automatic step handled interactively (e.g. the user jumps into a failed step to fix it).
+			if ( 'background' === $step->mode && '' !== (string) $args['manual'] && $args['manual'] === $step->get_key() && $action::supports_mode( 'interactive' ) ) {
+				$step->mode = 'interactive';
+			}
+
 			$result['step'] = $step;
 
 			if ( 'background' === $step->mode ) {
+				// Injected dependencies (e.g. creating shipments) always run, the workflow's automatic steps up to the limit.
+				if ( ! $step->injected && ! is_null( $args['auto_steps'] ) ) {
+					if ( $auto_ran >= absint( $args['auto_steps'] ) ) {
+						return array_merge( $result, array( 'status' => 'automatic' ) );
+					}
+
+					++$auto_ran;
+				}
+
 				$step_result = $action->run( $context );
 			} elseif ( 'interactive' !== $args['source'] ) {
 				return array_merge(
@@ -258,21 +360,16 @@ class Runner {
 				);
 			}
 
-			if ( ! is_a( $step_result, '\Vendidero\Shiptastic\BulkFulfillments\StepResult' ) ) {
-				$step_result = StepResult::error( _x( 'The action returned an invalid result.', 'shipments', 'shiptastic-for-woocommerce' ) );
+			$step_result = self::record_result( $item, $workflow, $step, $step_result, $token );
+
+			if ( $run && ! $step_result->is_error() ) {
+				$run = RunExport::add_files( $run, $item, $step, $step_result );
 			}
 
-			StepLog::record(
-				$queue_id,
-				$step->action,
-				array(
-					'status'      => $step_result->get_status(),
-					'shipment_id' => $step->shipment_id,
-					'data'        => $step_result->get_data(),
-					'workflow_id' => $workflow->get_id(),
-					'error'       => $step_result->is_error() ? $step_result->get_message() : '',
-				)
-			);
+			// Steps the user configured to run automatically (injected dependencies, e.g. creating shipments, are not shown).
+			if ( ! $step_result->is_error() && 'background' === $step->mode && ! $step->injected ) {
+				$result['automated'][] = $step;
+			}
 
 			if ( $step_result->is_error() ) {
 				return array_merge(
@@ -283,9 +380,6 @@ class Runner {
 					)
 				);
 			}
-
-			self::maybe_record_rollup( $item, $workflow, $step );
-			Queue::bump_version( $queue_id, $token );
 		}
 
 		return array_merge(
@@ -403,104 +497,6 @@ class Runner {
 				'workflow_id' => $workflow->get_id(),
 			)
 		);
-	}
-
-	/**
-	 * Processes a chunk of queue items in the background.
-	 *
-	 * - scheduled: errors are handled per the workflow's on_error setting (continue: item to the exception inbox,
-	 *   next item; stop: item to the inbox, workflow schedule paused).
-	 * - background (started by a user): stops at the first failed item and keeps it locked for the user, who decides
-	 *   to retry, skip (inbox) or abort.
-	 *
-	 * @param Workflow $workflow
-	 * @param array $args source (background|scheduled), limit, user_id
-	 *
-	 * @return array claimed, processed, completed, errors, stopped, failed (queue id), message, token
-	 */
-	public static function process_chunk( $workflow, $args = array() ) {
-		$args = wp_parse_args(
-			$args,
-			array(
-				'source'  => 'scheduled',
-				'limit'   => null,
-				'user_id' => get_current_user_id(),
-			)
-		);
-
-		$source = in_array( $args['source'], array( 'background', 'scheduled' ), true ) ? $args['source'] : 'scheduled';
-		$items  = Queue::claim(
-			$workflow,
-			array(
-				'source'  => $source,
-				'limit'   => $args['limit'],
-				'user_id' => $args['user_id'],
-			)
-		);
-
-		$result = array(
-			'claimed'   => count( $items ),
-			'processed' => 0,
-			'completed' => 0,
-			'errors'    => 0,
-			'stopped'   => false,
-			'failed'    => 0,
-			'message'   => '',
-			'token'     => empty( $items ) ? '' : $items[0]->get_lock_token(),
-		);
-
-		foreach ( $items as $item ) {
-			$execution = self::execute( $item->get_id(), $workflow, $result['token'], array( 'source' => $source ) );
-
-			++$result['processed'];
-
-			if ( 'completed' === $execution['status'] ) {
-				++$result['completed'];
-				continue;
-			}
-
-			++$result['errors'];
-
-			if ( 'background' === $source ) {
-				// Keep the item locked for the user.
-				$result['stopped'] = true;
-				$result['failed']  = $item->get_id();
-				$result['message'] = $execution['message'];
-				break;
-			}
-
-			Queue::mark_error( $item->get_id(), $result['token'], $execution['message'] );
-
-			if ( 'stop' === $workflow->get_on_error() ) {
-				$result['stopped'] = true;
-				$result['failed']  = $item->get_id();
-				$result['message'] = $execution['message'];
-
-				/* translators: 1: order number 2: error message */
-				Scheduler::pause( $workflow, sprintf( _x( 'Order #%1$s: %2$s', 'shipments', 'shiptastic-for-woocommerce' ), $item->get_order() ? $item->get_order()->get_order_number() : $item->get_order_id(), $execution['message'] ) );
-				break;
-			}
-		}
-
-		// Release items not processed (e.g. after stopping).
-		foreach ( Queue::get_by_token( $result['token'] ) as $locked ) {
-			if ( $locked->get_id() !== $result['failed'] || 'background' !== $source ) {
-				Queue::release( $locked->get_id(), $result['token'] );
-			}
-		}
-
-		/**
-		 * Action that fires after a chunk of queue items has been processed in the background.
-		 *
-		 * @param array    $result
-		 * @param Workflow $workflow
-		 * @param string   $source
-		 *
-		 * @package Vendidero/Shiptastic
-		 */
-		do_action( 'woocommerce_shiptastic_fulfillment_chunk_processed', $result, $workflow, $source );
-
-		return $result;
 	}
 
 	/**

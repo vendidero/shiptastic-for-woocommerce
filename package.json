@@ -1,7 +1,7 @@
 {
   "name": "shiptastic-for-woocommerce",
   "title": "Shiptastic for WooCommerce",
-  "version": "5.1.5",
+  "version": "6.0.0",
   "homepage": "https://vendidero.de",
   "repository": {
     "type": "git",
@@ -17,6 +17,7 @@
     "packages-update": "wp-scripts packages-update",
     "plugin-zip": "wp-scripts plugin-zip",
     "start": "wp-scripts start",
+    "test:js": "node --test \"tests/js/*.test.mjs\"",
     "deploy": "composer install --no-dev && sh ./bin/github-deploy.sh",
     "package-plugin": "./bin/build-plugin-zip.sh",
     "docker-clean": "docker-compose rm && docker-compose pull && docker-compose build --no-cache wordpress-unit-tests && docker-compose up -d --force-recreate --build db && docker-compose up -d --force-recreate --build wordpress-unit-tests && docker exec wordpress_test /usr/local/bin/dockerInit wordpress wordpress wordpress db latest latest true",

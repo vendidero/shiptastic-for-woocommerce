@@ -114,7 +114,7 @@ class Queue {
 
 		if ( ! empty( $args['workflow'] ) && is_a( $args['workflow'], '\Vendidero\Shiptastic\BulkFulfillments\Workflow' ) ) {
 			$where   = array_merge( $where, self::get_filter_conditions( $args['workflow'] ) );
-			$where[] = "( queue_status <> 'pending' OR " . self::get_open_steps_condition( $args['workflow'] ) . ' )';
+			$where[] = "( queue_status <> 'pending' OR ( " . self::get_open_steps_condition( $args['workflow'] ) . ' ) )';
 		}
 
 		return $where;
@@ -196,9 +196,18 @@ class Queue {
 	 * @return string SQL condition: the item still has open (not done) steps for the workflow.
 	 */
 	public static function get_open_steps_condition( $workflow ) {
+		return self::get_done_count_condition( $workflow->get_step_actions() );
+	}
+
+	/**
+	 * @param string[] $actions
+	 *
+	 * @return string SQL condition: not all of the (order scope) actions are done for the item.
+	 */
+	protected static function get_done_count_condition( $actions ) {
 		global $wpdb;
 
-		$actions = $workflow->get_step_actions();
+		$actions = array_values( array_unique( (array) $actions ) );
 		$table   = $wpdb->stc_fulfillment_queue;
 
 		if ( empty( $actions ) ) {
@@ -206,7 +215,7 @@ class Queue {
 		}
 
 		return $wpdb->prepare(
-			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
+			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.PreparedSQL.NotPrepared
 			"( SELECT COUNT( DISTINCT steps.step_action ) FROM {$wpdb->stc_fulfillment_steps} AS steps WHERE steps.step_queue_id = {$table}.queue_id AND steps.step_shipment_id = 0 AND steps.step_status = 'done' AND steps.step_action IN (" . implode( ',', array_fill( 0, count( $actions ), '%s' ) ) . ') ) < %d',
 			array_merge( $actions, array( count( $actions ) ) )
 		);
@@ -244,21 +253,6 @@ class Queue {
 
 		if ( ! empty( $filters['shipping_providers'] ) ) {
 			$conditions[] = self::in_sql( 'queue_shipping_provider', $filters['shipping_providers'] );
-		}
-
-		if ( ! empty( $filters['shipping_methods'] ) ) {
-			$methods = array();
-
-			foreach ( $filters['shipping_methods'] as $method ) {
-				if ( strstr( $method, ':' ) ) {
-					$methods[] = $wpdb->prepare( 'queue_shipping_method = %s', $method );
-				} else {
-					// Method without instance id: match all instances.
-					$methods[] = $wpdb->prepare( '( queue_shipping_method = %s OR queue_shipping_method LIKE %s )', $method, $wpdb->esc_like( $method ) . ':%' );
-				}
-			}
-
-			$conditions[] = '( ' . implode( ' OR ', $methods ) . ' )';
 		}
 
 		if ( ! empty( $filters['countries'] ) ) {
@@ -318,6 +312,8 @@ class Queue {
 				'source'  => 'interactive',
 				'ttl'     => null,
 				'exclude' => array(),
+				// Reuse a lock token, e.g. all claims of an interactive run share the run's token.
+				'token'   => '',
 			)
 		);
 
@@ -331,15 +327,21 @@ class Queue {
 		}
 
 		$table      = $wpdb->stc_fulfillment_queue;
-		$token      = wp_generate_password( 32, false );
+		$token      = '' !== (string) $args['token'] ? (string) $args['token'] : wp_generate_password( 32, false );
+		$known      = array_map(
+			function ( $item ) {
+				return $item->get_id();
+			},
+			self::get_by_token( $token )
+		);
 		$now        = self::now();
 		$conditions = array_merge(
 			array(
 				$wpdb->prepare( "( queue_status = 'pending' OR ( queue_status = 'locked' AND queue_lock_expires_gmt < %s ) )", $now ),
 				'queue_is_stale = 0',
-				// The item must still have open (not done) steps for this workflow.
-				self::get_open_steps_condition( $workflow ),
 			),
+			// The item must still have open (not done) steps for this workflow.
+			array( self::get_open_steps_condition( $workflow ) ),
 			self::get_filter_conditions( $workflow )
 		);
 
@@ -367,7 +369,43 @@ class Queue {
 		);
 		// phpcs:enable
 
-		return self::get_by_token( $token );
+		// Newly claimed items only (a reused token may lock items already).
+		return array_values(
+			array_filter(
+				self::get_by_token( $token ),
+				function ( $item ) use ( $known ) {
+					return ! in_array( $item->get_id(), $known, true );
+				}
+			)
+		);
+	}
+
+	/**
+	 * Locks a specific item from the exception inbox (status error), e.g. to fix a failed automation step.
+	 *
+	 * @param int $queue_id
+	 * @param int $workflow_id
+	 * @param int $user_id
+	 *
+	 * @return string|WP_Error The lock token.
+	 */
+	public static function lock_exception( $queue_id, $workflow_id, $user_id ) {
+		global $wpdb;
+
+		$token   = wp_generate_password( 32, false );
+		$updated = $wpdb->query(
+			$wpdb->prepare(
+				"UPDATE {$wpdb->stc_fulfillment_queue} SET queue_status = 'locked', queue_workflow_id = %d, queue_locked_by = %d, queue_lock_source = 'interactive', queue_lock_token = %s, queue_lock_expires_gmt = %s, queue_version = queue_version + 1, queue_date_modified_gmt = %s WHERE queue_id = %d AND queue_status = 'error'",
+				absint( $workflow_id ),
+				absint( $user_id ),
+				$token,
+				self::now( self::get_lock_ttl( 'interactive' ) ),
+				self::now(),
+				absint( $queue_id )
+			)
+		);
+
+		return $updated ? $token : new WP_Error( 'queue_not_in_exceptions', _x( 'The order is not in the exception inbox (anymore).', 'shipments', 'shiptastic-for-woocommerce' ), array( 'status' => 409 ) );
 	}
 
 	/**

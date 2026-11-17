@@ -236,6 +236,147 @@ class SimpleShipment extends Shipment {
 	 *
 	 * @return bool
 	 */
+	/**
+	 * Adds an order item to the shipment, e.g. manually. In case the order item consists of inner boxes,
+	 * all inner boxes still available are added.
+	 *
+	 * @param \WC_Order_Item $order_item
+	 * @param int|false      $quantity Units to add, false to add all units left.
+	 *
+	 * @return ShipmentItem[] Items added or updated.
+	 */
+	public function add_order_item( $order_item, $quantity = false ) {
+		$order_shipment = $this->get_order_shipment();
+		$added          = array();
+
+		if ( ! $order_shipment ) {
+			return $added;
+		}
+
+		$available = $order_shipment->get_available_items_for_shipment(
+			array(
+				'shipment_id'              => $this->get_id(),
+				'exclude_current_shipment' => true,
+			)
+		);
+
+		if ( ! isset( $available[ $order_item->get_id() ] ) ) {
+			return $added;
+		}
+
+		$item_data = $available[ $order_item->get_id() ];
+
+		if ( ! empty( $item_data['inner_boxes'] ) ) {
+			foreach ( $item_data['inner_boxes'] as $box_key => $box_quantity_left ) {
+				$box_key  = (string) $box_key;
+				$existing = $this->get_item_by_order_item_id( $order_item->get_id(), $box_key );
+				$current  = $existing ? absint( $existing->get_quantity() ) : 0;
+				$new_qty  = false === $quantity ? $box_quantity_left : min( $box_quantity_left, $current + absint( $quantity ) );
+
+				if ( $new_qty <= $current ) {
+					continue;
+				}
+
+				if ( $existing ) {
+					$existing->sync( array( 'quantity' => $new_qty ) );
+					$added[] = $existing;
+				} else {
+					$item = wc_stc_create_shipment_item(
+						$this,
+						$order_item,
+						array(
+							'quantity'  => $new_qty,
+							'inner_box' => $box_key,
+						)
+					);
+
+					if ( ! is_wp_error( $item ) ) {
+						$this->add_item( $item );
+						$added[] = $item;
+					}
+				}
+			}
+		} elseif ( ! $this->get_item_by_order_item_id( $order_item->get_id() ) ) {
+			$new_qty = false === $quantity ? $item_data['max_quantity'] : min( $item_data['max_quantity'], absint( $quantity ) );
+			$item    = wc_stc_create_shipment_item( $this, $order_item, array( 'quantity' => $new_qty ) );
+
+			if ( ! is_wp_error( $item ) ) {
+				$this->add_item( $item );
+				$added[] = $item;
+			}
+		}
+
+		return $added;
+	}
+
+	/**
+	 * Syncs the inner box items of a certain order item. The requested quantity (args.items) may either be
+	 * a quantity of units (applied to each inner box) or an array of inner box key => quantity.
+	 *
+	 * @param \WC_Order_Item $order_item
+	 * @param array          $item_data
+	 * @param array          $args
+	 */
+	protected function sync_inner_box_items( $order_item, $item_data, $args ) {
+		$order_shipment = $this->get_order_shipment();
+		$item_id        = $order_item->get_id();
+		$requested      = ! empty( $args['items'] ) && isset( $args['items'][ $item_id ] ) ? $args['items'][ $item_id ] : null;
+
+		if ( ! empty( $args['items'] ) && is_null( $requested ) ) {
+			return;
+		}
+
+		$backordered = empty( $args['items'] ) && $order_shipment ? $order_shipment->get_item_backordered_quantity( $order_item ) : 0;
+		$synced      = false;
+
+		foreach ( $item_data['inner_boxes'] as $box_key => $quantity ) {
+			$box_key       = (string) $box_key;
+			$existing_item = $this->get_item_by_order_item_id( $item_id, $box_key );
+
+			if ( $backordered > 0 ) {
+				$quantity = max( $quantity - $backordered, $existing_item ? absint( $existing_item->get_quantity() ) : 0 );
+			}
+
+			if ( ! is_null( $requested ) ) {
+				if ( is_array( $requested ) ) {
+					$quantity = isset( $requested[ $box_key ] ) ? min( $quantity, absint( $requested[ $box_key ] ) ) : 0;
+				} else {
+					$quantity = min( $quantity, absint( $requested ) );
+				}
+			}
+
+			if ( $quantity <= 0 ) {
+				if ( $existing_item && ! is_null( $requested ) ) {
+					$this->remove_item( $existing_item->get_id() );
+				}
+
+				continue;
+			}
+
+			if ( $existing_item ) {
+				$existing_item->sync( array( 'quantity' => $quantity ) );
+			} else {
+				$this->add_item(
+					wc_stc_create_shipment_item(
+						$this,
+						$order_item,
+						array(
+							'quantity'  => $quantity,
+							'inner_box' => $box_key,
+						)
+					)
+				);
+			}
+
+			$synced = true;
+		}
+
+		// Replace (legacy) items containing complete units with inner box items.
+		if ( $synced && ( $unit_item = $this->get_item_by_order_item_id( $item_id, '' ) ) ) {
+			$this->remove_item( $unit_item->get_id() );
+		}
+	}
+
 	public function sync_items( $args = array() ) {
 		try {
 			if ( ! $order_shipment = $this->get_order_shipment() ) {
@@ -259,7 +400,12 @@ class SimpleShipment extends Shipment {
 			);
 
 			foreach ( $available_items as $item_id => $item_data ) {
-				if ( $order_item = $order->get_item( $item_id ) ) {
+				if ( ( $order_item = $order->get_item( $item_id ) ) && ! empty( $item_data['inner_boxes'] ) ) {
+					$this->sync_inner_box_items( $order_item, $item_data, $args );
+					continue;
+				}
+
+				if ( $order_item ) {
 					$quantity = $item_data['max_quantity'];
 
 					/**
@@ -300,6 +446,10 @@ class SimpleShipment extends Shipment {
 			foreach ( $this->get_items() as $item ) {
 				$item_is_missing_from_sync = ! empty( $args['items'] ) && ! isset( $args['items'][ $item->get_order_item_id() ] );
 				$order_item_is_missing     = ! $order->get_item( $item->get_order_item_id() );
+
+				if ( ! $item_is_missing_from_sync && ! empty( $args['items'] ) && $item->has_inner_box() && is_array( $args['items'][ $item->get_order_item_id() ] ) ) {
+					$item_is_missing_from_sync = ! isset( $args['items'][ $item->get_order_item_id() ][ $item->get_inner_box() ] );
+				}
 
 				// Remove non-existent items
 				if ( $order_item_is_missing || $item_is_missing_from_sync ) {

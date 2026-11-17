@@ -186,10 +186,48 @@
   &.is-error {
     border-left-color: var(--stc-color-error);
   }
+
+  &.is-success {
+    border-left-color: var(--stc-color-success);
+  }
+
+  // During a run: bottom right corner, above the action bar (which is centered and limited in width).
+  &.is-run {
+    top: auto;
+    right: 12px;
+    bottom: calc(84px + env(safe-area-inset-bottom));
+    left: auto;
+    width: auto;
+    max-width: min(360px, calc(100% - 24px));
+    transform: none;
+    animation: stc-notice-in .2s ease-out;
+
+    &.is-raised {
+      bottom: calc(108px + env(safe-area-inset-bottom));
+    }
+
+    // Wide screens: next to the action bar.
+    @media (min-width: 1520px) {
+      &,
+      &.is-raised {
+        right: 24px;
+        bottom: calc(24px + env(safe-area-inset-bottom));
+      }
+    }
+  }
+}
+
+@keyframes stc-notice-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
 }
 
 .stc-button {
   display: inline-flex;
+  box-sizing: border-box;
+  text-decoration: none;
   align-items: center;
   justify-content: center;
   min-height: var(--stc-touch);
@@ -376,6 +414,17 @@
   text-align: center;
 }
 
+// Run screen: loading the next orders (e.g. after the last order was finished).
+.stc-run-loading {
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+
+  &[hidden] {
+    display: none;
+  }
+}
+
 .stc-step-error {
   margin-bottom: 16px;
   padding: 12px;
@@ -525,6 +574,7 @@ select.stc-input {
 }
 
 .stc-actionbar {
+  flex-wrap: wrap;
   position: fixed;
   right: 0;
   bottom: 0;
@@ -881,6 +931,26 @@ select.stc-input {
     }
   }
 
+  // Packaging choice (best fitting packaging suggested).
+  .stc-pack-packaging-choice {
+    display: grid;
+    gap: 4px;
+    margin: 4px 0;
+
+    .stc-field {
+      display: grid;
+      gap: 4px;
+    }
+
+    select.stc-pack-packaging {
+      font-size: 15px;
+    }
+
+    &[hidden] {
+      display: none;
+    }
+  }
+
   .stc-pack-dimensions {
     font-size: 15px;
     font-variant-numeric: tabular-nums;
@@ -954,6 +1024,11 @@ select.stc-input {
     &.is-current {
       background: var(--stc-color-primary);
     }
+
+    // Steps running automatically: striped until done.
+    &.is-auto:not(.is-done):not(.is-current) {
+      background: repeating-linear-gradient(-45deg, #ddd 0 3px, #eee 3px 6px);
+    }
   }
 }
 
@@ -1020,6 +1095,11 @@ select.stc-input {
       box-shadow: inset 0 0 0 3px var(--stc-color-surface);
       background: var(--stc-color-primary);
     }
+  }
+
+  .stc-tag.is-auto {
+    margin-left: auto;
+    font-weight: 400;
   }
 
   .stc-step-hint {
@@ -1099,4 +1179,845 @@ select.stc-input {
       display: none;
     }
   }
+}
+
+/* Automations */
+.stc-card {
+  flex-wrap: wrap;
+}
+
+.stc-card-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.stc-choice-group {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+
+  .stc-label {
+    margin-bottom: 4px;
+    padding: 0;
+  }
+}
+
+.stc-choice {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--stc-color-border);
+  border-radius: var(--stc-radius);
+  cursor: pointer;
+
+  input {
+    flex-shrink: 0;
+    margin: 3px 0 0;
+    accent-color: var(--stc-color-primary);
+  }
+
+  > span {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  &:has(input:checked) {
+    border-color: var(--stc-color-primary);
+    background: #f6f7fe;
+  }
+
+  // Pro choice (Shiptastic Pro not available): disabled, the pro marker links to Shiptastic Pro.
+  &.is-pro {
+    border-style: dashed;
+    cursor: default;
+
+    strong {
+      color: var(--stc-color-muted);
+    }
+  }
+}
+
+// Pro marker, same as the pro markers within the Shiptastic settings (.wc-shiptastic-pro-outlined).
+.stc-pro-badge {
+  display: inline-block;
+  padding: 1px 3px;
+  border: 1px solid #222;
+  border-radius: 3px;
+  background: transparent;
+  color: #222;
+  font-size: 9px;
+  font-style: normal;
+  font-weight: 600;
+  line-height: 9px;
+  text-align: center;
+  text-decoration: none;
+  text-transform: uppercase;
+  vertical-align: middle;
+
+  &:hover,
+  &:focus {
+    border-color: var(--stc-color-primary);
+    color: var(--stc-color-primary);
+  }
+
+  &[hidden] {
+    display: none;
+  }
+}
+
+.stc-list-button {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.stc-badge {
+  &.is-running {
+    background: #dbe4fb;
+  }
+
+  &.is-paused {
+    background: var(--stc-color-warning);
+  }
+
+  &.is-stopped {
+    background: #f7dcdc;
+    color: var(--stc-color-error);
+  }
+
+  &.is-completed {
+    background: #d7eedc;
+    color: var(--stc-color-success);
+  }
+
+  &.is-cancelled {
+    background: #e8e8e8;
+  }
+}
+
+.stc-report-summary {
+  display: grid;
+  gap: 12px;
+
+  .stc-report-summary-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .stc-hint {
+    margin: 0;
+  }
+
+  .stc-step-error {
+    margin: 0;
+  }
+}
+
+.stc-report-current {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 16px;
+
+  .stc-label {
+    color: var(--stc-color-muted);
+    font-size: 13px;
+  }
+
+  a {
+    color: var(--stc-color-primary);
+    font-weight: 600;
+  }
+}
+
+/* An order of a run of an extension (e.g. fixing an order an automation failed on) */
+.stc-step-error.is-external {
+  display: grid;
+  gap: 8px;
+
+  p {
+    margin: 0;
+  }
+}
+
+/* Order details overlay */
+.stc-breadcrumb-order {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-weight: 600;
+  text-decoration: underline dotted;
+  text-underline-offset: 3px;
+  cursor: pointer;
+
+  &:hover,
+  &:focus-visible {
+    color: var(--stc-color-primary);
+  }
+}
+
+.stc-order-summary {
+  display: grid;
+  gap: 12px;
+  justify-items: start;
+}
+
+.stc-order-facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px 16px;
+  width: 100%;
+  margin: 0;
+
+  dt {
+    color: var(--stc-color-muted);
+    font-size: 12px;
+  }
+
+  dd {
+    margin: 2px 0 0;
+    font-weight: 500;
+  }
+}
+
+.stc-order-note {
+  width: 100%;
+  padding: 8px 12px;
+  border-left: 3px solid var(--stc-color-warning);
+  border-radius: 4px;
+  background: #fcf9e8;
+
+  p {
+    margin: 4px 0 0;
+    white-space: pre-line;
+  }
+}
+
+.stc-address-form {
+  display: grid;
+  gap: 12px;
+
+  .stc-step-error {
+    margin: 0;
+  }
+
+  .stc-hint {
+    margin: 0;
+  }
+}
+
+.stc-form-grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 12px;
+
+  .stc-field {
+    grid-column: span 6;
+  }
+
+  @media (min-width: 600px) {
+    .stc-field.is-half {
+      grid-column: span 3;
+    }
+
+    .stc-field.is-third {
+      grid-column: span 2;
+    }
+
+    .stc-field.is-two-thirds {
+      grid-column: span 4;
+    }
+  }
+}
+
+.stc-sheet-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Workflow editor */
+.stc-workflow-form {
+  display: grid;
+  gap: 12px;
+
+  > .stc-section-title {
+    margin: 12px 0 0;
+  }
+}
+
+.stc-workflow-steps {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.stc-workflow-step {
+  display: grid;
+  gap: 8px;
+
+  p {
+    margin: 0;
+  }
+}
+
+.stc-workflow-step-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.stc-workflow-step-number {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--stc-color-primary);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.stc-workflow-step-title {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.stc-workflow-step-actions {
+  display: flex;
+  margin: -8px -8px 0 0;
+
+  .stc-icon-button {
+    font-size: 18px;
+
+    &:disabled {
+      opacity: .3;
+      cursor: default;
+    }
+  }
+}
+
+.stc-workflow-filters {
+  display: grid;
+  gap: 16px;
+
+  > .stc-hint {
+    margin: 0;
+  }
+}
+
+
+.stc-toggle-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 32px;
+  cursor: pointer;
+
+  input {
+    width: 18px;
+    height: 18px;
+    margin: 0;
+    accent-color: var(--stc-color-primary);
+  }
+}
+
+.stc-field.stc-toggle-field {
+  flex-direction: row;
+  align-self: end;
+  min-height: var(--stc-touch);
+}
+
+.stc-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0 0 6px;
+  padding: 0;
+  list-style: none;
+
+  &:empty {
+    display: none;
+  }
+}
+
+.stc-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 4px 2px 10px;
+  border-radius: 999px;
+  background: #e8ecfc;
+  font-size: 13px;
+
+  button {
+    padding: 0 6px;
+    border: 0;
+    background: none;
+    color: var(--stc-color-muted);
+    font-size: 16px;
+    line-height: 1;
+    cursor: pointer;
+  }
+}
+
+.stc-inline-add {
+  display: flex;
+  gap: 8px;
+
+  .stc-input {
+    max-width: 180px;
+  }
+}
+
+.stc-card-title .stc-badge {
+  margin-left: 4px;
+  font-weight: 500;
+  vertical-align: middle;
+}
+
+.stc-confirm-step {
+  display: grid;
+  justify-items: start;
+  gap: 8px;
+
+  p {
+    margin: 0;
+  }
+}
+
+.stc-workflow-step-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+
+  &:not(:has(> :not([hidden]))) {
+    display: none;
+  }
+}
+
+.stc-tag {
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: #f0f0f0;
+  color: var(--stc-color-muted);
+  font-size: 12px;
+}
+
+// Packaging suggestions: the applied suggestion, packaging which does not fit, proposed shipments.
+.stc-tag.is-suggested {
+  margin-left: 6px;
+  background: #f6f7fe;
+  color: var(--stc-color-primary);
+  font-weight: 400;
+}
+
+option.is-unfit {
+  color: var(--stc-color-muted);
+}
+
+.stc-inline-notice {
+  margin: 0 0 12px;
+  padding: 8px 12px;
+  border-left: 4px solid var(--stc-color-primary);
+  border-radius: 4px;
+  background: #f6f7fe;
+
+  &[hidden] {
+    display: none;
+  }
+}
+
+.stc-segmented {
+  display: inline-flex;
+  overflow: hidden;
+  border: 1px solid var(--stc-color-primary);
+  border-radius: 4px;
+
+  label {
+    position: relative;
+    cursor: pointer;
+  }
+
+  label + label {
+    border-left: 1px solid var(--stc-color-primary);
+  }
+
+  input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  label > span {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    color: var(--stc-color-primary);
+    font-size: 13px;
+  }
+
+  // Pro mode (Shiptastic Pro not available): disabled, the pro marker links to Shiptastic Pro.
+  label.is-pro {
+    cursor: default;
+
+    > span {
+      color: var(--stc-color-muted);
+    }
+  }
+
+  input:checked + span {
+    background: var(--stc-color-primary);
+    color: #fff;
+  }
+
+  input:focus-visible + span {
+    outline: 2px solid var(--stc-color-primary);
+    outline-offset: -4px;
+  }
+}
+
+.stc-list-filter {
+  display: grid;
+  justify-items: start;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+
+  legend {
+    margin-bottom: 4px;
+    padding: 0;
+  }
+}
+
+.stc-list-filter-selection {
+  display: grid;
+  gap: 6px;
+  width: 100%;
+
+  .stc-chips {
+    margin: 0;
+  }
+
+  .stc-hint {
+    margin: 0;
+  }
+}
+
+.stc-range-filter {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+
+  legend {
+    margin-bottom: 4px;
+    padding: 0;
+  }
+
+  p {
+    margin: 0;
+  }
+}
+
+.stc-range {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.stc-range-input {
+  display: flex;
+  flex: 1 1 160px;
+  align-items: center;
+  min-height: var(--stc-touch);
+  overflow: hidden;
+  border: 1px solid #949494;
+  border-radius: 4px;
+  background: #fff;
+  cursor: text;
+
+  &:focus-within {
+    border-color: var(--stc-color-primary);
+    box-shadow: 0 0 0 1px var(--stc-color-primary);
+  }
+
+  .stc-input {
+    flex: 1;
+    min-width: 0;
+    min-height: 0;
+    border: 0;
+    box-shadow: none;
+    outline: none;
+    text-align: right;
+  }
+
+  .is-invalid & {
+    border-color: #cc1818;
+  }
+}
+
+.stc-range-prefix,
+.stc-range-unit {
+  flex-shrink: 0;
+  padding: 0 10px;
+  color: var(--stc-color-muted);
+  font-size: 13px;
+}
+
+.stc-range-prefix {
+  padding-right: 0;
+}
+
+.stc-range-unit {
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  border-left: 1px solid #e0e0e0;
+  background: #f6f7f7;
+}
+
+.stc-range-separator {
+  color: var(--stc-color-muted);
+}
+
+.stc-report-export {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 12px 0;
+  border-top: 1px solid #f0f0f0;
+}
+
+.stc-run-export {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 8px;
+}
+
+/* Action bar: steps running automatically once the current step is submitted. */
+.stc-auto-hint {
+  flex-basis: 100%;
+  margin: 0;
+  color: var(--stc-color-muted);
+  font-size: 13px;
+
+  &::before {
+    content: "\21BB\00a0";
+  }
+
+  &.is-running {
+    color: var(--stc-color-text);
+  }
+}
+
+/* Progress while steps run automatically. */
+.stc-auto-run {
+  position: fixed;
+  inset: 0;
+  // Above the action bar, below notices.
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(240, 240, 240, .75);
+  backdrop-filter: blur(2px);
+  animation: stc-fade-in .15s ease-out;
+
+  &[hidden] {
+    display: none;
+  }
+}
+
+.stc-auto-run-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 420px;
+  padding: 24px;
+  border-radius: var(--stc-radius);
+  background: var(--stc-color-surface);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, .15);
+  text-align: center;
+
+  > .stc-button-row {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  > .stc-hint {
+    margin: 0;
+
+    // Done: keeps the card's height (no jump right before it closes).
+    &.is-invisible {
+      visibility: hidden;
+    }
+  }
+}
+
+.stc-auto-run-title {
+  font-size: 17px;
+}
+
+.stc-spinner {
+  width: 36px;
+  height: 36px;
+  box-sizing: border-box;
+  border: 3px solid #e0e0e0;
+  border-top-color: var(--stc-color-primary);
+  border-radius: 50%;
+  animation: stc-spin .8s linear infinite;
+}
+
+.stc-auto-run.is-paused .stc-spinner {
+  border-color: var(--stc-color-error);
+  background: var(--stc-color-error) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='4' height='16' viewBox='0 0 4 16'%3E%3Cpath d='M2 1v9' stroke='%23fff' stroke-width='2.4' stroke-linecap='round'/%3E%3Ccircle cx='2' cy='14' r='1.4' fill='%23fff'/%3E%3C/svg%3E") center / 4px 16px no-repeat;
+  animation: none;
+}
+
+.stc-auto-run.is-done .stc-spinner {
+  border-color: var(--stc-color-success);
+  background: var(--stc-color-success) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='12' viewBox='0 0 10 8'%3E%3Cpath d='M1 4l3 3 5-6' fill='none' stroke='%23fff' stroke-width='1.6'/%3E%3C/svg%3E") center / 16px 12px no-repeat;
+  animation: none;
+}
+
+.stc-auto-run-steps {
+  align-self: stretch;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  text-align: left;
+
+  li {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 8px 0;
+    border-top: 1px solid var(--stc-color-border);
+
+    > span:last-child {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+  }
+
+  // Waiting: hollow, running: pulsing, done: check mark, failed: exclamation mark.
+  .stc-auto-run-status {
+    flex-shrink: 0;
+    box-sizing: border-box;
+    width: 10px;
+    height: 10px;
+    margin: 5px 4px 0;
+    border: 2px solid #ccc;
+    border-radius: 50%;
+  }
+
+  li:not(.is-running):not(.is-done):not(.is-error) {
+    color: var(--stc-color-muted);
+  }
+
+  .is-running .stc-auto-run-status {
+    border-color: var(--stc-color-primary);
+    background: var(--stc-color-primary);
+    animation: stc-pulse 1.2s ease-in-out infinite;
+  }
+
+  .is-error .stc-auto-run-status {
+    width: 18px;
+    height: 18px;
+    margin: 1px 0 0;
+    border: 0;
+    background: var(--stc-color-error) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='4' height='12' viewBox='0 0 4 16'%3E%3Cpath d='M2 1v9' stroke='%23fff' stroke-width='2.4' stroke-linecap='round'/%3E%3Ccircle cx='2' cy='14' r='1.4' fill='%23fff'/%3E%3C/svg%3E") center / 3px 10px no-repeat;
+  }
+
+  .stc-error-text {
+    margin-top: 4px;
+  }
+
+  .is-done .stc-auto-run-status {
+    width: 18px;
+    height: 18px;
+    margin: 1px 0 0;
+    border: 0;
+    background: var(--stc-color-success) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='8' viewBox='0 0 10 8'%3E%3Cpath d='M1 4l3 3 5-6' fill='none' stroke='%23fff' stroke-width='1.6'/%3E%3C/svg%3E") center / 10px 8px no-repeat;
+    animation: none;
+  }
+}
+
+@keyframes stc-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes stc-pulse {
+  50% {
+    opacity: .3;
+    transform: scale(.7);
+  }
+}
+
+@keyframes stc-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stc-spinner,
+  .stc-auto-run-steps .stc-auto-run-status,
+  .stc-auto-run,
+  .stc-notice.is-run {
+    animation-duration: 2.4s;
+  }
+
+  .stc-auto-run,
+  .stc-notice.is-run {
+    animation: none;
+  }
+}
+
+/* An automatic step handled interactively after it failed. */
+.stc-manual-step {
+  margin: 0 0 16px;
+  padding: 12px 16px;
+  border-left: 4px solid var(--stc-color-error);
+  border-radius: 4px;
+  background: var(--stc-color-surface);
 }

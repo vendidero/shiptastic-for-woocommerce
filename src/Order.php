@@ -511,6 +511,7 @@ class Order {
 			'products'                     => array(),
 			'shipping_classes'             => array(),
 			'item_map'                     => array(),
+			'inner_boxes'                  => array(),
 			'has_missing_shipping_classes' => false,
 			'item_count'                   => 0,
 			'items'                        => Package::is_packing_supported() ? new ItemList() : array(),
@@ -530,16 +531,29 @@ class Order {
 					$line_subtotal += (float) $order_item->get_subtotal_tax();
 				}
 
-				$quantity = (int) $item['max_quantity'];
+				$quantity    = (int) $item['max_quantity'];
+				$inner_boxes = Packing\InnerBoxes::get_order_item_boxes( $order_item );
+				$box_qtys    = array();
+
+				foreach ( $inner_boxes as $box_key => $box ) {
+					$box_qtys[ $box_key ] = isset( $item['inner_boxes'][ $box_key ] ) ? absint( $item['inner_boxes'][ $box_key ] ) : $quantity;
+				}
 
 				if ( $product = $this->get_order_item_product( $order_item ) ) {
-					$width  = ( empty( $product->get_shipping_width() ) ? 0 : (float) wc_format_decimal( $product->get_shipping_width() ) ) * $quantity;
-					$length = ( empty( $product->get_shipping_length() ) ? 0 : (float) wc_format_decimal( $product->get_shipping_length() ) ) * $quantity;
-					$height = ( empty( $product->get_shipping_height() ) ? 0 : (float) wc_format_decimal( $product->get_shipping_height() ) ) * $quantity;
-					$weight = ( empty( $product->get_shipping_weight() ) ? 0 : (float) wc_format_decimal( $product->get_shipping_weight() ) ) * $quantity;
+					if ( ! empty( $inner_boxes ) ) {
+						foreach ( $inner_boxes as $box_key => $box ) {
+							$package_data['weight'] += $box['weight'] * $box_qtys[ $box_key ];
+							$package_data['volume'] += ( $box['width'] * $box['length'] * $box['height'] ) * $box_qtys[ $box_key ];
+						}
+					} else {
+						$width  = ( empty( $product->get_shipping_width() ) ? 0 : (float) wc_format_decimal( $product->get_shipping_width() ) ) * $quantity;
+						$length = ( empty( $product->get_shipping_length() ) ? 0 : (float) wc_format_decimal( $product->get_shipping_length() ) ) * $quantity;
+						$height = ( empty( $product->get_shipping_height() ) ? 0 : (float) wc_format_decimal( $product->get_shipping_height() ) ) * $quantity;
+						$weight = ( empty( $product->get_shipping_weight() ) ? 0 : (float) wc_format_decimal( $product->get_shipping_weight() ) ) * $quantity;
 
-					$package_data['weight'] += $weight;
-					$package_data['volume'] += ( $width * $length * $height );
+						$package_data['weight'] += $weight;
+						$package_data['volume'] += ( $width * $length * $height );
+					}
 
 					if ( ! array_key_exists( $product->get_id(), $package_data['products'] ) ) {
 						$package_data['products'][ $product->get_id() ] = $product->get_product();
@@ -558,9 +572,21 @@ class Order {
 
 				$package_data['item_map'][ $order_item_id ] = $quantity;
 
+				if ( ! empty( $box_qtys ) ) {
+					$package_data['inner_boxes'][ $order_item_id ] = $box_qtys;
+				}
+
 				if ( Package::is_packing_supported() ) {
-					$box_item = new Packing\OrderItem( $order_item );
-					$package_data['items']->insert( $box_item, $quantity );
+					if ( ! empty( $inner_boxes ) ) {
+						foreach ( $inner_boxes as $box_key => $box ) {
+							if ( $box_qtys[ $box_key ] > 0 ) {
+								$package_data['items']->insert( new Packing\OrderItem( $order_item, $box ), $box_qtys[ $box_key ] );
+							}
+						}
+					} else {
+						$box_item = new Packing\OrderItem( $order_item );
+						$package_data['items']->insert( $box_item, $quantity );
+					}
 				}
 			} catch ( \Exception $e ) {
 				continue;
@@ -605,6 +631,12 @@ class Order {
 						$has_backorders = true;
 
 						$location_items[ $item_id ]['max_quantity'] -= $backordered;
+
+						if ( ! empty( $location_items[ $item_id ]['inner_boxes'] ) ) {
+							foreach ( $location_items[ $item_id ]['inner_boxes'] as $box_key => $box_quantity ) {
+								$location_items[ $item_id ]['inner_boxes'][ $box_key ] = max( 0, $box_quantity - $backordered );
+							}
+						}
 
 						if ( $location_items[ $item_id ]['max_quantity'] <= 0 ) {
 							unset( $location_items[ $item_id ] );
@@ -1123,12 +1155,20 @@ class Order {
 							$shipment_items = array();
 
 							foreach ( $items as $item ) {
-								$order_item = $item->getItem();
+								$packing_item  = $item->getItem();
+								$order_item_id = $packing_item->get_id();
+								$box_key       = $packing_item->get_inner_box_key();
 
-								if ( ! isset( $shipment_items[ $order_item->get_id() ] ) ) {
-									$shipment_items[ $order_item->get_id() ] = 1;
+								if ( '' !== $box_key ) {
+									if ( ! isset( $shipment_items[ $order_item_id ] ) || ! is_array( $shipment_items[ $order_item_id ] ) ) {
+										$shipment_items[ $order_item_id ] = array();
+									}
+
+									$shipment_items[ $order_item_id ][ $box_key ] = ( isset( $shipment_items[ $order_item_id ][ $box_key ] ) ? $shipment_items[ $order_item_id ][ $box_key ] : 0 ) + 1;
+								} elseif ( ! isset( $shipment_items[ $order_item_id ] ) ) {
+									$shipment_items[ $order_item_id ] = 1;
 								} else {
-									++$shipment_items[ $order_item->get_id() ];
+									++$shipment_items[ $order_item_id ];
 								}
 							}
 
@@ -1416,6 +1456,7 @@ class Order {
 						array(
 							'shipment_id'              => $shipment->get_id(),
 							'exclude_current_shipment' => true,
+							'inner_box'                => $item->get_inner_box(),
 						)
 					);
 
@@ -1589,6 +1630,7 @@ class Order {
 				'shipment_id'              => 0,
 				'exclude_current_shipment' => false,
 				'shipping_method_id'       => 'all',
+				'inner_box'                => null,
 			)
 		);
 
@@ -1597,26 +1639,53 @@ class Order {
 		}
 
 		if ( $order_item ) {
-			$quantity_left = $this->get_shippable_item_quantity( $order_item, $args['shipping_method_id'] );
+			$shippable_quantity = $this->get_shippable_item_quantity( $order_item, $args['shipping_method_id'] );
+			$inner_boxes        = Packing\InnerBoxes::get_order_item_boxes( $order_item );
+			$box_keys           = empty( $inner_boxes ) ? array( null ) : array_keys( $inner_boxes );
+			$requested_box      = is_null( $args['inner_box'] ) ? null : (string) $args['inner_box'];
 
-			foreach ( $this->get_shipments() as $shipment ) {
-				if ( $args['sent_only'] && ! $shipment->is_shipped() ) {
-					continue;
-				}
+			/**
+			 * Inner boxes: Calculate the quantity left per inner box. Complete units ('' passed as inner box)
+			 * are available only in case all inner boxes are available.
+			 */
+			if ( ! empty( $inner_boxes ) && ! empty( $requested_box ) ) {
+				$box_keys = array_key_exists( $requested_box, $inner_boxes ) ? array( $requested_box ) : array();
+			}
 
-				if ( $args['exclude_current_shipment'] && $args['shipment_id'] > 0 && ( $shipment->get_id() === $args['shipment_id'] ) ) {
-					continue;
-				}
+			$quantities_left = array();
 
-				if ( $item = $shipment->get_item_by_order_item_id( $order_item->get_id() ) ) {
+			foreach ( $box_keys as $box_key ) {
+				$box_quantity_left = $shippable_quantity;
+
+				foreach ( $this->get_shipments() as $shipment ) {
+					if ( $args['sent_only'] && ! $shipment->is_shipped() ) {
+						continue;
+					}
+
+					if ( $args['exclude_current_shipment'] && $args['shipment_id'] > 0 && ( $shipment->get_id() === $args['shipment_id'] ) ) {
+						continue;
+					}
+
+					$quantity = $shipment->get_order_item_quantity( $order_item->get_id(), $box_key );
+
+					if ( $quantity <= 0 ) {
+						continue;
+					}
+
 					if ( 'return' === $shipment->get_type() ) {
 						if ( ! $args['sent_only'] && $shipment->is_shipped() ) {
-							$quantity_left += absint( $item->get_quantity() );
+							$box_quantity_left += $quantity;
 						}
 					} else {
-						$quantity_left -= absint( $item->get_quantity() );
+						$box_quantity_left -= $quantity;
 					}
 				}
+
+				$quantities_left[] = $box_quantity_left;
+			}
+
+			if ( ! empty( $quantities_left ) ) {
+				$quantity_left = ( ! empty( $inner_boxes ) && '' === $requested_box ) ? min( $quantities_left ) : max( $quantities_left );
 			}
 		}
 
@@ -1647,6 +1716,10 @@ class Order {
 			}
 		}
 
+		$inner_boxes = Packing\InnerBoxes::get_order_item_boxes( $order_item_id );
+		$box_keys    = empty( $inner_boxes ) ? array( null ) : array_keys( $inner_boxes );
+		$quantities  = array_fill_keys( array_map( 'strval', $box_keys ), 0 );
+
 		foreach ( $shipments as $shipment ) {
 			if ( ! $shipment->is_shipped() ) {
 				continue;
@@ -1656,10 +1729,13 @@ class Order {
 				continue;
 			}
 
-			if ( $item = $shipment->get_item_by_order_item_id( $order_item_id ) ) {
-				$quantity += absint( $item->get_quantity() );
+			foreach ( $box_keys as $box_key ) {
+				$quantities[ (string) $box_key ] += $shipment->get_order_item_quantity( $order_item_id, $box_key );
 			}
 		}
+
+		// Units count as sent in case all of their inner boxes have been sent.
+		$quantity = empty( $quantities ) ? 0 : min( $quantities );
 
 		return $quantity;
 	}
@@ -1712,9 +1788,7 @@ class Order {
 				continue;
 			}
 
-			if ( $shipment_item = $shipment->get_item_by_order_item_id( $order_item_id ) ) {
-				$quantity_left -= absint( $shipment_item->get_quantity() );
-			}
+			$quantity_left -= $shipment->get_order_item_quantity( $order_item_id );
 		}
 
 		if ( ! empty( $args['items_requested'] ) ) {
@@ -1849,10 +1923,29 @@ class Order {
 
 		foreach ( $this->get_shippable_items( $args['shipping_method_id'] ) as $item ) {
 			$quantity_left = $this->get_item_quantity_left_for_shipping( $item, $args );
+			$inner_boxes   = Packing\InnerBoxes::get_order_item_boxes( $item );
+			$box_quantity  = array();
 
-			if ( $shipment ) {
-				if ( $args['disable_duplicates'] && $shipment->get_item_by_order_item_id( $item->get_id() ) ) {
+			foreach ( array_keys( $inner_boxes ) as $box_key ) {
+				$box_quantity[ $box_key ] = $this->get_item_quantity_left_for_shipping( $item, array_merge( $args, array( 'inner_box' => $box_key ) ) );
+			}
+
+			if ( $shipment && $args['disable_duplicates'] ) {
+				if ( empty( $inner_boxes ) ) {
+					if ( $shipment->get_item_by_order_item_id( $item->get_id() ) ) {
+						continue;
+					}
+				} elseif ( $shipment->get_item_by_order_item_id( $item->get_id(), '' ) ) {
 					continue;
+				} else {
+					// Inner boxes already contained within the shipment are not available (again).
+					foreach ( array_keys( $box_quantity ) as $box_key ) {
+						if ( $shipment->get_item_by_order_item_id( $item->get_id(), $box_key ) ) {
+							$box_quantity[ $box_key ] = 0;
+						}
+					}
+
+					$quantity_left = empty( $box_quantity ) ? 0 : min( $quantity_left, max( $box_quantity ) );
 				}
 			}
 
@@ -1870,6 +1963,10 @@ class Order {
 					'max_quantity' => $quantity_left,
 					'instance'     => $item,
 				);
+
+				if ( ! empty( $box_quantity ) ) {
+					$items[ $item->get_id() ]['inner_boxes'] = $box_quantity;
+				}
 			}
 		}
 
@@ -2376,32 +2473,44 @@ class Order {
 			}
 
 			if ( $product = $this->get_order_item_product( $item ) ) {
-				$width      = empty( $product->get_shipping_width() ) ? 0 : (float) wc_format_decimal( $product->get_shipping_width() );
-				$length     = empty( $product->get_shipping_length() ) ? 0 : (float) wc_format_decimal( $product->get_shipping_length() );
-				$height     = empty( $product->get_shipping_height() ) ? 0 : (float) wc_format_decimal( $product->get_shipping_height() );
-				$dimensions = array(
-					'width'  => (float) wc_get_dimension( $width, wc_stc_get_packaging_dimension_unit() ),
-					'length' => (float) wc_get_dimension( $length, wc_stc_get_packaging_dimension_unit() ),
-					'height' => (float) wc_get_dimension( $height, wc_stc_get_packaging_dimension_unit() ),
-				);
+				$inner_boxes = Packing\InnerBoxes::get_order_item_boxes( $item );
+				$parts       = array();
 
-				if ( $dimensions['width'] > $args['max_dimensions']['width'] ) {
-					$args['max_dimensions']['width'] = $dimensions['width'];
+				/**
+				 * Products shipped within inner boxes: Each box is a separate package - use the largest/heaviest box
+				 * instead of the product itself.
+				 */
+				if ( ! empty( $inner_boxes ) ) {
+					foreach ( $inner_boxes as $box ) {
+						$parts[] = array( $box['width'], $box['length'], $box['height'], $box['weight'] );
+					}
+				} else {
+					$parts[] = array(
+						empty( $product->get_shipping_width() ) ? 0 : (float) wc_format_decimal( $product->get_shipping_width() ),
+						empty( $product->get_shipping_length() ) ? 0 : (float) wc_format_decimal( $product->get_shipping_length() ),
+						empty( $product->get_shipping_height() ) ? 0 : (float) wc_format_decimal( $product->get_shipping_height() ),
+						empty( $product->get_shipping_weight() ) ? 0 : (float) wc_format_decimal( $product->get_shipping_weight() ),
+					);
 				}
 
-				if ( $dimensions['length'] > $args['max_dimensions']['length'] ) {
-					$args['max_dimensions']['length'] = $dimensions['length'];
-				}
+				foreach ( $parts as $part ) {
+					$dimensions = array(
+						'width'  => (float) wc_get_dimension( (float) $part[0], wc_stc_get_packaging_dimension_unit() ),
+						'length' => (float) wc_get_dimension( (float) $part[1], wc_stc_get_packaging_dimension_unit() ),
+						'height' => (float) wc_get_dimension( (float) $part[2], wc_stc_get_packaging_dimension_unit() ),
+					);
 
-				if ( $dimensions['height'] > $args['max_dimensions']['height'] ) {
-					$args['max_dimensions']['height'] = $dimensions['height'];
-				}
+					foreach ( $dimensions as $dimension => $value ) {
+						if ( $value > $args['max_dimensions'][ $dimension ] ) {
+							$args['max_dimensions'][ $dimension ] = $value;
+						}
+					}
 
-				$weight = empty( $product->get_shipping_weight() ) ? 0 : (float) wc_format_decimal( $product->get_shipping_weight() );
-				$weight = (float) wc_get_weight( $weight, wc_stc_get_packaging_weight_unit() );
+					$weight = (float) wc_get_weight( (float) $part[3], wc_stc_get_packaging_weight_unit() );
 
-				if ( $weight > $args['max_weight'] ) {
-					$args['max_weight'] = $weight;
+					if ( $weight > $args['max_weight'] ) {
+						$args['max_weight'] = $weight;
+					}
 				}
 			}
 		}

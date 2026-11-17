@@ -823,6 +823,31 @@ CREATE TABLE {$wpdb->prefix}woocommerce_stc_fulfillment_workflows (
   PRIMARY KEY  (workflow_id),
   KEY workflow_status (workflow_status,workflow_priority)
 ) $collate;
+CREATE TABLE {$wpdb->prefix}woocommerce_stc_fulfillment_runs (
+  run_id bigint(20) unsigned NOT NULL auto_increment,
+  run_workflow_id bigint(20) unsigned NOT NULL DEFAULT 0,
+  run_mode varchar(20) NOT NULL DEFAULT 'autonomous',
+  run_source varchar(20) NOT NULL DEFAULT 'manual',
+  run_status varchar(20) NOT NULL DEFAULT 'running',
+  run_user_id bigint(20) unsigned NOT NULL DEFAULT 0,
+  run_total int(10) unsigned NOT NULL DEFAULT 0,
+  run_processed int(10) unsigned NOT NULL DEFAULT 0,
+  run_succeeded int(10) unsigned NOT NULL DEFAULT 0,
+  run_failed int(10) unsigned NOT NULL DEFAULT 0,
+  run_current_queue_id bigint(20) unsigned NOT NULL DEFAULT 0,
+  run_current_step varchar(120) NOT NULL DEFAULT '',
+  run_lock_token varchar(64) NOT NULL DEFAULT '',
+  run_message text NULL,
+  run_export varchar(100) NOT NULL DEFAULT '',
+  run_export_files int(10) unsigned NOT NULL DEFAULT 0,
+  run_dismissed tinyint(1) unsigned NOT NULL DEFAULT 0,
+  run_date_created_gmt datetime NULL,
+  run_date_modified_gmt datetime NULL,
+  run_date_finished_gmt datetime NULL,
+  PRIMARY KEY  (run_id),
+  KEY run_user_status (run_user_id,run_status),
+  KEY run_workflow (run_workflow_id,run_status)
+) $collate;
 CREATE TABLE {$wpdb->prefix}woocommerce_stc_fulfillment_workflowmeta (
   meta_id bigint(20) unsigned NOT NULL auto_increment,
   stc_fulfillment_workflow_id bigint(20) unsigned NOT NULL,

@@ -35,10 +35,23 @@ abstract class Action {
 	}
 
 	/**
+	 * The modes a step of this action may run in. Actions supporting both modes let workflow editors choose per step
+	 * (the first mode is the default). Without a dedicated interactive view, the interactive mode of a background
+	 * capable action shows a generic review screen and runs the action once confirmed.
+	 *
 	 * @return string[] interactive and/or background
 	 */
 	public static function get_modes() {
 		return array( 'interactive' );
+	}
+
+	/**
+	 * @return string The mode used unless the workflow (step) chooses another one.
+	 */
+	public static function get_default_mode() {
+		$modes = static::get_modes();
+
+		return $modes[0];
 	}
 
 	/**
@@ -112,7 +125,14 @@ abstract class Action {
 	 * @return string
 	 */
 	public static function get_template() {
-		return App::render_view( 'actions/' . str_replace( '_', '-', static::get_name() ) );
+		$template = App::render_view( 'actions/' . str_replace( '_', '-', static::get_name() ) );
+
+		// Background capable actions without a dedicated view: generic review screen (interactive mode).
+		if ( '' === $template && static::supports_mode( 'interactive' ) && static::supports_mode( 'background' ) ) {
+			$template = App::render_view( 'actions/confirm' );
+		}
+
+		return $template;
 	}
 
 	/**
@@ -154,7 +174,12 @@ abstract class Action {
 	 * @return array
 	 */
 	public function get_view_data( $context ) {
-		return array();
+		$shipment = $context->get_shipment();
+
+		return array(
+			'description' => static::get_description(),
+			'shipmentId'  => $shipment ? $shipment->get_id() : 0,
+		);
 	}
 
 	/**
@@ -166,6 +191,11 @@ abstract class Action {
 	 * @return StepResult
 	 */
 	public function process( $context, $data ) {
+		// Background capable actions: confirmed via the generic review screen.
+		if ( static::supports_mode( 'background' ) ) {
+			return $this->run( $context );
+		}
+
 		return StepResult::error( sprintf( _x( '%s does not support interactive mode.', 'shipments', 'shiptastic-for-woocommerce' ), static::get_title() ) );
 	}
 }

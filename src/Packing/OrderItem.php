@@ -15,10 +15,11 @@ class OrderItem extends Item {
 	 * Box constructor.
 	 *
 	 * @param \WC_Order_Item_Product $item
+	 * @param array|null $inner_box
 	 *
 	 * @throws \Exception
 	 */
-	public function __construct( $item ) {
+	public function __construct( $item, $inner_box = null ) {
 		$this->item = $item;
 
 		if ( ! is_callable( array( $item, 'get_product' ) ) ) {
@@ -52,6 +53,10 @@ class OrderItem extends Item {
 
 		$this->total    = $quantity > 0 ? NumberUtil::round( $line_total / $quantity ) : 0;
 		$this->subtotal = $quantity > 0 ? NumberUtil::round( $line_subtotal / $quantity ) : 0;
+
+		if ( ! empty( $inner_box ) ) {
+			$this->apply_inner_box( $inner_box );
+		}
 	}
 
 	protected function load_product() {

@@ -28,6 +28,61 @@ abstract class Item implements PackingItem {
 
 	protected $subtotal = 0;
 
+	/**
+	 * The inner box (definition) this item represents, if any.
+	 *
+	 * @var array|null
+	 */
+	protected $inner_box = null;
+
+	/**
+	 * Override dimensions, weight and totals with the data of an inner box (in shop units).
+	 *
+	 * @param array $box
+	 * @param string $dimension_unit
+	 * @param string $weight_unit
+	 */
+	protected function apply_inner_box( $box, $dimension_unit = '', $weight_unit = '' ) {
+		$this->inner_box = $box;
+
+		$dimension_unit = empty( $dimension_unit ) ? get_option( 'woocommerce_dimension_unit', 'cm' ) : $dimension_unit;
+		$weight_unit    = empty( $weight_unit ) ? get_option( 'woocommerce_weight_unit', 'kg' ) : $weight_unit;
+		$count          = max( 1, absint( $box['count'] ) );
+
+		$this->dimensions = array(
+			'width'  => (int) ceil( (float) wc_get_dimension( (float) $box['width'], 'mm', $dimension_unit ) ),
+			'length' => (int) ceil( (float) wc_get_dimension( (float) $box['length'], 'mm', $dimension_unit ) ),
+			'depth'  => (int) ceil( (float) wc_get_dimension( (float) $box['height'], 'mm', $dimension_unit ) ),
+		);
+
+		$this->weight   = (int) ceil( (float) wc_get_weight( (float) $box['weight'], 'g', $weight_unit ) );
+		$this->total    = (int) round( $this->total / $count );
+		$this->subtotal = (int) round( $this->subtotal / $count );
+	}
+
+	/**
+	 * @return array|null
+	 */
+	public function get_inner_box() {
+		return $this->inner_box;
+	}
+
+	/**
+	 * @return string
+	 */
+	public function get_inner_box_key() {
+		return $this->inner_box ? (string) $this->inner_box['key'] : '';
+	}
+
+	/**
+	 * Whether this item is the first part of a unit, e.g. to count units instead of inner boxes.
+	 *
+	 * @return bool
+	 */
+	public function is_first_unit_part() {
+		return ! $this->inner_box || 1 === absint( $this->inner_box['index'] );
+	}
+
 	public function get_reference() {
 		return $this->item;
 	}
@@ -107,6 +162,10 @@ abstract class Item implements PackingItem {
 			}
 
 			$description = $title . ' (' . $description . ')';
+		}
+
+		if ( $this->inner_box ) {
+			$description .= ' - ' . InnerBoxes::get_box_label( $this->inner_box );
 		}
 
 		return apply_filters( 'woocommerce_shiptastic_packing_item_description', $description, $this );

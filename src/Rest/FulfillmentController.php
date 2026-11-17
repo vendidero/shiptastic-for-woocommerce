@@ -3,11 +3,13 @@
 namespace Vendidero\Shiptastic\Rest;
 
 use Vendidero\Shiptastic\BulkFulfillments\ActionRegistry;
+use Vendidero\Shiptastic\BulkFulfillments\App;
 use Vendidero\Shiptastic\BulkFulfillments\Idempotency;
 use Vendidero\Shiptastic\BulkFulfillments\Queue;
+use Vendidero\Shiptastic\BulkFulfillments\Run;
+use Vendidero\Shiptastic\BulkFulfillments\RunProcessor;
 use Vendidero\Shiptastic\BulkFulfillments\QueueItem;
 use Vendidero\Shiptastic\BulkFulfillments\Runner;
-use Vendidero\Shiptastic\BulkFulfillments\Scheduler;
 use Vendidero\Shiptastic\BulkFulfillments\ShipmentLayout;
 use Vendidero\Shiptastic\BulkFulfillments\StepLog;
 use Vendidero\Shiptastic\BulkFulfillments\Workflow;
@@ -60,6 +62,16 @@ class FulfillmentController extends \WC_REST_Controller {
 
 		register_rest_route(
 			$this->namespace,
+			$base . '/workflows/editor',
+			array(
+				'methods'             => WP_REST_Server::READABLE,
+				'callback'            => array( $this, 'get_workflow_editor_data' ),
+				'permission_callback' => array( $this, 'can_manage' ),
+			)
+		);
+
+		register_rest_route(
+			$this->namespace,
 			$base . '/workflows/(?P<id>[\d]+)',
 			array(
 				array(
@@ -93,6 +105,11 @@ class FulfillmentController extends \WC_REST_Controller {
 						'minimum' => 1,
 						'maximum' => 100,
 					),
+					'run_id'  => array(
+						'description' => _x( 'The interactive run claiming the items (shares its lock token).', 'shipments', 'shiptastic-for-woocommerce' ),
+						'type'        => 'integer',
+						'default'     => 0,
+					),
 					'run'     => array(
 						'type'    => 'boolean',
 						'default' => true,
@@ -104,16 +121,6 @@ class FulfillmentController extends \WC_REST_Controller {
 						'default'     => array(),
 					),
 				),
-			)
-		);
-
-		register_rest_route(
-			$this->namespace,
-			$base . '/workflows/(?P<id>[\d]+)/resume',
-			array(
-				'methods'             => WP_REST_Server::CREATABLE,
-				'callback'            => array( $this, 'resume_workflow' ),
-				'permission_callback' => array( $this, 'can_manage' ),
 			)
 		);
 
@@ -228,7 +235,101 @@ class FulfillmentController extends \WC_REST_Controller {
 						'type'        => 'array',
 						'required'    => true,
 					),
+					'continue'  => array(
+						'description' => _x( 'Whether to continue the workflow afterwards. Disabled while fixing an order of a stopped automation (the automation continues it).', 'shipments', 'shiptastic-for-woocommerce' ),
+						'type'        => 'boolean',
+						'default'     => true,
+					),
 				),
+			)
+		);
+
+		register_rest_route(
+			$this->namespace,
+			$base . '/runs',
+			array(
+				array(
+					'methods'             => WP_REST_Server::READABLE,
+					'callback'            => array( $this, 'get_runs' ),
+					'permission_callback' => array( $this, 'can_fulfill' ),
+					'args'                => array(
+						'active'      => array( 'type' => 'boolean' ),
+						'undismissed' => array( 'type' => 'boolean' ),
+						'workflow_id' => array( 'type' => 'integer' ),
+						'source'      => array(
+							'description' => _x( 'Runs of a source: interactive (default) or other sources (e.g. automation runs of extensions).', 'shipments', 'shiptastic-for-woocommerce' ),
+							'type'        => 'string',
+							'enum'        => array( 'automation', 'interactive' ),
+							'default'     => 'interactive',
+						),
+						'all_users'   => array(
+							'description' => _x( 'Runs of all users (managers only).', 'shipments', 'shiptastic-for-woocommerce' ),
+							'type'        => 'boolean',
+						),
+					),
+				),
+				array(
+					'methods'             => WP_REST_Server::CREATABLE,
+					'callback'            => array( $this, 'start_run' ),
+					'permission_callback' => array( $this, 'can_fulfill' ),
+					'args'                => array(
+						'workflow_id' => array(
+							'type'     => 'integer',
+							'required' => true,
+						),
+						'step'        => array(
+							'description' => _x( 'The step (action name) of the workflow the run is limited to, empty for the whole workflow (runs of extensions).', 'shipments', 'shiptastic-for-woocommerce' ),
+							'type'        => 'string',
+							'default'     => '',
+						),
+						'mode'        => array(
+							'type'        => 'string',
+							'description' => _x( 'Run mode: interactive starts (or resumes) an interactive run within the app. Extensions may add modes.', 'shipments', 'shiptastic-for-woocommerce' ),
+							'enum'        => self::get_run_modes(),
+							'default'     => 'interactive',
+						),
+					),
+				),
+			)
+		);
+
+		register_rest_route(
+			$this->namespace,
+			$base . '/runs/(?P<id>[\d]+)',
+			array(
+				'methods'             => WP_REST_Server::READABLE,
+				'callback'            => array( $this, 'get_run' ),
+				'permission_callback' => array( $this, 'can_fulfill' ),
+			)
+		);
+
+		register_rest_route(
+			$this->namespace,
+			$base . '/runs/(?P<id>[\d]+)/dismiss',
+			array(
+				'methods'             => WP_REST_Server::CREATABLE,
+				'callback'            => array( $this, 'dismiss_run' ),
+				'permission_callback' => array( $this, 'can_fulfill' ),
+			)
+		);
+
+		register_rest_route(
+			$this->namespace,
+			$base . '/runs/(?P<id>[\d]+)/items',
+			array(
+				'methods'             => WP_REST_Server::READABLE,
+				'callback'            => array( $this, 'get_run_items' ),
+				'permission_callback' => array( $this, 'can_fulfill' ),
+			)
+		);
+
+		register_rest_route(
+			$this->namespace,
+			$base . '/runs/(?P<id>[\d]+)/finish',
+			array(
+				'methods'             => WP_REST_Server::CREATABLE,
+				'callback'            => array( $this, 'finish_run' ),
+				'permission_callback' => array( $this, 'can_fulfill' ),
 			)
 		);
 
@@ -293,7 +394,7 @@ class FulfillmentController extends \WC_REST_Controller {
 			);
 		}
 
-		return array(
+		$data = array(
 			'id'            => $workflow->get_id(),
 			'title'         => $workflow->get_title(),
 			'status'        => $workflow->get_status(),
@@ -301,11 +402,6 @@ class FulfillmentController extends \WC_REST_Controller {
 			'mode'          => $workflow->get_mode(),
 			'filters'       => Workflow::sanitize_filters( $workflow->get_filters() ),
 			'steps'         => $actions,
-			'on_error'      => $workflow->get_on_error(),
-			'run_as'        => $workflow->get_run_as(),
-			'schedule'      => $workflow->get_schedule(),
-			'paused'        => $workflow->is_paused(),
-			'paused_reason' => $workflow->get_paused_reason(),
 			// Orders waiting for this workflow.
 			'open_count'    => $workflow->get_id() ? Queue::count(
 				array(
@@ -316,6 +412,16 @@ class FulfillmentController extends \WC_REST_Controller {
 			'date_created'  => wc_rest_prepare_date_response( $workflow->get_date_created() ),
 			'date_modified' => wc_rest_prepare_date_response( $workflow->get_date_modified() ),
 		);
+
+		/**
+		 * Filter to adjust the REST (and fulfillment app) data of a workflow, e.g. settings of extensions.
+		 *
+		 * @param array    $data
+		 * @param Workflow $workflow
+		 *
+		 * @package Vendidero/Shiptastic
+		 */
+		return apply_filters( 'woocommerce_shiptastic_fulfillment_rest_prepare_workflow', $data, $workflow );
 	}
 
 	protected function get_workflow_object( $id ) {
@@ -343,6 +449,110 @@ class FulfillmentController extends \WC_REST_Controller {
 		);
 	}
 
+	/**
+	 * Choices of the workflow editor which are specific to Shiptastic: available actions (incl. settings), locations,
+	 * shipping providers and users workflows may run as. Countries and shipping methods are loaded from the
+	 * WooCommerce core REST API.
+	 */
+	public function get_workflow_editor_data( $request ) {
+		$actions = array();
+
+		foreach ( ActionRegistry::get_all() as $name => $action ) {
+			$settings = array();
+
+			foreach ( (array) $action::get_settings_schema() as $key => $field ) {
+				$field   = (array) $field;
+				$options = array();
+
+				foreach ( (array) ( isset( $field['options'] ) ? $field['options'] : array() ) as $value => $label ) {
+					$options[] = array(
+						'value' => (string) $value,
+						'label' => wp_strip_all_tags( $label ),
+					);
+				}
+
+				$settings[] = array(
+					'key'     => (string) $key,
+					'type'    => isset( $field['type'] ) && in_array( $field['type'], array( 'select', 'checkbox', 'number', 'text' ), true ) ? $field['type'] : 'text',
+					'label'   => wp_strip_all_tags( isset( $field['label'] ) ? $field['label'] : $key ),
+					'default' => isset( $field['default'] ) ? $field['default'] : '',
+					'options' => $options,
+				);
+			}
+
+			$actions[] = array(
+				'name'          => (string) $name,
+				'title'         => $action::get_title(),
+				'description'   => $action::get_description(),
+				// Modes a step of the action may run in within workflows, the first one is the default.
+				'modes'         => Workflow::get_action_modes( $name ),
+				'default_mode'  => Workflow::get_action_modes( $name )[0],
+				// Modes the action supports which require Shiptastic Pro (presented with a pro marker).
+				'pro_modes'     => self::get_action_pro_modes( $name ),
+				'scopes'        => array_values( $action::get_scopes() ),
+				'default_scope' => $action::get_default_scope(),
+				'requires'      => array_values( $action::get_requires() ),
+				'settings'      => $settings,
+			);
+		}
+
+		$locations = array(
+			array(
+				'value' => '',
+				'label' => _x( 'Default location (products without warehouse)', 'shipments', 'shiptastic-for-woocommerce' ),
+			),
+		);
+
+		foreach ( \Vendidero\Shiptastic\Warehouse\Helper::get_all_warehouses() as $warehouse ) {
+			// Locations are warehouse groups and warehouses which are not part of a group.
+			if ( $warehouse->is_group() || ! $warehouse->get_group() ) {
+				$locations[] = array(
+					'value' => $warehouse->get_name(),
+					/* translators: %s group title */
+					'label' => $warehouse->is_group() ? sprintf( _x( '%s (group)', 'shipments', 'shiptastic-for-woocommerce' ), $warehouse->get_title() ) : $warehouse->get_title(),
+				);
+			}
+		}
+
+		$providers = array();
+
+		foreach ( wc_stc_get_shipping_provider_select( false ) as $name => $title ) {
+			$providers[] = array(
+				'value' => (string) $name,
+				'label' => wp_strip_all_tags( $title ),
+			);
+		}
+
+		$modes = array();
+
+		foreach ( Workflow::get_modes() as $mode => $title ) {
+			$modes[] = array(
+				'value' => (string) $mode,
+				'label' => wp_strip_all_tags( $title ),
+			);
+		}
+
+		/**
+		 * Filter to adjust the choices of the fulfillment workflow editor.
+		 *
+		 * @param array $data actions, modes, locations, providers, weight_unit
+		 *
+		 * @package Vendidero/Shiptastic
+		 */
+		return rest_ensure_response(
+			apply_filters(
+				'woocommerce_shiptastic_fulfillment_rest_workflow_editor_data',
+				array(
+					'actions'     => $actions,
+					'modes'       => $modes,
+					'locations'   => $locations,
+					'providers'   => $providers,
+					'weight_unit' => get_option( 'woocommerce_weight_unit', 'kg' ),
+				)
+			)
+		);
+	}
+
 	public function get_workflow( $request ) {
 		$workflow = $this->get_workflow_object( $request['id'] );
 
@@ -358,7 +568,7 @@ class FulfillmentController extends \WC_REST_Controller {
 	protected function save_workflow( $workflow, $request ) {
 		$props = array();
 
-		foreach ( array( 'title', 'status', 'priority', 'mode', 'filters', 'steps', 'on_error', 'run_as', 'schedule' ) as $prop ) {
+		foreach ( array( 'title', 'status', 'priority', 'mode', 'filters', 'steps' ) as $prop ) {
 			if ( isset( $request[ $prop ] ) ) {
 				$props[ $prop ] = $request[ $prop ];
 			}
@@ -366,9 +576,15 @@ class FulfillmentController extends \WC_REST_Controller {
 
 		$workflow->set_props( $props );
 
-		if ( ! $workflow->get_run_as() ) {
-			$workflow->set_run_as( get_current_user_id() );
-		}
+		/**
+		 * Action before a workflow is validated and saved via the REST API, e.g. to apply settings of extensions.
+		 *
+		 * @param Workflow        $workflow
+		 * @param WP_REST_Request $request
+		 *
+		 * @package Vendidero/Shiptastic
+		 */
+		do_action( 'woocommerce_shiptastic_fulfillment_rest_before_save_workflow', $workflow, $request );
 
 		$valid = $workflow->validate();
 
@@ -419,30 +635,12 @@ class FulfillmentController extends \WC_REST_Controller {
 		return rest_ensure_response( $data );
 	}
 
-	public function resume_workflow( $request ) {
-		$workflow = $this->get_workflow_object( $request['id'] );
-
-		if ( is_wp_error( $workflow ) ) {
-			return $workflow;
-		}
-
-		Scheduler::resume( $workflow );
-
-		return rest_ensure_response( self::prepare_workflow( $workflow ) );
-	}
-
 	/*
 	|--------------------------------------------------------------------------
 	| Queue
 	|--------------------------------------------------------------------------
 	*/
 
-	/**
-	 * @param QueueItem $item
-	 * @param array $args workflow (Workflow), execution (Runner::execute() result), include_token
-	 *
-	 * @return array
-	 */
 	/**
 	 * @param string $location_name
 	 *
@@ -458,6 +656,12 @@ class FulfillmentController extends \WC_REST_Controller {
 		return $location ? $location->get_title() : $location_name;
 	}
 
+	/**
+	 * @param QueueItem $item
+	 * @param array $args workflow (Workflow), execution (Runner::execute() result), include_token
+	 *
+	 * @return array
+	 */
 	public static function prepare_queue_item( $item, $args = array() ) {
 		$args  = wp_parse_args(
 			$args,
@@ -473,6 +677,7 @@ class FulfillmentController extends \WC_REST_Controller {
 			'id'                => $item->get_id(),
 			'order_id'          => $item->get_order_id(),
 			'order_number'      => $order ? $order->get_order_number() : (string) $item->get_order_id(),
+			'order_url'         => $order ? esc_url_raw( $order->get_edit_order_url() ) : '',
 			'package_key'       => $item->get_package_key(),
 			'location'          => $item->get_location(),
 			'location_title'    => self::get_location_title( $item->get_location() ),
@@ -518,6 +723,12 @@ class FulfillmentController extends \WC_REST_Controller {
 				'message'   => $execution['message'],
 				'code'      => $execution['code'],
 				'view_data' => $execution['view_data'],
+				'automated' => array_map(
+					function ( $step ) {
+						return $step->to_array();
+					},
+					isset( $execution['automated'] ) ? $execution['automated'] : array()
+				),
 			);
 		}
 
@@ -645,6 +856,16 @@ class FulfillmentController extends \WC_REST_Controller {
 			return new WP_Error( 'woocommerce_stc_rest_workflow_inactive', _x( 'The workflow is inactive.', 'shipments', 'shiptastic-for-woocommerce' ), array( 'status' => 400 ) );
 		}
 
+		$run = null;
+
+		if ( ! empty( $request['run_id'] ) ) {
+			$run = $this->get_interactive_run( $request['run_id'], $workflow );
+
+			if ( is_wp_error( $run ) ) {
+				return $run;
+			}
+		}
+
 		$items = Queue::claim(
 			$workflow,
 			array(
@@ -652,14 +873,19 @@ class FulfillmentController extends \WC_REST_Controller {
 				'user_id' => get_current_user_id(),
 				'source'  => 'interactive',
 				'exclude' => (array) $request['exclude'],
+				'token'   => $run ? $run->lock_token : '',
 			)
 		);
 
 		$token = empty( $items ) ? '' : $items[0]->get_lock_token();
 		$data  = array();
 
+		if ( $run && ! empty( $items ) ) {
+			$run = Run::update( $run->get_id(), array( 'total' => $run->total + count( $items ) ) );
+		}
+
 		foreach ( $items as $item ) {
-			$execution = $request['run'] ? Runner::execute( $item->get_id(), $workflow, $token ) : null;
+			$execution = $request['run'] ? Runner::execute( $item->get_id(), $workflow, $token, array( 'run' => $run ) ) : null;
 			$item      = Queue::get( $item->get_id() );
 
 			$data[] = self::prepare_queue_item(
@@ -677,12 +903,65 @@ class FulfillmentController extends \WC_REST_Controller {
 				'token'        => $token,
 				'lock_expires' => empty( $items ) ? null : wc_rest_prepare_date_response( Queue::get( $items[0]->get_id() )->get_lock_expires() ),
 				'items'        => $data,
+				'run'          => $run ? self::prepare_run_export( Run::get( $run->get_id() ) ) : null,
 			)
+		);
+	}
+
+	/**
+	 * @param int $run_id
+	 * @param Workflow|null $workflow
+	 *
+	 * @return Run|WP_Error The current user's active interactive run.
+	 */
+	protected function get_interactive_run( $run_id, $workflow = null ) {
+		$run = Run::get( $run_id );
+
+		if ( ! $run || ! $run->is_interactive() || get_current_user_id() !== $run->user_id ) {
+			return new WP_Error( 'woocommerce_stc_rest_invalid_run', _x( 'This run does not exist.', 'shipments', 'shiptastic-for-woocommerce' ), array( 'status' => 404 ) );
+		}
+
+		if ( ! $run->is_active() ) {
+			return new WP_Error( 'woocommerce_stc_rest_run_finished', _x( 'This run has finished already.', 'shipments', 'shiptastic-for-woocommerce' ), array( 'status' => 409 ) );
+		}
+
+		if ( $workflow && $workflow->get_id() !== $run->workflow_id ) {
+			return new WP_Error( 'woocommerce_stc_rest_invalid_run', _x( 'The run belongs to another workflow.', 'shipments', 'shiptastic-for-woocommerce' ), array( 'status' => 400 ) );
+		}
+
+		return $run;
+	}
+
+	/**
+	 * @param string $token
+	 *
+	 * @return Run|null The active run owning a queue lock token (interactive runs, orders of stopped automations).
+	 */
+	protected static function get_token_run( $token ) {
+		return Run::get_by_lock_token( (string) $token );
+	}
+
+	/**
+	 * @param Run $run
+	 *
+	 * @return array Export state of a run, returned with step responses of interactive runs.
+	 */
+	public static function prepare_run_export( $run ) {
+		return array(
+			'id'           => $run->get_id(),
+			'total'        => $run->total,
+			'processed'    => $run->processed,
+			'export_files' => \Vendidero\Shiptastic\BulkFulfillments\RunExport::has_export( $run ) ? $run->export_files : 0,
+			'export_url'   => \Vendidero\Shiptastic\BulkFulfillments\RunExport::get_download_url( $run ),
 		);
 	}
 
 	public function heartbeat( $request ) {
 		$count = Queue::heartbeat( $request['token'] );
+
+		if ( $run = self::get_token_run( $request['token'] ) ) { // phpcs:ignore Generic.CodeAnalysis.AssignmentInCondition.Found, Squiz.PHP.DisallowMultipleAssignments.FoundInControlStructure
+			Run::touch( $run->get_id() );
+		}
 
 		return rest_ensure_response(
 			array(
@@ -775,6 +1054,11 @@ class FulfillmentController extends \WC_REST_Controller {
 			)
 		);
 
+		// Interactive runs: files (export) created so far.
+		if ( ( $run = self::get_token_run( $token ) ) && $run->is_interactive() ) { // phpcs:ignore Generic.CodeAnalysis.AssignmentInCondition.Found, Squiz.PHP.DisallowMultipleAssignments.FoundInControlStructure
+			$data['run'] = self::prepare_run_export( $run );
+		}
+
 		if ( $submitted_step ) {
 			list( $action, $shipment_id ) = array_pad( explode( ':', $submitted_step ), 2, 0 );
 
@@ -793,6 +1077,29 @@ class FulfillmentController extends \WC_REST_Controller {
 	}
 
 	/**
+	 * Optional request args to run the workflow's automatic steps one by one (the app shows their progress):
+	 * auto_steps (number of automatic steps to run, 0 = return the next one) and manual (key of an automatic step to
+	 * handle interactively, e.g. to fix an error).
+	 *
+	 * @param WP_REST_Request $request
+	 *
+	 * @return array
+	 */
+	protected static function get_execution_limits( $request ) {
+		$args = array();
+
+		if ( isset( $request['auto_steps'] ) && '' !== $request['auto_steps'] && null !== $request['auto_steps'] ) {
+			$args['auto_steps'] = absint( $request['auto_steps'] );
+		}
+
+		if ( ! empty( $request['manual'] ) ) {
+			$args['manual'] = sanitize_text_field( wp_unslash( (string) $request['manual'] ) );
+		}
+
+		return $args;
+	}
+
+	/**
 	 * Continues the workflow for a locked item: runs background steps and returns the next step needing input.
 	 */
 	public function run_queue_item( $request ) {
@@ -802,7 +1109,7 @@ class FulfillmentController extends \WC_REST_Controller {
 			return $context;
 		}
 
-		$execution = Runner::execute( $context['item']->get_id(), $context['workflow'], (string) $request['token'] );
+		$execution = Runner::execute( $context['item']->get_id(), $context['workflow'], (string) $request['token'], array_merge( array( 'run' => self::get_token_run( $request['token'] ) ), self::get_execution_limits( $request ) ) );
 
 		return rest_ensure_response( $this->execution_response( $context['item']->get_id(), $context['workflow'], (string) $request['token'], $execution ) );
 	}
@@ -828,11 +1135,344 @@ class FulfillmentController extends \WC_REST_Controller {
 					array(
 						'step' => $step,
 						'data' => isset( $request['data'] ) ? (array) $request['data'] : array(),
-					)
+						'run'  => self::get_token_run( $request['token'] ),
+					) + self::get_execution_limits( $request )
 				);
 
 				return $this->execution_response( $context['item']->get_id(), $context['workflow'], (string) $request['token'], $execution, $step );
 			}
+		);
+	}
+
+	/*
+	|--------------------------------------------------------------------------
+	| Automation runs
+	|--------------------------------------------------------------------------
+	*/
+
+	/**
+	 * @param string $key Step key, e.g. pack:123
+	 *
+	 * @return string
+	 */
+	protected static function get_step_title( $key ) {
+		if ( empty( $key ) ) {
+			return '';
+		}
+
+		list( $action_name, $shipment_id ) = array_pad( explode( ':', $key ), 2, 0 );
+		$action                            = ActionRegistry::get( $action_name );
+		$title                             = $action ? $action::get_title() : $action_name;
+
+		/* translators: 1: step title 2: shipment id */
+		return absint( $shipment_id ) ? sprintf( _x( '%1$s (shipment #%2$d)', 'shipments', 'shiptastic-for-woocommerce' ), $title, absint( $shipment_id ) ) : $title;
+	}
+
+	protected static function get_order_data( $order_id ) {
+		$order = $order_id ? wc_get_order( $order_id ) : false;
+
+		return array(
+			'order_id'     => absint( $order_id ),
+			'order_number' => $order ? $order->get_order_number() : (string) $order_id,
+			'order_url'    => $order ? esc_url_raw( $order->get_edit_order_url() ) : '',
+		);
+	}
+
+	/**
+	 * @param Run $run
+	 * @param bool $details Whether to include details (e.g. the errors of automation runs, see the filter).
+	 *
+	 * @return array
+	 */
+	public static function prepare_run( $run, $details = false ) {
+		$workflow = $run->get_workflow();
+		$current  = null;
+
+		if ( $run->current_queue_id && ( $item = Queue::get( $run->current_queue_id ) ) ) {
+			$step = $run->current_step;
+
+			// While running, show the step processed next.
+			if ( 'running' === $run->status && $workflow && ( $next = Runner::get_next_step( $item, $workflow ) ) ) {
+				$step = $next->get_key();
+			}
+
+			$current = array_merge(
+				self::get_order_data( $item->get_order_id() ),
+				array(
+					'queue_id'   => $item->get_id(),
+					'step'       => $step,
+					'step_title' => self::get_step_title( $step ),
+				)
+			);
+		}
+
+		$data = array(
+			'id'             => $run->get_id(),
+			'workflow_id'    => $run->workflow_id,
+			'workflow_title' => $workflow ? $workflow->get_title() : '',
+			'is_interactive' => $run->is_interactive(),
+			'mode'           => $run->mode,
+			'source'         => $run->source,
+			'status'         => $run->status,
+			'is_active'      => $run->is_active(),
+			'user_id'        => $run->user_id,
+			'total'          => max( $run->total, $run->processed ),
+			'processed'      => $run->processed,
+			'succeeded'      => $run->succeeded,
+			'failed'         => $run->failed,
+			// Files created by the steps (zip), downloadable during and after the run.
+			'export_files'   => \Vendidero\Shiptastic\BulkFulfillments\RunExport::has_export( $run ) ? $run->export_files : 0,
+			'export_url'     => \Vendidero\Shiptastic\BulkFulfillments\RunExport::get_download_url( $run ),
+			'current'        => $current,
+			'message'        => $run->message,
+			'dismissed'      => $run->dismissed,
+			'date_created'   => $run->date_created ? wc_rest_prepare_date_response( $run->date_created ) : null,
+			'date_finished'  => $run->date_finished ? wc_rest_prepare_date_response( $run->date_finished ) : null,
+			'finished_at'    => $run->date_finished ? strtotime( $run->date_finished . ' UTC' ) : 0,
+			// The run's screen in the fulfillment app (progress, report).
+			'url'            => esc_url_raw( add_query_arg( 'run', $run->get_id(), \Vendidero\Shiptastic\BulkFulfillments\App::get_url() ) ),
+		);
+
+		/**
+		 * Filter to adjust the REST (and fulfillment app) data of a run, e.g. data of runs of extensions.
+		 *
+		 * @param array $data
+		 * @param Run   $run
+		 * @param bool  $details Whether details were requested (e.g. a single run).
+		 *
+		 * @package Vendidero/Shiptastic
+		 */
+		return apply_filters( 'woocommerce_shiptastic_fulfillment_rest_prepare_run', $data, $run, $details );
+	}
+
+	/**
+	 * Modes an action supports which require Shiptastic Pro, e.g. running a step which supports user interaction
+	 * automatically. Presented with a pro marker within the workflow editor in case automations are not available.
+	 *
+	 * @param string $action_name
+	 *
+	 * @return string[]
+	 */
+	public static function get_action_pro_modes( $action_name ) {
+		$action = ActionRegistry::get( $action_name );
+
+		if ( ! $action || App::has_automation() || ! $action::supports_mode( 'interactive' ) || ! $action::supports_mode( 'background' ) ) {
+			return array();
+		}
+
+		return array_values( array_diff( array( 'background' ), Workflow::get_action_modes( $action_name ) ) );
+	}
+
+	/**
+	 * @return string[] Run modes which may be started via the REST API: interactive, extensions may add modes.
+	 */
+	public static function get_run_modes() {
+		/**
+		 * Filter to adjust the run modes which may be started via the REST API.
+		 *
+		 * @param string[] $modes
+		 *
+		 * @package Vendidero/Shiptastic
+		 */
+		return array_values( array_unique( array_merge( array( 'interactive' ), (array) apply_filters( 'woocommerce_shiptastic_fulfillment_rest_run_modes', array( 'interactive' ) ) ) ) );
+	}
+
+	/**
+	 * @param int $id
+	 *
+	 * @return Run|WP_Error The run in case the current user started it (or may manage WooCommerce).
+	 */
+	protected function get_run_object( $id ) {
+		$run = Run::get( $id );
+
+		if ( ! $run ) {
+			return new WP_Error( 'run_not_found', _x( 'The run does not exist.', 'shipments', 'shiptastic-for-woocommerce' ), array( 'status' => 404 ) );
+		}
+
+		if ( get_current_user_id() !== $run->user_id && ! current_user_can( 'manage_woocommerce' ) ) {
+			return new WP_Error( 'run_forbidden', _x( 'Sorry, you cannot access this run.', 'shipments', 'shiptastic-for-woocommerce' ), array( 'status' => rest_authorization_required_code() ) );
+		}
+
+		return $run;
+	}
+
+	public function get_runs( $request ) {
+		$args = array(
+			'user_id'     => ! empty( $request['all_users'] ) && current_user_can( 'manage_woocommerce' ) ? 0 : get_current_user_id(),
+			'workflow_id' => absint( $request['workflow_id'] ),
+			'status'      => ! empty( $request['active'] ) ? Run::ACTIVE_STATUSES : array(),
+			'dismissed'   => ! empty( $request['undismissed'] ) ? false : null,
+			'limit'       => 20,
+		);
+
+		if ( 'interactive' === $request['source'] ) {
+			$args['source'] = 'interactive';
+		} else {
+			$args['exclude_source'] = 'interactive';
+		}
+
+		return rest_ensure_response(
+			array_map(
+				function ( $run ) {
+					return self::prepare_run( $run );
+				},
+				Run::query( $args )
+			)
+		);
+	}
+
+	public function start_run( $request ) {
+		$workflow = $this->get_workflow_object( $request['workflow_id'] );
+
+		if ( is_wp_error( $workflow ) ) {
+			return $workflow;
+		}
+
+		if ( 'interactive' === $request['mode'] ) {
+			$run = RunProcessor::start_interactive( $workflow, get_current_user_id() );
+		} else {
+			/**
+			 * Filter to start a run of another mode (e.g. an automation run) via the REST API.
+			 *
+			 * @param Run|\WP_Error   $run
+			 * @param Workflow        $workflow
+			 * @param WP_REST_Request $request
+			 *
+			 * @package Vendidero/Shiptastic
+			 */
+			$run = apply_filters( 'woocommerce_shiptastic_fulfillment_rest_start_run', new WP_Error( 'woocommerce_stc_rest_run_mode_unsupported', _x( 'This run mode is not supported.', 'shipments', 'shiptastic-for-woocommerce' ), array( 'status' => 400 ) ), $workflow, $request );
+		}
+
+		if ( is_wp_error( $run ) ) {
+			return $run;
+		}
+
+		$response = rest_ensure_response( self::prepare_run( $run, true ) );
+		$response->set_status( 201 );
+
+		return $response;
+	}
+
+	public function get_run( $request ) {
+		$run = $this->get_run_object( $request['id'] );
+
+		if ( is_wp_error( $run ) ) {
+			return $run;
+		}
+
+		/**
+		 * Action before a single run is returned via the REST API (e.g. while its screen polls it).
+		 *
+		 * @param Run $run
+		 *
+		 * @package Vendidero/Shiptastic
+		 */
+		do_action( 'woocommerce_shiptastic_fulfillment_rest_get_run', $run );
+
+		return rest_ensure_response( self::prepare_run( $run, true ) );
+	}
+
+	/**
+	 * Hides a finished run from the run lists (overview).
+	 */
+	public function dismiss_run( $request ) {
+		$run = $this->get_run_object( $request['id'] );
+
+		if ( is_wp_error( $run ) ) {
+			return $run;
+		}
+
+		return rest_ensure_response( self::prepare_run( Run::update( $run->get_id(), array( 'dismissed' => true ) ), true ) );
+	}
+
+	/**
+	 * The orders locked by an interactive run (incl. the lock token), e.g. to resume it after a reload or on another
+	 * device. The current step of each order is determined by the client (queue/{id}/run).
+	 */
+	public function get_run_items( $request ) {
+		$run = $this->get_interactive_run( $request['id'] );
+
+		if ( is_wp_error( $run ) ) {
+			return $run;
+		}
+
+		$workflow = $run->get_workflow();
+		$items    = array();
+
+		foreach ( Queue::get_by_token( $run->lock_token ) as $item ) {
+			$items[] = self::prepare_queue_item(
+				$item,
+				array(
+					'workflow'      => $workflow,
+					'include_token' => true,
+				)
+			);
+		}
+
+		Run::touch( $run->get_id() );
+
+		return rest_ensure_response(
+			array(
+				'items' => $items,
+				'run'   => self::prepare_run_export( $run ),
+			)
+		);
+	}
+
+	/**
+	 * Ends an interactive run: remaining orders are released, the export stays available.
+	 */
+	public function finish_run( $request ) {
+		$run = $this->get_interactive_run( $request['id'] );
+
+		if ( is_wp_error( $run ) ) {
+			// Finished already (e.g. on another device): nothing to do.
+			$existing = Run::get( $request['id'] );
+
+			if ( $existing && $existing->is_interactive() && get_current_user_id() === $existing->user_id ) {
+				return rest_ensure_response( self::prepare_run( $existing, true ) );
+			}
+
+			return $run;
+		}
+
+		return rest_ensure_response( self::prepare_run( RunProcessor::finish_interactive( $run ), true ) );
+	}
+
+	/**
+	 * The queue item (incl. lock token, steps and shipments layout) with a failed step as current step, e.g. to fix an
+	 * order a run (of an extension) failed on within the fulfillment app.
+	 *
+	 * @param QueueItem $item
+	 * @param Workflow $workflow
+	 * @param string $step_key
+	 * @param string $message
+	 *
+	 * @return array
+	 */
+	public static function prepare_failed_item( $item, $workflow, $step_key, $message ) {
+		$step = null;
+
+		foreach ( Runner::get_steps( $item, $workflow ) as $candidate ) {
+			if ( $candidate->get_key() === $step_key ) {
+				$step = $candidate;
+				break;
+			}
+		}
+
+		return self::prepare_queue_item(
+			$item,
+			array(
+				'workflow'      => $workflow,
+				'include_token' => true,
+				'execution'     => array(
+					'status'    => 'error',
+					'step'      => $step,
+					'message'   => $message,
+					'code'      => 'automation_failed',
+					'view_data' => array(),
+				),
+			)
 		);
 	}
 
@@ -857,7 +1497,7 @@ class FulfillmentController extends \WC_REST_Controller {
 					return $reopened;
 				}
 
-				$execution = Runner::execute( $context['item']->get_id(), $context['workflow'], $token );
+				$execution = Runner::execute( $context['item']->get_id(), $context['workflow'], $token, array( 'run' => self::get_token_run( $token ) ) );
 
 				return $this->execution_response( $context['item']->get_id(), $context['workflow'], $token, $execution );
 			}
@@ -888,7 +1528,25 @@ class FulfillmentController extends \WC_REST_Controller {
 
 				Queue::bump_version( $item->get_id(), $token );
 
-				$execution = Runner::execute( $item->get_id(), $context['workflow'], $token );
+				if ( false === $request['continue'] ) {
+					$item = Queue::get( $item->get_id() );
+
+					return array_merge(
+						self::prepare_queue_item(
+							$item,
+							array(
+								'workflow'      => $context['workflow'],
+								'include_token' => $item->get_lock_token() === $token,
+							)
+						),
+						array(
+							'layout' => ShipmentLayout::get_data( $item ),
+							'id_map' => (object) $applied['id_map'],
+						)
+					);
+				}
+
+				$execution = Runner::execute( $item->get_id(), $context['workflow'], $token, array( 'run' => self::get_token_run( $token ) ) );
 				$response  = $this->execution_response( $item->get_id(), $context['workflow'], $token, $execution );
 
 				if ( is_array( $response ) ) {
@@ -904,10 +1562,16 @@ class FulfillmentController extends \WC_REST_Controller {
 		return $this->idempotent(
 			$request,
 			function () use ( $request ) {
+				$run      = self::get_token_run( $request['token'] );
 				$released = Queue::release( absint( $request['id'] ), (string) $request['token'] );
 
 				if ( is_wp_error( $released ) ) {
 					return $released;
+				}
+
+				// Put back during an interactive run: no longer part of it.
+				if ( $run && $run->is_interactive() ) {
+					Run::update( $run->get_id(), array( 'total' => max( 0, $run->total - 1 ) ) );
 				}
 
 				return self::prepare_queue_item( Queue::get( absint( $request['id'] ) ) );
@@ -919,10 +1583,16 @@ class FulfillmentController extends \WC_REST_Controller {
 		return $this->idempotent(
 			$request,
 			function () use ( $request ) {
+				$run     = self::get_token_run( $request['token'] );
 				$skipped = Runner::skip( absint( $request['id'] ), (string) $request['token'], isset( $request['message'] ) ? wc_clean( $request['message'] ) : '' );
 
 				if ( is_wp_error( $skipped ) ) {
 					return $skipped;
+				}
+
+				// Moved to the exceptions during an interactive run.
+				if ( $run && $run->is_interactive() ) {
+					Run::update( $run->get_id(), array( 'increment' => array( 'processed', 'failed' ) ) );
 				}
 
 				return self::prepare_queue_item( Queue::get( absint( $request['id'] ) ) );

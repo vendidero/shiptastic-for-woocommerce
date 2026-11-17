@@ -19,7 +19,7 @@ class Package {
 	 *
 	 * @var string
 	 */
-	const VERSION = '5.1.5';
+	const VERSION = '6.0.0';
 
 	public static $upload_dir_suffix = '';
 
@@ -1121,6 +1121,7 @@ class Package {
 			'stc_fulfillment_steps'        => 'woocommerce_stc_fulfillment_steps',
 			'stc_fulfillment_workflows'    => 'woocommerce_stc_fulfillment_workflows',
 			'stc_fulfillment_workflowmeta' => 'woocommerce_stc_fulfillment_workflowmeta',
+			'stc_fulfillment_runs'         => 'woocommerce_stc_fulfillment_runs',
 		);
 
 		foreach ( $tables as $name => $table ) {

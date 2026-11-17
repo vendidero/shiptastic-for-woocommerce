@@ -6,6 +6,7 @@
  */
 let config = {
     restUrl: '',
+    restRoot: '',
     nonce: '',
     nonceUrl: '',
 };
@@ -29,8 +30,12 @@ export async function refreshNonce() {
     return false;
 }
 
-export async function request( path, { method = 'GET', body = null, query = null } = {} ) {
-    let url = config.restUrl.replace( /\/$/, '' ) + '/' + path.replace( /^\//, '' );
+/**
+ * @param {string} path Relative to the fulfillment namespace, or to the REST root in case `root` is set (e.g. wc/v3/orders/1).
+ * @param {Object} options method, body, query, root (use the REST root instead of the fulfillment namespace)
+ */
+export async function request( path, { method = 'GET', body = null, query = null, root = false } = {} ) {
+    let url = ( root ? config.restRoot : config.restUrl ).replace( /\/$/, '' ) + '/' + path.replace( /^\//, '' );
 
     if ( query ) {
         url += ( url.includes( '?' ) ? '&' : '?' ) + new URLSearchParams( query ).toString();

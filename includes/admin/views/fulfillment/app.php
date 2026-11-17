@@ -13,19 +13,22 @@ $queue_tabs = array(
 	'done'    => _x( 'Done', 'shipments-queue-status', 'shiptastic-for-woocommerce' ),
 );
 ?>
-<div class="stc-app" data-wp-interactive="shiptastic/fulfillment" data-wp-init="callbacks.init" data-wp-class--is-busy="state.busy" data-wp-class--is-run="state.isRunScreen">
+<div class="stc-app" data-wp-interactive="shiptastic/fulfillment" data-wp-init="callbacks.init" data-wp-watch="callbacks.syncUrl" data-wp-class--is-busy="state.busy" data-wp-class--is-run="state.isSubScreen">
 	<header class="stc-page-header">
 		<div class="stc-page-header-main">
-			<button type="button" class="stc-icon-button stc-header-back" data-wp-on--click="actions.stopRun" data-wp-bind--hidden="!state.isRunScreen" aria-label="<?php echo esc_attr_x( 'Back to overview', 'shipments', 'shiptastic-for-woocommerce' ); ?>">&larr;</button>
+			<button type="button" class="stc-icon-button stc-header-back" data-wp-on--click="actions.goToOverview" data-wp-bind--hidden="!state.isSubScreen" aria-label="<?php echo esc_attr_x( 'Back to overview', 'shipments', 'shiptastic-for-woocommerce' ); ?>">&larr;</button>
 			<h1 class="stc-breadcrumbs">
 				<nav aria-label="<?php echo esc_attr_x( 'Breadcrumbs', 'shipments', 'shiptastic-for-woocommerce' ); ?>">
 					<ol>
 						<li>
-							<span data-wp-bind--hidden="state.isRunScreen" aria-current="page"><?php echo esc_html_x( 'Fulfillment', 'shipments', 'shiptastic-for-woocommerce' ); ?></span>
-							<button type="button" class="stc-breadcrumb-link" data-wp-on--click="actions.stopRun" data-wp-bind--hidden="!state.isRunScreen" title="<?php echo esc_attr_x( 'Back to overview (unfinished orders are put back into the queue)', 'shipments', 'shiptastic-for-woocommerce' ); ?>"><?php echo esc_html_x( 'Fulfillment', 'shipments', 'shiptastic-for-woocommerce' ); ?></button>
+							<span data-wp-bind--hidden="state.isSubScreen" aria-current="page"><?php echo esc_html_x( 'Fulfillment', 'shipments', 'shiptastic-for-woocommerce' ); ?></span>
+							<button type="button" class="stc-breadcrumb-link" data-wp-on--click="actions.goToOverview" data-wp-bind--hidden="!state.isSubScreen" data-wp-bind--title="state.backTitle"><?php echo esc_html_x( 'Fulfillment', 'shipments', 'shiptastic-for-woocommerce' ); ?></button>
 						</li>
-						<li class="stc-breadcrumb-workflow" data-wp-bind--hidden="!state.isRunScreen" data-wp-text="state.currentWorkflowTitle"></li>
-						<li class="stc-breadcrumb-current" data-wp-bind--hidden="!state.showOrderBreadcrumb" aria-current="page">#<span data-wp-text="state.currentItem.order_number"></span></li>
+						<li class="stc-breadcrumb-workflow" data-wp-bind--hidden="!state.isSubScreen" data-wp-text="state.headerWorkflowTitle"></li>
+						<li class="stc-breadcrumb-current" data-wp-bind--hidden="!state.isReportScreen" aria-current="page" data-wp-text="state.reportTitle"></li>
+						<li class="stc-breadcrumb-current" data-wp-bind--hidden="!state.showOrderBreadcrumb" aria-current="page">
+							<button type="button" class="stc-breadcrumb-order" data-wp-on--click="actions.orderDetails.open" title="<?php echo esc_attr_x( 'Order details', 'shipments', 'shiptastic-for-woocommerce' ); ?>">#<span data-wp-text="state.currentItem.order_number"></span></button>
+						</li>
 					</ol>
 				</nav>
 			</h1>
@@ -35,32 +38,80 @@ $queue_tabs = array(
 		</div>
 		<div class="stc-page-actions">
 			<button type="button" class="stc-button is-small" data-wp-on--click="actions.shipments.open" data-wp-bind--hidden="!state.showShipmentsButton" data-wp-text="state.shipmentsButtonText"></button>
-			<a class="stc-button is-small is-tertiary stc-header-exit" data-wp-class--is-run="state.isRunScreen" href="<?php echo esc_url( admin_url( 'admin.php?page=wc-orders' ) ); ?>"><?php echo esc_html_x( 'Exit', 'shipments', 'shiptastic-for-woocommerce' ); ?></a>
+			<a class="stc-button is-small is-tertiary stc-header-exit" data-wp-class--is-run="state.isSubScreen" href="<?php echo esc_url( admin_url( 'admin.php?page=wc-orders' ) ); ?>"><?php echo esc_html_x( 'Exit', 'shipments', 'shiptastic-for-woocommerce' ); ?></a>
 		</div>
 	</header>
 
-	<div class="stc-notice" role="status" data-wp-bind--hidden="!state.notice.message" data-wp-class--is-error="state.isErrorNotice">
+	<?php /* Notices: on top of the screen, during a run in the bottom right corner (above the action bar). */ ?>
+	<div class="stc-notice" role="status" data-wp-bind--hidden="!state.notice.message" data-wp-class--is-error="state.isErrorNotice" data-wp-class--is-success="state.isSuccessNotice" data-wp-class--is-run="state.isRunScreen" data-wp-class--is-raised="state.autoStepsText">
 		<p data-wp-text="state.notice.message"></p>
 		<button type="button" class="stc-icon-button" data-wp-on--click="actions.dismissNotice" aria-label="<?php echo esc_attr_x( 'Dismiss', 'shipments', 'shiptastic-for-woocommerce' ); ?>">&times;</button>
 	</div>
 
 	<main class="stc-main">
 		<section class="stc-screen stc-overview" data-wp-bind--hidden="!state.isOverviewScreen">
-			<h2 class="stc-section-title"><?php echo esc_html_x( 'Workflows', 'shipments', 'shiptastic-for-woocommerce' ); ?></h2>
+			<div class="stc-section-header">
+				<h2 class="stc-section-title"><?php echo esc_html_x( 'Workflows', 'shipments', 'shiptastic-for-woocommerce' ); ?></h2>
+				<?php if ( current_user_can( 'manage_woocommerce' ) ) : ?>
+					<button type="button" class="stc-button is-small" data-wp-on--click="actions.workflowEditor.open"><?php echo esc_html_x( '+ New workflow', 'shipments', 'shiptastic-for-woocommerce' ); ?></button>
+				<?php endif; ?>
+			</div>
 			<ul class="stc-cards">
 				<template data-wp-each--workflow="state.workflows" data-wp-each-key="context.workflow.id">
 					<li class="stc-card">
 						<div class="stc-card-body">
-							<strong class="stc-card-title" data-wp-text="context.workflow.title"></strong>
+							<strong class="stc-card-title"><span data-wp-text="context.workflow.title"></span> <span class="stc-badge is-cancelled" data-wp-bind--hidden="!state.workflowEditorData.workflowStatusText" data-wp-text="state.workflowEditorData.workflowStatusText"></span></strong>
 							<span class="stc-card-meta" data-wp-text="state.workflowStepsText"></span>
 							<span class="stc-card-meta" data-wp-text="state.workflowOpenText"></span>
 						</div>
-						<button type="button" class="stc-button is-primary" data-wp-on--click="actions.startWorkflow" data-wp-bind--hidden="state.isBackgroundWorkflow" data-wp-bind--disabled="state.busy"><?php echo esc_html_x( 'Start', 'shipments', 'shiptastic-for-woocommerce' ); ?></button>
-						<span class="stc-badge" data-wp-bind--hidden="!state.isBackgroundWorkflow"><?php echo esc_html_x( 'Runs in the background', 'shipments', 'shiptastic-for-woocommerce' ); ?></span>
+						<div class="stc-card-actions">
+							<?php if ( current_user_can( 'manage_woocommerce' ) ) : ?>
+								<button type="button" class="stc-button is-tertiary" data-wp-on--click="actions.workflowEditor.open"><?php echo esc_html_x( 'Edit', 'shipments', 'shiptastic-for-woocommerce' ); ?></button>
+							<?php endif; ?>
+							<?php
+							/**
+							 * Action to output additional actions (buttons) of a workflow card (context.workflow) in the fulfillment app.
+							 *
+							 * @package Vendidero/Shiptastic
+							 */
+							do_action( 'woocommerce_shiptastic_fulfillment_app_workflow_card_actions' );
+							?>
+							<button type="button" class="stc-button is-primary" data-wp-on--click="actions.startWorkflow" data-wp-bind--hidden="!state.canStartInteractive" data-wp-bind--disabled="state.busy" data-wp-text="state.startLabel"><?php echo esc_html_x( 'Start', 'shipments', 'shiptastic-for-woocommerce' ); ?></button>
+						</div>
+						<?php
+						/**
+						 * Action to output additional content of a workflow card (context.workflow) in the fulfillment app.
+						 *
+						 * @package Vendidero/Shiptastic
+						 */
+						do_action( 'woocommerce_shiptastic_fulfillment_app_workflow_card_after' );
+						?>
 					</li>
 				</template>
 			</ul>
 			<p class="stc-empty" data-wp-bind--hidden="state.hasWorkflows"><?php echo esc_html_x( 'There are no active workflows yet.', 'shipments', 'shiptastic-for-woocommerce' ); ?></p>
+			<?php
+			if ( current_user_can( 'manage_woocommerce' ) ) {
+				echo \Vendidero\Shiptastic\BulkFulfillments\App::render_view( 'workflow-editor' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+			}
+			?>
+
+			<div data-wp-bind--hidden="!state.hasRuns">
+				<h2 class="stc-section-title" data-wp-text="state.runsListTitle"></h2>
+				<ul class="stc-list">
+					<template data-wp-each--run="state.runs" data-wp-each-key="context.run.id">
+						<li class="stc-list-item">
+							<button type="button" class="stc-list-button" data-wp-on--click="actions.report.openFromList">
+								<span class="stc-list-body">
+									<strong data-wp-text="context.run.workflow_title"></strong>
+									<span class="stc-list-meta" data-wp-text="state.runListMeta"></span>
+								</span>
+								<span data-wp-bind--class="state.runListStatusClass" data-wp-text="state.runListStatus"></span>
+							</button>
+						</li>
+					</template>
+				</ul>
+			</div>
 
 			<div class="stc-section-header">
 				<h2 class="stc-section-title"><?php echo esc_html_x( 'Queue', 'shipments', 'shiptastic-for-woocommerce' ); ?></h2>
@@ -107,9 +158,25 @@ $queue_tabs = array(
 			</nav>
 		</section>
 
+		<?php echo \Vendidero\Shiptastic\BulkFulfillments\App::render_view( 'report' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+
+		<?php
+		/**
+		 * Action to output additional screens of the fulfillment app.
+		 *
+		 * @package Vendidero/Shiptastic
+		 */
+		do_action( 'woocommerce_shiptastic_fulfillment_app_screens' );
+		?>
+
 		<section class="stc-screen stc-run" data-wp-bind--hidden="!state.isRunScreen">
 			<div data-wp-bind--hidden="!state.currentItem">
 				<?php /* Step navigation: scales to any number of steps (summary + segmented progress, full list on demand). */ ?>
+				<?php /* Files created by the steps of this run so far (export). */ ?>
+				<div class="stc-run-export" data-wp-bind--hidden="!state.run.exportUrl">
+					<a class="stc-button is-small" data-wp-bind--href="state.run.exportUrl" download data-wp-text="state.runExportText"></a>
+				</div>
+
 				<div class="stc-step-nav" data-wp-class--is-open="state.stepListOpen" data-wp-on-document--click="actions.closeStepListOutside" data-wp-on-document--keydown="actions.closeStepListOnEscape">
 					<button type="button" class="stc-step-summary" data-wp-on--click="actions.toggleStepList" data-wp-bind--aria-expanded="state.stepListOpen" aria-controls="stc-step-list">
 						<span class="stc-step-count" data-wp-text="state.stepCountText"></span>
@@ -118,15 +185,16 @@ $queue_tabs = array(
 					</button>
 					<div class="stc-step-segments" aria-hidden="true">
 						<template data-wp-each--step="state.visibleSteps" data-wp-each-key="context.step.key">
-							<span class="stc-step-segment" data-wp-class--is-done="context.step.is_done" data-wp-class--is-current="state.isCurrentStep"></span>
+							<span class="stc-step-segment" data-wp-class--is-done="context.step.is_done" data-wp-class--is-current="state.isCurrentStep" data-wp-class--is-auto="state.isAutoStep"></span>
 						</template>
 					</div>
 					<ol id="stc-step-list" class="stc-step-list" data-wp-bind--hidden="!state.stepListOpen">
 						<template data-wp-each--step="state.visibleSteps" data-wp-each-key="context.step.key">
-							<li class="stc-step-list-item" data-wp-class--is-done="context.step.is_done" data-wp-class--is-current="state.isCurrentStep">
+							<li class="stc-step-list-item" data-wp-class--is-done="context.step.is_done" data-wp-class--is-current="state.isCurrentStep" data-wp-class--is-auto="state.isAutoStep">
 								<button type="button" data-wp-on--click="actions.reopenStep" data-wp-bind--disabled="!state.isStepReopenable" data-wp-bind--aria-current="state.isCurrentStep">
 									<span class="stc-step-status" aria-hidden="true"></span>
 									<span data-wp-text="state.stepTitle"></span>
+									<span class="stc-tag is-auto" data-wp-bind--hidden="!state.isAutoStep"><?php echo esc_html_x( 'Automatic', 'shipments', 'shiptastic-for-woocommerce' ); ?></span>
 									<span class="stc-step-hint" data-wp-bind--hidden="!state.isStepReopenable"><?php echo esc_html_x( 'Redo', 'shipments', 'shiptastic-for-woocommerce' ); ?></span>
 								</button>
 							</li>
@@ -134,18 +202,87 @@ $queue_tabs = array(
 					</ol>
 				</div>
 
-				<div class="stc-step-error" role="alert" data-wp-bind--hidden="!state.showStepError">
+				<?php /* An automatic step handled interactively after it failed: the error it failed with. */ ?>
+				<p class="stc-manual-step" data-wp-bind--hidden="!state.manualStepText" data-wp-text="state.manualStepText"></p>
+
+				<div class="stc-step-error" role="alert" data-wp-bind--hidden="!state.showStepError" data-wp-class--is-external="state.isExternalItem">
+					<?php
+					/**
+					 * Action to output content before the error of the current step (e.g. while fixing an order a run of an
+					 * extension failed on).
+					 *
+					 * @package Vendidero/Shiptastic
+					 */
+					do_action( 'woocommerce_shiptastic_fulfillment_app_step_error_before' );
+					?>
 					<p data-wp-text="state.stepErrorMessage"></p>
 					<div class="stc-button-row">
 						<button type="button" class="stc-button" data-wp-on--click="actions.shipments.open" data-wp-bind--hidden="!state.hasLayout"><?php echo esc_html_x( 'Edit shipments', 'shipments', 'shiptastic-for-woocommerce' ); ?></button>
+						<?php
+						/**
+						 * Action to output additional actions (buttons) of the current step's error.
+						 *
+						 * @package Vendidero/Shiptastic
+						 */
+						do_action( 'woocommerce_shiptastic_fulfillment_app_step_error_actions' );
+						?>
+						<a class="stc-button" target="_blank" data-wp-bind--href="state.currentOrderUrl" data-wp-bind--hidden="!state.canOpenOrder"><?php echo esc_html_x( 'Open order', 'shipments', 'shiptastic-for-woocommerce' ); ?></a>
 						<button type="button" class="stc-button" data-wp-on--click="actions.retryStep" data-wp-bind--hidden="!state.canRetry"><?php echo esc_html_x( 'Retry', 'shipments', 'shiptastic-for-woocommerce' ); ?></button>
-						<button type="button" class="stc-button is-destructive" data-wp-on--click="actions.skipItem"><?php echo esc_html_x( 'Move to exceptions', 'shipments', 'shiptastic-for-woocommerce' ); ?></button>
+						<button type="button" class="stc-button is-destructive" data-wp-on--click="actions.skipItem" data-wp-bind--hidden="state.isExternalItem"><?php echo esc_html_x( 'Move to exceptions', 'shipments', 'shiptastic-for-woocommerce' ); ?></button>
 					</div>
+					<?php
+					/**
+					 * Action to output content after the error of the current step.
+					 *
+					 * @package Vendidero/Shiptastic
+					 */
+					do_action( 'woocommerce_shiptastic_fulfillment_app_step_error_after' );
+					?>
 				</div>
 
 				<?php echo $action_templates; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
 
+				<?php
+				/*
+				 * Progress of the automatic steps, run one by one (after submitting a step, retrying or resuming). Pauses at the
+				 * first error: shown inline, the user may retry, jump into the step to fix it or move the order to the exceptions.
+				 */
+				?>
+				<div class="stc-auto-run" data-wp-bind--hidden="!state.autoSteps.active" data-wp-class--is-done="state.isAutoStepsDone" data-wp-class--is-paused="state.autoSteps.paused">
+					<div class="stc-auto-run-card" role="status" aria-live="polite">
+						<span class="stc-spinner" aria-hidden="true"></span>
+						<strong class="stc-auto-run-title" data-wp-text="state.autoStepsTitle"></strong>
+						<ul class="stc-auto-run-steps">
+							<template data-wp-each--step="state.autoSteps.steps" data-wp-each-key="context.step.key">
+								<li data-wp-class--is-running="state.isAutoStepRunning" data-wp-class--is-done="state.isAutoStepDone" data-wp-class--is-error="state.isAutoStepFailed">
+									<span class="stc-auto-run-status" aria-hidden="true"></span>
+									<span>
+										<strong data-wp-text="state.stepTitle"></strong>
+										<span class="stc-hint" data-wp-bind--hidden="!context.step.description" data-wp-text="context.step.description"></span>
+										<span class="stc-error-text" role="alert" data-wp-bind--hidden="!context.step.message" data-wp-text="context.step.message"></span>
+									</span>
+								</li>
+							</template>
+						</ul>
+						<div class="stc-button-row" data-wp-bind--hidden="!state.autoSteps.paused">
+							<button type="button" class="stc-button is-primary" data-wp-on--click="actions.retryStep" data-wp-bind--disabled="state.busy"><?php echo esc_html_x( 'Retry', 'shipments', 'shiptastic-for-woocommerce' ); ?></button>
+							<button type="button" class="stc-button" data-wp-on--click="actions.fixAutoStep" data-wp-bind--disabled="state.busy" data-wp-text="state.autoFixLabel"></button>
+							<button type="button" class="stc-button is-destructive" data-wp-on--click="actions.skipAutoStep" data-wp-bind--disabled="state.busy"><?php echo esc_html_x( 'Move to exceptions', 'shipments', 'shiptastic-for-woocommerce' ); ?></button>
+						</div>
+						<p class="stc-hint" data-wp-bind--hidden="state.autoSteps.paused" data-wp-class--is-invisible="state.isAutoStepsDone">
+							<span data-wp-bind--hidden="state.autoSteps.slow"><?php echo esc_html_x( 'Please keep this window open.', 'shipments', 'shiptastic-for-woocommerce' ); ?></span>
+							<span data-wp-bind--hidden="!state.autoSteps.slow"><?php echo esc_html_x( 'Still working - this may take a moment, e.g. while a shipping provider creates a label. Please keep this window open.', 'shipments', 'shiptastic-for-woocommerce' ); ?></span>
+						</p>
+					</div>
+				</div>
+
 				<?php echo \Vendidero\Shiptastic\BulkFulfillments\App::render_view( 'shipments' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+				<?php echo \Vendidero\Shiptastic\BulkFulfillments\App::render_view( 'order' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+			</div>
+
+			<div class="stc-empty stc-run-loading" role="status" data-wp-bind--hidden="!state.showRunLoading">
+				<span class="stc-spinner" aria-hidden="true"></span>
+				<p><?php echo esc_html_x( 'Loading the next orders…', 'shipments', 'shiptastic-for-woocommerce' ); ?></p>
 			</div>
 
 			<div class="stc-empty" data-wp-bind--hidden="!state.showEmptyRun">
@@ -156,6 +293,8 @@ $queue_tabs = array(
 	</main>
 
 	<footer class="stc-actionbar" data-wp-bind--hidden="!state.showActionBar">
+		<?php /* Steps running automatically once the current step is submitted. */ ?>
+		<p class="stc-auto-hint" role="status" data-wp-bind--hidden="!state.autoStepsText" data-wp-class--is-running="state.busy" data-wp-text="state.autoStepsText"></p>
 		<button type="button" class="stc-button" data-wp-on--click="actions.reopenStep" data-wp-bind--hidden="!state.canGoBack" data-wp-bind--disabled="state.busy" aria-label="<?php echo esc_attr_x( 'Back to the previous step', 'shipments', 'shiptastic-for-woocommerce' ); ?>">&larr; <?php echo esc_html_x( 'Back', 'shipments', 'shiptastic-for-woocommerce' ); ?></button>
 		<button type="button" class="stc-button" data-wp-on--click="actions.releaseItem" data-wp-bind--disabled="state.busy"><?php echo esc_html_x( 'Put back', 'shipments', 'shiptastic-for-woocommerce' ); ?></button>
 		<button type="button" class="stc-button is-primary is-large" data-wp-on--click="actions.submitStep" data-wp-bind--disabled="state.busy" data-wp-text="state.submitLabel"><?php echo esc_html_x( 'Continue', 'shipments', 'shiptastic-for-woocommerce' ); ?></button>

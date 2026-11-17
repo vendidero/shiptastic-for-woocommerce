@@ -213,6 +213,7 @@
                     }
 
                     $( document.body ).trigger( 'init_tooltips' );
+                    $( document.body ).trigger( 'wc_shiptastic_shipping_rule_row_init', [ $tr, rowData, view ] );
                 },
                 onChangeDecimal: function( event ) {
                     var $tr     = $( this ).closest( 'tr' ),
@@ -295,6 +296,11 @@
 
                     if ( $target.parents( '.wc-shiptastic-shipping-rules-condition-rows' ).length > 0 ) {
                         return false;
+                    }
+
+                    // Ignore fields not bound to a rule attribute, e.g. fields managed by extensions.
+                    if ( ! attribute ) {
+                        return;
                     }
 
                     if ( ! $target.is( ':visible' ) ) {

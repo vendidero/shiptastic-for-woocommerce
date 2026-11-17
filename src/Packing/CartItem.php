@@ -16,10 +16,11 @@ class CartItem extends Item {
 	 *
 	 * @param array $item
 	 * @param boolean $incl_taxes
+	 * @param array|null $inner_box
 	 *
 	 * @throws \Exception
 	 */
-	public function __construct( $item, $incl_taxes = false ) {
+	public function __construct( $item, $incl_taxes = false, $inner_box = null ) {
 		$this->item = $item;
 
 		if ( ! isset( $this->item['data'] ) || ! is_a( $this->item['data'], 'WC_Product' ) ) {
@@ -49,6 +50,10 @@ class CartItem extends Item {
 		$this->weight   = (int) wc_get_weight( $weight, 'g' );
 		$this->total    = $quantity > 0 ? NumberUtil::round( $line_total / $quantity ) : 0;
 		$this->subtotal = $quantity > 0 ? NumberUtil::round( $line_subtotal / $quantity ) : 0;
+
+		if ( ! empty( $inner_box ) ) {
+			$this->apply_inner_box( $inner_box );
+		}
 	}
 
 	protected function load_product() {

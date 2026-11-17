@@ -3,7 +3,10 @@
 namespace Vendidero\Shiptastic\BulkFulfillments\Actions;
 
 use Vendidero\Shiptastic\BulkFulfillments\Action;
+use Vendidero\Shiptastic\BulkFulfillments\ShipmentLayout;
 use Vendidero\Shiptastic\BulkFulfillments\StepResult;
+use Vendidero\Shiptastic\Packing\InnerBoxes;
+use Vendidero\Shiptastic\Warehouse\LocationSchema;
 use Vendidero\Shiptastic\Warehouse\StorageLocations;
 
 defined( 'ABSPATH' ) || exit;
@@ -31,7 +34,7 @@ class Pick extends Action {
 	/**
 	 * @param \Vendidero\Shiptastic\BulkFulfillments\StepContext $context
 	 *
-	 * @return array order_item_id => quantity to pick
+	 * @return array line key => quantity to pick (inner boxes are picked separately)
 	 */
 	public static function resets_on_shipment_changes() {
 		return true;
@@ -41,13 +44,8 @@ class Pick extends Action {
 		$quantities = array();
 
 		foreach ( $context->get_package_shipments() as $shipment ) {
-			foreach ( $shipment->get_items() as $item ) {
-				if ( $item->get_item_parent_id() > 0 ) {
-					continue;
-				}
-
-				$order_item_id                = $item->get_order_item_id();
-				$quantities[ $order_item_id ] = ( isset( $quantities[ $order_item_id ] ) ? $quantities[ $order_item_id ] : 0 ) + $item->get_quantity();
+			foreach ( ShipmentLayout::get_shipment_item_map( $shipment ) as $line_key => $quantity ) {
+				$quantities[ $line_key ] = ( isset( $quantities[ $line_key ] ) ? $quantities[ $line_key ] : 0 ) + $quantity;
 			}
 		}
 
@@ -62,48 +60,66 @@ class Pick extends Action {
 	public function get_view_data( $context ) {
 		$order_shipment = $context->order_shipment;
 		$order          = $order_shipment->get_order();
-		$by_product     = array();
 		$items          = array();
+		$sort_entries   = array();
+		$product_ids    = array();
+		$lines          = array();
 
-		foreach ( self::get_required_quantities( $context ) as $order_item_id => $quantity ) {
+		foreach ( self::get_required_quantities( $context ) as $line_key => $quantity ) {
+			list( $order_item_id, $inner_box ) = ShipmentLayout::parse_line_key( $line_key );
+
 			if ( ! $order_item = $order->get_item( $order_item_id ) ) {
 				continue;
 			}
 
-			$product_id = is_callable( array( $order_item, 'get_variation_id' ) ) && $order_item->get_variation_id() ? $order_item->get_variation_id() : ( is_callable( array( $order_item, 'get_product_id' ) ) ? $order_item->get_product_id() : 0 );
+			$product_id    = is_callable( array( $order_item, 'get_variation_id' ) ) && $order_item->get_variation_id() ? $order_item->get_variation_id() : ( is_callable( array( $order_item, 'get_product_id' ) ) ? $order_item->get_product_id() : 0 );
+			$product_ids[] = $product_id;
 
-			$items[ $order_item_id ] = array_merge(
-				\Vendidero\Shiptastic\BulkFulfillments\ShipmentLayout::get_item_data( $order_shipment, $order_item ),
+			$lines[ $line_key ] = array( $order_item, $inner_box, $product_id, $quantity );
+		}
+
+		$locations = StorageLocations::get_product_locations( $product_ids );
+
+		foreach ( $lines as $line_key => $line ) {
+			list( $order_item, $inner_box, $product_id, $quantity ) = $line;
+
+			$location  = isset( $locations[ $product_id ] ) ? $locations[ $product_id ]['location_code'] : '';
+			$warehouse = isset( $locations[ $product_id ] ) ? $locations[ $product_id ]['warehouse'] : wc_stc_get_product_warehouse_name( $product_id );
+
+			/**
+			 * Inner boxes may be stored at a custom storage location (within the product's warehouse).
+			 */
+			if ( '' !== $inner_box && ( $box = InnerBoxes::get_order_item_box( $order_item, $inner_box ) ) && ! empty( $box['location'] ) ) {
+				$location = LocationSchema::normalize_code( $box['location'] );
+			}
+
+			$items[ $line_key ] = array_merge(
+				ShipmentLayout::get_item_data( $order_shipment, $order_item, $inner_box ),
 				array(
 					'quantity'   => $quantity,
 					'product_id' => $product_id,
-					'location'   => '',
-					'warehouse'  => '',
+					'location'   => $location,
+					'warehouse'  => '' !== $location ? $warehouse : '',
 				)
 			);
 
-			$by_product[ $product_id ][] = $order_item_id;
+			$sort_entries[ $line_key ] = array(
+				'warehouse' => $warehouse,
+				'location'  => $location,
+			);
 		}
 
-		$locations = StorageLocations::get_product_locations( array_keys( $by_product ) );
-		$sorted    = array();
+		$sorted = array();
 
-		foreach ( StorageLocations::sort_product_ids( array_keys( $by_product ) ) as $product_id ) {
-			foreach ( $by_product[ $product_id ] as $order_item_id ) {
-				if ( isset( $locations[ $product_id ] ) ) {
-					$items[ $order_item_id ]['location']  = $locations[ $product_id ]['location_code'];
-					$items[ $order_item_id ]['warehouse'] = $locations[ $product_id ]['warehouse'];
-				}
-
-				$sorted[] = $items[ $order_item_id ];
-			}
+		foreach ( StorageLocations::sort_entries( $sort_entries ) as $line_key ) {
+			$sorted[] = $items[ $line_key ];
 		}
 
 		return array( 'items' => $sorted );
 	}
 
 	/**
-	 * Expects picked: order_item_id => quantity.
+	 * Expects picked: line key => quantity.
 	 *
 	 * @param \Vendidero\Shiptastic\BulkFulfillments\StepContext $context
 	 * @param array $data
@@ -116,16 +132,17 @@ class Pick extends Action {
 		$order    = $context->order_shipment->get_order();
 		$required = self::get_required_quantities( $context );
 
-		foreach ( (array) ( isset( $data['picked'] ) ? $data['picked'] : array() ) as $order_item_id => $quantity ) {
-			$picked[ absint( $order_item_id ) ] = absint( $quantity );
+		foreach ( (array) ( isset( $data['picked'] ) ? $data['picked'] : array() ) as $line_key => $quantity ) {
+			$picked[ ShipmentLayout::normalize_line_key( $line_key ) ] = absint( $quantity );
 		}
 
-		foreach ( $required as $order_item_id => $quantity ) {
-			$picked_quantity = isset( $picked[ $order_item_id ] ) ? $picked[ $order_item_id ] : 0;
+		foreach ( $required as $line_key => $quantity ) {
+			$picked_quantity = isset( $picked[ $line_key ] ) ? $picked[ $line_key ] : 0;
 
 			if ( $picked_quantity < $quantity ) {
-				$order_item = $order->get_item( $order_item_id );
-				$short[]    = sprintf( '%1$d/%2$d &times; %3$s', $picked_quantity, $quantity, $order_item ? $order_item->get_name() : $order_item_id );
+				list( $order_item_id, $inner_box ) = ShipmentLayout::parse_line_key( $line_key );
+				$order_item                        = $order->get_item( $order_item_id );
+				$short[]                           = sprintf( '%1$d/%2$d &times; %3$s', $picked_quantity, $quantity, $order_item ? ShipmentLayout::get_item_data( $context->order_shipment, $order_item, $inner_box )['name'] : $line_key );
 			}
 		}
 

@@ -4,8 +4,9 @@ use Vendidero\Shiptastic\BulkFulfillments\Action;
 use Vendidero\Shiptastic\BulkFulfillments\ActionRegistry;
 use Vendidero\Shiptastic\BulkFulfillments\Queue;
 use Vendidero\Shiptastic\BulkFulfillments\QueueSync;
+use Vendidero\Shiptastic\BulkFulfillments\Run;
+use Vendidero\Shiptastic\BulkFulfillments\RunExport;
 use Vendidero\Shiptastic\BulkFulfillments\Runner;
-use Vendidero\Shiptastic\BulkFulfillments\Scheduler;
 use Vendidero\Shiptastic\BulkFulfillments\ShipmentLayout;
 use Vendidero\Shiptastic\BulkFulfillments\StepLog;
 use Vendidero\Shiptastic\BulkFulfillments\StepResult;
@@ -16,6 +17,8 @@ use Vendidero\Shiptastic\BulkFulfillments\Workflow;
  */
 class Test_Fulfillment_Label_Action extends Action {
 	public static $runs = 0;
+
+	public static $users = array();
 
 	public static function get_name() {
 		return 'test_label';
@@ -39,8 +42,10 @@ class Test_Fulfillment_Label_Action extends Action {
 
 	public function run( $context ) {
 		++self::$runs;
+		self::$users[] = get_current_user_id();
 
-		return StepResult::done( array( 'shipment' => $context->get_shipment()->get_id() ) );
+		// A label file, added to the export of automation runs
+		return StepResult::done( array( 'shipment' => $context->get_shipment()->get_id() ) )->add_file_content( 'label.pdf', '%PDF-test' );
 	}
 }
 
@@ -74,7 +79,7 @@ class Test_Fulfillment_Failing_Action extends Action {
 }
 
 /**
- * Actions API, step planning, execution, background chunks and scheduling.
+ * Actions API, step planning and execution.
  */
 class FulfillmentRunnerTest extends \Vendidero\Shiptastic\Tests\Framework\UnitTestCase {
 
@@ -84,7 +89,8 @@ class FulfillmentRunnerTest extends \Vendidero\Shiptastic\Tests\Framework\UnitTe
 		update_option( 'woocommerce_shiptastic_enable_auto_packing', 'no' );
 
 		add_filter( 'woocommerce_shiptastic_fulfillment_actions', array( $this, 'register_test_actions' ) );
-		Test_Fulfillment_Label_Action::$runs = 0;
+		Test_Fulfillment_Label_Action::$runs  = 0;
+		Test_Fulfillment_Label_Action::$users = array();
 	}
 
 	/**
@@ -177,13 +183,27 @@ class FulfillmentRunnerTest extends \Vendidero\Shiptastic\Tests\Framework\UnitTe
 		$this->assertTrue( ActionRegistry::exists( 'test_label' ) );
 
 		$this->assertTrue( $this->create_workflow( array( 'pick', 'pack' ) )->validate() );
-		$this->assertTrue( $this->create_workflow( array( 'test_label' ), array( 'mode' => 'background' ) )->validate() );
 
-		$errors = $this->create_workflow( array( 'pick', 'unknown' ), array( 'mode' => 'background' ) )->validate();
-		$this->assertEqualsCanonicalizing( array( 'workflow_unknown_action', 'workflow_action_requires_interaction' ), $errors->get_error_codes() );
+		$errors = $this->create_workflow( array( 'pick', 'unknown' ) )->validate();
+		$this->assertEquals( array( 'workflow_unknown_action' ), $errors->get_error_codes() );
 
-		$errors = $this->create_workflow( array( 'pick' ), array( 'schedule' => array( 'type' => 'daily' ) ) )->validate();
-		$this->assertEqualsCanonicalizing( array( 'workflow_schedule_requires_background', 'workflow_schedule_no_times' ), $errors->get_error_codes() );
+		// Interactive workflows only (extensions may add modes): unknown modes fall back to interactive
+		$this->assertEquals( array( 'interactive' ), array_keys( Workflow::get_modes() ) );
+		$this->assertEquals( 'interactive', $this->create_workflow( array( 'pick' ), array( 'mode' => 'background' ) )->get_mode() );
+
+		// Ranges: open bounds are fine, "from" must not exceed "to"
+		$this->assertTrue( $this->create_workflow( array( 'pick' ), array( 'filters' => array( 'min_items' => 2, 'max_weight' => '1.5' ) ) )->validate() );
+		$this->assertTrue( $this->create_workflow( array( 'pick' ), array( 'filters' => array( 'min_items' => 2, 'max_items' => 2 ) ) )->validate() );
+
+		$errors = $this->create_workflow( array( 'pick' ), array( 'filters' => array( 'min_items' => 5, 'max_items' => 2, 'min_weight' => '3', 'max_weight' => '1.5' ) ) )->validate();
+		$this->assertEqualsCanonicalizing( array( 'workflow_invalid_item_range', 'workflow_invalid_weight_range' ), $errors->get_error_codes() );
+	}
+
+	public function test_step_order_and_error_handling() {
+		// Required actions come first, the chosen order is kept otherwise
+		$this->assertEquals( array( 'create_shipments', 'pick' ), $this->create_workflow( array( 'pick', 'create_shipments' ) )->get_step_actions() );
+		$this->assertEquals( array( 'create_shipments', 'pack', 'pick' ), $this->create_workflow( array( 'pack', 'pick', 'create_shipments' ) )->get_step_actions() );
+		$this->assertEquals( array( 'create_shipments' ), Workflow::get_required_actions( 'mark_ready' ) );
 	}
 
 	public function test_step_plan_injects_dependencies() {
@@ -282,35 +302,15 @@ class FulfillmentRunnerTest extends \Vendidero\Shiptastic\Tests\Framework\UnitTe
 		$this->assertEquals( 'completed', $result['status'] );
 		$this->assertEquals( 'pending', Queue::get( $item->get_id() )->get_status() );
 
+		// Packing does not change the status (separate step)
 		$shipment = wc_stc_get_shipment( $shipment_id );
-		$this->assertEquals( 'ready-for-shipping', $shipment->get_status() );
+		$this->assertEquals( 'processing', $shipment->get_status() );
 		$this->assertEquals( $packaging->get_id(), $shipment->get_packaging_id() );
 
 		// Done for this workflow (incl. the order scope roll-up for pack)
 		$this->assertEqualsCanonicalizing( array( 'create_shipments', 'pick', 'pack' ), StepLog::get_done_actions( $item->get_id() ) );
 		$this->assertEquals( array(), Queue::claim( $workflow, array( 'user_id' => 1 ) ) );
 		$this->assertEquals( $order_id, $item->get_order_id() );
-	}
-
-	public function test_done_steps_shared_across_workflows() {
-		$this->expect_shipment_items();
-
-		$order    = $this->create_order();
-		$packing  = $this->create_workflow( array( 'pack' ) );
-		$labels   = $this->create_workflow( array( 'pack', 'test_label' ), array( 'mode' => 'background' ) );
-		$item     = current( Queue::claim( $packing, array( 'user_id' => 1 ) ) );
-		$result   = Runner::execute( $item->get_id(), $packing, $item->get_lock_token() );
-		$shipment = $result['step']->shipment_id;
-
-		$this->assertEquals( 'completed', Runner::execute( $item->get_id(), $packing, $item->get_lock_token(), array( 'step' => 'pack:' . $shipment, 'data' => array( 'packed' => array( $this->get_item_id( $order ) => 2 ) ) ) )['status'] );
-
-		// pack (and create_shipments) are done - the background workflow only creates the label
-		$chunk = Runner::process_chunk( $labels, array( 'source' => 'scheduled', 'user_id' => 1 ) );
-		$this->assertEquals( 1, $chunk['claimed'] );
-		$this->assertEquals( 1, $chunk['completed'] );
-		$this->assertEquals( 1, Test_Fulfillment_Label_Action::$runs );
-		$this->assertContains( 'test_label', StepLog::get_done_actions( $item->get_id() ) );
-		$this->assertEquals( $order->get_id(), $item->get_order_id() );
 	}
 
 	public function test_shipment_layout_reopens_steps() {
@@ -334,7 +334,7 @@ class FulfillmentRunnerTest extends \Vendidero\Shiptastic\Tests\Framework\UnitTe
 		Runner::execute( $item->get_id(), $workflow, $token, array( 'step' => 'pick', 'data' => array( 'picked' => array( $order_item_id => 4 ) ) ) );
 		$result = Runner::execute( $item->get_id(), $workflow, $token, array( 'step' => 'pack:' . $first, 'data' => array( 'packed' => array( $order_item_id => 4 ) ) ) );
 		$this->assertEquals( 'completed', $result['status'] );
-		$this->assertEquals( 'ready-for-shipping', wc_stc_get_shipment( $first )->get_status() );
+		$this->assertEquals( 'processing', wc_stc_get_shipment( $first )->get_status() );
 
 		// Lock the item again (a workflow with open steps), e.g. a user editing the shipments while creating labels
 		$item = current( Queue::claim( $this->create_workflow( array( 'test_label' ) ), array( 'user_id' => 1 ) ) );
@@ -404,152 +404,88 @@ class FulfillmentRunnerTest extends \Vendidero\Shiptastic\Tests\Framework\UnitTe
 		$this->assertFalse( ShipmentLayout::can_edit( $first_shipment ) );
 	}
 
-	public function test_shipment_props_keep_dimensions_without_packaging() {
+	public function test_step_mode_choice() {
 		$this->expect_shipment_items();
 
-		$order    = $this->create_order( 1 );
+		// Actions supporting user interaction run interactively (extensions may allow choosing the mode per step),
+		// actions without user interaction (e.g. creating shipments) run automatically
+		$workflow = $this->create_workflow( array( 'pick', 'mark_ready' ) );
+		$this->assertEquals( array( 'interactive' ), Workflow::get_action_modes( 'mark_ready' ) );
+		$this->assertEquals( array( 'background' ), Workflow::get_action_modes( 'create_shipments' ) );
+		$this->assertEquals( 'interactive', $workflow->get_step_mode( 'mark_ready' ) );
+		$this->assertEquals( 'interactive', $workflow->get_step_mode( 'mark_ready', array( 'mode' => 'background' ) ) );
+		$this->assertEquals( 'interactive', $workflow->get_step_mode( 'pick' ) );
+		$this->assertEquals( 'background', $workflow->get_step_mode( 'create_shipments' ) );
+		$this->assertStringContainsString( 'stc-confirm-step', \Vendidero\Shiptastic\BulkFulfillments\Actions\MarkReady::get_template() );
+
+		// Confirmed within the app via the generic review screen
+		$this->create_order( 1 );
+		$workflow = $this->create_workflow(
+			array(
+				array(
+					'action'   => 'mark_ready',
+					'settings' => array( 'mode' => 'interactive' ),
+				),
+			)
+		);
+		$this->assertEquals( 'interactive', $workflow->get_step_mode( 'mark_ready', array( 'mode' => 'interactive' ) ) );
+
+		$item   = current( Queue::claim( $workflow, array( 'user_id' => 1 ) ) );
+		$token  = $item->get_lock_token();
+		$result = Runner::execute( $item->get_id(), $workflow, $token );
+
+		$this->assertEquals( 'needs_input', $result['status'] );
+		$this->assertEquals( 'mark_ready', $result['step']->action );
+		$this->assertEquals( $result['step']->shipment_id, $result['view_data']['shipmentId'] );
+		$this->assertNotEmpty( $result['view_data']['description'] );
+
+		$shipment = wc_stc_get_shipment( $result['step']->shipment_id );
+		$shipment->set_shipping_provider( 'dhl' );
+		$shipment->save();
+
+		$result = Runner::execute(
+			$item->get_id(),
+			$workflow,
+			$token,
+			array(
+				'step' => $result['step']->get_key(),
+				'data' => array(),
+			)
+		);
+
+		$this->assertEquals( 'completed', $result['status'] );
+		$this->assertEquals( 'ready-for-shipping', wc_stc_get_shipment( $shipment->get_id() )->get_status() );
+	}
+
+	public function test_address_correction_reaches_packed_shipments() {
+		$this->expect_shipment_items();
+
+		$order    = $this->create_order( 2 );
 		$workflow = $this->create_workflow( array( 'pick' ) );
 		$item     = current( Queue::claim( $workflow, array( 'user_id' => 1 ) ) );
 		Runner::execute( $item->get_id(), $workflow, $item->get_lock_token() );
 
-		$shipment  = current( Runner::get_package_shipments( $item ) );
-		$packaging = current( wc_stc_get_packaging_list() );
-
-		ShipmentLayout::apply_props( $shipment, array( 'packaging_id' => $packaging->get_id() ) );
+		$shipment = current( Runner::get_package_shipments( $item ) );
+		$shipment->set_status( 'ready-for-shipping' );
 		$shipment->save();
 
-		$shipment = wc_stc_get_shipment( $shipment->get_id() );
-		$length   = $shipment->get_length( 'edit' );
-		$this->assertNotEmpty( $length );
-
-		// Packaging removed, the (former packaging) dimensions are kept, the length is changed
-		ShipmentLayout::apply_props(
-			$shipment,
-			array(
-				'packaging_id' => 0,
-				'length'       => '99',
-				'width'        => $shipment->get_width( 'edit' ),
-				'height'       => $shipment->get_height( 'edit' ),
-			)
-		);
-		$width = $shipment->get_width( 'edit' );
-		$shipment->save();
+		// Correct the shipping address (e.g. via the WooCommerce REST API from the fulfillment app)
+		$order = wc_get_order( $order->get_id() );
+		$order->set_shipping_city( 'Hamburg' );
+		$order->set_shipping_postcode( '20095' );
+		$order->save();
 
 		$shipment = wc_stc_get_shipment( $shipment->get_id() );
-		$this->assertEquals( 0, $shipment->get_packaging_id() );
-		$this->assertEquals( 99, (float) $shipment->get_length( 'edit' ) );
-		$this->assertEquals( (float) $width, (float) $shipment->get_width( 'edit' ) );
-		$this->assertNotEquals( '', $shipment->get_width( 'edit' ) );
-	}
+		$this->assertEquals( 'Hamburg', $shipment->get_city() );
+		$this->assertEquals( '20095', $shipment->get_postcode() );
+		$this->assertEquals( 'ready-for-shipping', $shipment->get_status() );
 
-	public function test_scheduled_chunk_continue_and_stop() {
-		$orders   = array( $this->create_order( 1, strtotime( '2026-01-01' ) ), $this->create_order( 1, strtotime( '2026-01-02' ) ) );
-		$workflow = $this->create_workflow( array( 'test_fail' ), array( 'mode' => 'background' ) );
+		// Shipments with a label keep their address
+		add_filter( 'woocommerce_shiptastic_fulfillment_can_edit_shipment', '__return_false' );
+		$order->set_shipping_city( 'Bremen' );
+		$order->save();
+		remove_filter( 'woocommerce_shiptastic_fulfillment_can_edit_shipment', '__return_false' );
 
-		// continue: all items go to the exception inbox
-		$chunk = Runner::process_chunk( $workflow, array( 'source' => 'scheduled', 'user_id' => 1 ) );
-		$this->assertEquals( 2, $chunk['errors'] );
-		$this->assertFalse( $chunk['stopped'] );
-
-		foreach ( $orders as $order ) {
-			$item = current( Queue::get_by_order( $order->get_id() ) );
-			$this->assertEquals( 'error', $item->get_status() );
-			$this->assertEquals( 'Carrier API unavailable', $item->get_last_error() );
-			Queue::reset( $item->get_id() );
-		}
-
-		// stop: the first failure pauses the workflow, the other item is released
-		reset_phpmailer_instance();
-		$workflow->set_on_error( 'stop' );
-		$workflow->save();
-
-		$chunk = Runner::process_chunk( $workflow, array( 'source' => 'scheduled', 'user_id' => 1 ) );
-		$this->assertTrue( $chunk['stopped'] );
-		$this->assertEquals( 1, $chunk['processed'] );
-
-		$workflow = new Workflow( $workflow->get_id() );
-		$this->assertTrue( $workflow->is_paused() );
-		$this->assertStringContainsString( 'Carrier API unavailable', $workflow->get_paused_reason() );
-		$this->assertEquals( 'pending', current( Queue::get_by_order( $orders[1]->get_id() ) )->get_status() );
-		$this->assertNotFalse( tests_retrieve_phpmailer_instance()->get_sent() );
-
-		// background run started by a user: stops and keeps the failed item locked
-		Queue::reset( current( Queue::get_by_order( $orders[0]->get_id() ) )->get_id() );
-		$chunk = Runner::process_chunk( $this->create_workflow( array( 'test_fail' ), array( 'mode' => 'background' ) ), array( 'source' => 'background', 'user_id' => 1 ) );
-		$this->assertTrue( $chunk['stopped'] );
-
-		$failed = Queue::get( $chunk['failed'] );
-		$this->assertTrue( $failed->is_locked() );
-		$this->assertEquals( $chunk['token'], $failed->get_lock_token() );
-
-		$this->assertTrue( Runner::skip( $failed->get_id(), $chunk['token'], 'Skipped' ) );
-		$this->assertEquals( 'error', Queue::get( $failed->get_id() )->get_status() );
-	}
-
-	public function test_scheduler() {
-		$this->expect_shipment_items();
-
-		update_option( 'timezone_string', 'Europe/Berlin' );
-
-		$workflow = $this->create_workflow(
-			array( 'test_label' ),
-			array(
-				'mode'     => 'background',
-				'schedule' => array(
-					'type'  => 'daily',
-					'times' => array( '13:30', '8:05', 'invalid' ),
-				),
-			)
-		);
-
-		$this->assertEquals( array( '13:30', '08:05' ), $workflow->get_schedule()['times'] );
-
-		// 2026-03-28 12:00 Berlin (CET, UTC+1) -> next run today 13:30 Berlin
-		$now = ( new DateTimeImmutable( '2026-03-28 12:00:00', new DateTimeZone( 'Europe/Berlin' ) ) )->getTimestamp();
-		$this->assertEquals( ( new DateTimeImmutable( '2026-03-28 13:30:00', new DateTimeZone( 'Europe/Berlin' ) ) )->getTimestamp(), Scheduler::get_next_run( $workflow, $now ) );
-
-		// After the last time of the day: next day (after the DST change) 08:05 Berlin
-		$now = ( new DateTimeImmutable( '2026-03-28 14:00:00', new DateTimeZone( 'Europe/Berlin' ) ) )->getTimestamp();
-		$this->assertEquals( ( new DateTimeImmutable( '2026-03-29 08:05:00', new DateTimeZone( 'Europe/Berlin' ) ) )->getTimestamp(), Scheduler::get_next_run( $workflow, $now ) );
-
-		$workflow->set_schedule(
-			array(
-				'type'    => 'interval',
-				'minutes' => 15,
-			)
-		);
-		$this->assertEquals( 1000 + 15 * 60, Scheduler::get_next_run( $workflow, 1000 ) );
-
-		// Not scheduled while interactive or paused
-		$workflow->set_paused( true );
-		$this->assertNull( Scheduler::get_next_run( $workflow ) );
-
-		// Missing "run as" user pauses the workflow
-		$workflow->set_paused( false );
-		$workflow->set_run_as( 0 );
-		$workflow->save();
-
-		$this->assertNull( Scheduler::run_chunk( $workflow->get_id() ) );
-		$this->assertTrue( ( new Workflow( $workflow->get_id() ) )->is_paused() );
-
-		// Runs as the configured admin
-		$this->create_order();
-		$admin = self::factory()->user->create( array( 'role' => 'administrator' ) );
-
-		$workflow = new Workflow( $workflow->get_id() );
-		$workflow->set_run_as( $admin );
-		Scheduler::resume( $workflow );
-
-		$users = array();
-		add_action(
-			'woocommerce_shiptastic_fulfillment_chunk_processed',
-			function () use ( &$users ) {
-				$users[] = get_current_user_id();
-			}
-		);
-
-		$result = Scheduler::run_chunk( $workflow->get_id() );
-		$this->assertEquals( 1, $result['completed'] );
-		$this->assertEquals( array( $admin ), $users );
+		$this->assertEquals( 'Hamburg', wc_stc_get_shipment( $shipment->get_id() )->get_city() );
 	}
 }

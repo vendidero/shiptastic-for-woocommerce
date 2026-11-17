@@ -8,13 +8,19 @@ defined( 'ABSPATH' ) || exit;
 <div class="stc-fields">
 	<div class="stc-field-row">
 		<label class="stc-field">
-			<span class="stc-label"><?php echo esc_html_x( 'Packaging', 'shipments', 'shiptastic-for-woocommerce' ); ?></span>
+			<span class="stc-label">
+				<?php echo esc_html_x( 'Packaging', 'shipments', 'shiptastic-for-woocommerce' ); ?>
+				<span class="stc-tag is-suggested" data-wp-bind--hidden="!state.shipmentFields.isPackagingSuggested"><?php echo esc_html_x( 'Suggested', 'shipments-packaging', 'shiptastic-for-woocommerce' ); ?></span>
+			</span>
+			<?php // Fitting packaging first (best fitting first, incl. fill rate), others marked "does not fit". ?>
 			<select class="stc-input" data-wp-on--change="actions.shipmentFields.setPackaging" data-wp-bind--disabled="state.shipmentFields.isLocked">
 				<option value="0"><?php echo esc_html_x( 'No packaging', 'shipments', 'shiptastic-for-woocommerce' ); ?></option>
-				<template data-wp-each--packaging="state.packaging" data-wp-each-key="context.packaging.id">
-					<option data-wp-bind--value="context.packaging.id" data-wp-bind--selected="state.shipmentFields.isSelectedPackaging" data-wp-text="context.packaging.title"></option>
+				<template data-wp-each--option="state.shipmentFields.packagingOptions" data-wp-each-key="context.option.id">
+					<option data-wp-bind--value="context.option.id" data-wp-bind--selected="context.option.selected" data-wp-class--is-unfit="!context.option.fits" data-wp-text="context.option.label"></option>
 				</template>
 			</select>
+			<span class="stc-hint" data-wp-bind--hidden="!state.shipmentFields.packagingNotice" data-wp-text="state.shipmentFields.packagingNotice"></span>
+			<span class="stc-error-text" data-wp-bind--hidden="!state.shipmentFields.packagingWarning" data-wp-text="state.shipmentFields.packagingWarning"></span>
 		</label>
 		<label class="stc-field">
 			<span class="stc-label"><?php echo esc_html_x( 'Shipping provider', 'shipments', 'shiptastic-for-woocommerce' ); ?></span>

@@ -128,8 +128,6 @@ class FulfillmentQueueTest extends \Vendidero\Shiptastic\Tests\Framework\UnitTes
 				'backorders'       => 'invalid',
 			),
 			array(
-				'on_error' => 'stop',
-				'run_as'   => 1,
 				'priority' => 5,
 			)
 		);
@@ -141,8 +139,7 @@ class FulfillmentQueueTest extends \Vendidero\Shiptastic\Tests\Framework\UnitTes
 		$this->assertSame( 5, $workflow->get_filter( 'max_items' ) );
 		$this->assertSame( '', $workflow->get_filter( 'min_items' ) );
 		$this->assertEquals( 'any', $workflow->get_filter( 'backorders' ) );
-		$this->assertEquals( 'stop', $workflow->get_on_error() );
-		$this->assertEquals( 1, $workflow->get_run_as() );
+		$this->assertSame( 5, $workflow->get_priority() );
 		$this->assertContains( $workflow->get_id(), FulfillmentWorkflow::get_active_workflow_ids() );
 
 		$workflow->set_status( 'inactive' );

@@ -192,12 +192,33 @@ class Product {
 		return $is_non_returnable;
 	}
 
-	public function get_hs_code( $context = 'view' ) {
+	/**
+	 * Returns the HS code.
+	 *
+	 * @param string $context What the value is for. Valid values are 'view' and 'edit'.
+	 * @param string $country Optional destination country (ISO 3166-1 alpha-2) to retrieve a country-specific code for.
+	 *
+	 * @return string
+	 */
+	public function get_hs_code( $context = 'view', $country = '' ) {
 		$legacy_data = $this->get_parent_product_if_available()->get_meta( '_dhl_hs_code', true, $context );
 		$data        = $this->get_parent_product_if_available()->get_meta( '_hs_code', true, $context );
 
 		if ( '' === $data && ! empty( $legacy_data ) ) {
 			$data = $legacy_data;
+		}
+
+		if ( 'view' === $context ) {
+			/**
+			 * Filter the HS code of a product, e.g. to return a country-specific code.
+			 *
+			 * @param string  $hs_code The (default) HS code.
+			 * @param string  $country The destination country, if available.
+			 * @param Product $product The Shiptastic product instance.
+			 *
+			 * @package Vendidero/Shiptastic
+			 */
+			$data = apply_filters( 'woocommerce_shiptastic_product_hs_code', $data, wc_strtoupper( (string) $country ), $this );
 		}
 
 		return $data;
