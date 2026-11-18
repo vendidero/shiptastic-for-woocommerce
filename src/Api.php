@@ -35,7 +35,7 @@ class Api {
 		if ( $product = wc_get_product( $product_object ) ) {
 			$context = ! empty( $request['context'] ) ? $request['context'] : 'view';
 
-			$response->set_data( array_merge_recursive( $response->data, self::get_product_data( $product, $context ) ) );
+			$response->set_data( array_replace_recursive( $response->data, self::get_product_data( $product, $context ) ) );
 		}
 
 		return $response;
@@ -45,9 +45,13 @@ class Api {
 		$data = array();
 
 		if ( $shipments_product = wc_shiptastic_get_product( $product ) ) {
-			$data['hs_code']             = $shipments_product->get_hs_code( $context );
-			$data['mid_code']            = $shipments_product->get_mid_code( $context );
-			$data['customs_description'] = $shipments_product->get_customs_description( $context );
+			$data['hs_code']  = $shipments_product->get_hs_code( $context );
+			$data['mid_code'] = $shipments_product->get_mid_code( $context );
+
+			if ( ! is_callable( array( $product, 'get_customs_description' ) ) ) {
+				$data['customs_description'] = $shipments_product->get_customs_description( $context );
+			}
+
 			$data['manufacture_country'] = $shipments_product->get_manufacture_country( $context );
 			$data['shipping_weight']     = $shipments_product->get_shipping_weight( $context );
 			$data['shipping_dimensions'] = array(
@@ -68,7 +72,7 @@ class Api {
 	 */
 	public static function update_product( $product, $request ) {
 		if ( $shipments_product = wc_shiptastic_get_product( $product ) ) {
-			if ( isset( $request['customs_description'] ) ) {
+			if ( ! is_callable( array( $product, 'get_customs_description' ) ) && isset( $request['customs_description'] ) ) {
 				$shipments_product->set_customs_description( wc_clean( wp_unslash( $request['customs_description'] ) ) );
 			}
 
@@ -76,12 +80,12 @@ class Api {
 				$shipments_product->set_hs_code( wc_clean( wp_unslash( $request['hs_code'] ) ) );
 			}
 
-			if ( isset( $request['mid_code'] ) ) {
-				$shipments_product->set_mid_code( wc_clean( wp_unslash( $request['mid_code'] ) ) );
-			}
-
 			if ( isset( $request['manufacture_country'] ) ) {
 				$shipments_product->set_manufacture_country( wc_clean( wp_unslash( $request['manufacture_country'] ) ) );
+			}
+
+			if ( isset( $request['mid_code'] ) ) {
+				$shipments_product->set_mid_code( wc_clean( wp_unslash( $request['mid_code'] ) ) );
 			}
 
 			// Virtual.
@@ -125,12 +129,14 @@ class Api {
 	 * @return array
 	 */
 	public static function product_variation_schema( $schema_properties ) {
-		$schema_properties['customs_description'] = array(
-			'description' => _x( 'Customs description', 'shipments', 'shiptastic-for-woocommerce' ),
-			'type'        => 'string',
-			'context'     => array( 'view', 'edit' ),
-			'readonly'    => true,
-		);
+		if ( ! Package::woo_has_customs_fields() ) {
+			$schema_properties['customs_description'] = array(
+				'description' => _x( 'Customs description', 'shipments', 'shiptastic-for-woocommerce' ),
+				'type'        => 'string',
+				'context'     => array( 'view', 'edit' ),
+				'readonly'    => true,
+			);
+		}
 
 		$schema_properties['hs_code'] = array(
 			'description' => _x( 'HS-Code (Customs)', 'shipments', 'shiptastic-for-woocommerce' ),
@@ -201,11 +207,13 @@ class Api {
 	 * @return array
 	 */
 	public static function product_schema( $schema_properties ) {
-		$schema_properties['customs_description'] = array(
-			'description' => _x( 'Customs description', 'shipments', 'shiptastic-for-woocommerce' ),
-			'type'        => 'string',
-			'context'     => array( 'view', 'edit' ),
-		);
+		if ( ! Package::woo_has_customs_fields() ) {
+			$schema_properties['customs_description'] = array(
+				'description' => _x( 'Customs description', 'shipments', 'shiptastic-for-woocommerce' ),
+				'type'        => 'string',
+				'context'     => array( 'view', 'edit' ),
+			);
+		}
 
 		$schema_properties['hs_code'] = array(
 			'description' => _x( 'HS-Code (Customs)', 'shipments', 'shiptastic-for-woocommerce' ),

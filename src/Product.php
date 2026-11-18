@@ -177,9 +177,7 @@ class Product {
 	}
 
 	public function get_customs_description( $context = 'view' ) {
-		$data = $this->get_parent_product_if_available()->get_meta( '_customs_description', true, $context );
-
-		return $data;
+		return is_callable( array( $this->product, 'get_customs_description' ) ) ? $this->product->get_customs_description( $context ) : $this->get_parent_product_if_available()->get_meta( '_customs_description', true, $context );
 	}
 
 	public function get_warehouse_name( $context = 'view' ) {
@@ -201,11 +199,17 @@ class Product {
 	 * @return string
 	 */
 	public function get_hs_code( $context = 'view', $country = '' ) {
-		$legacy_data = $this->get_parent_product_if_available()->get_meta( '_dhl_hs_code', true, $context );
-		$data        = $this->get_parent_product_if_available()->get_meta( '_hs_code', true, $context );
+		$data = $this->get_parent_product_if_available()->get_meta( '_hs_code', true, $context );
 
-		if ( '' === $data && ! empty( $legacy_data ) ) {
-			$data = $legacy_data;
+		if ( 'view' === $context ) {
+			$legacy_data = $this->get_parent_product_if_available()->get_meta( '_dhl_hs_code', true, $context );
+			$woo_core    = is_callable( array( $this->product, 'get_customs_commodity_code' ) ) ? $this->product->get_customs_commodity_code( $context ) : '';
+
+			if ( ! empty( $woo_core ) ) {
+				$data = $woo_core;
+			} elseif ( '' === $data && ! empty( $legacy_data ) ) {
+				$data = $legacy_data;
+			}
 		}
 
 		if ( 'view' === $context ) {
@@ -235,21 +239,27 @@ class Product {
 	}
 
 	public function get_manufacture_country( $context = 'view' ) {
-		$legacy_data = $this->get_parent_product_if_available()->get_meta( '_dhl_manufacture_country', true, $context );
-		$country     = $this->get_parent_product_if_available()->get_meta( '_manufacture_country', true, $context );
+		$data = $this->get_parent_product_if_available()->get_meta( '_manufacture_country', true, $context );
 
-		if ( empty( $country ) && ! empty( $legacy_data ) ) {
-			$country = $legacy_data;
+		if ( 'view' === $context ) {
+			$woo_core    = is_callable( array( $this->product, 'get_customs_country_of_origin' ) ) ? $this->product->get_customs_country_of_origin( $context ) : '';
+			$legacy_data = $this->get_parent_product_if_available()->get_meta( '_dhl_manufacture_country', true, $context );
+
+			if ( ! empty( $woo_core ) ) {
+				$data = $woo_core;
+			} elseif ( '' === $data && ! empty( $legacy_data ) ) {
+				$data = $legacy_data;
+			}
 		}
 
-		if ( empty( $country ) && 'view' === $context ) {
-			$country = Package::get_base_country();
+		if ( empty( $data ) && 'view' === $context ) {
+			$data = Package::get_base_country();
 		}
 
-		$country = substr( wc_strtoupper( $country ), 0, 2 );
-		$country = strlen( $country ) < 2 ? '' : $country;
+		$data = substr( wc_strtoupper( $data ), 0, 2 );
+		$data = strlen( $data ) < 2 ? '' : $data;
 
-		return $country;
+		return $data;
 	}
 
 	public function get_main_category() {
@@ -273,7 +283,12 @@ class Product {
 	}
 
 	public function set_hs_code( $code ) {
-		$this->product->update_meta_data( '_hs_code', $code );
+		if ( is_callable( array( $this->product, 'set_customs_commodity_code' ) ) ) {
+			$this->product->set_customs_commodity_code( $code );
+			$this->product->delete_meta_data( '_hs_code' );
+		} else {
+			$this->product->update_meta_data( '_hs_code', $code );
+		}
 	}
 
 	public function set_mid_code( $code ) {
@@ -284,7 +299,12 @@ class Product {
 		$country = substr( wc_strtoupper( $country ), 0, 2 );
 		$country = strlen( $country ) < 2 ? '' : $country;
 
-		$this->product->update_meta_data( '_manufacture_country', $country );
+		if ( is_callable( array( $this->product, 'set_customs_country_of_origin' ) ) ) {
+			$this->product->set_customs_country_of_origin( $country );
+			$this->product->delete_meta_data( '_manufacture_country' );
+		} else {
+			$this->product->update_meta_data( '_manufacture_country', $country );
+		}
 	}
 
 	public function set_ship_separately_via( $shipping_provider ) {
@@ -334,7 +354,11 @@ class Product {
 	}
 
 	public function set_customs_description( $description ) {
-		$this->product->update_meta_data( '_customs_description', $description );
+		if ( is_callable( array( $this->product, 'set_customs_description' ) ) ) {
+			$this->product->set_customs_description( $description );
+		} else {
+			$this->product->update_meta_data( '_customs_description', $description );
+		}
 	}
 
 	public function set_is_non_returnable( $is_non_returnable ) {
