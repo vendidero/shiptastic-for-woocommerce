@@ -710,6 +710,11 @@ class FulfillmentController extends \WC_REST_Controller {
 			);
 		}
 
+		// Offline support: view data of the following (offline capable) steps.
+		if ( $args['workflow'] && ( ! $args['execution'] || 'completed' !== $args['execution']['status'] ) ) {
+			$data['views'] = (object) Runner::get_offline_views( $item, $args['workflow'], $item->get_lock_token() );
+		}
+
 		// The shipments overlay is available during the whole run.
 		if ( $args['execution'] && 'completed' !== $args['execution']['status'] ) {
 			$data['layout'] = ShipmentLayout::get_data( $item );

@@ -2021,3 +2021,75 @@ option.is-unfit {
   border-radius: 4px;
   background: var(--stc-color-surface);
 }
+
+/* Offline: sync state (outbox), orders waiting for the connection, orders which could not be synced. */
+.stc-badge.is-info {
+  background: #dbe4fb;
+
+  &.is-running {
+    animation: stc-pulse 1.2s ease-in-out infinite;
+  }
+}
+
+@keyframes stc-pulse {
+  50% {
+    opacity: .5;
+  }
+}
+
+.stc-sync-waiting {
+  margin: 0 0 16px;
+  padding: 8px 12px;
+  border-left: 4px solid var(--stc-color-primary);
+  border-radius: 4px;
+  background: #eef2fd;
+}
+
+.stc-sync-conflicts {
+  margin-bottom: 16px;
+  padding: 12px;
+  border-left: 4px solid var(--stc-color-error);
+  border-radius: 4px;
+  background: #fcf0f1;
+
+  ul {
+    margin: 0 0 8px;
+    padding: 0;
+    list-style: none;
+  }
+
+  li + li {
+    margin-top: 4px;
+  }
+}
+
+.stc-sync-waiting-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+
+  .stc-button {
+    margin-left: auto;
+  }
+}
+
+.stc-sync-waiting-list {
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+
+  li {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    min-height: 36px;
+    padding: 4px 0;
+    border-top: 1px solid var(--stc-color-border);
+
+    &.is-error .stc-hint {
+      color: var(--stc-color-error);
+    }
+  }
+}

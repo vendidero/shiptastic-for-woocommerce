@@ -34,6 +34,8 @@ $queue_tabs = array(
 			</h1>
 			<span class="stc-badge is-warning" data-wp-bind--hidden="!state.currentItemHasBackorders"><?php echo esc_html_x( 'Backorder', 'shipments', 'shiptastic-for-woocommerce' ); ?></span>
 			<span class="stc-badge is-warning" data-wp-bind--hidden="state.online"><?php echo esc_html_x( 'Offline', 'shipments', 'shiptastic-for-woocommerce' ); ?></span>
+			<?php /* Changes made offline, waiting to be synced (outbox). */ ?>
+			<span class="stc-badge is-info stc-sync-badge" role="status" data-wp-bind--hidden="!state.syncText" data-wp-class--is-running="state.sync.running" data-wp-text="state.syncText"></span>
 			<p class="stc-page-subtitle" data-wp-bind--hidden="!state.showOrderBreadcrumb"><span class="stc-subtitle-workflow" data-wp-text="state.currentWorkflowTitle"></span><span data-wp-text="state.progressText"></span></p>
 		</div>
 		<div class="stc-page-actions">
@@ -170,6 +172,30 @@ $queue_tabs = array(
 		?>
 
 		<section class="stc-screen stc-run" data-wp-bind--hidden="!state.isRunScreen">
+			<?php /* Offline: orders which could not be synced (e.g. the reservation expired) and orders waiting for the connection. */ ?>
+			<div class="stc-sync-conflicts" role="alert" data-wp-bind--hidden="!state.hasSyncConflicts">
+				<ul>
+					<template data-wp-each--conflict="state.sync.conflicts" data-wp-each-key="context.conflict.id">
+						<li><strong>#<span data-wp-text="context.conflict.order_number"></span></strong> <span data-wp-text="context.conflict.message"></span></li>
+					</template>
+				</ul>
+				<button type="button" class="stc-button is-small" data-wp-on--click="actions.dismissConflicts"><?php echo esc_html_x( 'Dismiss', 'shipments', 'shiptastic-for-woocommerce' ); ?></button>
+			</div>
+			<div class="stc-sync-waiting" role="status" data-wp-bind--hidden="!state.hasWaiting">
+				<div class="stc-sync-waiting-header">
+					<strong data-wp-bind--hidden="!state.readyText" data-wp-text="state.readyText"></strong>
+					<span data-wp-bind--hidden="!state.waitingText" data-wp-text="state.waitingText"></span>
+					<button type="button" class="stc-button is-small" data-wp-on--click="actions.sync" data-wp-bind--hidden="!state.waitingText" data-wp-bind--disabled="state.sync.running"><?php echo esc_html_x( 'Sync now', 'shipments', 'shiptastic-for-woocommerce' ); ?></button>
+				</div>
+				<ul class="stc-sync-waiting-list">
+					<template data-wp-each--waiting="state.run.waiting" data-wp-each-key="context.waiting.id">
+						<li data-wp-class--is-ready="context.waiting.ready" data-wp-class--is-error="context.waiting.failed">
+							<span><strong>#<span data-wp-text="context.waiting.order_number"></span></strong> <span class="stc-hint" data-wp-text="state.waitingStatusText"></span></span>
+							<button type="button" class="stc-button is-small is-primary" data-wp-bind--hidden="!context.waiting.ready" data-wp-on--click="actions.finishWaiting" data-wp-bind--disabled="state.busy"><?php echo esc_html_x( 'Finish', 'shipments', 'shiptastic-for-woocommerce' ); ?></button>
+						</li>
+					</template>
+				</ul>
+			</div>
 			<div data-wp-bind--hidden="!state.currentItem">
 				<?php /* Step navigation: scales to any number of steps (summary + segmented progress, full list on demand). */ ?>
 				<?php /* Files created by the steps of this run so far (export). */ ?>

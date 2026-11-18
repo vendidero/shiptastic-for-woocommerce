@@ -14,12 +14,21 @@
  *
  * Shared parts: checklist.js (item verification for pick/pack), shipments.js (shipments overlay + shipment fields),
  * gestures.js (swipe, drag & drop).
+ *
+ * Offline: queue items carry the view data of their following offline capable steps (`views`, steps flagged
+ * `offline`). Without a connection, submits are stored in the outbox (outbox.js) and the app continues with the next
+ * step locally. Orders reaching a step which needs the server (automatic steps, steps requiring a connection, the
+ * end of the workflow) wait for the connection (`run.waiting`). The outbox is replayed in order once online
+ * (actions.sync): the server dedupes by idempotency key, orders needing attention afterwards come back to the run,
+ * orders whose lock was lost are listed as conflicts.
  */
 import { store, getContext, getConfig, withSyncEvent } from '@wordpress/interactivity';
 import * as api from './api.js';
 import * as db from './db.js';
 import * as gestures from './gestures.js';
 import * as hooks from './hooks.js';
+import * as outbox from './outbox.js';
+import { applyLayout, mapShipmentIds, mapStepKey } from './offline-layout.js';
 import './checklist.js';
 import './shipments.js';
 import './report.js';
@@ -42,6 +51,20 @@ const sprintf = ( format, ...args ) => {
 };
 
 const runKey = () => 'run-' + config.userId;
+
+/**
+ * @param {Error} error
+ * @return {boolean} Whether the request did not reach the server (fetch failed, no HTTP status).
+ */
+const isNetworkError = ( error ) => ! error || ! error.status;
+
+/**
+ * @param {Error} error
+ * @return {boolean} Whether the session/nonce is not valid anymore (the user needs to log in again).
+ */
+const isAuthError = ( error ) => !! error && ( 401 === error.status || 'rest_cookie_invalid_nonce' === error.code );
+
+const SYNC_INTERVAL = 30;
 
 /**
  * Numbers shipment-scope steps in case an action runs for multiple shipments, e.g. Pack 1, Pack 2.
@@ -432,6 +455,37 @@ const { state, actions, callbacks } = store( NAMESPACE, {
         get showRunLoading() {
             return state.isRunScreen && ! state.currentItem && state.busy;
         },
+        get syncText() {
+            if ( state.sync.running ) {
+                return config.i18n.syncRunning;
+            }
+
+            return state.sync.pending > 0 ? sprintf( config.i18n.syncPending, state.sync.pending ) : '';
+        },
+        get waitingText() {
+            const count = ( state.run.waiting || [] ).filter( ( waiting ) => ! waiting.ready ).length;
+            return state.isRunScreen && count > 0 ? sprintf( config.i18n.waitingOrders, count ) : '';
+        },
+        get readyText() {
+            const count = ( state.run.waiting || [] ).filter( ( waiting ) => waiting.ready ).length;
+            return state.isRunScreen && count > 0 ? sprintf( config.i18n.readyOrders, count ) : '';
+        },
+        get hasWaiting() {
+            return state.isRunScreen && ( state.run.waiting || [] ).length > 0;
+        },
+        // Orders done offline: waiting for the connection or ready to finish (after syncing).
+        get waitingStatusText() {
+            const { waiting } = getContext();
+
+            if ( ! waiting.ready ) {
+                return config.i18n.waitingStatus;
+            }
+
+            return waiting.failed && waiting.message ? waiting.message : sprintf( config.i18n.readyStatus, waiting.step_title || '' );
+        },
+        get hasSyncConflicts() {
+            return state.sync.conflicts.length > 0;
+        },
         get progressText() {
             return hooks.applyFilters( 'progressText', sprintf( config.i18n.orderProgress, state.run.done + 1, state.run.total ) );
         },
@@ -439,7 +493,7 @@ const { state, actions, callbacks } = store( NAMESPACE, {
             return config.i18n.continue;
         },
         get emptyRunText() {
-            return config.i18n.noItems;
+            return state.waitingText || state.readyText || config.i18n.noItems;
         },
     },
     actions: {
@@ -581,6 +635,14 @@ const { state, actions, callbacks } = store( NAMESPACE, {
                     yield actions.report.show( run );
                 }
             } catch ( error ) {
+                const saved = yield db.get( runKey() );
+
+                // Offline (e.g. a reload without connection): continue the locally stored run.
+                if ( isNetworkError( error ) && saved && saved.id === runId ) {
+                    yield actions.resumeSession( { id: saved.id, workflow_id: saved.workflowId, export_files: saved.exportFiles, export_url: saved.exportUrl }, route );
+                    return;
+                }
+
                 actions.handleError( error );
                 state.screen = 'overview';
                 yield actions.loadQueue();
@@ -603,7 +665,7 @@ const { state, actions, callbacks } = store( NAMESPACE, {
             if ( saved && saved.id === run.id && saved.items ) {
                 state.run = saved;
             } else {
-                state.run = { id: run.id, workflowId: run.workflow_id, items: [], skipped: [], total: 0, done: 0, exhausted: false, exportFiles: run.export_files || 0, exportUrl: run.export_url || '' };
+                state.run = { id: run.id, workflowId: run.workflow_id, items: [], skipped: [], waiting: [], total: 0, done: 0, exhausted: false, exportFiles: run.export_files || 0, exportUrl: run.export_url || '' };
 
                 try {
                     const data = yield api.request( `runs/${ run.id }/items` );
@@ -627,12 +689,29 @@ const { state, actions, callbacks } = store( NAMESPACE, {
             state.screen = 'run';
             window.scrollTo( 0, 0 );
 
+            state.run.waiting = state.run.waiting || [];
+
             if ( state.run.items.length > 0 ) {
                 callbacks.syncCurrent();
+
+                if ( ! state.online ) {
+                    yield actions.ensureCurrent();
+                    return;
+                }
+
                 yield actions.heartbeat();
-                yield actions.retryStep();
-            } else {
-                yield actions.claim();
+                yield actions.sync();
+
+                // Orders with unsynced changes keep their local progress.
+                if ( state.currentItem && ! outbox.hasItem( state.currentItem.id ) ) {
+                    yield actions.retryStep();
+                }
+            } else if ( state.online ) {
+                yield actions.sync();
+
+                if ( 0 === state.run.items.length ) {
+                    yield actions.claim();
+                }
             }
         },
         *claim() {
@@ -662,7 +741,7 @@ const { state, actions, callbacks } = store( NAMESPACE, {
             yield callbacks.persist();
         },
         *refill() {
-            if ( ! state.run.exhausted && state.run.items.length <= config.refillAt && state.online ) {
+            if ( state.isRunScreen && state.run.workflowId && ! state.run.exhausted && state.run.items.length <= config.refillAt && state.online ) {
                 yield actions.claim();
             }
         },
@@ -678,7 +757,33 @@ const { state, actions, callbacks } = store( NAMESPACE, {
 
             callbacks.syncCurrent();
             yield callbacks.persist();
+            yield actions.ensureCurrent();
             yield actions.refill();
+        },
+        /**
+         * Orders of a run loaded from the server (e.g. resumed without local data) only carry their steps: the next
+         * order's current step is loaded once it is shown - or derived locally from its prefetched views while offline.
+         */
+        *ensureCurrent() {
+            const item = state.currentItem;
+
+            if ( ! state.isRunScreen || ! item || item.current ) {
+                return;
+            }
+
+            if ( state.online && ! outbox.hasItem( item.id ) ) {
+                try {
+                    yield actions.continueResponse( yield api.request( `queue/${ item.id }/run`, { method: 'POST', body: { token: item.lock_token, auto_steps: 0 } } ) );
+                    return;
+                } catch ( error ) {
+                    if ( ! isNetworkError( error ) ) {
+                        yield actions.handleItemError( error );
+                        return;
+                    }
+                }
+            }
+
+            yield actions.continueLocally( item );
         },
         /**
          * @param {Object}  data  The queue item response (current step, steps, layout).
@@ -731,6 +836,21 @@ const { state, actions, callbacks } = store( NAMESPACE, {
                 return;
             }
 
+            const payload = collect ? collect() : {};
+            const idempotencyKey = api.uuid();
+
+            // Offline, or earlier changes of the order are not synced yet (they must not be overtaken).
+            if ( ! state.online || outbox.hasItem( item.id ) ) {
+                if ( step.offline ) {
+                    yield actions.submitOffline( item, step, payload, idempotencyKey );
+                    yield actions.sync();
+                } else {
+                    actions.notify( config.i18n.requiresNetwork, 'error', 4000 );
+                }
+
+                return;
+            }
+
             state.busy = true;
             actions.dismissNotice();
             // The following automatic steps are shown right away, they run one by one afterwards.
@@ -743,8 +863,8 @@ const { state, actions, callbacks } = store( NAMESPACE, {
                     body: {
                         token: item.lock_token,
                         version: item.version,
-                        idempotency_key: api.uuid(),
-                        data: collect ? collect() : {},
+                        idempotency_key: idempotencyKey,
+                        data: payload,
                         auto_steps: 0,
                         manual,
                     },
@@ -757,10 +877,410 @@ const { state, actions, callbacks } = store( NAMESPACE, {
                 yield actions.continueResponse( data );
             } catch ( error ) {
                 yield closeAutoSteps();
-                yield actions.handleItemError( error );
+
+                // The connection dropped: continue offline (the request may have reached the server, the replay
+                // uses the same idempotency key).
+                if ( isNetworkError( error ) && step.offline ) {
+                    state.busy = false;
+                    yield actions.submitOffline( item, step, payload, idempotencyKey );
+                } else {
+                    yield actions.handleItemError( error );
+                }
             } finally {
                 state.busy = false;
             }
+        },
+        /**
+         * Stores a step submit in the outbox and continues locally: with the next step in case it can be done offline
+         * (prefetched view data), otherwise the order waits for the connection and the next order is shown.
+         *
+         * @param {Object} item
+         * @param {Object} step
+         * @param {Object} data The step data.
+         * @param {string} idempotencyKey
+         */
+        *submitOffline( item, step, data, idempotencyKey ) {
+            yield outbox.add( {
+                id: idempotencyKey,
+                itemId: item.id,
+                orderNumber: item.order_number,
+                type: 'step',
+                stepKey: step.key,
+                path: `queue/${ item.id }/steps/${ step.key }`,
+                body: { token: item.lock_token, idempotency_key: idempotencyKey, data },
+            } );
+            state.sync.pending = outbox.count();
+
+            const steps = ( item.steps || [] ).map( ( candidate ) => ( candidate.key === step.key ? { ...candidate, is_done: true } : candidate ) );
+
+            yield actions.continueLocally( { ...item, steps, offline_data: { ...( item.offline_data || {} ), [ step.key ]: data } } );
+        },
+        /**
+         * Continues the current item locally (offline): with its next open step in case it can be done offline
+         * (view data available), otherwise the order waits for the connection and the next order is shown.
+         *
+         * @param {Object} item The current item with its updated steps.
+         */
+        *continueLocally( item ) {
+            const next = ( item.steps || [] ).find( ( candidate ) => ! candidate.is_done ) || null;
+            const view = next && next.offline && item.views ? item.views[ next.key ] : null;
+
+            if ( view ) {
+                const viewData = { ...view };
+                const offlineData = item.offline_data || {};
+
+                // Submitted offline before (e.g. reopened): prefill the form.
+                if ( offlineData[ next.key ] ) {
+                    viewData.previous = offlineData[ next.key ];
+                }
+
+                const isSame = item.current && item.current.step && item.current.step.key === next.key && 'needs_input' === item.current.status;
+
+                state.run.items = [ { ...item, current: { status: 'needs_input', step: next, view_data: viewData, message: '', code: '', automated: [] } }, ...state.run.items.slice( 1 ) ];
+                callbacks.syncCurrent( ! isSame );
+                yield callbacks.persist();
+                return;
+            }
+
+            // The order continues on the server once synced. Orders without changes (e.g. their next step needs the
+            // server) come back to the run as soon as the connection is back (see actions.restoreWaiting()).
+            const hasChanges = outbox.hasItem( item.id );
+
+            state.overlay.open = false;
+            state.manualStep = { key: '', message: '' };
+            state.run.waiting = [ ...( state.run.waiting || [] ), { id: item.id, order_number: item.order_number, lock_token: item.lock_token, ...( hasChanges ? {} : { unchanged: true, item } ) } ];
+            state.run.items = state.run.items.slice( 1 );
+            state.run.done += 1;
+
+            actions.notify( sprintf( hasChanges ? config.i18n.savedOffline : config.i18n.movedWaiting, item.order_number ), 'info', 5000 );
+            callbacks.syncCurrent();
+            yield callbacks.persist();
+            yield actions.ensureCurrent();
+        },
+        /**
+         * Saves the shipments (overlay) offline: stored in the outbox and applied locally (steps of changed shipments
+         * reopened, views rebuilt via callbacks.offlineView_{action}, see offline-layout.js). New shipments keep their
+         * temporary key until the server created them.
+         *
+         * @param {Object}   item
+         * @param {Object[]} shipments Editable shipments of the overlay.
+         * @param {Object[]} payload   The shipments as submitted to the server.
+         * @param {string}   idempotencyKey
+         */
+        *saveShipmentsOffline( item, shipments, payload, idempotencyKey ) {
+            yield outbox.add( {
+                id: idempotencyKey,
+                itemId: item.id,
+                orderNumber: item.order_number,
+                type: 'shipments',
+                path: `queue/${ item.id }/shipments`,
+                body: { token: item.lock_token, idempotency_key: idempotencyKey, continue: true, shipments: payload },
+            } );
+            state.sync.pending = outbox.count();
+
+            const buildView = ( step, next ) => {
+                const build = callbacks[ 'offlineView_' + step.action ];
+                return build ? build( next, step ) || null : null;
+            };
+            const result = applyLayout( item, shipments, buildView );
+
+            yield actions.continueLocally( result.item );
+        },
+        /**
+         * An outbox entry was rejected by the server (e.g. an invalid shipment layout): the order's later entries are
+         * discarded, its server state is loaded and it comes back to the run with the error.
+         *
+         * @param {Object} entry
+         * @param {Error}  error
+         */
+        *recoverItem( entry, error ) {
+            yield outbox.removeItem( entry.itemId );
+            state.sync.pending = outbox.count();
+
+            const local = state.run.items.find( ( candidate ) => candidate.id === entry.itemId ) || ( state.run.waiting || [] ).find( ( candidate ) => candidate.id === entry.itemId );
+            let data = null;
+
+            try {
+                data = yield api.request( `queue/${ entry.itemId }/run`, { method: 'POST', body: { token: entry.body.token, auto_steps: 0 } } );
+            } catch ( recoverError ) {
+                yield actions.syncConflict( entry, recoverError );
+                return;
+            }
+
+            const current = { ...( data.current || {} ), status: 'error', message: error.message || config.i18n.error, code: error.code || '' };
+
+            yield actions.applySynced( { ...entry, type: 'step' }, { ...data, lock_token: data.lock_token || ( local ? local.lock_token : '' ), current } );
+        },
+        /**
+         * Stores a queue mutation (skip, put back) in the outbox, e.g. while offline.
+         *
+         * @param {Object} item
+         * @param {string} type skip|release
+         */
+        *queueOffline( item, type ) {
+            const idempotencyKey = api.uuid();
+
+            yield outbox.add( {
+                id: idempotencyKey,
+                itemId: item.id,
+                orderNumber: item.order_number,
+                type,
+                path: `queue/${ item.id }/${ type }`,
+                body: { token: item.lock_token, idempotency_key: idempotencyKey },
+            } );
+            state.sync.pending = outbox.count();
+        },
+        /**
+         * Replays the outbox in order (one request per entry). Stops at network errors (retried later), an expired
+         * session (the user needs to log in again) and server errors. Orders whose lock was lost cannot be saved
+         * (conflict), orders needing attention afterwards (e.g. a step failed on the server) come back to the run.
+         */
+        *sync() {
+            yield actions.restoreWaiting();
+
+            if ( state.sync.running || ! state.online || 0 === outbox.count() ) {
+                state.sync.pending = outbox.count();
+                return;
+            }
+
+            let synced = 0;
+
+            state.sync.running = true;
+            state.sync.authError = false;
+
+            try {
+                while ( outbox.count() > 0 ) {
+                    const entry = outbox.all()[ 0 ];
+                    let data = null;
+
+                    try {
+                        data = yield api.request( entry.path, { method: 'POST', body: entry.body } );
+                    } catch ( error ) {
+                        if ( isNetworkError( error ) || error.status >= 500 ) {
+                            break;
+                        }
+
+                        if ( isAuthError( error ) ) {
+                            state.sync.authError = true;
+                            actions.notify( config.i18n.syncAuth, 'error' );
+                            break;
+                        }
+
+                        if ( [ 403, 404, 409 ].includes( error.status ) || 'step' !== entry.type && 'shipments' !== entry.type ) {
+                            yield actions.syncConflict( entry, error );
+                        } else {
+                            yield actions.recoverItem( entry, error );
+                        }
+
+                        continue;
+                    }
+
+                    yield outbox.remove( entry.id );
+                    state.sync.pending = outbox.count();
+                    synced++;
+
+                    // New shipments created offline: their temporary keys are replaced with the ids.
+                    if ( 'shipments' === entry.type && data.id_map && Object.keys( data.id_map ).length > 0 ) {
+                        yield actions.mapShipmentIds( entry.itemId, data.id_map );
+                    }
+
+                    yield actions.applySynced( entry, data );
+                }
+            } finally {
+                state.sync.running = false;
+                state.sync.pending = outbox.count();
+            }
+
+            yield callbacks.persist();
+
+            if ( synced > 0 && 0 === outbox.count() ) {
+                if ( ! state.notice.message ) {
+                    actions.notify( config.i18n.syncDone, 'success', 3000 );
+                }
+
+                yield actions.refill();
+            }
+        },
+        /**
+         * Online again: orders moved to the waiting list without changes (their next step needs the server) come back
+         * to the run.
+         */
+        *restoreWaiting() {
+            const unchanged = state.online && state.isRunScreen ? ( state.run.waiting || [] ).filter( ( waiting ) => waiting.unchanged && waiting.item ) : [];
+
+            if ( 0 === unchanged.length ) {
+                return;
+            }
+
+            state.run.waiting = state.run.waiting.filter( ( waiting ) => ! unchanged.includes( waiting ) );
+            state.run.done = Math.max( 0, state.run.done - unchanged.length );
+            state.run.items = [ ...state.run.items, ...unchanged.map( ( waiting ) => waiting.item ) ];
+
+            if ( state.run.items.length === unchanged.length ) {
+                callbacks.syncCurrent( true );
+                yield actions.ensureCurrent();
+            }
+
+            yield callbacks.persist();
+        },
+        /**
+         * Applies the server response of a replayed outbox entry.
+         *
+         * @param {Object} entry
+         * @param {Object} data
+         */
+        *applySynced( entry, data ) {
+            const waiting = ( state.run.waiting || [] ).find( ( candidate ) => candidate.id === entry.itemId );
+            const index = state.run.items.findIndex( ( candidate ) => candidate.id === entry.itemId );
+
+            if ( 'step' !== entry.type && 'shipments' !== entry.type ) {
+                state.run.waiting = ( state.run.waiting || [] ).filter( ( candidate ) => candidate.id !== entry.itemId );
+                return;
+            }
+
+            const current = data.current || {};
+            const failed = 'error' === current.status || ( data.step_result && 'error' === data.step_result.status );
+
+            // The following changes depend on the failed step.
+            if ( failed ) {
+                yield outbox.removeItem( entry.itemId );
+                state.sync.pending = outbox.count();
+            }
+
+            const pending = outbox.hasItem( entry.itemId );
+
+            if ( index >= 0 ) {
+                const item = state.run.items[ index ];
+
+                if ( failed ) {
+                    // Back to the server state: the failed step is shown with its error.
+                    state.run.items = state.run.items.map( ( candidate, i ) => ( i === index ? { ...item, ...data, offline_data: {}, current: { ...current, view_data: current.view_data || {} } } : candidate ) );
+
+                    if ( 0 === index ) {
+                        callbacks.syncCurrent( true );
+                    } else {
+                        actions.notify( sprintf( config.i18n.syncAttention, item.order_number ), 'error' );
+                    }
+                } else {
+                    // Still being worked on locally: keep the local progress, update the server state.
+                    state.run.items = state.run.items.map( ( candidate, i ) => ( i === index ? { ...candidate, version: data.version, lock_token: data.lock_token || candidate.lock_token, layout: ! pending && data.layout ? data.layout : candidate.layout } : candidate ) );
+                }
+
+                return;
+            }
+
+            if ( ! waiting || pending ) {
+                return;
+            }
+
+            if ( 'completed' === current.status ) {
+                state.run.waiting = state.run.waiting.filter( ( candidate ) => candidate.id !== entry.itemId );
+                return;
+            }
+
+            // E.g. a step needing the connection or a failed step: listed as ready to finish.
+            state.run.waiting = state.run.waiting.map( ( candidate ) => ( candidate.id === entry.itemId ? {
+                ...candidate,
+                ready: true,
+                failed: 'error' === current.status,
+                message: 'error' === current.status ? current.message || '' : '',
+                step_title: current.step ? current.step.title : '',
+                item: { ...data, lock_token: data.lock_token || waiting.lock_token },
+            } : candidate ) );
+
+            // Nothing else to do: continue with it right away.
+            if ( 0 === state.run.items.length ) {
+                yield actions.finishWaiting( entry.itemId );
+            } else {
+                actions.notify( sprintf( config.i18n.syncAttention, entry.orderNumber || waiting.order_number ), 'info', 5000 );
+            }
+        },
+        /**
+         * Continues an order which is ready to finish after syncing (e.g. a step needing the connection): it becomes
+         * the current order.
+         *
+         * @param {number} itemId Optional, defaults to the order of the context (ready list).
+         */
+        *finishWaiting( itemId = 0 ) {
+            // Called from the list (event as first argument) or with the order's queue id.
+            const id = 'number' === typeof itemId && itemId > 0 ? itemId : getContext().waiting.id;
+            const waiting = ( state.run.waiting || [] ).find( ( candidate ) => candidate.id === id && candidate.ready );
+
+            if ( ! waiting || state.busy ) {
+                return;
+            }
+
+            state.overlay.open = false;
+            state.run.waiting = state.run.waiting.filter( ( candidate ) => candidate.id !== id );
+            state.run.done = Math.max( 0, state.run.done - 1 );
+            state.run.items = [ waiting.item, ...state.run.items ];
+            callbacks.syncCurrent( true );
+            window.scrollTo( 0, 0 );
+            yield callbacks.persist();
+        },
+        /**
+         * The changes of an order could not be saved (e.g. the lock expired while offline and someone else claimed the
+         * order): its entries are removed and the order is listed as a conflict.
+         *
+         * @param {Object} entry
+         * @param {Error}  error
+         */
+        *syncConflict( entry, error ) {
+            const wasCurrent = state.currentItem && state.currentItem.id === entry.itemId;
+
+            yield outbox.removeItem( entry.itemId );
+
+            state.sync.pending = outbox.count();
+            state.sync.conflicts = [
+                ...state.sync.conflicts.filter( ( conflict ) => conflict.id !== entry.itemId ),
+                { id: entry.itemId, order_number: entry.orderNumber || entry.itemId, message: [ 403, 404, 409 ].includes( error.status ) ? config.i18n.syncConflict : error.message || config.i18n.error },
+            ];
+            state.run.waiting = ( state.run.waiting || [] ).filter( ( candidate ) => candidate.id !== entry.itemId );
+            state.run.items = state.run.items.filter( ( candidate ) => candidate.id !== entry.itemId );
+            // E.g. the "saved on this device" notice of the order is outdated (the conflict is listed instead).
+            actions.dismissNotice();
+
+            if ( wasCurrent ) {
+                state.overlay.open = false;
+                callbacks.syncCurrent();
+            }
+        },
+        /**
+         * Replaces temporary shipment keys of an item (local state and its outbox entries) with the server's ids.
+         *
+         * @param {number} itemId
+         * @param {Object} idMap temporary key => shipment id
+         */
+        *mapShipmentIds( itemId, idMap ) {
+            yield outbox.update( ( entry ) => {
+                if ( entry.itemId !== itemId || ! entry.stepKey ) {
+                    return entry;
+                }
+
+                const stepKey = mapStepKey( entry.stepKey, idMap );
+
+                return { ...entry, stepKey, path: `queue/${ itemId }/steps/${ stepKey }` };
+            } );
+
+            const index = state.run.items.findIndex( ( candidate ) => candidate.id === itemId );
+
+            if ( index < 0 ) {
+                return;
+            }
+
+            state.run.items = state.run.items.map( ( candidate, i ) => ( i === index ? mapShipmentIds( candidate, idMap ) : candidate ) );
+
+            // The current step keeps its form state.
+            if ( 0 === index && state.currentItem.current && state.currentItem.current.step ) {
+                state.currentKey = itemId + ':' + state.currentItem.current.step.key;
+
+                if ( state.view && idMap[ state.view.shipmentId ] ) {
+                    state.view = { ...state.view, shipmentId: idMap[ state.view.shipmentId ] };
+                }
+            }
+        },
+        dismissConflicts() {
+            state.sync.conflicts = [];
         },
         /**
          * Navigates back: reopens a done step (the clicked one or the previous one), its data prefills the form.
@@ -785,6 +1305,39 @@ const { state, actions, callbacks } = store( NAMESPACE, {
             const item = state.currentItem;
 
             if ( ! item || ! step || ! step.is_done || state.busy ) {
+                return;
+            }
+
+            // Done offline (not synced yet): reopened locally, the step's change and the following ones are discarded.
+            const entries = outbox.forItem( item.id ).filter( ( entry ) => 'step' === entry.type );
+            const position = entries.findIndex( ( entry ) => entry.stepKey === step.key );
+
+            if ( position >= 0 && item.views && item.views[ step.key ] ) {
+                const discarded = entries.slice( position );
+                const keys = discarded.map( ( entry ) => entry.stepKey );
+
+                yield outbox.removeItem( item.id, ( entry ) => discarded.some( ( candidate ) => candidate.id === entry.id ) );
+                state.sync.pending = outbox.count();
+
+                const viewData = { ...item.views[ step.key ] };
+
+                if ( item.offline_data && item.offline_data[ step.key ] ) {
+                    viewData.previous = item.offline_data[ step.key ];
+                }
+
+                state.run.items = [ {
+                    ...item,
+                    steps: item.steps.map( ( candidate ) => ( keys.includes( candidate.key ) ? { ...candidate, is_done: false } : candidate ) ),
+                    current: { status: 'needs_input', step: item.steps.find( ( candidate ) => candidate.key === step.key ), view_data: viewData, message: '', code: '', automated: [] },
+                }, ...state.run.items.slice( 1 ) ];
+
+                callbacks.syncCurrent( true );
+                yield callbacks.persist();
+                return;
+            }
+
+            if ( ! state.online || outbox.hasItem( item.id ) ) {
+                actions.notify( config.i18n.requiresNetwork, 'error', 4000 );
                 return;
             }
 
@@ -933,13 +1486,30 @@ const { state, actions, callbacks } = store( NAMESPACE, {
         *skipItem() {
             const item = state.currentItem;
 
+            if ( ! item ) {
+                return;
+            }
+
+            if ( ! state.online || outbox.hasItem( item.id ) ) {
+                yield actions.queueOffline( item, 'skip' );
+                yield actions.finishCurrent();
+                yield actions.sync();
+                return;
+            }
+
             state.busy = true;
 
             try {
                 yield api.request( `queue/${ item.id }/skip`, { method: 'POST', body: { token: item.lock_token, idempotency_key: api.uuid() } } );
                 yield actions.finishCurrent();
             } catch ( error ) {
-                yield actions.handleItemError( error );
+                if ( isNetworkError( error ) ) {
+                    state.busy = false;
+                    yield actions.queueOffline( item, 'skip' );
+                    yield actions.finishCurrent();
+                } else {
+                    yield actions.handleItemError( error );
+                }
             } finally {
                 state.busy = false;
             }
@@ -947,14 +1517,26 @@ const { state, actions, callbacks } = store( NAMESPACE, {
         *releaseItem() {
             const item = state.currentItem;
 
-            state.busy = true;
+            if ( ! item ) {
+                return;
+            }
 
-            try {
-                yield api.request( `queue/${ item.id }/release`, { method: 'POST', body: { token: item.lock_token, idempotency_key: api.uuid() } } );
-            } catch ( error ) {
-                // The lock is gone anyway.
-            } finally {
-                state.busy = false;
+            if ( ! state.online || outbox.hasItem( item.id ) ) {
+                yield actions.queueOffline( item, 'release' );
+            } else {
+                state.busy = true;
+
+                try {
+                    yield api.request( `queue/${ item.id }/release`, { method: 'POST', body: { token: item.lock_token, idempotency_key: api.uuid() } } );
+                } catch ( error ) {
+                    // Released once synced, otherwise the lock is gone anyway.
+                    if ( isNetworkError( error ) ) {
+                        state.busy = false;
+                        yield actions.queueOffline( item, 'release' );
+                    }
+                } finally {
+                    state.busy = false;
+                }
             }
 
             state.overlay.open = false;
@@ -965,6 +1547,7 @@ const { state, actions, callbacks } = store( NAMESPACE, {
             state.run.items = state.run.items.slice( 1 );
             callbacks.syncCurrent();
             yield callbacks.persist();
+            yield actions.ensureCurrent();
             yield actions.refill();
         },
         /**
@@ -974,6 +1557,16 @@ const { state, actions, callbacks } = store( NAMESPACE, {
          * @param {boolean} showReport False e.g. for browser back navigation (the run is listed in the overview).
          */
         *stopRun( showReport = true ) {
+            // Changes made offline are synced first, the run cannot end before (its orders would be released).
+            if ( outbox.count() > 0 ) {
+                yield actions.sync();
+
+                if ( outbox.count() > 0 ) {
+                    actions.notify( config.i18n.stopPending, 'error' );
+                    return;
+                }
+            }
+
             const runId = state.run.id || 0;
             const requests = runId ? [] : state.run.items.map( ( item ) => ( {
                 path: `queue/${ item.id }/release`,
@@ -982,7 +1575,7 @@ const { state, actions, callbacks } = store( NAMESPACE, {
 
             // Leave the run screen right away, the release happens in the background.
             state.overlay.open = false;
-            state.run = { workflowId: 0, items: [], skipped: [], total: 0, done: 0, exhausted: false };
+            state.run = { workflowId: 0, items: [], skipped: [], waiting: [], total: 0, done: 0, exhausted: false };
             state.screen = 'overview';
             state.currentKey = '';
             state.view = {};
@@ -1012,7 +1605,7 @@ const { state, actions, callbacks } = store( NAMESPACE, {
             yield actions.loadQueue();
         },
         *heartbeat() {
-            const tokens = [ ...new Set( state.run.items.map( ( item ) => item.lock_token ).filter( Boolean ) ) ];
+            const tokens = [ ...new Set( [ ...state.run.items, ...( state.run.waiting || [] ) ].map( ( item ) => item.lock_token ).filter( Boolean ) ) ];
 
             for ( const token of tokens ) {
                 try {
@@ -1063,7 +1656,14 @@ const { state, actions, callbacks } = store( NAMESPACE, {
         },
         *init() {
             const updateOnline = () => {
+                const wasOffline = ! state.online;
+
                 state.online = navigator.onLine;
+
+                // Back online: replay the changes made offline, then claim further orders.
+                if ( wasOffline && state.online ) {
+                    actions.sync();
+                }
             };
 
             gestures.init();
@@ -1072,11 +1672,29 @@ const { state, actions, callbacks } = store( NAMESPACE, {
             window.addEventListener( 'offline', updateOnline );
             updateOnline();
 
+            // Keeps the app available offline (secure contexts only).
+            if ( config.serviceWorker && 'serviceWorker' in navigator ) {
+                navigator.serviceWorker.register( config.serviceWorker.url, { scope: config.serviceWorker.scope } ).catch( () => {} );
+            }
+
+            yield outbox.load( config.userId );
+            state.sync.pending = outbox.count();
+
             window.setInterval( () => actions.heartbeat(), config.heartbeatInterval * 1000 );
+            // Retries (e.g. the connection was flaky or the session expired in the meantime).
+            window.setInterval( () => actions.sync(), SYNC_INTERVAL * 1000 );
 
             actions.report.loadRuns();
 
             const route = getRoute();
+            const saved = state.online ? null : yield db.get( runKey() );
+
+            // Opened without connection (e.g. via the service worker): continue the locally stored run.
+            if ( ! route.run && saved && saved.id && saved.items ) {
+                yield actions.resumeSession( { id: saved.id, workflow_id: saved.workflowId, export_files: saved.exportFiles, export_url: saved.exportUrl } );
+                state.routerReady = true;
+                return;
+            }
 
             // Deep links: runs (incl. order/step), workflow editor. A run left without ending it (e.g. the browser
             // was closed) is continued via its workflow ("Continue") or its URL.

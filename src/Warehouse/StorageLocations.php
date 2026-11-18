@@ -63,6 +63,31 @@ class StorageLocations {
 	}
 
 	/**
+	 * A string sorting entries along the picking path like sort_entries() (warehouse order, then pick sequence,
+	 * entries without storage location last), e.g. to sort pick lines on the client.
+	 *
+	 * @param string $warehouse_name
+	 * @param string $code
+	 *
+	 * @return string
+	 */
+	public static function get_sort_key( $warehouse_name, $code ) {
+		static $warehouse_order = null;
+
+		if ( is_null( $warehouse_order ) ) {
+			$warehouse_order = array();
+
+			foreach ( wc_stc_get_warehouse_list() as $index => $warehouse ) {
+				$warehouse_order[ $warehouse->get_name() ] = $index;
+			}
+		}
+
+		$code = LocationSchema::normalize_code( $code );
+
+		return sprintf( '%05d|%s', isset( $warehouse_order[ (string) $warehouse_name ] ) ? $warehouse_order[ (string) $warehouse_name ] : 99999, '' === $code ? '~' : self::get_pick_sequence( $code, $warehouse_name ) );
+	}
+
+	/**
 	 * Sorts entries (e.g. pick lines) along the picking path: by warehouse (warehouse order, default location last),
 	 * then by pick sequence. Entries without a storage location are placed at the end of their warehouse.
 	 *

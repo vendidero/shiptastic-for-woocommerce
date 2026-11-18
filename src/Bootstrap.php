@@ -41,6 +41,9 @@ class Bootstrap {
 			BulkFulfillments\App::init();
 		}
 
+		// Shared devices: data of the fulfillment app stored in the browser is removed once logged out (login screen).
+		add_action( 'login_footer', array( BulkFulfillments\App::class, 'maybe_clear_local_data' ) );
+
 		$this->container->get( Ajax::class )::init();
 		$this->container->get( MethodHelper::class )::init();
 		$this->container->get( Automation::class )::init();

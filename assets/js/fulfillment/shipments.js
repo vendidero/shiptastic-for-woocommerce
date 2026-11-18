@@ -18,6 +18,7 @@
 import { store, getContext, getConfig } from '@wordpress/interactivity';
 import * as api from './api.js';
 import * as hooks from './hooks.js';
+import * as outbox from './outbox.js';
 import { getPackagingOptions, proposeShipments, choosePackaging } from './packing.js';
 
 const NAMESPACE = 'shiptastic/fulfillment';
@@ -192,7 +193,8 @@ function setQuantity( shipment, id, quantity ) {
 
 function newShipment() {
     return {
-        key: 'new-' + ( ++counter ),
+        // Unique across saves: new shipments saved offline keep their key until the server created them.
+        key: 'new-' + ( ++counter ) + '-' + api.uuid().replace( /[^a-z0-9]/gi, '' ).slice( 0, 8 ).toLowerCase(),
         id: 0,
         status: '',
         editable: true,
@@ -578,26 +580,50 @@ const { state, actions } = store( NAMESPACE, {
 
                 // E.g. fixing an order a run of an extension failed on: the run continues the order.
                 const continues = hooks.applyFilters( 'shipmentsContinue', true );
+                const editable = copy( state.overlay.shipments.filter( ( shipment ) => shipment.editable ) );
+                const payload = editable.map( ( shipment ) => ( {
+                    id: shipment.id || shipment.key,
+                    items: shipment.items,
+                    props: {
+                        packaging_id: shipment.packaging_id,
+                        provider: shipment.provider,
+                        weight: shipment.weight,
+                        ...( shipment.packaging_id ? {} : DIMENSIONS.reduce( ( props, dimension ) => ( { ...props, [ dimension ]: shipment[ dimension ] } ), {} ) ),
+                    },
+                } ) );
+                const idempotencyKey = api.uuid();
+                const saveOffline = function* () {
+                    state.overlay.open = false;
+                    state.overlay.dirty = false;
+                    yield actions.saveShipmentsOffline( item, editable, payload, idempotencyKey );
+                    yield actions.sync();
+                };
+
+                // Offline, or earlier changes of the order are not synced yet: saved locally (outbox).
+                if ( ! state.online || outbox.hasItem( item.id ) ) {
+                    if ( ! continues ) {
+                        actions.notify( i18n().requiresNetwork, 'error', 4000 );
+                        state.overlay.saving = false;
+                        return;
+                    }
+
+                    try {
+                        yield* saveOffline();
+                    } finally {
+                        state.overlay.saving = false;
+                    }
+
+                    return;
+                }
 
                 try {
                     const data = yield api.request( `queue/${ item.id }/shipments`, {
                         method: 'POST',
                         body: {
                             token: item.lock_token,
-                            idempotency_key: api.uuid(),
+                            idempotency_key: idempotencyKey,
                             continue: continues,
-                            shipments: state.overlay.shipments
-                                .filter( ( shipment ) => shipment.editable )
-                                .map( ( shipment ) => ( {
-                                    id: shipment.id || shipment.key,
-                                    items: shipment.items,
-                                    props: {
-                                        packaging_id: shipment.packaging_id,
-                                        provider: shipment.provider,
-                                        weight: shipment.weight,
-                                        ...( shipment.packaging_id ? {} : DIMENSIONS.reduce( ( props, dimension ) => ( { ...props, [ dimension ]: shipment[ dimension ] } ), {} ) ),
-                                    },
-                                } ) ),
+                            shipments: payload,
                         },
                     } );
 
@@ -619,6 +645,10 @@ const { state, actions } = store( NAMESPACE, {
                     if ( error && [ 403, 404, 409 ].includes( error.status ) ) {
                         state.overlay.open = false;
                         yield actions.handleItemError( error );
+                    } else if ( continues && error && ! error.status ) {
+                        // The connection dropped: saved locally (the request may have reached the server, the replay uses
+                        // the same idempotency key).
+                        yield* saveOffline();
                     } else {
                         actions.handleError( error );
                     }

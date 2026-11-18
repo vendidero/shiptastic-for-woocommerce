@@ -53,19 +53,20 @@ class Pick extends Action {
 	}
 
 	/**
-	 * @param \Vendidero\Shiptastic\BulkFulfillments\StepContext $context
+	 * Storage locations of order item lines (inner boxes may be stored at a custom location within the product's
+	 * warehouse).
 	 *
-	 * @return array
+	 * @param \WC_Order $order
+	 * @param array $line_keys
+	 *
+	 * @return array line key => product_id, location, warehouse (empty without location), sort (see StorageLocations::get_sort_key())
 	 */
-	public function get_view_data( $context ) {
-		$order_shipment = $context->order_shipment;
-		$order          = $order_shipment->get_order();
-		$items          = array();
-		$sort_entries   = array();
-		$product_ids    = array();
-		$lines          = array();
+	public static function get_line_locations( $order, $line_keys ) {
+		$lines       = array();
+		$product_ids = array();
+		$result      = array();
 
-		foreach ( self::get_required_quantities( $context ) as $line_key => $quantity ) {
+		foreach ( $line_keys as $line_key ) {
 			list( $order_item_id, $inner_box ) = ShipmentLayout::parse_line_key( $line_key );
 
 			if ( ! $order_item = $order->get_item( $order_item_id ) ) {
@@ -75,37 +76,63 @@ class Pick extends Action {
 			$product_id    = is_callable( array( $order_item, 'get_variation_id' ) ) && $order_item->get_variation_id() ? $order_item->get_variation_id() : ( is_callable( array( $order_item, 'get_product_id' ) ) ? $order_item->get_product_id() : 0 );
 			$product_ids[] = $product_id;
 
-			$lines[ $line_key ] = array( $order_item, $inner_box, $product_id, $quantity );
+			$lines[ $line_key ] = array( $order_item, $inner_box, $product_id );
 		}
 
 		$locations = StorageLocations::get_product_locations( $product_ids );
 
 		foreach ( $lines as $line_key => $line ) {
-			list( $order_item, $inner_box, $product_id, $quantity ) = $line;
+			list( $order_item, $inner_box, $product_id ) = $line;
 
 			$location  = isset( $locations[ $product_id ] ) ? $locations[ $product_id ]['location_code'] : '';
 			$warehouse = isset( $locations[ $product_id ] ) ? $locations[ $product_id ]['warehouse'] : wc_stc_get_product_warehouse_name( $product_id );
 
-			/**
-			 * Inner boxes may be stored at a custom storage location (within the product's warehouse).
-			 */
 			if ( '' !== $inner_box && ( $box = InnerBoxes::get_order_item_box( $order_item, $inner_box ) ) && ! empty( $box['location'] ) ) {
 				$location = LocationSchema::normalize_code( $box['location'] );
 			}
 
+			$result[ $line_key ] = array(
+				'product_id'     => $product_id,
+				'location'       => $location,
+				'warehouse'      => '' !== $location ? $warehouse : '',
+				'sort'           => StorageLocations::get_sort_key( $warehouse, $location ),
+				'sort_warehouse' => $warehouse,
+			);
+		}
+
+		return $result;
+	}
+
+	/**
+	 * @param \Vendidero\Shiptastic\BulkFulfillments\StepContext $context
+	 *
+	 * @return array
+	 */
+	public function get_view_data( $context ) {
+		$order_shipment = $context->order_shipment;
+		$order          = $order_shipment->get_order();
+		$required       = self::get_required_quantities( $context );
+		$locations      = self::get_line_locations( $order, array_keys( $required ) );
+		$items          = array();
+		$sort_entries   = array();
+
+		foreach ( $locations as $line_key => $location ) {
+			list( $order_item_id, $inner_box ) = ShipmentLayout::parse_line_key( $line_key );
+
 			$items[ $line_key ] = array_merge(
-				ShipmentLayout::get_item_data( $order_shipment, $order_item, $inner_box ),
+				ShipmentLayout::get_item_data( $order_shipment, $order->get_item( $order_item_id ), $inner_box ),
 				array(
-					'quantity'   => $quantity,
-					'product_id' => $product_id,
-					'location'   => $location,
-					'warehouse'  => '' !== $location ? $warehouse : '',
+					'quantity'   => $required[ $line_key ],
+					'product_id' => $location['product_id'],
+					'location'   => $location['location'],
+					'warehouse'  => $location['warehouse'],
+					'sort'       => $location['sort'],
 				)
 			);
 
 			$sort_entries[ $line_key ] = array(
-				'warehouse' => $warehouse,
-				'location'  => $location,
+				'warehouse' => $location['sort_warehouse'],
+				'location'  => $location['location'],
 			);
 		}
 

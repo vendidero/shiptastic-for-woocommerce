@@ -126,6 +126,50 @@ const { state, callbacks } = store( NAMESPACE, {
 
             return form;
         },
+        /**
+         * Pack view rebuilt from the shipments layout, e.g. after the shipments were edited offline (see
+         * Pack::get_view_data()).
+         *
+         * @param {Object} item The queue item (layout).
+         * @param {Object} step The step (shipment_id: id or temporary key of a new shipment).
+         * @return {Object|null} The view data, null in case it cannot be built offline.
+         */
+        offlineView_pack( item, step ) {
+            const layout = item.layout || {};
+            const target = String( step.shipment_id );
+            const shipment = ( layout.shipments || [] ).find( ( candidate ) => String( candidate.id || candidate.key ) === target );
+
+            if ( ! shipment ) {
+                return null;
+            }
+
+            const items = [];
+
+            for ( const [ lineKey, quantity ] of Object.entries( shipment.items || {} ) ) {
+                const line = ( layout.items || [] ).find( ( candidate ) => String( candidate.id ) === lineKey );
+
+                if ( ! line ) {
+                    return null;
+                }
+
+                const { total, backordered, sort, product_id: productId, warehouse, ...data } = line;
+                items.push( { ...data, quantity: parseInt( quantity, 10 ) || 0, location: '' } );
+            }
+
+            const packaging = getPackaging( shipment.packaging_id || 0 );
+            const unit = packaging ? ( getConfig( NAMESPACE ).packing || {} ).dimensionUnit : getConfig( NAMESPACE ).dimensionUnit;
+            const dimensions = ( packaging ? [ packaging.length, packaging.width, packaging.height ] : [ shipment.length, shipment.width, shipment.height ] ).map( ( value ) => Number( value || 0 ) );
+            const locale = document.documentElement.lang || undefined;
+
+            return {
+                shipmentId: shipment.id || shipment.key,
+                items,
+                packaging: packaging ? packaging.title : '',
+                packagingId: shipment.packaging_id || 0,
+                provider: shipment.provider || '',
+                dimensions: dimensions.some( ( value ) => value > 0 ) ? dimensions.map( ( value ) => value.toLocaleString( locale, { maximumFractionDigits: 2 } ) ).join( ' × ' ) + ' ' + unit : '',
+            };
+        },
         collect_pack() {
             const data = { packed: { ...state.form.counted } };
 

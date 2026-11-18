@@ -413,6 +413,48 @@ class Runner {
 	}
 
 	/**
+	 * View data of the open steps which can be done offline (Step::is_offline_capable()), keyed by step key. Prefetched
+	 * with the queue item so that the app can continue with the following steps without a connection.
+	 *
+	 * @param QueueItem $item
+	 * @param Workflow $workflow
+	 * @param string $token
+	 *
+	 * @return array
+	 */
+	public static function get_offline_views( $item, $workflow, $token = '' ) {
+		$views = array();
+
+		/**
+		 * Filter to disable prefetching the view data of the following steps (offline support).
+		 *
+		 * @param bool      $prefetch
+		 * @param QueueItem $item
+		 * @param Workflow  $workflow
+		 *
+		 * @package Vendidero/Shiptastic
+		 */
+		if ( ! apply_filters( 'woocommerce_shiptastic_fulfillment_prefetch_views', true, $item, $workflow ) ) {
+			return $views;
+		}
+
+		foreach ( self::get_steps( $item, $workflow ) as $step ) {
+			if ( $step->is_done || ! $step->is_offline_capable() ) {
+				continue;
+			}
+
+			try {
+				$views[ $step->get_key() ] = self::get_view_data( $item, $step, new StepContext( $item, $workflow, $step, 'interactive', $token ) );
+			} catch ( \Exception $e ) {
+				// Not available offline, loaded once the step is reached online.
+				continue;
+			}
+		}
+
+		return $views;
+	}
+
+	/**
 	 * Reopens a done interactive step of a locked item (e.g. the user navigates back), its data is kept to prefill
 	 * the form. Shipment scope steps reopen the order scope roll-up as well.
 	 *

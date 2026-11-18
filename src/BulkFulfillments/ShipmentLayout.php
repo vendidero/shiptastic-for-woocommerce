@@ -412,7 +412,11 @@ class ShipmentLayout {
 		$totals    = self::get_total_quantities( $shipments );
 		$left      = self::get_items_left( $item );
 
-		foreach ( array_unique( array_merge( array_keys( $totals ), array_keys( $left ) ) ) as $line_key ) {
+		$line_keys = array_unique( array_merge( array_keys( $totals ), array_keys( $left ) ) );
+		// Storage locations: the pick list is rebuilt from the layout in case the shipments are edited offline.
+		$locations = \Vendidero\Shiptastic\BulkFulfillments\Actions\Pick::get_line_locations( $order, $line_keys );
+
+		foreach ( $line_keys as $line_key ) {
 			list( $order_item_id, $inner_box ) = self::parse_line_key( $line_key );
 
 			if ( ! $order_item = $order->get_item( $order_item_id ) ) {
@@ -424,6 +428,10 @@ class ShipmentLayout {
 				array(
 					'total'       => ( isset( $totals[ $line_key ] ) ? $totals[ $line_key ] : 0 ) + ( isset( $left[ $line_key ] ) ? $left[ $line_key ]['available'] : 0 ),
 					'backordered' => isset( $left[ $line_key ] ) ? $left[ $line_key ]['backordered'] : 0,
+					'product_id'  => isset( $locations[ $line_key ] ) ? $locations[ $line_key ]['product_id'] : 0,
+					'location'    => isset( $locations[ $line_key ] ) ? $locations[ $line_key ]['location'] : '',
+					'warehouse'   => isset( $locations[ $line_key ] ) ? $locations[ $line_key ]['warehouse'] : '',
+					'sort'        => isset( $locations[ $line_key ] ) ? $locations[ $line_key ]['sort'] : '99999|~',
 				)
 			);
 		}

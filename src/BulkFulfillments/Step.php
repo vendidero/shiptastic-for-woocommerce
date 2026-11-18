@@ -52,6 +52,15 @@ class Step {
 		return ActionRegistry::get( $this->action );
 	}
 
+	/**
+	 * @return bool Whether the step can be done offline: interactive steps of actions not requiring a connection.
+	 */
+	public function is_offline_capable() {
+		$action = $this->get_action();
+
+		return $action && 'interactive' === $this->mode && ! $action::requires_network();
+	}
+
 	public function to_array() {
 		$action = $this->get_action();
 
@@ -65,6 +74,11 @@ class Step {
 			'mode'        => $this->mode,
 			'injected'    => $this->injected,
 			'is_done'     => $this->is_done,
+			// Interactive steps of actions not requiring a connection can be done offline (prefetched view data).
+			'offline'     => $this->is_offline_capable(),
+			// Used to update the steps in case the shipments are edited offline (see ShipmentLayout::reopen_steps()).
+			'scope'       => isset( $this->settings['scope'] ) ? $this->settings['scope'] : ( $action ? $action::get_default_scope() : 'order' ),
+			'resets'      => $action ? (bool) $action::resets_on_shipment_changes() : false,
 		);
 	}
 }

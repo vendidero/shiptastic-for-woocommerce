@@ -32,6 +32,143 @@ class App {
 
 		add_action( 'admin_menu', array( __CLASS__, 'add_page' ), 60 );
 		add_action( 'admin_init', array( __CLASS__, 'render' ), 20 );
+
+		// Service worker (offline support): served below /wp-admin/ so that it may control the app page.
+		add_action( 'wp_ajax_stc_fulfillment_sw', array( __CLASS__, 'service_worker' ) );
+		add_action( 'wp_ajax_nopriv_stc_fulfillment_sw', array( __CLASS__, 'service_worker' ) );
+	}
+
+	/**
+	 * Removes the data the app stored in the browser after logging out (login screen with `loggedout`): the cached
+	 * app page (service worker) and the stored runs (IndexedDB). Changes not synced yet (outbox) are kept, they are
+	 * synced once the user opens the app again.
+	 */
+	public static function maybe_clear_local_data() {
+		if ( ! isset( $_GET['loggedout'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+			return;
+		}
+
+		/**
+		 * Filter to keep the data of the fulfillment app stored in the browser after logging out.
+		 *
+		 * @param bool $clear
+		 *
+		 * @package Vendidero/Shiptastic
+		 */
+		if ( ! apply_filters( 'woocommerce_shiptastic_fulfillment_clear_local_data_on_logout', true ) ) {
+			return;
+		}
+
+		$script = <<<'JS'
+( function() {
+	try {
+		if ( window.caches ) {
+			window.caches.keys().then( function( keys ) {
+				keys.filter( function( key ) { return 0 === key.indexOf( 'stc-fulfillment-' ); } ).forEach( function( key ) { window.caches.delete( key ); } );
+			} ).catch( function() {} );
+		}
+
+		if ( ! window.indexedDB ) {
+			return;
+		}
+
+		var request = window.indexedDB.open( 'shiptastic-fulfillment', 1 );
+
+		request.onupgradeneeded = function() {
+			if ( ! request.result.objectStoreNames.contains( 'kv' ) ) {
+				request.result.createObjectStore( 'kv' );
+			}
+		};
+
+		request.onsuccess = function() {
+			var db = request.result;
+			var transaction = db.transaction( 'kv', 'readwrite' );
+			var cursorRequest = transaction.objectStore( 'kv' ).openCursor();
+
+			cursorRequest.onsuccess = function() {
+				var cursor = cursorRequest.result;
+
+				if ( ! cursor ) {
+					return;
+				}
+
+				var key = String( cursor.key );
+
+				if ( 0 === key.indexOf( 'run-' ) || ( 0 === key.indexOf( 'outbox-' ) && ( ! Array.isArray( cursor.value ) || 0 === cursor.value.length ) ) ) {
+					cursor.delete();
+				}
+
+				cursor.continue();
+			};
+
+			transaction.oncomplete = function() {
+				db.close();
+			};
+		};
+	} catch ( e ) {}
+} )();
+JS;
+
+		wp_print_inline_script_tag( $script );
+	}
+
+	/**
+	 * Whether the app registers its service worker (offline support, see assets/js/fulfillment/service-worker.js).
+	 * Browsers only support service workers in secure contexts (HTTPS, localhost).
+	 *
+	 * @return bool
+	 */
+	public static function has_service_worker() {
+		/**
+		 * Filter to disable the service worker of the fulfillment app.
+		 *
+		 * @param bool $enabled
+		 *
+		 * @package Vendidero/Shiptastic
+		 */
+		return (bool) apply_filters( 'woocommerce_shiptastic_fulfillment_service_worker', true );
+	}
+
+	/**
+	 * @return array|null url, scope
+	 */
+	protected static function get_service_worker_config() {
+		if ( ! self::has_service_worker() ) {
+			return null;
+		}
+
+		return array(
+			'url'   => esc_url_raw(
+				add_query_arg(
+					array(
+						'action' => 'stc_fulfillment_sw',
+						'v'      => Package::get_version(),
+					),
+					admin_url( 'admin-ajax.php' )
+				)
+			),
+			'scope' => esc_url_raw( self::get_url() ),
+		);
+	}
+
+	/**
+	 * Outputs the service worker script. Not user specific (also served without login, e.g. update checks after
+	 * the session expired).
+	 */
+	public static function service_worker() {
+		$file = Package::get_path( 'assets/js/fulfillment/service-worker.js' );
+
+		if ( ! self::has_service_worker() || ! file_exists( $file ) ) {
+			status_header( 404 );
+			exit();
+		}
+
+		nocache_headers();
+		header( 'Content-Type: application/javascript; charset=utf-8' );
+		header( 'X-Content-Type-Options: nosniff' );
+
+		readfile( $file ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_readfile
+		exit();
 	}
 
 	public static function is_active() {
@@ -143,6 +280,7 @@ class App {
 				'canManage'         => current_user_can( 'manage_woocommerce' ),
 				'heartbeatInterval' => 120,
 				'refillAt'          => 5,
+				'serviceWorker'     => self::get_service_worker_config(),
 				'weightUnit'        => get_option( 'woocommerce_weight_unit', 'kg' ),
 				'dimensionUnit'     => get_option( 'woocommerce_dimension_unit', 'cm' ),
 				// Packaging suggestions (packing.js): default packaging (setting), units packed in 3D at most.
@@ -173,6 +311,27 @@ class App {
 					/* translators: %d quantity */
 					'backordered'       => _x( '%d on backorder', 'shipments', 'shiptastic-for-woocommerce' ),
 					'offline'           => _x( 'You are offline.', 'shipments', 'shiptastic-for-woocommerce' ),
+					/* translators: %s order number */
+					'savedOffline'      => _x( 'Order #%s is saved on this device and will be synced once you are back online.', 'shipments', 'shiptastic-for-woocommerce' ),
+					/* translators: %s order number */
+					'movedWaiting'      => _x( 'Order #%s needs a connection for its next step and continues once you are back online.', 'shipments', 'shiptastic-for-woocommerce' ),
+					/* translators: %d number of changes */
+					'syncPending'       => _x( '%d change(s) waiting to sync', 'shipments', 'shiptastic-for-woocommerce' ),
+					'syncRunning'       => _x( 'Syncing…', 'shipments', 'shiptastic-for-woocommerce' ),
+					'syncDone'          => _x( 'All changes are synced.', 'shipments', 'shiptastic-for-woocommerce' ),
+					'syncAuth'          => _x( 'Your session expired. Please log in again in another tab, your changes are kept on this device.', 'shipments', 'shiptastic-for-woocommerce' ),
+					/* translators: %s order number */
+					'syncAttention'     => _x( 'Order #%s is ready to finish.', 'shipments', 'shiptastic-for-woocommerce' ),
+					'syncConflict'      => _x( 'Your changes could not be saved: the order is no longer reserved for you (e.g. the reservation expired while you were offline and someone else took it).', 'shipments', 'shiptastic-for-woocommerce' ),
+					'requiresNetwork'   => _x( 'This requires a connection.', 'shipments', 'shiptastic-for-woocommerce' ),
+					'stopPending'       => _x( 'Some changes are not synced yet. Please wait until you are back online before ending the run.', 'shipments', 'shiptastic-for-woocommerce' ),
+					/* translators: %d number of orders */
+					'waitingOrders'     => _x( '%d order(s) waiting for the connection', 'shipments', 'shiptastic-for-woocommerce' ),
+					/* translators: %d number of orders */
+					'readyOrders'       => _x( '%d order(s) ready to finish', 'shipments', 'shiptastic-for-woocommerce' ),
+					'waitingStatus'     => _x( 'Waiting for the connection', 'shipments', 'shiptastic-for-woocommerce' ),
+					/* translators: %s step title */
+					'readyStatus'       => _x( 'Ready to finish: %s', 'shipments', 'shiptastic-for-woocommerce' ),
 					'error'             => _x( 'Something went wrong. Please try again.', 'shipments', 'shiptastic-for-woocommerce' ),
 					'lockLost'          => _x( 'This order is no longer reserved for you and has been removed from your list.', 'shipments', 'shiptastic-for-woocommerce' ),
 					'noItems'           => _x( 'No orders left for this workflow.', 'shipments', 'shiptastic-for-woocommerce' ),
@@ -369,6 +528,15 @@ class App {
 					'done'       => 0,
 					'exhausted'  => false,
 					'skipped'    => array(),
+					// Orders done offline, waiting for the outbox to be synced (outbox.js).
+					'waiting'    => array(),
+				),
+				// Offline outbox (outbox.js): pending mutations, replay state, items which could not be synced.
+				'sync'            => array(
+					'pending'   => 0,
+					'running'   => false,
+					'authError' => false,
+					'conflicts' => array(),
 				),
 				'currentKey'      => '',
 				'showValidation'  => false,

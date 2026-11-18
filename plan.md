@@ -594,7 +594,49 @@ Namespace `wc/v3/shiptastic/fulfillment` (or own `shiptastic/v1`):
    workflow editor presents the "Background" mode and "Automatically" per step (actions supporting both modes, REST
    `pro_modes`) disabled with a "pro" badge (`App::get_pro_badge()`, `.stc-pro-badge`) linking to
    `App::get_pro_url()` (filter `woocommerce_shiptastic_fulfillment_pro_url`). Config `pro.automation`/`pro.url`.
-7. **Offline**: outbox replay, prefetch, conflicts, service worker.
+7. ✅ **Offline**: queue items carry the view data of their open offline
+   capable steps (`views`, `Runner::get_offline_views()`, filter `woocommerce_shiptastic_fulfillment_prefetch_views`;
+   steps flag `offline` = interactive and `! Action::requires_network()`). Offline (or when a submit fails with a
+   network error) the app stores the submit in the **outbox** (`outbox.js`, IndexedDB `outbox-{userId}`, entry id =
+   idempotency key) and continues with the next step locally; orders reaching a step which needs the server
+   (automatic steps, network steps, end of the workflow) wait for the connection (`run.waiting`, "n orders waiting for
+   the connection") and the next order is shown. Skip/put back are queued as well. Once an order has unsynced entries,
+   all its mutations go through the outbox (ordering). Back/redo of steps done offline reopens them locally (the
+   step's entry and the following ones are discarded, the form is prefilled). **Replay** (`actions.sync`, on the
+   `online` event, every 30 s, after offline submits, before ending a run; one request per entry, without
+   `auto_steps` so automatic steps run on the server): completed orders leave the waiting list, orders needing input
+   or failing on the server come back to the run ("needs your attention", failed: the item's later entries are
+   discarded), lost locks (403/404/409) → **conflicts** list ("could not be saved"), network/5xx errors stop the
+   replay (retried), an expired session (401/invalid nonce after the refresh) stops it with a notice (entries kept).
+   Versions are not sent on replay (lock token only, own sequential submits would conflict). Header badge "n change(s)
+   waiting to sync"/"Syncing…"; the shipments overlay and the order's server actions need a connection; ending a run
+   requires an empty outbox. Reloading without connection resumes the locally stored run (`openRun`/`init`
+   fallback). **Service worker** (`service-worker.js`, served via `admin-ajax.php?action=stc_fulfillment_sw&v=…`,
+   scope = the app page URL so it controls the app only, filter `woocommerce_shiptastic_fulfillment_service_worker`):
+   app page network first (offline fallback = last response, login redirects are not cached), same-origin
+   scripts/styles/images/fonts network first with 4 s timeout, everything else untouched; old caches removed on
+   activation. Service workers need a secure context: not active on http test sites.
+   **Shipments offline** (`offline-layout.js`): saving the overlay offline stores the layout in the outbox (`type
+   shipments`, same idempotency key in case the connection dropped mid-request) and applies it locally like
+   `ShipmentLayout::apply()`: empty shipments removed, locked ones kept, shipment scope steps planned per shipment
+   (new shipments use their temporary key `new-n-xxxxxxxx`, e.g. `pack:new-1-ab12cd34`), steps of changed shipments
+   reopened, order scope steps of actions with `resets` reopened when the totals changed (steps carry `scope` +
+   `resets`). Views of open offline steps are rebuilt by `callbacks.offlineView_{action}` (pick: totals of the
+   layout, sorted by the server's `sort` key — layout items carry `location`/`warehouse`/`sort`, see
+   `Pick::get_line_locations()`, `StorageLocations::get_sort_key()`; pack: shipment items, packaging, dimensions);
+   actions without a builder lose their view (the order waits for the connection at that step). On replay the
+   response's `id_map` replaces temporary keys in the item's later outbox entries and its local state
+   (`mapShipmentIds`). Rejected entries (4xx other than lost locks, e.g. an invalid layout): the item's entries are
+   discarded and it comes back with its server state and the error (`recoverItem`).
+   **Ready to finish**: orders waiting for the connection stay listed after syncing in case they need the user
+   (a step needing input or a failed step): "n order(s) ready to finish" with "Finish" (becomes the current order;
+   automatically when nothing else is left). Orders moved to the waiting list without changes (their next step needs
+   the server) return to the run once online (`restoreWaiting`). Orders resumed from the server without their current
+   step load it once shown (`ensureCurrent`, offline: derived from the prefetched views).
+   **Logout**: the login screen after logging out (`loggedout`, `login_footer`, filter
+   `woocommerce_shiptastic_fulfillment_clear_local_data_on_logout`) removes the cached app page (service worker
+   caches) and the stored runs (IndexedDB `run-*`); unsynced outboxes are kept (synced when that user opens the app
+   again), empty ones removed. Sessions expiring without logging out keep the data.
 8. **Batch picking** (storage location sorting ✅ done early, §3.8) (before_queue phase, pick list, sort-to-order, short picks) + **more actions**: labels, documents,
    mark shipped, after-queue (bulk print, manifest).
 8b. ✅ **Packaging suggestions (bin packing)** (with M8 or after 6d): when shipments are edited in the app (shipments
@@ -672,6 +714,51 @@ Namespace `wc/v3/shiptastic/fulfillment` (or own `shiptastic/v1`):
    - Lists rendered client-side only (wp-each within selects) must be empty while the page hydrates, otherwise
      Preact reports "Expected a DOM node of type option but found template" (the Pack select's options are empty
      unless a pack step is shown).
+8c. **Run phases `before_queue` / `after_queue`** (prerequisite for the Shiptastic Pro plugin
+   `plugins/fulfillment-documents`: StoreaBill based picking lists + shipment lists per provider, requested
+   2026-11-18). Today only the `item` phase is executed (`Action::get_phases()` is declared but unused). Needed:
+   - **Execution points**:
+     - `before_queue`: once per run over its batch, right after claiming and before any `item` step of the batch.
+       Interactive runs: after the claim of the run (`RunProcessor::start_interactive()` / follow-up claims sharing the
+       run token = new batch → runs again for the newly claimed items only). Background runs (Pro
+       `Automation\Processor`): per claimed chunk/batch, before the first item tick of that batch.
+     - `after_queue`: once per run after its items were processed, before the run is marked finished. Interactive:
+       on `POST runs/{id}/finish` (and when the queue ran empty), background: when `RunProcessor::tick()` finds no
+       more items. Stopped/cancelled runs: skipped (setting per step? see open questions).
+   - **Run context**: steps of these phases get a run scoped context (e.g. `RunContext` or `StepContext` with
+     `get_run()`, `get_queue_items()`, `get_shipments( $args )` (package shipments of all items of the run/batch,
+     filterable by provider, status, `has_label`), `get_succeeded_queue_items()` (items whose item steps all
+     succeeded - after_queue), `get_order_shipments()`, `source` and `token`). Actions keep the existing API:
+     `run( $context )` (background), `get_view_data()` / `process()` (interactive).
+   - **State / idempotency**: the step log is per queue item today. Run level steps need their own log, e.g. rows in
+     `stc_fulfillment_steps` with `step_queue_id = 0` + a new `step_run_id` column (or run meta), so that ticks,
+     retries and resumed interactive runs never execute a run level step twice for the same batch.
+   - **Results**: `StepResult` incl. files → `RunExport` (one folder per step, file names without the order prefix),
+     REST run data/report list run level steps + their results (done/skipped/error, files).
+   - **Errors**: run errors without a queue item (`item_id = 0`, step key) shown within the report.
+     Autonomous: recorded, the run continues (after_queue: the run finishes with errors). Supervised: the run stops,
+     "Retry" re-runs the run level step, "Skip" continues without it.
+   - **Workflow editor / validation**: actions supporting multiple phases (e.g. `pick`: `item` or `before_queue`)
+     let editors choose the phase per step (`steps[].phase`, default = first supported phase); validation keeps
+     `before_queue` steps first and `after_queue` steps last, `requires` of run level steps are satisfied by the item
+     steps of the same workflow (e.g. a shipment list requires `create_label` to have run per item).
+   - **Modes**: background capable run level steps run automatically in both run types (interactive runs: progress
+     panel like 6d, `after_queue` while finishing - files are offered within the report). Interactive run level
+     views (batch pick list, M8) are optional for the documents plugin.
+   - **Extension points**: hooks before/after run level steps (`woocommerce_shiptastic_fulfillment_before_run_step`,
+     `_after_run_step`), REST/app filters to render run level step results within the report.
+   **Usage by `fulfillment-documents` (Pro)**, waiting for the above:
+   - `create_picking_list` (phase `before_queue`, background + interactive confirm, repeatable, setting: include
+     the per-shipment breakdown): one numbered StoreaBill document for the batch's shipments - aggregated pick lines
+     (product / inner box, location, quantity, orders) sorted along the walking path + per-shipment section; PDF added
+     to the run export (later: cloud printing).
+   - `create_shipment_list` (phase `after_queue`, background, requires `create_label`, settings: providers,
+     only shipments with tracking number): one numbered StoreaBill document per shipping provider of the run's
+     shipments (shipment, order, recipient, packages, weight, dimensions, tracking number, signature fields);
+     PDFs added to the run export.
+   - Both are also available as bulk actions within the shipments table (no run needed).
+   Open questions: after_queue for stopped/cancelled runs (all processed items vs. none)? Batch definition for
+   background runs (whole run vs. claim chunk) - one picking list per chunk could be split across documents.
 9. **Polish**: scanner support, gestures, a11y, performance budget check, docs for third-party actions.
 
 ---
