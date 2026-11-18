@@ -1159,6 +1159,8 @@ class Package {
 			'stc_fulfillment_workflows'    => 'woocommerce_stc_fulfillment_workflows',
 			'stc_fulfillment_workflowmeta' => 'woocommerce_stc_fulfillment_workflowmeta',
 			'stc_fulfillment_runs'         => 'woocommerce_stc_fulfillment_runs',
+			'stc_fulfillment_run_items'    => 'woocommerce_stc_fulfillment_run_items',
+			'stc_fulfillment_run_steps'    => 'woocommerce_stc_fulfillment_run_steps',
 		);
 
 		foreach ( $tables as $name => $table ) {

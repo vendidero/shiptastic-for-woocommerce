@@ -109,13 +109,6 @@ class FulfillmentQueueTest extends \Vendidero\Shiptastic\Tests\Framework\UnitTes
 		return QueueSync::sync_order( $order->get_id() );
 	}
 
-	/**
-	 * Pre-existing: Product::get_customs_description() reads an internal meta key via get_meta()
-	 * which triggers a notice whenever shipment items are created.
-	 */
-	protected function expect_customs_notice() {
-		$this->setExpectedIncorrectUsage( 'is_internal_meta_key' );
-	}
 
 	public function test_workflow_model() {
 		$workflow = $this->create_workflow(
@@ -140,11 +133,13 @@ class FulfillmentQueueTest extends \Vendidero\Shiptastic\Tests\Framework\UnitTes
 		$this->assertSame( '', $workflow->get_filter( 'min_items' ) );
 		$this->assertEquals( 'any', $workflow->get_filter( 'backorders' ) );
 		$this->assertSame( 5, $workflow->get_priority() );
-		$this->assertContains( $workflow->get_id(), FulfillmentWorkflow::get_active_workflow_ids() );
 
-		$workflow->set_status( 'inactive' );
-		$workflow->save();
-		$this->assertNotContains( $workflow->get_id(), FulfillmentWorkflow::get_active_workflow_ids() );
+		// List order: priority (desc), then id
+		$other = $this->create_workflow( array( 'pick' ), array(), array( 'priority' => 10 ) );
+		$last  = $this->create_workflow( array( 'pick' ), array(), array( 'priority' => 5 ) );
+		$ids   = FulfillmentWorkflow::get_workflow_ids();
+
+		$this->assertEquals( array( $other->get_id(), $workflow->get_id(), $last->get_id() ), array_values( array_intersect( $ids, array( $workflow->get_id(), $other->get_id(), $last->get_id() ) ) ) );
 	}
 
 	public function test_sync_one_item_per_package() {
@@ -205,13 +200,37 @@ class FulfillmentQueueTest extends \Vendidero\Shiptastic\Tests\Framework\UnitTes
 		$this->assertEquals( 'pending', current( $items )->get_status() );
 
 		// Shipments created but not shipped: still needs fulfillment
-		$this->expect_customs_notice();
 		$shipments = wc_stc_get_shipment_order( $order )->create_shipments();
 		$this->assertCount( 1, $shipments );
 
 		$items = $this->sync( $order );
 		$this->assertEquals( 'pending', current( $items )->get_status() );
 		$this->assertEquals( 2, current( $items )->get_item_count() );
+		$this->assertFalse( current( $items )->is_ready() );
+
+		// All shipments ready for shipping: processed, listed as ready for shipping (not open)
+		$shipment = wc_stc_get_shipment( current( $shipments )->get_id() );
+		$shipment->set_status( 'ready-for-shipping' );
+		$shipment->save();
+
+		$items = $this->sync( $order );
+		$this->assertEquals( 'pending', current( $items )->get_status() );
+		$this->assertTrue( current( $items )->is_ready() );
+
+		$counts = Queue::count_by_status();
+		$this->assertEquals( 1, $counts['ready'] );
+		$this->assertEquals( 0, $counts['pending'] );
+		$this->assertCount( 1, Queue::query( array( 'status' => 'pending', 'ready' => true ) ) );
+		$this->assertCount( 0, Queue::query( array( 'status' => 'pending', 'ready' => false ) ) );
+
+		// Items added (not part of a shipment yet): open again
+		$order->add_product( $product, 1 );
+		$order->save();
+		$this->assertFalse( current( $this->sync( $order ) )->is_ready() );
+		$order_items = array_values( $order->get_items() );
+		$order->remove_item( end( $order_items )->get_id() );
+		$order->save();
+		$this->assertTrue( current( $this->sync( $order ) )->is_ready() );
 
 		// Shipped: done
 		$shipment = wc_stc_get_shipment( current( $shipments )->get_id() );

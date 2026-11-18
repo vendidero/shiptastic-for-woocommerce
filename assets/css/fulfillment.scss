@@ -2093,3 +2093,218 @@ option.is-unfit {
     }
   }
 }
+
+/* Run phases: phase tags, failed step at the start of a batch, run level steps within the report. */
+.stc-tag.is-phase {
+  background: #eef2fd;
+  color: var(--stc-color-primary-dark);
+}
+
+.stc-run-step-error {
+  .stc-hint {
+    margin: 0 0 8px;
+  }
+}
+
+.stc-card.stc-report-run-steps {
+  display: block;
+
+  .stc-section-title {
+    margin: 0 0 8px;
+  }
+}
+
+.stc-run-step-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+
+  li {
+    padding: 8px 0;
+    border-top: 1px solid var(--stc-color-border);
+
+    &:first-child {
+      border-top: 0;
+    }
+
+    > p {
+      margin: 4px 0 0;
+    }
+
+    .stc-button-row {
+      margin-top: 8px;
+    }
+  }
+}
+
+.stc-run-step-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+/* Run history and the orders of a run (report). */
+.stc-runs-more {
+  margin-top: 8px;
+}
+
+.stc-run-order-steps,
+.stc-run-order-files {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 13px;
+}
+
+.stc-run-order-steps li {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--stc-color-muted);
+
+  .stc-run-order-step-status::before {
+    content: "✓";
+    color: var(--stc-color-success);
+  }
+
+  &.is-error {
+    color: var(--stc-color-error);
+
+    .stc-run-order-step-status::before {
+      content: "✕";
+      color: var(--stc-color-error);
+    }
+  }
+}
+
+.stc-run-order-files a {
+  color: var(--stc-color-primary);
+}
+
+.stc-run-orders {
+  strong a {
+    color: inherit;
+    text-decoration: none;
+
+    &:hover,
+    &:focus {
+      text-decoration: underline;
+    }
+  }
+
+  .stc-run-order-files a {
+    color: var(--stc-color-primary);
+  }
+
+  .stc-list-body > .stc-error-text {
+    margin-top: 2px;
+  }
+}
+
+.stc-report-orders-title {
+  margin-top: 24px;
+}
+
+/* Overview: space between the sections (workflows, runs, queue). */
+.stc-overview-section {
+  margin-top: 40px;
+
+  > .stc-section-title:first-child {
+    margin-top: 0;
+  }
+}
+
+/* Placeholder rows of runs (title, date, meta + status badge). */
+.stc-skeleton.is-run {
+  position: relative;
+  min-height: 72px;
+  padding-right: 96px;
+
+  .stc-skeleton-line.is-medium {
+    width: 35%;
+  }
+
+  .stc-skeleton-line:not(.is-short):not(.is-medium) {
+    width: 45%;
+  }
+}
+
+.stc-skeleton-badge {
+  position: absolute;
+  top: 50%;
+  right: 16px;
+  width: 64px;
+  height: 18px;
+  margin-top: -9px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #ececec 25%, #f6f6f6 50%, #ececec 75%);
+  background-size: 200% 100%;
+  animation: stc-skeleton 1.2s ease-in-out infinite;
+}
+
+.stc-runs-more.is-loading {
+  opacity: .7;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stc-skeleton-badge {
+    animation: none;
+  }
+}
+
+/* Shipments of an order within the run report. */
+.stc-run-order-shipments {
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+
+  > li {
+    padding: 6px 0 6px 12px;
+    border-left: 2px solid var(--stc-color-border);
+
+    & + li {
+      margin-top: 6px;
+    }
+  }
+
+  .stc-run-order-steps,
+  .stc-run-order-files {
+    margin-top: 4px;
+  }
+}
+
+.stc-run-shipment-header {
+  display: block;
+  font-size: 13px;
+
+  .stc-list-meta {
+    display: inline;
+  }
+}
+
+/* Segmented progress (run report): done, failed, put back. */
+.stc-progress-bar.is-segmented {
+  display: flex;
+
+  .stc-progress-bar-segment {
+    height: 100%;
+    transition: width .2s;
+
+    &.is-done {
+      background: var(--stc-color-success);
+    }
+
+    &.is-failed {
+      background: var(--stc-color-error);
+    }
+
+    &.is-released {
+      background: #a7aaad;
+    }
+  }
+}

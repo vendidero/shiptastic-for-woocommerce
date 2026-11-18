@@ -28,10 +28,27 @@ abstract class Action {
 	}
 
 	/**
-	 * @return string[] before_queue, item and/or after_queue
+	 * The phases a step of this action may run in (the first phase is the default), see RunPhases: before_queue
+	 * (start of batch), item (per order/shipment), after_shipment, after_item (after each order) and after_queue (end
+	 * of run). Actions supporting several phases let workflow editors choose per step (setting `phase`).
+	 *
+	 * Steps of run level phases (before_queue, after_queue) run automatically (background mode required) with a
+	 * RunContext instead of a StepContext. after_shipment requires the shipment scope, after_item the order scope.
+	 *
+	 * @return string[]
 	 */
 	public static function get_phases() {
-		return array( 'item' );
+		return array( RunPhases::ITEM );
+	}
+
+	public static function get_default_phase() {
+		$phases = static::get_phases();
+
+		return $phases[0];
+	}
+
+	public static function supports_phase( $phase ) {
+		return in_array( $phase, static::get_phases(), true );
 	}
 
 	/**
@@ -156,9 +173,10 @@ abstract class Action {
 	}
 
 	/**
-	 * Runs the step in background mode.
+	 * Runs the step in background mode. Steps of run level phases (before_queue, after_queue) receive a RunContext
+	 * (the run's orders/shipments of the batch or the completed orders) instead of a StepContext.
 	 *
-	 * @param StepContext $context
+	 * @param StepContext|RunContext $context
 	 *
 	 * @return StepResult
 	 */

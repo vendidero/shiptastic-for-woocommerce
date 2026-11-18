@@ -26,7 +26,6 @@ class FulfillmentWorkflow extends WC_Data_Store_WP implements WC_Object_Data_Sto
 
 	protected $core_props = array(
 		'title',
-		'status',
 		'priority',
 		'mode',
 		'filters',
@@ -38,7 +37,6 @@ class FulfillmentWorkflow extends WC_Data_Store_WP implements WC_Object_Data_Sto
 	protected function get_core_data( $workflow ) {
 		return array(
 			'workflow_title'             => $workflow->get_title( 'edit' ),
-			'workflow_status'            => $workflow->get_status( 'edit' ),
 			'workflow_priority'          => $workflow->get_priority( 'edit' ),
 			'workflow_mode'              => $workflow->get_mode( 'edit' ),
 			'workflow_filters'           => wp_json_encode( $workflow->get_filters( 'edit' ) ),
@@ -129,7 +127,6 @@ class FulfillmentWorkflow extends WC_Data_Store_WP implements WC_Object_Data_Sto
 		$workflow->set_props(
 			array(
 				'title'         => $data->workflow_title,
-				'status'        => $data->workflow_status,
 				'priority'      => $data->workflow_priority,
 				'mode'          => $data->workflow_mode,
 				'filters'       => (array) json_decode( (string) $data->workflow_filters, true ),
@@ -171,21 +168,21 @@ class FulfillmentWorkflow extends WC_Data_Store_WP implements WC_Object_Data_Sto
 	}
 
 	public static function clear_caches() {
-		wp_cache_delete( 'active-workflows', 'shiptastic-fulfillment-workflow' );
+		wp_cache_delete( 'workflows', 'shiptastic-fulfillment-workflow' );
 	}
 
 	/**
-	 * @return int[] Ids of active workflows ordered by priority (desc).
+	 * @return int[] Ids of all workflows in list order (priority desc).
 	 */
-	public static function get_active_workflow_ids() {
+	public static function get_workflow_ids() {
 		global $wpdb;
 
-		$ids = wp_cache_get( 'active-workflows', 'shiptastic-fulfillment-workflow' );
+		$ids = wp_cache_get( 'workflows', 'shiptastic-fulfillment-workflow' );
 
 		if ( false === $ids ) {
-			$ids = array_map( 'absint', $wpdb->get_col( "SELECT workflow_id FROM {$wpdb->stc_fulfillment_workflows} WHERE workflow_status = 'active' ORDER BY workflow_priority DESC, workflow_id ASC" ) );
+			$ids = array_map( 'absint', $wpdb->get_col( "SELECT workflow_id FROM {$wpdb->stc_fulfillment_workflows} ORDER BY workflow_priority DESC, workflow_id ASC" ) );
 
-			wp_cache_set( 'active-workflows', $ids, 'shiptastic-fulfillment-workflow' );
+			wp_cache_set( 'workflows', $ids, 'shiptastic-fulfillment-workflow' );
 		}
 
 		return $ids;

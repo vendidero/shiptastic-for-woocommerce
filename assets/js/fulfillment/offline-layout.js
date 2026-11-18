@@ -3,8 +3,8 @@
  * does (ShipmentLayout::apply() + reopen_steps() + the step plan of Runner::get_steps()):
  *
  * - shipments without items are removed, locked (non-editable) shipments are kept as they are,
- * - shipment scope steps are planned per shipment (new shipments use their temporary key, e.g. pack:new-1a2b),
- *   steps of changed shipments are reopened,
+ * - shipment scope steps are planned per shipment, one shipment after another (new shipments use their temporary
+ *   key, e.g. pack:new-1a2b), steps of changed shipments are reopened,
  * - order scope steps of actions depending on the shipment contents (`resets`) are reopened in case the total
  *   quantities changed,
  * - views of open offline capable steps are rebuilt (buildView, e.g. callbacks.offlineView_pick) or dropped in case
@@ -104,9 +104,10 @@ export function mergeShipments( existing, submitted ) {
 }
 
 /**
- * Plans the steps for the new shipments: shipment scope steps are expanded per shipment at the position of the
- * action's first step, steps of changed shipments are reopened, order scope steps of actions depending on the
- * shipment contents are reopened in case the totals changed.
+ * Plans the steps for the new shipments like Runner::get_steps(): order scope steps keep their position before or
+ * after the shipment block, the block contains each shipment's steps one after another (its shipment scope steps,
+ * then the steps running after each shipment). Steps of changed shipments are reopened, order scope steps of actions
+ * depending on the shipment contents are reopened in case the totals changed.
  *
  * @param {Object[]} steps
  * @param {Object[]} shipments     The new layout's shipments.
@@ -115,38 +116,49 @@ export function mergeShipments( existing, submitted ) {
  * @return {Object[]}
  */
 export function planSteps( steps, shipments, changed, totalsChanged ) {
-    const planned = [];
-    const expanded = [];
+    const before = [];
+    const after = [];
+    const templates = [];
+    let seenShipment = false;
 
     steps.forEach( ( step ) => {
-        if ( 'shipment' !== step.scope ) {
-            planned.push( totalsChanged && step.resets ? { ...step, is_done: false } : step );
+        if ( 'shipment' === step.scope ) {
+            seenShipment = true;
+
+            if ( ! templates.some( ( template ) => template.action === step.action ) ) {
+                templates.push( step );
+            }
+
             return;
         }
 
-        if ( expanded.includes( step.action ) ) {
-            return;
-        }
+        const planned = totalsChanged && step.resets ? { ...step, is_done: false } : step;
 
-        expanded.push( step.action );
-
-        const existing = steps.filter( ( candidate ) => candidate.action === step.action );
-        const targets = shipments.length > 0 ? shipments.map( shipmentTarget ) : [ '0' ];
-
-        targets.forEach( ( target ) => {
-            const before = existing.find( ( candidate ) => String( candidate.shipment_id ) === target ) || null;
-            const isDone = !! before && before.is_done && ! changed.includes( target );
-
-            planned.push( {
-                ...( before || step ),
-                key: '0' === target ? step.action : step.action + ':' + target,
-                shipment_id: '0' === target ? 0 : ( /^\d+$/.test( target ) ? parseInt( target, 10 ) : target ),
-                is_done: isDone,
-            } );
-        } );
+        ( seenShipment ? after : before ).push( planned );
     } );
 
-    return planned;
+    // Per shipment: its steps first, then the steps running after each shipment.
+    const ordered = [ ...templates.filter( ( step ) => 'after_shipment' !== step.phase ), ...templates.filter( ( step ) => 'after_shipment' === step.phase ) ];
+    const targets = shipments.length > 0 ? shipments.map( shipmentTarget ) : [ '0' ];
+    const block = [];
+
+    if ( ordered.length > 0 ) {
+        targets.forEach( ( target ) => {
+            ordered.forEach( ( template ) => {
+                const existing = steps.find( ( candidate ) => candidate.action === template.action && String( candidate.shipment_id ) === target ) || null;
+                const isDone = !! existing && existing.is_done && ! changed.includes( target );
+
+                block.push( {
+                    ...( existing || template ),
+                    key: '0' === target ? template.action : template.action + ':' + target,
+                    shipment_id: '0' === target ? 0 : ( /^\d+$/.test( target ) ? parseInt( target, 10 ) : target ),
+                    is_done: isDone,
+                } );
+            } );
+        } );
+    }
+
+    return [ ...before, ...block, ...after ];
 }
 
 /**

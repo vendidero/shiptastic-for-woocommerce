@@ -85,7 +85,14 @@ class Runner {
 	}
 
 	/**
-	 * Plans the steps of a workflow for a queue item.
+	 * Plans the steps of a workflow for a queue item (steps of run level phases, see RunPhases, are not part of it):
+	 *
+	 * 1. order scope steps (incl. injected dependencies) listed before the first shipment scope step - and the ones
+	 *    required by shipment scope steps,
+	 * 2. per shipment: its shipment scope steps (phase item) followed by its after_shipment steps (shipments are
+	 *    processed one after another),
+	 * 3. the remaining order scope steps,
+	 * 4. after_item steps (after each order).
 	 *
 	 * @param QueueItem $item
 	 * @param Workflow $workflow
@@ -95,10 +102,10 @@ class Runner {
 	public static function get_steps( $item, $workflow ) {
 		$log       = self::get_log( $item );
 		$shipments = self::get_package_shipments( $item );
-		$steps     = array();
+		$entries   = array();
 		$planned   = array();
 
-		$plan = function ( $action_name, $settings, $injected, $depth = 0 ) use ( &$plan, &$steps, &$planned, $log, $shipments, $workflow ) {
+		$plan = function ( $action_name, $settings, $injected, $depth = 0 ) use ( &$plan, &$entries, &$planned, $workflow ) {
 			$action = ActionRegistry::get( $action_name );
 
 			if ( ! $action || isset( $planned[ $action_name ] ) || $depth > 10 ) {
@@ -113,30 +120,125 @@ class Runner {
 				}
 
 				$required_settings = $workflow->get_step_settings( $required );
+
+				// Required actions running at the end of the run cannot be done before (validation).
+				if ( ! is_null( $required_settings ) && RunPhases::is_run_level( Workflow::get_step_phase( $required, $required_settings ) ) ) {
+					$required_settings = null;
+				}
+
 				$plan( $required, is_null( $required_settings ) ? array() : $required_settings, is_null( $required_settings ), $depth + 1 );
 			}
 
 			$settings = (array) $settings;
-			$mode     = $workflow->get_step_mode( $action_name, $settings, $injected );
-			$scope    = ( isset( $settings['scope'] ) && $action::supports_scope( $settings['scope'] ) ) ? $settings['scope'] : $action::get_default_scope();
-			$targets  = 'shipment' === $scope && ! empty( $shipments ) ? array_keys( $shipments ) : array( 0 );
+			$phase    = $injected ? $action::get_default_phase() : Workflow::get_step_phase( $action_name, $settings );
 
-			foreach ( $targets as $shipment_id ) {
-				$steps[] = new Step(
-					array(
-						'action'      => $action_name,
-						'shipment_id' => $shipment_id,
-						'mode'        => $mode,
-						'settings'    => array_merge( $settings, array( 'scope' => $scope ) ),
-						'injected'    => $injected,
-						'is_done'     => self::is_done( $log, $action_name, $shipment_id, $workflow ),
-					)
-				);
+			// E.g. an injected dependency only supporting run level phases.
+			if ( RunPhases::is_run_level( $phase ) ) {
+				$phase = RunPhases::ITEM;
 			}
+
+			$scope = RunPhases::get_fixed_scope( $phase );
+
+			if ( ! $scope ) {
+				$scope = ( isset( $settings['scope'] ) && $action::supports_scope( $settings['scope'] ) ) ? $settings['scope'] : $action::get_default_scope();
+			}
+
+			$entries[] = array(
+				'action'   => $action_name,
+				'settings' => array_merge( $settings, array( 'scope' => $scope ) ),
+				'injected' => $injected,
+				'mode'     => $workflow->get_step_mode( $action_name, $settings, $injected ),
+				'scope'    => $scope,
+				'phase'    => $phase,
+			);
 		};
 
 		foreach ( $workflow->get_steps() as $step ) {
+			if ( RunPhases::is_run_level( Workflow::get_step_phase( $step['action'], $step['settings'] ) ) ) {
+				continue;
+			}
+
 			$plan( $step['action'], $step['settings'], false );
+		}
+
+		$before          = array();
+		$shipment_steps  = array();
+		$after           = array();
+		$after_item      = array();
+		$seen_shipment   = false;
+		$required_by_shp = array();
+
+		foreach ( $entries as $entry ) {
+			if ( RunPhases::AFTER_ITEM === $entry['phase'] ) {
+				$after_item[] = $entry;
+			} elseif ( 'shipment' === $entry['scope'] ) {
+				$shipment_steps[] = $entry;
+				$seen_shipment    = true;
+				$required_by_shp  = array_merge( $required_by_shp, Workflow::get_required_actions( $entry['action'] ) );
+			} elseif ( ! $seen_shipment ) {
+				$before[] = $entry;
+			} else {
+				$after[] = $entry;
+			}
+		}
+
+		// Order scope steps required by shipment scope steps run before the shipments.
+		foreach ( $after as $index => $entry ) {
+			if ( in_array( $entry['action'], $required_by_shp, true ) ) {
+				$before[] = $entry;
+				unset( $after[ $index ] );
+			}
+		}
+
+		// Per shipment: its steps first, then the steps running after each shipment (stable).
+		$shipment_steps = array_merge(
+			array_values(
+				array_filter(
+					$shipment_steps,
+					function ( $entry ) {
+						return RunPhases::AFTER_SHIPMENT !== $entry['phase'];
+					}
+				)
+			),
+			array_values(
+				array_filter(
+					$shipment_steps,
+					function ( $entry ) {
+						return RunPhases::AFTER_SHIPMENT === $entry['phase'];
+					}
+				)
+			)
+		);
+
+		$steps  = array();
+		$create = function ( $entry, $shipment_id ) use ( $log, $workflow ) {
+			return new Step(
+				array(
+					'action'      => $entry['action'],
+					'shipment_id' => $shipment_id,
+					'mode'        => $entry['mode'],
+					'settings'    => $entry['settings'],
+					'phase'       => $entry['phase'],
+					'injected'    => $entry['injected'],
+					'is_done'     => self::is_done( $log, $entry['action'], $shipment_id, $workflow ),
+				)
+			);
+		};
+
+		foreach ( $before as $entry ) {
+			$steps[] = $create( $entry, 0 );
+		}
+
+		if ( ! empty( $shipment_steps ) ) {
+			foreach ( ! empty( $shipments ) ? array_keys( $shipments ) : array( 0 ) as $shipment_id ) {
+				foreach ( $shipment_steps as $entry ) {
+					$steps[] = $create( $entry, $shipment_id );
+				}
+			}
+		}
+
+		foreach ( array_merge( array_values( $after ), $after_item ) as $entry ) {
+			$steps[] = $create( $entry, 0 );
 		}
 
 		/**
@@ -235,6 +337,11 @@ class Runner {
 			Queue::bump_version( $item->get_id(), $token );
 		}
 
+		// The run the item is processed in (shared lock token): the report lists the steps per order.
+		if ( '' !== (string) $token && ( $run = Run::get_by_lock_token( $token ) ) ) { // phpcs:ignore Generic.CodeAnalysis.AssignmentInCondition.Found, Squiz.PHP.DisallowMultipleAssignments.FoundInControlStructure
+			RunItems::add_step( $run->get_id(), $item->get_id(), $step, $step_result );
+		}
+
 		return $step_result;
 	}
 
@@ -303,7 +410,19 @@ class Runner {
 			self::refresh_order_cache( $item->get_order_id() );
 
 			$result['version'] = $item->get_version();
-			$step              = self::get_next_step( $item, $workflow );
+
+			// The steps starting the item's batch (e.g. a picking list) failed: retry or skip them first.
+			if ( $run && ( $blocking = RunSteps::get_blocking( $run, $queue_id ) ) ) { // phpcs:ignore Generic.CodeAnalysis.AssignmentInCondition.Found, Squiz.PHP.DisallowMultipleAssignments.FoundInControlStructure
+				return array_merge(
+					$result,
+					array(
+						'message' => $blocking->get_error_message(),
+						'code'    => $blocking->get_error_code(),
+					)
+				);
+			}
+
+			$step = self::get_next_step( $item, $workflow );
 
 			if ( ! $step ) {
 				Queue::release( $queue_id, $token );
@@ -311,6 +430,11 @@ class Runner {
 				// Interactive runs count their orders here (automation runs within RunProcessor).
 				if ( $run && $run->is_interactive() ) {
 					Run::update( $run->get_id(), array( 'increment' => array( 'processed', 'succeeded' ) ) );
+				}
+
+				// Steps at the end of the run cover the orders completed within it.
+				if ( $run ) {
+					RunItems::set_status( $run->get_id(), $queue_id, 'completed' );
 				}
 
 				return array_merge( $result, array( 'status' => 'completed' ) );

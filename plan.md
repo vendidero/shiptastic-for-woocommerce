@@ -497,8 +497,11 @@ Namespace `wc/v3/shiptastic/fulfillment` (or own `shiptastic/v1`):
    New automatable action `mark_ready` ("Mark as ready for shipping": validates items, shipping provider (setting),
    packaging (setting), filter `woocommerce_shiptastic_fulfillment_validate_ready_for_shipping`).
 6. ✅ **Workflow editor** (managers, `workflows.js`, `views/fulfillment/workflow-editor.php`): "+ New workflow" and
-   "Edit" in the overview (managers see inactive workflows as well), full overlay with General (title, active,
-   interactive/background, priority), Steps (actions in order, reorder/remove/add, settings forms from
+   "Edit" in the overview (managers see inactive workflows as well), full overlay with General (title,
+   interactive/background; no active/inactive status, no priority field: the list order is stored as `priority` (new
+   workflows at the end), `POST workflows/sort` (managers) changes it - no sort UI for now (arrows on the overview
+   cards were removed again, too much space), the editor's
+   header shows the workflow title), Steps (actions in order, reorder/remove/add, settings forms from
    `Action::get_settings_schema()`, mode/scope choice for actions supporting several, dependency hints; in background mode,
    steps requiring interaction are hidden, not offered and not saved, switching back restores them), Orders (locations, shipping providers,
    countries, items, weight, backorders) and Automation (schedule, scheduled runs on errors). Saved via the
@@ -714,39 +717,76 @@ Namespace `wc/v3/shiptastic/fulfillment` (or own `shiptastic/v1`):
    - Lists rendered client-side only (wp-each within selects) must be empty while the page hydrates, otherwise
      Preact reports "Expected a DOM node of type option but found template" (the Pack select's options are empty
      unless a pack step is shown).
-8c. **Run phases `before_queue` / `after_queue`** (prerequisite for the Shiptastic Pro plugin
-   `plugins/fulfillment-documents`: StoreaBill based picking lists + shipment lists per provider, requested
-   2026-11-18). Today only the `item` phase is executed (`Action::get_phases()` is declared but unused). Needed:
-   - **Execution points**:
-     - `before_queue`: once per run over its batch, right after claiming and before any `item` step of the batch.
-       Interactive runs: after the claim of the run (`RunProcessor::start_interactive()` / follow-up claims sharing the
-       run token = new batch → runs again for the newly claimed items only). Background runs (Pro
-       `Automation\Processor`): per claimed chunk/batch, before the first item tick of that batch.
-     - `after_queue`: once per run after its items were processed, before the run is marked finished. Interactive:
-       on `POST runs/{id}/finish` (and when the queue ran empty), background: when `RunProcessor::tick()` finds no
-       more items. Stopped/cancelled runs: skipped (setting per step? see open questions).
-   - **Run context**: steps of these phases get a run scoped context (e.g. `RunContext` or `StepContext` with
-     `get_run()`, `get_queue_items()`, `get_shipments( $args )` (package shipments of all items of the run/batch,
-     filterable by provider, status, `has_label`), `get_succeeded_queue_items()` (items whose item steps all
-     succeeded - after_queue), `get_order_shipments()`, `source` and `token`). Actions keep the existing API:
-     `run( $context )` (background), `get_view_data()` / `process()` (interactive).
-   - **State / idempotency**: the step log is per queue item today. Run level steps need their own log, e.g. rows in
-     `stc_fulfillment_steps` with `step_queue_id = 0` + a new `step_run_id` column (or run meta), so that ticks,
-     retries and resumed interactive runs never execute a run level step twice for the same batch.
-   - **Results**: `StepResult` incl. files → `RunExport` (one folder per step, file names without the order prefix),
-     REST run data/report list run level steps + their results (done/skipped/error, files).
-   - **Errors**: run errors without a queue item (`item_id = 0`, step key) shown within the report.
-     Autonomous: recorded, the run continues (after_queue: the run finishes with errors). Supervised: the run stops,
-     "Retry" re-runs the run level step, "Skip" continues without it.
-   - **Workflow editor / validation**: actions supporting multiple phases (e.g. `pick`: `item` or `before_queue`)
-     let editors choose the phase per step (`steps[].phase`, default = first supported phase); validation keeps
-     `before_queue` steps first and `after_queue` steps last, `requires` of run level steps are satisfied by the item
-     steps of the same workflow (e.g. a shipment list requires `create_label` to have run per item).
-   - **Modes**: background capable run level steps run automatically in both run types (interactive runs: progress
-     panel like 6d, `after_queue` while finishing - files are offered within the report). Interactive run level
-     views (batch pick list, M8) are optional for the documents plugin.
-   - **Extension points**: hooks before/after run level steps (`woocommerce_shiptastic_fulfillment_before_run_step`,
-     `_after_run_step`), REST/app filters to render run level step results within the report.
+8d. ✅ **Queue overview**: tab **Ready for shipping** between "In progress" and "Exceptions": pending queue items whose
+   package is processed - all items are part of shipments, all unshipped shipments have the status ready for
+   shipping (`queue_is_ready`, computed by `QueueSync::get_order_packages()`, updated with each sync, e.g. shipment
+   status changes; only backordered units left do not count). "Open" lists pending items which are not ready.
+   REST `GET queue?status=ready` (status `pending` excludes ready items), `counts.ready`, items carry `is_ready`.
+   Workflows still claim ready items (e.g. a label workflow), only the overview groups them. **In progress** items
+   show who holds them, for which workflow and until when ("Maria · Pick & Pack · until 14:32", automations:
+   "Automation (Maria)", expired: "Reservation expired, available again shortly"), REST `locked_by_name`,
+   `workflow_title`, `lock_source`. No "Done" tab: shipped packages are handed over to the shipping provider (status
+   `done` is kept internally to tell shipped from removed packages and to reopen them).
+   **Finished runs** (overview, replaces "Recent runs"; `GET runs?finished=1`: status completed/cancelled and orders
+   processed or files created - active runs and runs where nothing happened are not listed, no "Finished" badge,
+   cancelled runs are marked): app runs and automations, newest first,
+   10 per page ("Show more"), managers see the runs of all users (`GET runs?source=all&page&per_page&all_users`,
+   `X-WP-Total`), each with its period (start – end), user (others' runs), mode, progress, files. Clicking a run
+   opens its report (own active app runs are continued). Report: breadcrumb "Run #12 · date, time", summary, run level steps, **orders** of the run (queue list layout) (`GET runs/{id}/orders`: outcome completed/moved to exceptions/put back/in progress, the steps executed for
+   the order within the run, grouped: order steps/files on the order, shipment steps (`action:shipment id`) and files
+   (`{order}-{shipment}-…`) under the order's shipments (`shipments`: id, status, provider, tracking id, packaging) -
+   recorded per run and order in `run_items.run_item_steps` by `Runner::record_result()`
+   for runs sharing the lock token, latest result per step shown -, the error of failed orders, the order's files of
+   the export with single file downloads (`admin-post.php?action=stc_fulfillment_run_export&run&file`)). Exports
+   removed after the retention period keep the file count (`export_expired`: "files were removed"). Counts: total =
+   orders claimed, processed = done + failed + **put back** (`run_released`, "Put back" and orders still reserved when
+   an app run ends), shown in the report ("2 done, 1 failed, 1 put back"), the history and as segmented progress bar
+   (green done, red failed, grey put back). Deep links (`&run=`) render a loading view (`routeLoading`) instead of
+   the overview until the run is opened, `&workflow=` renders the editor (loading) right away. Runs started
+   before the per order records show no orders.
+   **Module cache busting**: app modules import each other relatively (no version); the import map now maps each
+   module URL to `?ver={plugin version}-{filemtime}` (`App::get_versioned_module_urls()`,
+   `FulfillmentScriptModules::print_import_map()`), registered modules use the same version.
+8c. ✅ **Run phases** (prerequisite for the Shiptastic Pro plugin `plugins/fulfillment-documents`: StoreaBill based
+   picking lists + shipment lists per provider, requested 2026-11-18). Steps run in one of five phases
+   (`RunPhases`, step setting `phase`, actions declare `Action::get_phases()`, first = default, `supports_phase()`):
+   - `before_queue` **Start of batch**: once per batch, before its orders are worked on. A batch is one claim of a run
+     (interactive: each claim/refill, automations: each claimed chunk, `Queue::get_claim_limit()`). Item steps the
+     batch steps require (e.g. creating shipments) run for the batch's orders first (`RunSteps::prepare_batch()`).
+   - `item` **Per order**: the regular steps.
+   - `after_shipment` **After each shipment**: shipments are processed one after another - each shipment's shipment
+     scope steps, then its after_shipment steps, then the next shipment (Pack 1 → Label 1 → Pack 2 → Label 2; this also
+     changed the plan for all shipment scope steps, `Runner::get_steps()`: order steps before the block (+ the ones
+     required by shipment steps), the per shipment block, remaining order steps, `after_item` steps).
+   - `after_item` **After each order**: after all other steps of the order.
+   - `after_queue` **End of run**: once when the run ends, for the orders completed within it (`RunItems` status
+     `completed`) - also for ended/stopped/cancelled runs, skipped ("No order was completed.") without completed orders.
+   Run level phases (`before_queue`, `after_queue`) always run automatically (validation: background mode required),
+   their actions get a `RunContext` (run, phase, batch, queue_ids, `get_queue_items()`, `get_order_shipments()`,
+   `get_shipments( provider, status, has_label )`) in `run()`. `after_shipment` needs the shipment scope, `after_item`
+   the order scope. Workflows need at least one per order step; run level actions do not count as open steps of
+   orders (`Workflow::get_item_actions()`, used by claims). Steps are sorted by phase (`Workflow::sort_steps()`).
+   - **Data**: tables `stc_fulfillment_run_items` (run, queue id, batch, status claimed/completed/failed/released) and
+     `stc_fulfillment_run_steps` (run, batch (0 = end of run), phase, action, status pending/done/error/skipped,
+     queue ids, data, error) - a step never runs twice for the same batch.
+   - **Errors**: a failed step stops its phase. Start of batch: the batch's orders are blocked
+     (`RunSteps::get_blocking()`, `Runner::execute()` returns `run_step_pending`) until retried or skipped. Interactive
+     runs: the claim response carries `batch` (status, message, entry), the app shows a panel instead of the order
+     (Retry/Skip, `POST runs/{id}/run-steps/{entry}/retry|skip`, also after reloads). Automations (Pro
+     `Processor`): autonomous → run error (queue 0) + step skipped, the run continues; supervised → stopped
+     (`current_step` `run_step:{id}`), resume = retry, skip = skip; end of run errors likewise (cancelled runs:
+     recorded). Action `woocommerce_shiptastic_fulfillment_run_step_resolved` resumes stopped automations.
+   - **Results**: files → run export (prefix `batch-{n}` / `run`), REST run data `run_steps` (title, phase, batch,
+     status, message, order count), report section "Batch and run steps" (Retry/Skip for failed ones); ending a run
+     shows the report in case run steps failed.
+   - **Editor**: phase choice per step for actions supporting several phases (segmented, description below), phase
+     tag otherwise; run level steps show "Automatically", no mode/scope choice; steps stay within their phase when
+     moved. Editor data: `phases` (value, label, description, run_level) + `default_phase`. Run screen: steps after
+     each shipment/order are tagged within the step list. Offline layout planning mirrors the per shipment block.
+   - **Built-in**: `mark_ready` supports `item` and `after_shipment`.
+   - **Hooks**: `woocommerce_shiptastic_fulfillment_before_run_step`, `_after_run_step`, `_run_step_resolved`.
+   - Uninstall now drops the fulfillment tables (queue, steps, workflows(+meta), runs, run items, run steps).
+   - Tests: `tests/unit-tests/fulfillment-run-phases.php` (free), `tests/unit-tests/run-phases-automation.php` (Pro).
    **Usage by `fulfillment-documents` (Pro)**, waiting for the above:
    - `create_picking_list` (phase `before_queue`, background + interactive confirm, repeatable, setting: include
      the per-shipment breakdown): one numbered StoreaBill document for the batch's shipments - aggregated pick lines
@@ -757,8 +797,7 @@ Namespace `wc/v3/shiptastic/fulfillment` (or own `shiptastic/v1`):
      shipments (shipment, order, recipient, packages, weight, dimensions, tracking number, signature fields);
      PDFs added to the run export.
    - Both are also available as bulk actions within the shipments table (no run needed).
-   Open questions: after_queue for stopped/cancelled runs (all processed items vs. none)? Batch definition for
-   background runs (whole run vs. claim chunk) - one picking list per chunk could be split across documents.
+   Decided: end of run steps run for stopped/cancelled runs too (completed orders), a batch is one claim (chunk).
 9. **Polish**: scanner support, gestures, a11y, performance budget check, docs for third-party actions.
 
 ---

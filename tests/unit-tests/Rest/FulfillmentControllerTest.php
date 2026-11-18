@@ -226,7 +226,6 @@ class FulfillmentControllerTest extends \Vendidero\Shiptastic\Tests\Framework\Un
 	}
 
 	public function test_reopen_step() {
-		$this->setExpectedIncorrectUsage( 'is_internal_meta_key' );
 
 		$order         = $this->create_order( 2 );
 		$order_item_id = current( $order->get_items() )->get_id();
@@ -403,7 +402,6 @@ class FulfillmentControllerTest extends \Vendidero\Shiptastic\Tests\Framework\Un
 	}
 
 	public function test_update_shipments() {
-		$this->setExpectedIncorrectUsage( 'is_internal_meta_key' );
 
 		$order         = $this->create_order( 3 );
 		$order_item_id = current( $order->get_items() )->get_id();
@@ -493,7 +491,6 @@ class FulfillmentControllerTest extends \Vendidero\Shiptastic\Tests\Framework\Un
 	}
 
 	public function test_interactive_run() {
-		$this->setExpectedIncorrectUsage( 'is_internal_meta_key' );
 		add_filter( 'woocommerce_shiptastic_fulfillment_actions', array( $this, 'register_document_action' ) );
 
 		$order    = $this->create_order( 2 );
@@ -575,7 +572,6 @@ class FulfillmentControllerTest extends \Vendidero\Shiptastic\Tests\Framework\Un
 	 * Steps running automatically (actions without user interaction) run one by one within the app (progress).
 	 */
 	public function test_automatic_steps_one_by_one() {
-		$this->setExpectedIncorrectUsage( 'is_internal_meta_key' );
 		add_filter( 'woocommerce_shiptastic_fulfillment_actions', array( $this, 'register_document_action' ) );
 
 		$order    = $this->create_order( 1 );
@@ -618,8 +614,6 @@ class FulfillmentControllerTest extends \Vendidero\Shiptastic\Tests\Framework\Un
 	}
 
 	public function test_claim_steps_idempotency_and_batch() {
-		// Pre-existing: creating shipment items triggers an incorrect usage notice (customs description meta).
-		$this->setExpectedIncorrectUsage( 'is_internal_meta_key' );
 
 		$order    = $this->create_order( 2 );
 		$workflow = $this->create_workflow();
@@ -743,5 +737,190 @@ class FulfillmentControllerTest extends \Vendidero\Shiptastic\Tests\Framework\Un
 		$queue = $this->request( 'GET', '/queue', array( 'status' => 'pending' ) )->get_data();
 		$this->assertEquals( array( $item['id'] ), wp_list_pluck( $queue['items'], 'id' ) );
 		$this->assertEquals( 1, $queue['counts']['pending'] );
+	}
+
+	public function test_sort_workflows() {
+		wp_set_current_user( $this->admin );
+
+		$first  = $this->request( 'POST', '/workflows', array( 'title' => 'First', 'steps' => array( 'pick' ) ) )->get_data(); // phpcs:ignore WordPress.Arrays.ArrayDeclarationSpacing.AssociativeArrayFound
+		$second = $this->request( 'POST', '/workflows', array( 'title' => 'Second', 'steps' => array( 'pick' ) ) )->get_data(); // phpcs:ignore WordPress.Arrays.ArrayDeclarationSpacing.AssociativeArrayFound
+		$third  = $this->request( 'POST', '/workflows', array( 'title' => 'Third', 'steps' => array( 'pick' ) ) )->get_data(); // phpcs:ignore WordPress.Arrays.ArrayDeclarationSpacing.AssociativeArrayFound
+
+		// New workflows are added at the end, there is no status (all workflows are active)
+		$this->assertEquals( array( $first['id'], $second['id'], $third['id'] ), wp_list_pluck( $this->request( 'GET', '/workflows' )->get_data(), 'id' ) );
+		$this->assertArrayNotHasKey( 'status', $first );
+
+		// Move the third workflow up (arrows within the overview)
+		$sorted = $this->request( 'POST', '/workflows/sort', array( 'ids' => array( $first['id'], $third['id'], $second['id'] ) ) );
+		$this->assertEquals( 200, $sorted->get_status() );
+		$this->assertEquals( array( $first['id'], $third['id'], $second['id'] ), wp_list_pluck( $sorted->get_data(), 'id' ) );
+		$this->assertEquals( array( $first['id'], $third['id'], $second['id'] ), wp_list_pluck( $this->request( 'GET', '/workflows' )->get_data(), 'id' ) );
+
+		// Saving a workflow keeps its position (no priority within the editor)
+		$this->request( 'PUT', '/workflows/' . $second['id'], array( 'title' => 'Second (renamed)', 'priority' => 100 ) );
+		$this->assertEquals( array( $first['id'], $third['id'], $second['id'] ), wp_list_pluck( $this->request( 'GET', '/workflows' )->get_data(), 'id' ) );
+
+		// Unknown/missing ids: the missing workflows keep their relative order after the given ones
+		$this->assertEquals( array( $second['id'], $first['id'], $third['id'] ), wp_list_pluck( $this->request( 'POST', '/workflows/sort', array( 'ids' => array( $second['id'], 999999 ) ) )->get_data(), 'id' ) );
+
+		// Managers only
+		wp_set_current_user( $this->picker );
+		$this->assertEquals( 403, $this->request( 'POST', '/workflows/sort', array( 'ids' => array( $first['id'] ) ) )->get_status() );
+	}
+
+	public function test_queue_ready_tab_and_lock_holder() {
+		wp_set_current_user( $this->admin );
+
+		$order    = $this->create_order( 1 );
+		$workflow = $this->create_workflow( array( 'pick' ) );
+		$item     = current( \Vendidero\Shiptastic\BulkFulfillments\Queue::get_by_order( $order->get_id() ) );
+
+		// Open by default
+		$this->assertEquals( array( $item->get_id() ), wp_list_pluck( $this->request( 'GET', '/queue', array( 'status' => 'pending' ) )->get_data()['items'], 'id' ) );
+		$this->assertEquals( array(), $this->request( 'GET', '/queue', array( 'status' => 'ready' ) )->get_data()['items'] );
+
+		// In progress: who holds it, for which workflow and until when
+		wp_set_current_user( $this->picker );
+		$claim = $this->request( 'POST', '/workflows/' . $workflow->get_id() . '/claim' )->get_data();
+
+		wp_set_current_user( $this->admin );
+		$locked = $this->request( 'GET', '/queue', array( 'status' => 'locked' ) )->get_data()['items'][0];
+		$this->assertEquals( get_userdata( $this->picker )->display_name, $locked['locked_by_name'] );
+		$this->assertEquals( 'Pick & Pack', $locked['workflow_title'] );
+		$this->assertEquals( 'interactive', $locked['lock_source'] );
+		$this->assertNotEmpty( $locked['lock_expires'] );
+		\Vendidero\Shiptastic\BulkFulfillments\Queue::release( $item->get_id(), $claim['token'] );
+
+		// All shipments ready for shipping: listed within the ready tab, counted separately
+		$order_shipment = wc_stc_get_shipment_order( wc_get_order( $order->get_id() ) );
+
+		if ( empty( $order_shipment->get_shipments() ) ) {
+			$order_shipment->create_shipments();
+		}
+
+		$shipment = wc_stc_get_shipment( current( $order_shipment->get_shipments() )->get_id() );
+		$shipment->set_status( 'ready-for-shipping' );
+		$shipment->save();
+		\Vendidero\Shiptastic\BulkFulfillments\QueueSync::sync_order( $order->get_id() );
+
+		$ready = $this->request( 'GET', '/queue', array( 'status' => 'ready' ) )->get_data();
+		$this->assertEquals( array( $item->get_id() ), wp_list_pluck( $ready['items'], 'id' ) );
+		$this->assertTrue( $ready['items'][0]['is_ready'] );
+		$this->assertEquals( 1, $ready['counts']['ready'] );
+		$this->assertEquals( 0, $ready['counts']['pending'] );
+		$this->assertEquals( array(), $this->request( 'GET', '/queue', array( 'status' => 'pending' ) )->get_data()['items'] );
+	}
+
+	public function test_run_history_and_orders() {
+		add_filter( 'woocommerce_shiptastic_fulfillment_actions', array( $this, 'register_document_action' ) );
+
+		$order    = $this->create_order( 2 );
+		$workflow = $this->create_workflow( array( 'pick', 'test_document' ) );
+		wp_set_current_user( $this->picker );
+
+		$run   = $this->request( 'POST', '/runs', array( 'workflow_id' => $workflow->get_id(), 'mode' => 'interactive' ) )->get_data(); // phpcs:ignore WordPress.Arrays.ArrayDeclarationSpacing.AssociativeArrayFound
+		$claim = $this->request( 'POST', '/workflows/' . $workflow->get_id() . '/claim', array( 'run_id' => $run['id'], 'run' => true ) )->get_data(); // phpcs:ignore WordPress.Arrays.ArrayDeclarationSpacing.AssociativeArrayFound
+		$item  = $claim['items'][0];
+
+		// A short pick first (error), then the complete pick: the document step runs automatically
+		$order_item_id = current( $order->get_items() )->get_id();
+		$this->request( 'POST', '/queue/' . $item['id'] . '/steps/pick', array( 'token' => $claim['token'], 'idempotency_key' => 'history-1', 'data' => array( 'picked' => array( $order_item_id => 1 ) ) ) ); // phpcs:ignore WordPress.Arrays.ArrayDeclarationSpacing.AssociativeArrayFound
+		$this->request( 'POST', '/queue/' . $item['id'] . '/steps/pick', array( 'token' => $claim['token'], 'idempotency_key' => 'history-2', 'data' => array( 'picked' => array( $order_item_id => 2 ) ) ) ); // phpcs:ignore WordPress.Arrays.ArrayDeclarationSpacing.AssociativeArrayFound
+		$this->request( 'POST', '/runs/' . $run['id'] . '/finish' );
+
+		// Orders of the run: outcome, steps executed within the run, files
+		$orders = $this->request( 'GET', '/runs/' . $run['id'] . '/orders' )->get_data();
+		$this->assertCount( 1, $orders );
+		$this->assertEquals( $order->get_order_number(), $orders[0]['order_number'] );
+		$this->assertEquals( 'completed', $orders[0]['status'] );
+		// Incl. the injected dependency (creating shipments), the document step runs per shipment
+		$actions = array_map(
+			function ( $step ) {
+				return strtok( $step['key'], ':' );
+			},
+			$orders[0]['steps']
+		);
+		$this->assertEquals( array( 'create_shipments', 'pick', 'pick', 'test_document' ), $actions );
+		$this->assertEquals( array( 'done', 'error', 'done', 'done' ), wp_list_pluck( $orders[0]['steps'], 'status' ) );
+		$this->assertStringContainsString( 'Short pick', $orders[0]['steps'][1]['error'] );
+		$this->assertCount( 1, $orders[0]['files'] );
+		$this->assertStringStartsWith( $order->get_order_number() . '-', $orders[0]['files'][0]['name'] );
+		$this->assertStringEndsWith( '-document.pdf', $orders[0]['files'][0]['name'] );
+
+		// The order's shipments (steps and files are grouped per shipment within the app)
+		$this->assertCount( 1, $orders[0]['shipments'] );
+		$shipment_id = $orders[0]['shipments'][0]['id'];
+		$this->assertEquals( 'test_document:' . $shipment_id, $orders[0]['steps'][3]['key'] );
+		$this->assertStringStartsWith( $order->get_order_number() . '-' . $shipment_id . '-', $orders[0]['files'][0]['name'] );
+		$this->assertNotEmpty( $orders[0]['shipments'][0]['status_title'] );
+		$this->assertStringContainsString( 'file=', $orders[0]['files'][0]['url'] );
+
+		// History: all sources, paginated, incl. date and user
+		$second   = $this->request( 'POST', '/runs', array( 'workflow_id' => $workflow->get_id(), 'mode' => 'interactive' ) )->get_data(); // phpcs:ignore WordPress.Arrays.ArrayDeclarationSpacing.AssociativeArrayFound
+		$response = $this->request( 'GET', '/runs', array( 'source' => 'all', 'per_page' => 1 ) );
+		$this->assertEquals( array( $second['id'] ), wp_list_pluck( $response->get_data(), 'id' ) );
+		$this->assertEquals( 2, $response->get_headers()['X-WP-Total'] );
+		$this->assertEquals( array( $run['id'] ), wp_list_pluck( $this->request( 'GET', '/runs', array( 'source' => 'all', 'per_page' => 1, 'page' => 2 ) )->get_data(), 'id' ) );
+
+		// Finished runs only: the active second run (nothing processed) is not part of the history
+		$this->assertEquals( array( $run['id'] ), wp_list_pluck( $this->request( 'GET', '/runs', array( 'source' => 'all', 'finished' => true ) )->get_data(), 'id' ) );
+		$this->request( 'POST', '/runs/' . $second['id'] . '/finish' );
+		$this->assertEquals( array( $run['id'] ), wp_list_pluck( $this->request( 'GET', '/runs', array( 'source' => 'all', 'finished' => true ) )->get_data(), 'id' ) );
+
+		$first = $this->request( 'GET', '/runs/' . $run['id'] )->get_data();
+		$this->assertEquals( get_userdata( $this->picker )->display_name, $first['user_name'] );
+		$this->assertNotEmpty( $first['date_created'] );
+		$this->assertNotEmpty( $first['date_finished'] );
+		$this->assertFalse( $first['export_expired'] );
+
+		// Managers see the runs of all users, others only their own
+		wp_set_current_user( $this->admin );
+		$this->assertEquals( array(), $this->request( 'GET', '/runs', array( 'source' => 'all' ) )->get_data() );
+		$this->assertCount( 2, $this->request( 'GET', '/runs', array( 'source' => 'all', 'all_users' => true ) )->get_data() );
+
+		// Export removed after the retention period: the run tells so
+		\Vendidero\Shiptastic\BulkFulfillments\RunExport::delete( \Vendidero\Shiptastic\BulkFulfillments\Run::get( $run['id'] ) );
+		$expired = $this->request( 'GET', '/runs/' . $run['id'] )->get_data();
+		$this->assertTrue( $expired['export_expired'] );
+		$this->assertEquals( '', $expired['export_url'] );
+		$this->assertEquals( array(), $this->request( 'GET', '/runs/' . $run['id'] . '/orders' )->get_data()[0]['files'] );
+
+		remove_filter( 'woocommerce_shiptastic_fulfillment_actions', array( $this, 'register_document_action' ) );
+	}
+
+	public function test_run_counts_orders_put_back() {
+		$this->create_order( 1 );
+		$this->create_order( 1 );
+		$this->create_order( 1 );
+
+		$workflow = $this->create_workflow( array( 'pick' ) );
+		wp_set_current_user( $this->picker );
+
+		$run   = $this->request( 'POST', '/runs', array( 'workflow_id' => $workflow->get_id(), 'mode' => 'interactive' ) )->get_data(); // phpcs:ignore WordPress.Arrays.ArrayDeclarationSpacing.AssociativeArrayFound
+		$claim = $this->request( 'POST', '/workflows/' . $workflow->get_id() . '/claim', array( 'run_id' => $run['id'], 'run' => true ) )->get_data(); // phpcs:ignore WordPress.Arrays.ArrayDeclarationSpacing.AssociativeArrayFound
+		$this->assertCount( 3, $claim['items'] );
+
+		// First order picked, second put back, the third one is still reserved when the run ends (put back as well)
+		$first = $claim['items'][0];
+		$this->request( 'POST', '/queue/' . $first['id'] . '/steps/pick', array( 'token' => $claim['token'], 'idempotency_key' => 'counts-1', 'data' => array( 'picked' => array( $first['current']['view_data']['items'][0]['id'] => 1 ) ) ) ); // phpcs:ignore WordPress.Arrays.ArrayDeclarationSpacing.AssociativeArrayFound
+		$this->request( 'POST', '/queue/' . $claim['items'][1]['id'] . '/release', array( 'token' => $claim['token'], 'idempotency_key' => 'counts-2' ) ); // phpcs:ignore WordPress.Arrays.ArrayDeclarationSpacing.AssociativeArrayFound
+
+		$finished = $this->request( 'POST', '/runs/' . $run['id'] . '/finish' )->get_data();
+
+		// Counts match the run's order list: total = claimed, processed = done + failed + put back
+		$this->assertEquals( 3, $finished['total'] );
+		$this->assertEquals( 3, $finished['processed'] );
+		$this->assertEquals( 1, $finished['succeeded'] );
+		$this->assertEquals( 0, $finished['failed'] );
+		$this->assertEquals( 2, $finished['released'] );
+		$this->assertEquals( array( 'completed', 'released', 'released' ), wp_list_pluck( $this->request( 'GET', '/runs/' . $run['id'] . '/orders' )->get_data(), 'status' ) );
+		$this->assertEquals( array( $run['id'] ), wp_list_pluck( $this->request( 'GET', '/runs', array( 'source' => 'all', 'finished' => true ) )->get_data(), 'id' ) );
+
+		// A run which only put orders back is not part of the history
+		$empty = $this->request( 'POST', '/runs', array( 'workflow_id' => $workflow->get_id(), 'mode' => 'interactive' ) )->get_data(); // phpcs:ignore WordPress.Arrays.ArrayDeclarationSpacing.AssociativeArrayFound
+		$this->request( 'POST', '/workflows/' . $workflow->get_id() . '/claim', array( 'run_id' => $empty['id'], 'run' => true ) );
+		$ended = $this->request( 'POST', '/runs/' . $empty['id'] . '/finish' )->get_data();
+		$this->assertEquals( 2, $ended['released'] );
+		$this->assertEquals( array( $run['id'] ), wp_list_pluck( $this->request( 'GET', '/runs', array( 'source' => 'all', 'finished' => true ) )->get_data(), 'id' ) );
 	}
 }

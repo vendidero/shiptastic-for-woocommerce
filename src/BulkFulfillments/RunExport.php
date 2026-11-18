@@ -105,13 +105,14 @@ class RunExport {
 	 * Adds the files of a step result to the run's export.
 	 *
 	 * @param Run $run
-	 * @param QueueItem $item
+	 * @param QueueItem|null $item Null for steps of run level phases (start of batch, end of run).
 	 * @param Step $step
 	 * @param StepResult $result
+	 * @param string|null $prefix File name prefix, defaults to the order number (+ shipment id).
 	 *
 	 * @return Run
 	 */
-	public static function add_files( $run, $item, $step, $result ) {
+	public static function add_files( $run, $item, $step, $result, $prefix = null ) {
 		$files = is_a( $result, StepResult::class ) ? $result->get_files() : array();
 
 		if ( empty( $files ) ) {
@@ -143,7 +144,7 @@ class RunExport {
 		}
 
 		$folder = self::get_step_folder( $run, $step );
-		$prefix = self::get_file_prefix( $item, $step );
+		$prefix = is_null( $prefix ) ? ( $item ? self::get_file_prefix( $item, $step ) : 'run' ) : (string) $prefix;
 
 		foreach ( $files as $file ) {
 			$name  = sanitize_file_name( $prefix . '-' . $file['name'] );
@@ -258,6 +259,92 @@ class RunExport {
 		return sanitize_file_name( ( $workflow ? sanitize_title( $workflow->get_title() ) . '-' : '' ) . 'run-' . $run->get_id() . '.zip' );
 	}
 
+	/**
+	 * @param Run $run
+	 *
+	 * @return string[] Entries (folder/file name) of the run's export.
+	 */
+	public static function get_entries( $run ) {
+		$path    = self::has_export( $run ) ? self::get_path( $run ) : '';
+		$entries = array();
+
+		if ( ! $path || ! self::is_available() ) {
+			return $entries;
+		}
+
+		$zip = new \ZipArchive();
+
+		if ( true !== $zip->open( $path ) ) {
+			return $entries;
+		}
+
+		for ( $i = 0; $i < $zip->numFiles; $i++ ) { // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
+			$name = $zip->getNameIndex( $i );
+
+			if ( $name && '/' !== substr( $name, -1 ) ) {
+				$entries[] = $name;
+			}
+		}
+
+		$zip->close();
+
+		return $entries;
+	}
+
+	/**
+	 * @param Run $run
+	 * @param string $entry
+	 *
+	 * @return string Download URL of a single file of the run's export (nonce protected).
+	 */
+	public static function get_file_url( $run, $entry ) {
+		if ( ! self::can_download( $run ) ) {
+			return '';
+		}
+
+		return add_query_arg(
+			array(
+				'action'   => self::DOWNLOAD_ACTION,
+				'run'      => $run->get_id(),
+				'file'     => rawurlencode( $entry ),
+				'_wpnonce' => wp_create_nonce( self::DOWNLOAD_ACTION . '-' . $run->get_id() ),
+			),
+			admin_url( 'admin-post.php' )
+		);
+	}
+
+	/**
+	 * Groups the export's files per order (file names are prefixed with the order number, see get_file_prefix()).
+	 *
+	 * @param Run $run
+	 * @param string[] $order_numbers
+	 *
+	 * @return array order number => list of name (file name), folder (step), url
+	 */
+	public static function get_files_by_order( $run, $order_numbers ) {
+		$files = array_fill_keys( array_map( 'strval', $order_numbers ), array() );
+
+		foreach ( self::get_entries( $run ) as $entry ) {
+			$folder = dirname( $entry );
+			$name   = basename( $entry );
+
+			foreach ( array_keys( $files ) as $order_number ) {
+				$prefix = sanitize_file_name( $order_number . '-' );
+
+				if ( 0 === strpos( $name, $prefix ) ) {
+					$files[ $order_number ][] = array(
+						'name'   => $name,
+						'folder' => '.' === $folder ? '' : $folder,
+						'url'    => self::get_file_url( $run, $entry ),
+					);
+					break;
+				}
+			}
+		}
+
+		return $files;
+	}
+
 	public static function download() {
 		$run_id = isset( $_GET['run'] ) ? absint( wp_unslash( $_GET['run'] ) ) : 0; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 
@@ -275,7 +362,48 @@ class RunExport {
 			wp_die( esc_html_x( 'There are no files to download (anymore).', 'shipments', 'shiptastic-for-woocommerce' ), 404 );
 		}
 
+		$file = isset( $_GET['file'] ) ? rawurldecode( wp_unslash( $_GET['file'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+
+		// A single file of the export (e.g. the label of an order).
+		if ( '' !== $file ) {
+			self::send_entry( $run, $file );
+		}
+
 		self::send( self::get_path( $run ), self::get_download_name( $run ) );
+	}
+
+	/**
+	 * @param Run $run
+	 * @param string $entry
+	 */
+	protected static function send_entry( $run, $entry ) {
+		if ( ! in_array( $entry, self::get_entries( $run ), true ) ) {
+			wp_die( esc_html_x( 'The file does not exist (anymore).', 'shipments', 'shiptastic-for-woocommerce' ), 404 );
+		}
+
+		$zip = new \ZipArchive();
+
+		if ( true !== $zip->open( self::get_path( $run ) ) ) {
+			wp_die( esc_html_x( 'The export could not be opened.', 'shipments', 'shiptastic-for-woocommerce' ), 500 );
+		}
+
+		$content = $zip->getFromName( $entry );
+		$zip->close();
+
+		while ( ob_get_level() > 0 ) {
+			ob_end_clean();
+		}
+
+		$type = wp_check_filetype( basename( $entry ) );
+
+		nocache_headers();
+		header( 'Content-Type: ' . ( $type['type'] ? $type['type'] : 'application/octet-stream' ) );
+		header( 'Content-Disposition: attachment; filename="' . sanitize_file_name( basename( $entry ) ) . '"' );
+		header( 'Content-Length: ' . strlen( (string) $content ) );
+		header( 'X-Content-Type-Options: nosniff' );
+
+		echo $content; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+		exit;
 	}
 
 	/**
@@ -311,11 +439,11 @@ class RunExport {
 			wp_delete_file( $path );
 		}
 
+		// The number of files is kept: the run history tells that files existed but were removed (retention).
 		return Run::update(
 			$run->get_id(),
 			array(
-				'export'       => '',
-				'export_files' => 0,
+				'export' => '',
 			)
 		);
 	}

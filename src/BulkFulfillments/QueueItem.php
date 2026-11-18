@@ -90,6 +90,14 @@ class QueueItem {
 	}
 
 	/**
+	 * @return bool Whether the package is ready for shipping: all items are part of shipments which are ready for
+	 *              shipping (processed, waiting to be shipped).
+	 */
+	public function is_ready() {
+		return (bool) absint( $this->get( 'is_ready', 0 ) );
+	}
+
+	/**
 	 * @return string pending|locked|error|done|removed
 	 */
 	public function get_status() {

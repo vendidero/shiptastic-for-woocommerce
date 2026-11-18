@@ -93,12 +93,6 @@ class FulfillmentRunnerTest extends \Vendidero\Shiptastic\Tests\Framework\UnitTe
 		Test_Fulfillment_Label_Action::$users = array();
 	}
 
-	/**
-	 * Pre-existing: creating shipment items triggers an incorrect usage notice (customs description meta).
-	 */
-	protected function expect_shipment_items() {
-		$this->setExpectedIncorrectUsage( 'is_internal_meta_key' );
-	}
 
 	public function tearDown(): void {
 		remove_filter( 'woocommerce_shiptastic_fulfillment_actions', array( $this, 'register_test_actions' ) );
@@ -225,7 +219,6 @@ class FulfillmentRunnerTest extends \Vendidero\Shiptastic\Tests\Framework\UnitTe
 	}
 
 	public function test_interactive_run() {
-		$this->expect_shipment_items();
 
 		$order    = $this->create_order( 2 );
 		$order_id = $order->get_id();
@@ -314,7 +307,6 @@ class FulfillmentRunnerTest extends \Vendidero\Shiptastic\Tests\Framework\UnitTe
 	}
 
 	public function test_shipment_layout_reopens_steps() {
-		$this->expect_shipment_items();
 
 		$order         = $this->create_order( 4 );
 		$order_item_id = $this->get_item_id( $order );
@@ -405,7 +397,6 @@ class FulfillmentRunnerTest extends \Vendidero\Shiptastic\Tests\Framework\UnitTe
 	}
 
 	public function test_step_mode_choice() {
-		$this->expect_shipment_items();
 
 		// Actions supporting user interaction run interactively (extensions may allow choosing the mode per step),
 		// actions without user interaction (e.g. creating shipments) run automatically
@@ -458,7 +449,6 @@ class FulfillmentRunnerTest extends \Vendidero\Shiptastic\Tests\Framework\UnitTe
 	}
 
 	public function test_address_correction_reaches_packed_shipments() {
-		$this->expect_shipment_items();
 
 		$order    = $this->create_order( 2 );
 		$workflow = $this->create_workflow( array( 'pick' ) );

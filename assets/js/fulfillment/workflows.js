@@ -1,19 +1,19 @@
 /**
  * Workflow editor (managers): create, edit and delete workflows in a full overlay.
  *
- * - General: title, active, mode (in case there are several, e.g. added by extensions), priority.
+ * - General: title, mode (in case there are several, e.g. added by extensions).
  * - Steps: actions in order incl. their settings (mode/scope in case an action supports several), reorder, remove, add.
  * - Orders: filters (locations, shipping providers, countries, items, weight, backorders).
  * Extensions add settings via hooks (see hooks.js: workflowForm, workflowSaveBody, workflowStepVisible, ...) and
  * template actions.
  *
  * Choices are loaded on demand when the editor is opened the first time: Shiptastic specific ones from
- * `workflows/editor`, countries (wc/v3/data/countries) from WooCommerce core.
+ * `workflows/editor` (preloaded for managers), countries (wc/v3/data/countries, preloaded and cached, countries.js).
  */
 import { store, getContext, getConfig } from '@wordpress/interactivity';
 import * as api from './api.js';
 import * as hooks from './hooks.js';
-import { loadCountries } from './order.js';
+import { loadCountries } from './countries.js';
 
 const NAMESPACE = 'shiptastic/fulfillment';
 const i18n = () => getConfig( NAMESPACE ).i18n.workflowEditor;
@@ -22,17 +22,18 @@ let choicesRequest = null;
 let stepCounter = 0;
 
 /**
- * Loads the editor choices once.
+ * Loads the editor choices once (preloaded in the background for managers, see preloadChoices()). The countries
+ * (country filter) are loaded separately (countries.js) and do not block the editor.
  *
  * @return {Promise}
  */
 function loadChoices() {
     if ( ! choicesRequest ) {
-        choicesRequest = Promise.all( [
-            api.request( 'workflows/editor' ),
-            loadCountries(),
-        ] )
-            .then( ( [ editor ] ) => {
+        // Usually preloaded already, retried here in case the preload failed.
+        loadCountries().catch( () => {} );
+
+        choicesRequest = api.request( 'workflows/editor' )
+            .then( ( editor ) => {
                 state.workflowChoices = { ...editor, loaded: true };
             } )
             .catch( ( error ) => {
@@ -44,12 +45,24 @@ function loadChoices() {
     return choicesRequest;
 }
 
+/**
+ * Loads the editor choices in the background once the browser is idle (app start, managers only), so that opening
+ * the workflow editor does not wait for them.
+ */
+export function preloadChoices() {
+    const load = () => loadChoices().catch( () => {} );
+
+    if ( 'requestIdleCallback' in window ) {
+        window.requestIdleCallback( load, { timeout: 3000 } );
+    } else {
+        window.setTimeout( load, 1000 );
+    }
+}
+
 function defaultForm() {
     return {
         id: 0,
         title: '',
-        status: 'active',
-        priority: 0,
         mode: 'interactive',
         steps: [],
         filters: { locations: [], shipping_providers: [], countries: [], min_items: '', max_items: '', min_weight: '', max_weight: '', backorders: 'any' },
@@ -69,8 +82,6 @@ function toForm( workflow ) {
             ...form,
             id: workflow.id,
             title: workflow.title,
-            status: workflow.status,
-            priority: workflow.priority,
             mode: workflow.mode,
             steps: workflow.steps.map( ( step ) => ( { key: 'step-' + ( ++stepCounter ), action: step.action, settings: { ...( Array.isArray( step.settings ) ? {} : step.settings ) } } ) ),
             filters: { ...form.filters, ...workflow.filters },
@@ -138,15 +149,43 @@ function getRequiredActions( name ) {
     return required;
 }
 
+const PHASES = [ 'before_queue', 'item', 'after_shipment', 'after_item', 'after_queue' ];
+
 /**
- * Whether two neighboring steps may swap: a step never moves above a step it requires (dependency order).
+ * @param {Object} step
+ * @return {string} The phase the step runs in (see RunPhases): its choice in case the action supports it, the
+ *                  action's default phase otherwise.
+ */
+function getStepPhase( step ) {
+    const action = getAction( step.action );
+    const phases = action && action.phases ? action.phases.map( ( phase ) => phase.value ) : [ 'item' ];
+
+    return step.settings && phases.includes( step.settings.phase ) ? step.settings.phase : ( action && action.default_phase ) || 'item';
+}
+
+/**
+ * Steps are ordered by phase: start of batch, per order, after each shipment, after each order, end of run (stable).
+ *
+ * @param {Object[]} steps
+ * @return {Object[]}
+ */
+function sortByPhase( steps ) {
+    return steps
+        .map( ( step, index ) => ( { step, index, rank: PHASES.indexOf( getStepPhase( step ) ) } ) )
+        .sort( ( a, b ) => a.rank - b.rank || a.index - b.index )
+        .map( ( entry ) => entry.step );
+}
+
+/**
+ * Whether two neighboring steps may swap: a step never moves above a step it requires (dependency order) and steps
+ * stay within their phase.
  *
  * @param {Object} upper
  * @param {Object} lower
  * @return {boolean}
  */
 function canSwap( upper, lower ) {
-    return !! upper && !! lower && ! getRequiredActions( lower.action ).includes( upper.action );
+    return !! upper && !! lower && getStepPhase( upper ) === getStepPhase( lower ) && ! getRequiredActions( lower.action ).includes( upper.action );
 }
 
 function getNeighbor( step, offset ) {
@@ -197,11 +236,15 @@ const { state, actions } = store( NAMESPACE, {
             get isEditing() {
                 return state.workflowEditor.form.id > 0;
             },
+            // The header shows the workflow's title (updated while typing), a generic title as long as it is empty.
             get title() {
+                const title = ( state.workflowEditor.form.title || '' ).trim();
+
+                if ( title ) {
+                    return title;
+                }
+
                 return state.workflowEditorData.isEditing ? i18n().editTitle : i18n().newTitle;
-            },
-            get isActive() {
-                return 'active' === state.workflowEditor.form.status;
             },
             get isWorkflowMode() {
                 const { value } = getContext();
@@ -262,6 +305,11 @@ const { state, actions } = store( NAMESPACE, {
                 const { step } = getContext();
                 const action = getAction( step.action );
                 const modes = action ? getStepModes( action ) : [];
+
+                // Steps at the start of a batch/end of the run always run automatically.
+                if ( [ 'before_queue', 'after_queue' ].includes( getStepPhase( step ) ) ) {
+                    return [];
+                }
                 // Modes requiring Shiptastic Pro: presented (disabled) with a pro marker.
                 const proModes = action && ! getConfig( NAMESPACE ).pro?.automation ? ( action.pro_modes || [] ).filter( ( mode ) => ! modes.includes( mode ) ) : [];
 
@@ -292,15 +340,65 @@ const { state, actions } = store( NAMESPACE, {
                     return '';
                 }
 
+                if ( [ 'before_queue', 'after_queue' ].includes( getStepPhase( step ) ) ) {
+                    return i18n().modeHints.background || '';
+                }
+
                 const modes = getStepModes( action );
 
                 return i18n().modeHints[ modes.length > 0 ? modes[ 0 ] : action.default_mode ] || '';
+            },
+            /*
+             * Phase (start of batch, per order, after each shipment, after each order, end of run): a choice in case
+             * the action supports several phases, a hint for actions running outside the per order phase otherwise.
+             */
+            get stepPhaseChoices() {
+                const { step } = getContext();
+                const action = getAction( step.action );
+
+                if ( ! action || ! action.phases || action.phases.length < 2 ) {
+                    return [];
+                }
+
+                const current = getStepPhase( step );
+
+                return action.phases.map( ( phase ) => ( { value: phase.value, label: phase.label, checked: phase.value === current, name: step.key + '-phase' } ) );
+            },
+            get hasStepPhaseChoice() {
+                return state.workflowEditorData.stepPhaseChoices.length > 0;
+            },
+            get stepPhaseText() {
+                const { step } = getContext();
+                const action = getAction( step.action );
+                const phase = getStepPhase( step );
+
+                if ( ! action || state.workflowEditorData.hasStepPhaseChoice || 'item' === phase ) {
+                    return '';
+                }
+
+                const data = ( action.phases || [] ).find( ( candidate ) => candidate.value === phase );
+
+                return data ? data.label : '';
+            },
+            // Explains the step's phase in case it does not run per order.
+            get stepPhaseDescription() {
+                const { step } = getContext();
+                const action = getAction( step.action );
+                const phase = getStepPhase( step );
+                const data = action && 'item' !== phase ? ( action.phases || [] ).find( ( candidate ) => candidate.value === phase ) : null;
+
+                return data ? data.description : '';
+            },
+            get isRunLevelStep() {
+                const { step } = getContext();
+                return [ 'before_queue', 'after_queue' ].includes( getStepPhase( step ) );
             },
             get stepScopeChoices() {
                 const { step } = getContext();
                 const action = getAction( step.action );
 
-                if ( ! action || action.scopes.length < 2 ) {
+                // The phase defines the scope (after each shipment/order, run level phases).
+                if ( ! action || action.scopes.length < 2 || 'item' !== getStepPhase( step ) ) {
                     return [];
                 }
 
@@ -315,7 +413,7 @@ const { state, actions } = store( NAMESPACE, {
                 const { step } = getContext();
                 const action = getAction( step.action );
 
-                return action && ! state.workflowEditorData.hasStepScopeChoice ? i18n().scopes[ action.default_scope ] || '' : '';
+                return action && ! state.workflowEditorData.hasStepScopeChoice && 'item' === getStepPhase( step ) ? i18n().scopes[ action.default_scope ] || '' : '';
             },
             get settingValue() {
                 const { step, setting } = getContext();
@@ -380,6 +478,10 @@ const { state, actions } = store( NAMESPACE, {
                 const { list } = getContext();
                 return state.workflowEditor.form.filters[ list ].length > 0 || !! state.workflowEditor.limited[ list ];
             },
+            // Explains the backorders choice (shown below the segmented control, like the list filters' hints).
+            get backordersHint() {
+                return ( i18n().backordersHints || {} )[ state.workflowEditor.form.filters.backorders || 'any' ] || '';
+            },
             get isBackorders() {
                 const { value } = getContext();
                 return value === state.workflowEditor.form.filters.backorders;
@@ -421,11 +523,6 @@ const { state, actions } = store( NAMESPACE, {
                 const valid = state.workflowEditor.dirty && ! state.workflowEditor.saving && !! state.workflowEditor.form.title.trim() && ! isRangeInvalid( 'items' ) && ! isRangeInvalid( 'weight' );
 
                 return !! hooks.applyFilters( 'workflowCanSave', valid, state.workflowEditor.form );
-            },
-            // Overview
-            get workflowStatusText() {
-                const { workflow } = getContext();
-                return 'active' === workflow.status ? '' : i18n().inactive;
             },
         },
     },
@@ -471,17 +568,9 @@ const { state, actions } = store( NAMESPACE, {
                 state.workflowEditor.form.title = event.target.value;
                 markDirty();
             },
-            setActive( event ) {
-                state.workflowEditor.form.status = event.target.checked ? 'active' : 'inactive';
-                markDirty();
-            },
             setMode( event ) {
                 state.workflowEditor.form.mode = event.target.value;
                 hooks.applyFilters( 'workflowModeChanged', undefined, event.target.value, state.workflowEditor.form );
-                markDirty();
-            },
-            setPriority( event ) {
-                state.workflowEditor.form.priority = parseInt( event.target.value, 10 ) || 0;
                 markDirty();
             },
             // Steps
@@ -506,11 +595,17 @@ const { state, actions } = store( NAMESPACE, {
                     settings.scope = action.default_scope;
                 }
 
+                if ( action && action.phases && action.phases.length > 1 ) {
+                    settings.phase = action.default_phase;
+                }
+
                 const steps = [ ...state.workflowEditor.form.steps ];
                 const step = { key: 'step-' + ( ++stepCounter ), action: name, settings };
+                const phase = getStepPhase( step );
 
-                // Dependency order: insert before the first step requiring the action (e.g. create shipments first).
-                const index = steps.findIndex( ( candidate ) => getRequiredActions( candidate.action ).includes( name ) );
+                // Dependency order: insert before the first step (of the same phase) requiring the action (e.g. create
+                // shipments first), otherwise at the end of its phase.
+                const index = steps.findIndex( ( candidate ) => getStepPhase( candidate ) === phase && getRequiredActions( candidate.action ).includes( name ) );
 
                 if ( index < 0 ) {
                     steps.push( step );
@@ -518,7 +613,13 @@ const { state, actions } = store( NAMESPACE, {
                     steps.splice( index, 0, step );
                 }
 
-                state.workflowEditor.form.steps = steps;
+                state.workflowEditor.form.steps = sortByPhase( steps );
+                markDirty();
+            },
+            setStepPhase() {
+                const { step, choice } = getContext();
+                step.settings = { ...step.settings, phase: choice.value };
+                state.workflowEditor.form.steps = sortByPhase( [ ...state.workflowEditor.form.steps ] );
                 markDirty();
             },
             setStepMode() {
@@ -623,8 +724,6 @@ const { state, actions } = store( NAMESPACE, {
                     'workflowSaveBody',
                     {
                         title: form.title.trim(),
-                        status: form.status,
-                        priority: form.priority,
                         mode: form.mode,
                         steps: getVisibleSteps().map( ( step ) => ( { action: step.action, settings: step.settings } ) ),
                         filters: form.filters,

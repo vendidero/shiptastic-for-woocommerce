@@ -4,6 +4,7 @@ namespace Vendidero\Shiptastic\BulkFulfillments;
 
 use Vendidero\Shiptastic\Package;
 use Vendidero\Shiptastic\Rest\FulfillmentController;
+use Vendidero\Shiptastic\DataStores\FulfillmentWorkflow;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -175,6 +176,15 @@ JS;
 		return isset( $_GET['page'] ) && self::PAGE === wc_clean( wp_unslash( $_GET['page'] ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 	}
 
+	/**
+	 * @param string $name run|workflow
+	 *
+	 * @return string A route (query) arg of the app's URL, e.g. to render deep links without showing the overview first.
+	 */
+	protected static function get_route_param( $name ) {
+		return isset( $_GET[ $name ] ) ? sanitize_key( wp_unslash( $_GET[ $name ] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+	}
+
 	public static function get_url() {
 		return admin_url( 'admin.php?page=' . self::PAGE );
 	}
@@ -240,6 +250,44 @@ JS;
 		return Package::get_url( 'assets/js/fulfillment/' . $file );
 	}
 
+	/**
+	 * @param string $file Path relative to assets/js/fulfillment/
+	 *
+	 * @return string Version of a module file: plugin version + file modification time (changes with each edit).
+	 */
+	public static function get_module_version( $file ) {
+		$path = Package::get_path( 'assets/js/fulfillment/' . $file );
+
+		return Package::get_version() . ( file_exists( $path ) ? '-' . filemtime( $path ) : '' );
+	}
+
+	/**
+	 * @return array Module URL (as resolved for relative imports, without version) => versioned URL, for all modules
+	 *               of the app (see FulfillmentScriptModules::print_import_map()).
+	 */
+	public static function get_versioned_module_urls() {
+		$dir  = Package::get_path( 'assets/js/fulfillment/' );
+		$urls = array();
+
+		if ( ! is_dir( $dir ) ) {
+			return $urls;
+		}
+
+		$files = new \RecursiveIteratorIterator( new \RecursiveDirectoryIterator( $dir, \FilesystemIterator::SKIP_DOTS ) );
+
+		foreach ( $files as $file ) {
+			if ( 'js' !== $file->getExtension() || 'service-worker.js' === $file->getFilename() ) {
+				continue;
+			}
+
+			$relative     = ltrim( str_replace( '\\', '/', substr( $file->getPathname(), strlen( $dir ) ) ), '/' );
+			$url          = self::get_module_url( $relative );
+			$urls[ $url ] = add_query_arg( 'ver', self::get_module_version( $relative ), $url );
+		}
+
+		return $urls;
+	}
+
 	protected static function register_modules() {
 		Scripts::init();
 
@@ -248,14 +296,16 @@ JS;
 
 		$version = Package::get_version();
 
-		Scripts::register_script_module( self::NAMESPACE, self::get_module_url( 'app.js' ), array( '@wordpress/interactivity' ), $version );
+		Scripts::register_script_module( self::NAMESPACE, self::get_module_url( 'app.js' ), array( '@wordpress/interactivity' ), self::get_module_version( 'app.js' ) );
 		Scripts::enqueue_script_module( self::NAMESPACE );
 
 		foreach ( ActionRegistry::get_all() as $name => $action ) {
 			$module = $action::get_script_module();
 
 			if ( is_array( $module ) && ! empty( $module['id'] ) && ! empty( $module['src'] ) ) {
-				Scripts::register_script_module( $module['id'], $module['src'], array( '@wordpress/interactivity', self::NAMESPACE ), isset( $module['version'] ) ? $module['version'] : $version );
+				$module_file = 0 === strpos( $module['src'], self::get_module_url( '' ) ) ? substr( $module['src'], strlen( self::get_module_url( '' ) ) ) : '';
+
+				Scripts::register_script_module( $module['id'], $module['src'], array( '@wordpress/interactivity', self::NAMESPACE ), isset( $module['version'] ) ? $module['version'] : ( $module_file ? self::get_module_version( $module_file ) : $version ) );
 				Scripts::enqueue_script_module( $module['id'] );
 			}
 		}
@@ -311,6 +361,7 @@ JS;
 					/* translators: %d quantity */
 					'backordered'       => _x( '%d on backorder', 'shipments', 'shiptastic-for-woocommerce' ),
 					'offline'           => _x( 'You are offline.', 'shipments', 'shiptastic-for-woocommerce' ),
+					'loading'           => _x( 'Loading…', 'shipments', 'shiptastic-for-woocommerce' ),
 					/* translators: %s order number */
 					'savedOffline'      => _x( 'Order #%s is saved on this device and will be synced once you are back online.', 'shipments', 'shiptastic-for-woocommerce' ),
 					/* translators: %s order number */
@@ -333,6 +384,11 @@ JS;
 					/* translators: %s step title */
 					'readyStatus'       => _x( 'Ready to finish: %s', 'shipments', 'shiptastic-for-woocommerce' ),
 					'error'             => _x( 'Something went wrong. Please try again.', 'shipments', 'shiptastic-for-woocommerce' ),
+					/* translators: %s time */
+					'lockUntil'         => _x( 'until %s', 'shipments-lock', 'shiptastic-for-woocommerce' ),
+					/* translators: %s user who started the automation */
+					'lockAutomation'    => _x( 'Automation (%s)', 'shipments-lock', 'shiptastic-for-woocommerce' ),
+					'lockExpired'       => _x( 'Reservation expired, available again shortly', 'shipments-lock', 'shiptastic-for-woocommerce' ),
 					'lockLost'          => _x( 'This order is no longer reserved for you and has been removed from your list.', 'shipments', 'shiptastic-for-woocommerce' ),
 					'noItems'           => _x( 'No orders left for this workflow.', 'shipments', 'shiptastic-for-woocommerce' ),
 					'confirmStop'       => _x( 'Stop? Unfinished orders are put back into the queue.', 'shipments', 'shiptastic-for-woocommerce' ),
@@ -354,32 +410,36 @@ JS;
 					/* translators: %d number of files */
 					'downloadFiles'     => _x( 'Download files (%d)', 'shipments', 'shiptastic-for-woocommerce' ),
 					'workflowEditor'    => array(
-						'newTitle'       => _x( 'New workflow', 'shipments', 'shiptastic-for-woocommerce' ),
-						'editTitle'      => _x( 'Edit workflow', 'shipments', 'shiptastic-for-woocommerce' ),
-						'saved'          => _x( 'Workflow saved.', 'shipments', 'shiptastic-for-woocommerce' ),
-						'deleted'        => _x( 'Workflow deleted.', 'shipments', 'shiptastic-for-woocommerce' ),
-						'confirmDelete'  => _x( 'Delete this workflow? Orders are not affected.', 'shipments', 'shiptastic-for-woocommerce' ),
-						'discardChanges' => _x( 'Discard your changes to the workflow?', 'shipments', 'shiptastic-for-woocommerce' ),
-						'inactive'       => _x( 'Inactive', 'shipments', 'shiptastic-for-woocommerce' ),
-						'rangeAny'       => _x( 'All orders, no limit.', 'shipments', 'shiptastic-for-woocommerce' ),
+						'backordersHints' => array(
+							'any'     => _x( 'Orders are included regardless of backordered items.', 'shipments', 'shiptastic-for-woocommerce' ),
+							'exclude' => _x( 'Orders containing backordered items are left out.', 'shipments', 'shiptastic-for-woocommerce' ),
+							'only'    => _x( 'Only orders containing backordered items are included.', 'shipments', 'shiptastic-for-woocommerce' ),
+						),
+						'newTitle'        => _x( 'New workflow', 'shipments', 'shiptastic-for-woocommerce' ),
+						'editTitle'       => _x( 'Edit workflow', 'shipments', 'shiptastic-for-woocommerce' ),
+						'saved'           => _x( 'Workflow saved.', 'shipments', 'shiptastic-for-woocommerce' ),
+						'deleted'         => _x( 'Workflow deleted.', 'shipments', 'shiptastic-for-woocommerce' ),
+						'confirmDelete'   => _x( 'Delete this workflow? Orders are not affected.', 'shipments', 'shiptastic-for-woocommerce' ),
+						'discardChanges'  => _x( 'Discard your changes to the workflow?', 'shipments', 'shiptastic-for-woocommerce' ),
+						'rangeAny'        => _x( 'All orders, no limit.', 'shipments', 'shiptastic-for-woocommerce' ),
 						/* translators: %s minimum incl. unit */
-						'rangeMin'       => _x( 'Orders with at least %s.', 'shipments', 'shiptastic-for-woocommerce' ),
+						'rangeMin'        => _x( 'Orders with at least %s.', 'shipments', 'shiptastic-for-woocommerce' ),
 						/* translators: %s maximum incl. unit */
-						'rangeMax'       => _x( 'Orders with at most %s.', 'shipments', 'shiptastic-for-woocommerce' ),
+						'rangeMax'        => _x( 'Orders with at most %s.', 'shipments', 'shiptastic-for-woocommerce' ),
 						/* translators: 1: minimum 2: maximum incl. unit */
-						'rangeBetween'   => _x( 'Orders with %1$s to %2$s.', 'shipments', 'shiptastic-for-woocommerce' ),
+						'rangeBetween'    => _x( 'Orders with %1$s to %2$s.', 'shipments', 'shiptastic-for-woocommerce' ),
 						/* translators: %s list of steps */
-						'requires'       => _x( 'Requires %s (added automatically).', 'shipments', 'shiptastic-for-woocommerce' ),
-						'modes'          => array(
+						'requires'        => _x( 'Requires %s (added automatically).', 'shipments', 'shiptastic-for-woocommerce' ),
+						'modes'           => array(
 							'background'  => _x( 'Automatically', 'shipments', 'shiptastic-for-woocommerce' ),
 							'interactive' => _x( 'Interactive', 'shipments', 'shiptastic-for-woocommerce' ),
 						),
-						'modeHints'      => array(
+						'modeHints'       => array(
 							'background'  => _x( 'Automatically', 'shipments', 'shiptastic-for-woocommerce' ),
 							'interactive' => _x( 'Interactive', 'shipments', 'shiptastic-for-woocommerce' ),
 						),
-						'proMode'        => _x( 'Available with Shiptastic Pro', 'shipments', 'shiptastic-for-woocommerce' ),
-						'scopes'         => array(
+						'proMode'         => _x( 'Available with Shiptastic Pro', 'shipments', 'shiptastic-for-woocommerce' ),
+						'scopes'          => array(
 							'order'    => _x( 'Once per order', 'shipments', 'shiptastic-for-woocommerce' ),
 							'shipment' => _x( 'Once per shipment', 'shipments', 'shiptastic-for-woocommerce' ),
 						),
@@ -402,12 +462,46 @@ JS;
 						),
 					),
 					// Runs (e.g. the report of a finished interactive run with files).
+					// Steps of run level phases (start of batch, end of run).
+					'runSteps'          => array(
+						'status'  => array(
+							'pending' => _x( 'Pending', 'shipments-run-step', 'shiptastic-for-woocommerce' ),
+							'done'    => _x( 'Done', 'shipments-run-step', 'shiptastic-for-woocommerce' ),
+							'error'   => _x( 'Failed', 'shipments-run-step', 'shiptastic-for-woocommerce' ),
+							'skipped' => _x( 'Skipped', 'shipments-run-step', 'shiptastic-for-woocommerce' ),
+						),
+						/* translators: %d batch number */
+						'batch'   => _x( 'Start of batch %d', 'shipments', 'shiptastic-for-woocommerce' ),
+						/* translators: %d number of orders */
+						'orders'  => _x( '%d order(s)', 'shipments', 'shiptastic-for-woocommerce' ),
+						/* translators: %s step title */
+						'failed'  => _x( '%s failed (start of batch):', 'shipments', 'shiptastic-for-woocommerce' ),
+						'resumed' => _x( 'The orders of this batch continue.', 'shipments', 'shiptastic-for-woocommerce' ),
+					),
 					'runs'              => array(
-						'listTitle'         => _x( 'Recent runs', 'shipments', 'shiptastic-for-woocommerce' ),
+						'listTitle'         => _x( 'Finished runs', 'shipments', 'shiptastic-for-woocommerce' ),
+						/* translators: %d shipment id */
+						'shipment'          => _x( 'Shipment #%d', 'shipments', 'shiptastic-for-woocommerce' ),
+						'moreRuns'          => _x( 'Show more', 'shipments', 'shiptastic-for-woocommerce' ),
+						/* translators: %s user name */
+						'by'                => _x( 'by %s', 'shipments', 'shiptastic-for-woocommerce' ),
+						/* translators: 1: start date 2: end time */
+						'period'            => _x( '%1$s – %2$s', 'shipments', 'shiptastic-for-woocommerce' ),
+						'ordersTitle'       => _x( 'Orders', 'shipments', 'shiptastic-for-woocommerce' ),
+						'noOrders'          => _x( 'No orders are recorded for this run.', 'shipments', 'shiptastic-for-woocommerce' ),
+						'filesExpired'      => _x( 'The files of this run were removed after the retention period.', 'shipments', 'shiptastic-for-woocommerce' ),
+						'orderStatus'       => array(
+							'claimed'   => _x( 'In progress', 'shipments-run-order', 'shiptastic-for-woocommerce' ),
+							'completed' => _x( 'Completed', 'shipments-run-order', 'shiptastic-for-woocommerce' ),
+							'failed'    => _x( 'Moved to exceptions', 'shipments-run-order', 'shiptastic-for-woocommerce' ),
+							'released'  => _x( 'Put back', 'shipments-run-order', 'shiptastic-for-woocommerce' ),
+						),
 						'backOverview'      => _x( 'Back to overview', 'shipments', 'shiptastic-for-woocommerce' ),
 						/* translators: %s scope, e.g. a step title */
 						'screenTitle'       => _x( 'Run: %s', 'shipments', 'shiptastic-for-woocommerce' ),
 						'sessionTitle'      => _x( 'Session', 'shipments', 'shiptastic-for-woocommerce' ),
+						/* translators: 1: run number 2: start date and time */
+						'runTitle'          => _x( 'Run #%1$d · %2$s', 'shipments', 'shiptastic-for-woocommerce' ),
 						'startSession'      => _x( 'Start', 'shipments', 'shiptastic-for-woocommerce' ),
 						'continueSession'   => _x( 'Continue', 'shipments', 'shiptastic-for-woocommerce' ),
 						/* translators: %d number of files */
@@ -416,6 +510,10 @@ JS;
 						'progress'          => _x( '%1$d of %2$d orders', 'shipments', 'shiptastic-for-woocommerce' ),
 						/* translators: 1: succeeded orders 2: failed orders */
 						'counts'            => _x( '%1$d done, %2$d failed', 'shipments', 'shiptastic-for-woocommerce' ),
+						/* translators: 1: succeeded orders 2: failed orders 3: orders put back */
+						'countsReleased'    => _x( '%1$d done, %2$d failed, %3$d put back', 'shipments', 'shiptastic-for-woocommerce' ),
+						/* translators: %d number of orders put back */
+						'putBack'           => _x( '%d put back', 'shipments', 'shiptastic-for-woocommerce' ),
 						/* translators: %d number of files */
 						'exportFiles'       => _x( '%d file(s) created by the steps.', 'shipments', 'shiptastic-for-woocommerce' ),
 						/* translators: %d number of files */
@@ -477,22 +575,19 @@ JS;
 	 * @return array
 	 */
 	protected static function get_initial_state() {
-		global $wpdb;
-
 		$workflows = array();
 
-		// Managers see (and edit) inactive workflows as well.
-		$where = current_user_can( 'manage_woocommerce' ) ? '' : "WHERE workflow_status = 'active'";
-
-		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Fixed condition.
-		foreach ( $wpdb->get_col( "SELECT workflow_id FROM {$wpdb->stc_fulfillment_workflows} {$where} ORDER BY workflow_priority DESC, workflow_id ASC" ) as $workflow_id ) {
+		foreach ( FulfillmentWorkflow::get_workflow_ids() as $workflow_id ) {
 			$workflows[] = FulfillmentController::prepare_workflow( new Workflow( $workflow_id ) );
 		}
 
 		return apply_filters(
 			'woocommerce_shiptastic_fulfillment_app_state',
 			array(
-				'screen'          => 'overview',
+				// Deep links (run, workflow editor): a loading screen instead of the overview until the client opened them.
+				'screen'          => self::get_route_param( 'run' ) ? 'loading' : 'overview',
+				// Plain flag (getters are not available while rendering on the server): the loading view shows right away.
+				'routeLoading'    => '' !== self::get_route_param( 'run' ),
 				// Active interactive runs of the user (continued instead of started anew).
 				'sessions'        => array_map(
 					function ( $run ) {
@@ -548,26 +643,30 @@ JS;
 					'slow'   => false,
 					'steps'  => array(),
 				),
+				// A failed step at the start of the current batch (run level): the batch's orders wait for retry/skip.
+				'runStepError'    => array(
+					'id'      => 0,
+					'title'   => '',
+					'message' => '',
+				),
 				// An automatic step handled interactively after it failed (key + error message).
 				'manualStep'      => array(
 					'key'     => '',
 					'message' => '',
 				),
 				'workflowEditor'  => array(
-					'open'    => false,
-					'loading' => false,
+					'open'    => '' !== self::get_route_param( 'workflow' ),
+					'loading' => '' !== self::get_route_param( 'workflow' ),
 					'saving'  => false,
 					'dirty'   => false,
 					'error'   => '',
 					'limited' => new \stdClass(),
 					'form'    => array(
-						'id'       => 0,
-						'title'    => '',
-						'status'   => 'active',
-						'priority' => 0,
-						'mode'     => 'interactive',
-						'steps'    => array(),
-						'filters'  => Workflow::sanitize_filters( array() ),
+						'id'      => 0,
+						'title'   => '',
+						'mode'    => 'interactive',
+						'steps'   => array(),
+						'filters' => Workflow::sanitize_filters( array() ),
 					),
 				),
 				// Loaded on demand (workflow editor).
@@ -593,9 +692,17 @@ JS;
 				// Runs listed in the overview, the run shown on the report screen.
 				'runs'            => array(),
 				'report'          => array(
-					'run'     => null,
-					'loading' => false,
+					'run'           => null,
+					'loading'       => false,
+					// Orders processed within the run (GET runs/{id}/orders).
+					'orders'        => array(),
+					'ordersLoading' => false,
 				),
+				// Run history (overview): pagination.
+				'runsPage'        => 1,
+				'runsHasMore'     => false,
+				// The history is loaded right after the app started (placeholder rows meanwhile).
+				'runsLoading'     => true,
 				'packaging'       => ShipmentLayout::get_packaging_data(),
 				'providers'       => ShipmentLayout::get_provider_data(),
 				'overlay'         => array(
@@ -693,7 +800,9 @@ JS;
 			<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 			<meta name="theme-color" content="#1e1e1e">
 			<title><?php echo esc_html_x( 'Fulfillment', 'shipments', 'shiptastic-for-woocommerce' ); ?></title>
-			<link rel="stylesheet" href="<?php echo esc_url( Package::get_assets_url( 'static/fulfillment-styles.css' ) . '?ver=' . Package::get_version() ); ?>" /><?php // phpcs:ignore WordPress.WP.EnqueuedResources.NonEnqueuedStylesheet ?>
+			<?php $styles_path = Package::get_path( 'build/static/fulfillment-styles.css' ); ?>
+			<?php /* Versioned by the file's modification time (like the modules): changed styles are never served from the cache. */ ?>
+			<link rel="stylesheet" href="<?php echo esc_url( Package::get_assets_url( 'static/fulfillment-styles.css' ) . '?ver=' . Package::get_version() . ( file_exists( $styles_path ) ? '-' . filemtime( $styles_path ) : '' ) ); ?>" /><?php // phpcs:ignore WordPress.WP.EnqueuedResources.NonEnqueuedStylesheet ?>
 			<?php do_action( 'woocommerce_shiptastic_fulfillment_head' ); ?>
 		</head>
 		<body class="stc-fulfillment">

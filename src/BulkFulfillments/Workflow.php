@@ -23,7 +23,7 @@ class Workflow extends WC_Data {
 		'date_created'  => null,
 		'date_modified' => null,
 		'title'         => '',
-		'status'        => 'active',
+		// Position within the workflow list (higher first), changed via the arrows of the overview.
 		'priority'      => 0,
 		'mode'          => 'interactive',
 		'filters'       => array(),
@@ -58,13 +58,6 @@ class Workflow extends WC_Data {
 
 	protected function get_hook_prefix() {
 		return 'woocommerce_shiptastic_fulfillment_workflow_get_';
-	}
-
-	public static function get_statuses() {
-		return array(
-			'active'   => _x( 'Active', 'shipments-workflow-status', 'shiptastic-for-woocommerce' ),
-			'inactive' => _x( 'Inactive', 'shipments-workflow-status', 'shiptastic-for-woocommerce' ),
-		);
 	}
 
 	/**
@@ -235,18 +228,6 @@ class Workflow extends WC_Data {
 		$this->set_prop( 'title', wc_clean( (string) $title ) );
 	}
 
-	public function get_status( $context = 'view' ) {
-		return $this->get_prop( 'status', $context );
-	}
-
-	public function set_status( $status ) {
-		$this->set_prop( 'status', array_key_exists( $status, self::get_statuses() ) ? $status : 'inactive' );
-	}
-
-	public function is_active() {
-		return 'active' === $this->get_status();
-	}
-
 	public function get_priority( $context = 'view' ) {
 		return $this->get_prop( 'priority', $context );
 	}
@@ -315,14 +296,84 @@ class Workflow extends WC_Data {
 	}
 
 	/**
-	 * Enforces the dependency order: steps required by other steps (e.g. create_shipments) come before them. The
-	 * chosen order is kept otherwise (stable).
+	 * Returns the phase a step of an action runs in: the step's phase (setting) in case the action supports it,
+	 * the action's default phase otherwise.
+	 *
+	 * @param string $action_name
+	 * @param array $settings
+	 *
+	 * @return string
+	 */
+	public static function get_step_phase( $action_name, $settings = array() ) {
+		$action = ActionRegistry::get( $action_name );
+
+		if ( ! $action ) {
+			return RunPhases::ITEM;
+		}
+
+		$phase = isset( $settings['phase'] ) ? (string) $settings['phase'] : '';
+
+		return $action::supports_phase( $phase ) ? $phase : $action::get_default_phase();
+	}
+
+	/**
+	 * @param string|string[] $phases
+	 *
+	 * @return array Steps (action, settings) of the given phase(s), in workflow order.
+	 */
+	public function get_phase_steps( $phases ) {
+		$phases = (array) $phases;
+
+		return array_values(
+			array_filter(
+				$this->get_steps(),
+				function ( $step ) use ( $phases ) {
+					return in_array( self::get_step_phase( $step['action'], $step['settings'] ), $phases, true );
+				}
+			)
+		);
+	}
+
+	/**
+	 * @return string[] Actions of steps running per order (all phases except the run level ones).
+	 */
+	public function get_item_actions() {
+		return array_values( array_unique( wp_list_pluck( $this->get_phase_steps( array( RunPhases::ITEM, RunPhases::AFTER_SHIPMENT, RunPhases::AFTER_ITEM ) ), 'action' ) ) );
+	}
+
+	/**
+	 * Enforces the phase order (start of batch, per order, after each shipment, after each order, end of run) and,
+	 * within a phase, the dependency order: steps required by other steps (e.g. create_shipments) come before them.
+	 * The chosen order is kept otherwise (stable).
 	 *
 	 * @param array $steps Sanitized steps.
 	 *
 	 * @return array
 	 */
 	public static function sort_steps( $steps ) {
+		$by_phase = array();
+
+		foreach ( array_values( $steps ) as $step ) {
+			$by_phase[ RunPhases::get_rank( self::get_step_phase( $step['action'], $step['settings'] ) ) ][] = $step;
+		}
+
+		ksort( $by_phase );
+
+		$sorted = array();
+
+		foreach ( $by_phase as $phase_steps ) {
+			$sorted = array_merge( $sorted, self::sort_by_dependencies( $phase_steps ) );
+		}
+
+		return $sorted;
+	}
+
+	/**
+	 * @param array $steps
+	 *
+	 * @return array
+	 */
+	protected static function sort_by_dependencies( $steps ) {
 		$sorted  = array();
 		$pending = array_values( $steps );
 
@@ -436,6 +487,34 @@ class Workflow extends WC_Data {
 				$errors->add( 'workflow_unknown_action', sprintf( _x( 'The action %s does not exist.', 'shipments', 'shiptastic-for-woocommerce' ), $action_name ) );
 				continue;
 			}
+		}
+
+		foreach ( $this->get_steps() as $step ) {
+			$action = ActionRegistry::get( $step['action'] );
+
+			if ( ! $action ) {
+				continue;
+			}
+
+			$phase = isset( $step['settings']['phase'] ) ? (string) $step['settings']['phase'] : $action::get_default_phase();
+
+			if ( ! $action::supports_phase( $phase ) ) {
+				/* translators: 1: action title 2: phase title */
+				$errors->add( 'workflow_invalid_phase', sprintf( _x( '%1$s cannot run in the phase "%2$s".', 'shipments', 'shiptastic-for-woocommerce' ), $action::get_title(), RunPhases::get_title( $phase ) ) );
+			} elseif ( RunPhases::is_run_level( $phase ) && ! $action::supports_mode( 'background' ) ) {
+				/* translators: 1: action title 2: phase title */
+				$errors->add( 'workflow_invalid_phase', sprintf( _x( '%1$s requires user interaction and cannot run in the phase "%2$s".', 'shipments', 'shiptastic-for-woocommerce' ), $action::get_title(), RunPhases::get_title( $phase ) ) );
+			} elseif ( RunPhases::AFTER_SHIPMENT === $phase && ! $action::supports_scope( 'shipment' ) ) {
+				/* translators: %s action title */
+				$errors->add( 'workflow_invalid_phase', sprintf( _x( '%s cannot run per shipment.', 'shipments', 'shiptastic-for-woocommerce' ), $action::get_title() ) );
+			} elseif ( RunPhases::AFTER_ITEM === $phase && ! $action::supports_scope( 'order' ) ) {
+				/* translators: %s action title */
+				$errors->add( 'workflow_invalid_phase', sprintf( _x( '%s cannot run per order.', 'shipments', 'shiptastic-for-woocommerce' ), $action::get_title() ) );
+			}
+		}
+
+		if ( ! empty( $this->get_steps() ) && empty( $this->get_item_actions() ) ) {
+			$errors->add( 'workflow_no_item_steps', _x( 'Please add at least one step running per order.', 'shipments', 'shiptastic-for-woocommerce' ) );
 		}
 
 		$filters = self::sanitize_filters( $this->get_filters() );

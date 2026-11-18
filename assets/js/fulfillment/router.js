@@ -128,7 +128,7 @@ const { state, actions } = store( NAMESPACE, {
 
                     if ( ! isCurrent ) {
                         // Leave the current screen (e.g. ends an interactive run) without showing its report.
-                        if ( 'overview' !== state.screen ) {
+                        if ( ! [ 'overview', 'loading' ].includes( state.screen ) ) {
                             yield actions.goToOverview( false );
                         }
 
@@ -139,14 +139,17 @@ const { state, actions } = store( NAMESPACE, {
                     return;
                 }
 
-                if ( 'overview' !== state.screen ) {
+                if ( 'loading' === state.screen ) {
+                    state.screen = 'overview';
+                } else if ( 'overview' !== state.screen ) {
                     yield actions.goToOverview( false );
                 }
 
                 if ( route.workflow ) {
                     const id = 'new' === route.workflow ? 0 : parseInt( route.workflow, 10 );
 
-                    if ( ! state.workflowEditor.open || ( state.workflowEditor.form.id || 0 ) !== id ) {
+                    // Rendered open (loading) for deep links: loaded here.
+                    if ( ! state.workflowEditor.open || state.workflowEditor.loading || ( state.workflowEditor.form.id || 0 ) !== id ) {
                         yield actions.workflowEditor.show( id ? state.workflows.find( ( workflow ) => workflow.id === id ) || null : null );
                     }
                 } else if ( state.workflowEditor.open ) {
@@ -157,6 +160,8 @@ const { state, actions } = store( NAMESPACE, {
                 }
             } finally {
                 state.routing = false;
+                // Deep link opened (or failed: the overview is shown).
+                state.routeLoading = false;
             }
         },
     },

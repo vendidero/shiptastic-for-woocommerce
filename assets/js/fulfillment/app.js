@@ -33,8 +33,9 @@ import './checklist.js';
 import './shipments.js';
 import './report.js';
 import './order.js';
-import './workflows.js';
+import { preloadChoices } from './workflows.js';
 import { getRoute } from './router.js';
+import { preloadCountries } from './countries.js';
 
 const NAMESPACE = 'shiptastic/fulfillment';
 const config = getConfig( NAMESPACE );
@@ -184,6 +185,17 @@ function applyRunExport( run ) {
     }
 }
 
+/**
+ * The result of the steps starting a batch (claim response): a failed step blocks the batch's orders.
+ *
+ * @param {Object|null} batch status, message, entry
+ */
+function applyBatchResult( batch ) {
+    if ( batch && 'error' === batch.status && batch.entry ) {
+        state.runStepError = { id: batch.entry.id, title: batch.entry.title, message: batch.message || batch.entry.message || '' };
+    }
+}
+
 let noticeTimer = null;
 let queueRequest = 0;
 
@@ -273,6 +285,29 @@ const { state, actions, callbacks } = store( NAMESPACE, {
             const { queue_item: item } = getContext();
             return [ item.location_title || item.location || config.i18n.defaultLocation, sprintf( config.i18n.items, item.item_count ) ].join( ' · ' );
         },
+        // E.g. "Maria · Pick & Pack · until 14:32", "Automation · Labels · until 14:10", "Reservation expired".
+        get queueItemLockText() {
+            const { queue_item: item } = getContext();
+
+            if ( 'locked' !== item.status ) {
+                return '';
+            }
+
+            const expires = item.lock_expires ? new Date( item.lock_expires.endsWith( 'Z' ) ? item.lock_expires : item.lock_expires + 'Z' ) : null;
+
+            if ( expires && expires.getTime() < Date.now() ) {
+                return config.i18n.lockExpired;
+            }
+
+            const holder = 'interactive' === item.lock_source ? item.locked_by_name : sprintf( config.i18n.lockAutomation, item.locked_by_name || '' ).replace( / \(\)$/, '' );
+            const parts = [ holder, item.workflow_title ];
+
+            if ( expires ) {
+                parts.push( sprintf( config.i18n.lockUntil, expires.toLocaleTimeString( document.documentElement.lang || undefined, { hour: '2-digit', minute: '2-digit' } ) ) );
+            }
+
+            return parts.filter( Boolean ).join( ' · ' );
+        },
         get canResetQueueItem() {
             const { queue_item: item } = getContext();
             return config.canManage && 'error' === item.status;
@@ -292,6 +327,11 @@ const { state, actions, callbacks } = store( NAMESPACE, {
             const failed = state.currentStep && state.hasStepError ? state.currentStep.key : '';
 
             return state.currentItem && state.currentItem.steps ? state.currentItem.steps.filter( ( step ) => ! step.injected || step.key === failed ) : [];
+        },
+        // Steps running after each shipment/order are tagged within the step list.
+        get stepPhaseTag() {
+            const { step } = getContext();
+            return step.phase && 'item' !== step.phase ? step.phase_title || '' : '';
         },
         get isAutoStep() {
             const { step } = getContext();
@@ -443,7 +483,14 @@ const { state, actions, callbacks } = store( NAMESPACE, {
             return state.isInputStep && action === state.currentStep.action;
         },
         get showActionBar() {
-            return state.isRunScreen && state.isInputStep;
+            return state.isRunScreen && state.isInputStep && ! state.runStepError.id;
+        },
+        // The order screen is hidden while the steps starting the batch failed (retry/skip first).
+        get showOrderView() {
+            return !! state.currentItem && ! state.runStepError.id;
+        },
+        get runStepErrorTitle() {
+            return state.runStepError.id ? sprintf( config.i18n.runSteps.failed, state.runStepError.title ) : '';
         },
         get showEmptyRun() {
             return ! state.currentItem && ! state.busy;
@@ -706,6 +753,8 @@ const { state, actions, callbacks } = store( NAMESPACE, {
                 if ( state.currentItem && ! outbox.hasItem( state.currentItem.id ) ) {
                     yield actions.retryStep();
                 }
+
+                yield actions.checkRunStepError();
             } else if ( state.online ) {
                 yield actions.sync();
 
@@ -721,6 +770,7 @@ const { state, actions, callbacks } = store( NAMESPACE, {
                 const data = yield api.request( `workflows/${ state.run.workflowId }/claim`, { method: 'POST', body: { run: true, run_id: state.run.id || 0, exclude: state.run.skipped || [] } } );
 
                 applyRunExport( data.run );
+                applyBatchResult( data.batch );
                 const known = state.run.items.map( ( item ) => item.id );
                 const items = data.items.filter( ( item ) => ! known.includes( item.id ) );
 
@@ -1279,6 +1329,77 @@ const { state, actions, callbacks } = store( NAMESPACE, {
                 }
             }
         },
+        *retryRunStep() {
+            yield actions.resolveRunStep( 'retry' );
+        },
+        *skipRunStep() {
+            yield actions.resolveRunStep( 'skip' );
+        },
+        /**
+         * Retries or skips the failed step starting the batch. Once resolved, the batch's orders (blocked so far)
+         * continue: their current step is loaded again.
+         *
+         * @param {string} type retry|skip
+         */
+        *resolveRunStep( type ) {
+            const id = state.runStepError.id;
+
+            if ( ! id || state.busy || ! state.run.id ) {
+                return;
+            }
+
+            state.busy = true;
+            actions.dismissNotice();
+
+            let data = null;
+
+            try {
+                data = yield api.request( `runs/${ state.run.id }/run-steps/${ id }/${ type }`, { method: 'POST' } );
+            } catch ( error ) {
+                actions.handleError( error );
+            } finally {
+                state.busy = false;
+            }
+
+            if ( ! data ) {
+                return;
+            }
+
+            applyRunExport( data.run );
+
+            if ( data.result && 'error' === data.result.status ) {
+                state.runStepError = { id: data.result.entry ? data.result.entry.id : id, title: data.result.entry ? data.result.entry.title : state.runStepError.title, message: data.result.message };
+                return;
+            }
+
+            state.runStepError = { id: 0, title: '', message: '' };
+            state.run.items = state.run.items.map( ( item ) => ( item.current && 'run_step_pending' === item.current.code ? { ...item, current: null } : item ) );
+            actions.notify( config.i18n.runSteps.resumed, 'success', 3000 );
+            callbacks.syncCurrent( true );
+            yield callbacks.persist();
+            yield actions.ensureCurrent();
+        },
+        /**
+         * The current order is blocked by a failed step starting its batch (e.g. after a reload): load the step.
+         */
+        *checkRunStepError() {
+            const item = state.currentItem;
+
+            if ( ! item || ! item.current || 'run_step_pending' !== item.current.code || state.runStepError.id || ! state.run.id ) {
+                return;
+            }
+
+            try {
+                const run = yield api.request( `runs/${ state.run.id }` );
+                const failed = ( run.run_steps || [] ).find( ( entry ) => 'before_queue' === entry.phase && 'error' === entry.status );
+
+                if ( failed ) {
+                    state.runStepError = { id: failed.id, title: failed.title, message: failed.message };
+                }
+            } catch ( error ) {
+                // Shown as the order's error.
+            }
+        },
         dismissConflicts() {
             state.sync.conflicts = [];
         },
@@ -1596,7 +1717,10 @@ const { state, actions, callbacks } = store( NAMESPACE, {
                 // Locks expire anyway, idle runs are finished by the daily cleanup.
             }
 
-            if ( finished && finished.export_files > 0 && showReport ) {
+            state.runStepError = { id: 0, title: '', message: '' };
+
+            // Files to download or a failed step at the end of the run (e.g. a shipment list): show the report.
+            if ( finished && ( finished.export_files > 0 || ( finished.run_steps || [] ).some( ( entry ) => 'error' === entry.status ) ) && showReport ) {
                 yield actions.report.show( finished );
                 return;
             }
@@ -1677,6 +1801,14 @@ const { state, actions, callbacks } = store( NAMESPACE, {
                 navigator.serviceWorker.register( config.serviceWorker.url, { scope: config.serviceWorker.scope } ).catch( () => {} );
             }
 
+            // Needed by the order details and the workflow editor: loaded (and cached) in the background.
+            preloadCountries();
+
+            // Choices of the workflow editor (actions, locations, providers): loaded in the background for managers.
+            if ( config.canManage ) {
+                preloadChoices();
+            }
+
             yield outbox.load( config.userId );
             state.sync.pending = outbox.count();
 
@@ -1692,6 +1824,7 @@ const { state, actions, callbacks } = store( NAMESPACE, {
             // Opened without connection (e.g. via the service worker): continue the locally stored run.
             if ( ! route.run && saved && saved.id && saved.items ) {
                 yield actions.resumeSession( { id: saved.id, workflow_id: saved.workflowId, export_files: saved.exportFiles, export_url: saved.exportUrl } );
+                state.routeLoading = false;
                 state.routerReady = true;
                 return;
             }

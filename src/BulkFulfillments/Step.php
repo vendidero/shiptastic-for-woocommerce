@@ -18,6 +18,11 @@ class Step {
 	public $settings = array();
 
 	/**
+	 * @var string See RunPhases.
+	 */
+	public $phase = 'item';
+
+	/**
 	 * Whether the step was injected as a dependency (not part of the workflow's step list).
 	 *
 	 * @var bool
@@ -72,6 +77,8 @@ class Step {
 			'modes'       => $action ? array_values( $action::get_modes() ) : array(),
 			'shipment_id' => $this->shipment_id,
 			'mode'        => $this->mode,
+			'phase'       => $this->phase,
+			'phase_title' => RunPhases::get_title( $this->phase ),
 			'injected'    => $this->injected,
 			'is_done'     => $this->is_done,
 			// Interactive steps of actions not requiring a connection can be done offline (prefetched view data).

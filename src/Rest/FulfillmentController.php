@@ -10,6 +10,9 @@ use Vendidero\Shiptastic\BulkFulfillments\Run;
 use Vendidero\Shiptastic\BulkFulfillments\RunProcessor;
 use Vendidero\Shiptastic\BulkFulfillments\QueueItem;
 use Vendidero\Shiptastic\BulkFulfillments\Runner;
+use Vendidero\Shiptastic\BulkFulfillments\RunItems;
+use Vendidero\Shiptastic\BulkFulfillments\RunPhases;
+use Vendidero\Shiptastic\BulkFulfillments\RunSteps;
 use Vendidero\Shiptastic\BulkFulfillments\ShipmentLayout;
 use Vendidero\Shiptastic\BulkFulfillments\StepLog;
 use Vendidero\Shiptastic\BulkFulfillments\Workflow;
@@ -56,6 +59,24 @@ class FulfillmentController extends \WC_REST_Controller {
 					'methods'             => WP_REST_Server::CREATABLE,
 					'callback'            => array( $this, 'create_workflow' ),
 					'permission_callback' => array( $this, 'can_manage' ),
+				),
+			)
+		);
+
+		register_rest_route(
+			$this->namespace,
+			$base . '/workflows/sort',
+			array(
+				'methods'             => WP_REST_Server::CREATABLE,
+				'callback'            => array( $this, 'sort_workflows' ),
+				'permission_callback' => array( $this, 'can_manage' ),
+				'args'                => array(
+					'ids' => array(
+						'description' => _x( 'Workflow ids in list order.', 'shipments', 'shiptastic-for-woocommerce' ),
+						'type'        => 'array',
+						'items'       => array( 'type' => 'integer' ),
+						'required'    => true,
+					),
 				),
 			)
 		);
@@ -254,13 +275,28 @@ class FulfillmentController extends \WC_REST_Controller {
 					'permission_callback' => array( $this, 'can_fulfill' ),
 					'args'                => array(
 						'active'      => array( 'type' => 'boolean' ),
+						'finished'    => array(
+							'description' => _x( 'Finished runs only (history): ended runs which processed orders or created files.', 'shipments', 'shiptastic-for-woocommerce' ),
+							'type'        => 'boolean',
+						),
 						'undismissed' => array( 'type' => 'boolean' ),
 						'workflow_id' => array( 'type' => 'integer' ),
 						'source'      => array(
-							'description' => _x( 'Runs of a source: interactive (default) or other sources (e.g. automation runs of extensions).', 'shipments', 'shiptastic-for-woocommerce' ),
+							'description' => _x( 'Runs of a source: interactive (default), other sources (e.g. automation runs of extensions) or all (run history).', 'shipments', 'shiptastic-for-woocommerce' ),
 							'type'        => 'string',
-							'enum'        => array( 'automation', 'interactive' ),
+							'enum'        => array( 'automation', 'interactive', 'all' ),
 							'default'     => 'interactive',
+						),
+						'page'        => array(
+							'type'    => 'integer',
+							'default' => 1,
+							'minimum' => 1,
+						),
+						'per_page'    => array(
+							'type'    => 'integer',
+							'default' => 20,
+							'minimum' => 1,
+							'maximum' => 100,
 						),
 						'all_users'   => array(
 							'description' => _x( 'Runs of all users (managers only).', 'shipments', 'shiptastic-for-woocommerce' ),
@@ -322,6 +358,28 @@ class FulfillmentController extends \WC_REST_Controller {
 				'permission_callback' => array( $this, 'can_fulfill' ),
 			)
 		);
+
+		register_rest_route(
+			$this->namespace,
+			$base . '/runs/(?P<id>[\d]+)/orders',
+			array(
+				'methods'             => WP_REST_Server::READABLE,
+				'callback'            => array( $this, 'get_run_orders' ),
+				'permission_callback' => array( $this, 'can_fulfill' ),
+			)
+		);
+
+		foreach ( array( 'retry', 'skip' ) as $run_step_action ) {
+			register_rest_route(
+				$this->namespace,
+				$base . '/runs/(?P<id>[\d]+)/run-steps/(?P<entry_id>[\d]+)/' . $run_step_action,
+				array(
+					'methods'             => WP_REST_Server::CREATABLE,
+					'callback'            => array( $this, 'retry' === $run_step_action ? 'retry_run_step' : 'skip_run_step' ),
+					'permission_callback' => array( $this, 'can_fulfill' ),
+				)
+			);
+		}
 
 		register_rest_route(
 			$this->namespace,
@@ -391,13 +449,13 @@ class FulfillmentController extends \WC_REST_Controller {
 				'title'    => $action ? $action::get_title() : $step['action'],
 				'settings' => $step['settings'],
 				'mode'     => $workflow->get_step_mode( $step['action'], $step['settings'] ),
+				'phase'    => Workflow::get_step_phase( $step['action'], $step['settings'] ),
 			);
 		}
 
 		$data = array(
 			'id'            => $workflow->get_id(),
 			'title'         => $workflow->get_title(),
-			'status'        => $workflow->get_status(),
 			'priority'      => $workflow->get_priority(),
 			'mode'          => $workflow->get_mode(),
 			'filters'       => Workflow::sanitize_filters( $workflow->get_filters() ),
@@ -435,18 +493,39 @@ class FulfillmentController extends \WC_REST_Controller {
 	}
 
 	public function get_workflows( $request ) {
-		global $wpdb;
-
-		$ids = $wpdb->get_col( "SELECT workflow_id FROM {$wpdb->stc_fulfillment_workflows} ORDER BY workflow_priority DESC, workflow_id ASC" );
-
 		return rest_ensure_response(
 			array_map(
 				function ( $id ) {
 					return self::prepare_workflow( new Workflow( $id ) );
 				},
-				$ids
+				FulfillmentWorkflow::get_workflow_ids()
 			)
 		);
+	}
+
+	/**
+	 * Sorts the workflows (arrows within the overview): the given ids in list order, workflows missing from the list
+	 * keep their relative order after them.
+	 */
+	public function sort_workflows( $request ) {
+		$ids      = array_values( array_unique( array_filter( array_map( 'absint', (array) $request['ids'] ) ) ) );
+		$existing = FulfillmentWorkflow::get_workflow_ids();
+		$ordered  = array_merge( array_values( array_intersect( $ids, $existing ) ), array_values( array_diff( $existing, $ids ) ) );
+		$count    = count( $ordered );
+
+		foreach ( $ordered as $position => $workflow_id ) {
+			$workflow = new Workflow( $workflow_id );
+			$priority = $count - $position;
+
+			if ( $workflow->get_id() && $workflow->get_priority() !== $priority ) {
+				$workflow->set_priority( $priority );
+				$workflow->save();
+			}
+		}
+
+		FulfillmentWorkflow::clear_caches();
+
+		return $this->get_workflows( $request );
 	}
 
 	/**
@@ -491,6 +570,23 @@ class FulfillmentController extends \WC_REST_Controller {
 				'pro_modes'     => self::get_action_pro_modes( $name ),
 				'scopes'        => array_values( $action::get_scopes() ),
 				'default_scope' => $action::get_default_scope(),
+				// Phases a step of the action may run in (see RunPhases), the first one is the default.
+				'phases'        => array_values(
+					array_map(
+						function ( $phase ) {
+							$descriptions = RunPhases::get_descriptions();
+
+							return array(
+								'value'       => $phase,
+								'label'       => RunPhases::get_title( $phase ),
+								'description' => isset( $descriptions[ $phase ] ) ? $descriptions[ $phase ] : '',
+								'run_level'   => RunPhases::is_run_level( $phase ),
+							);
+						},
+						$action::get_phases()
+					)
+				),
+				'default_phase' => $action::get_default_phase(),
 				'requires'      => array_values( $action::get_requires() ),
 				'settings'      => $settings,
 			);
@@ -568,7 +664,7 @@ class FulfillmentController extends \WC_REST_Controller {
 	protected function save_workflow( $workflow, $request ) {
 		$props = array();
 
-		foreach ( array( 'title', 'status', 'priority', 'mode', 'filters', 'steps' ) as $prop ) {
+		foreach ( array( 'title', 'mode', 'filters', 'steps' ) as $prop ) {
 			if ( isset( $request[ $prop ] ) ) {
 				$props[ $prop ] = $request[ $prop ];
 			}
@@ -598,7 +694,15 @@ class FulfillmentController extends \WC_REST_Controller {
 	}
 
 	public function create_workflow( $request ) {
-		$workflow = $this->save_workflow( new Workflow(), $request );
+		global $wpdb;
+
+		$workflow = new Workflow();
+
+		// New workflows are added at the end of the list.
+		$lowest = $wpdb->get_var( "SELECT MIN(workflow_priority) FROM {$wpdb->stc_fulfillment_workflows}" );
+		$workflow->set_priority( is_null( $lowest ) ? 0 : (int) $lowest - 1 );
+
+		$workflow = $this->save_workflow( $workflow, $request );
 
 		if ( is_wp_error( $workflow ) ) {
 			return $workflow;
@@ -687,10 +791,15 @@ class FulfillmentController extends \WC_REST_Controller {
 			'item_count'        => $item->get_item_count(),
 			'weight'            => $item->get_weight(),
 			'has_backorders'    => $item->has_backorders(),
+			'is_ready'          => $item->is_ready(),
 			'status'            => $item->get_status(),
 			'is_stale'          => $item->is_stale(),
 			'workflow_id'       => $item->get_workflow_id(),
 			'locked_by'         => $item->get_locked_by(),
+			// Who/what holds the item (in progress): user name, workflow, lock source (interactive|background|scheduled).
+			'locked_by_name'    => self::get_user_name( $item->get_locked_by() ),
+			'workflow_title'    => self::get_workflow_title( $item->get_workflow_id() ),
+			'lock_source'       => $item->get_lock_source(),
 			'lock_expires'      => $item->get_lock_expires() ? wc_rest_prepare_date_response( $item->get_lock_expires() ) : null,
 			'version'           => $item->get_version(),
 			'last_error'        => $item->get_last_error(),
@@ -741,12 +850,52 @@ class FulfillmentController extends \WC_REST_Controller {
 	}
 
 	/**
-	 * @return array workflow_id => number of orders waiting for the (active) workflow
+	 * @param int $user_id
+	 *
+	 * @return string
+	 */
+	protected static function get_user_name( $user_id ) {
+		static $names = array();
+
+		if ( ! $user_id ) {
+			return '';
+		}
+
+		if ( ! isset( $names[ $user_id ] ) ) {
+			$user              = get_userdata( $user_id );
+			$names[ $user_id ] = $user ? $user->display_name : '';
+		}
+
+		return $names[ $user_id ];
+	}
+
+	/**
+	 * @param int $workflow_id
+	 *
+	 * @return string
+	 */
+	protected static function get_workflow_title( $workflow_id ) {
+		static $titles = array();
+
+		if ( ! $workflow_id ) {
+			return '';
+		}
+
+		if ( ! isset( $titles[ $workflow_id ] ) ) {
+			$workflow               = new Workflow( $workflow_id );
+			$titles[ $workflow_id ] = $workflow->get_id() ? $workflow->get_title() : '';
+		}
+
+		return $titles[ $workflow_id ];
+	}
+
+	/**
+	 * @return array workflow_id => number of orders waiting for the workflow
 	 */
 	protected static function get_open_counts() {
 		$counts = array();
 
-		foreach ( FulfillmentWorkflow::get_active_workflow_ids() as $workflow_id ) {
+		foreach ( FulfillmentWorkflow::get_workflow_ids() as $workflow_id ) {
 			$counts[ $workflow_id ] = Queue::count(
 				array(
 					'status'   => 'pending',
@@ -769,11 +918,26 @@ class FulfillmentController extends \WC_REST_Controller {
 			}
 		}
 
+		$statuses = isset( $request['status'] ) ? (array) $request['status'] : array();
+		$ready    = null;
+
+		/*
+		 * Overview tabs: `pending` (open) excludes items ready for shipping, `ready` lists them (pending items whose
+		 * shipments are all ready for shipping).
+		 */
+		if ( array( 'ready' ) === array_values( $statuses ) ) {
+			$statuses = array( 'pending' );
+			$ready    = true;
+		} elseif ( array( 'pending' ) === array_values( $statuses ) ) {
+			$ready = false;
+		}
+
 		$args = array(
-			'status'   => isset( $request['status'] ) ? (array) $request['status'] : array(),
+			'status'   => $statuses,
 			'location' => isset( $request['location'] ) ? $request['location'] : null,
 			'order_id' => isset( $request['order_id'] ) ? $request['order_id'] : 0,
 			'workflow' => $workflow,
+			'ready'    => $ready,
 		);
 
 		$items = Queue::query(
@@ -857,10 +1021,6 @@ class FulfillmentController extends \WC_REST_Controller {
 			return $workflow;
 		}
 
-		if ( ! $workflow->is_active() ) {
-			return new WP_Error( 'woocommerce_stc_rest_workflow_inactive', _x( 'The workflow is inactive.', 'shipments', 'shiptastic-for-woocommerce' ), array( 'status' => 400 ) );
-		}
-
 		$run = null;
 
 		if ( ! empty( $request['run_id'] ) ) {
@@ -885,8 +1045,14 @@ class FulfillmentController extends \WC_REST_Controller {
 		$token = empty( $items ) ? '' : $items[0]->get_lock_token();
 		$data  = array();
 
+		$batch = null;
+
 		if ( $run && ! empty( $items ) ) {
 			$run = Run::update( $run->get_id(), array( 'total' => $run->total + count( $items ) ) );
+
+			// Each claim of a run is a batch: steps running at its start (e.g. a picking list) run first.
+			$batch = RunSteps::start_batch( $run, $items, $token, 'interactive' );
+			$run   = $batch['run'];
 		}
 
 		foreach ( $items as $item ) {
@@ -909,7 +1075,23 @@ class FulfillmentController extends \WC_REST_Controller {
 				'lock_expires' => empty( $items ) ? null : wc_rest_prepare_date_response( Queue::get( $items[0]->get_id() )->get_lock_expires() ),
 				'items'        => $data,
 				'run'          => $run ? self::prepare_run_export( Run::get( $run->get_id() ) ) : null,
+				// Steps of the batch's start (run level).
+				'batch'        => $batch ? self::prepare_phase_result( $batch ) : null,
 			)
+		);
+	}
+
+	/**
+	 * @param array $result Result of a run level phase (RunSteps).
+	 *
+	 * @return array status (none|done|error), batch, message, entry (the failed step)
+	 */
+	protected static function prepare_phase_result( $result ) {
+		return array(
+			'status'  => $result['status'],
+			'batch'   => isset( $result['batch'] ) ? $result['batch'] : 0,
+			'message' => $result['message'],
+			'entry'   => $result['entry'] ? RunSteps::prepare_entry( $result['entry'] ) : null,
 		);
 	}
 
@@ -1221,14 +1403,20 @@ class FulfillmentController extends \WC_REST_Controller {
 			'status'         => $run->status,
 			'is_active'      => $run->is_active(),
 			'user_id'        => $run->user_id,
+			'user_name'      => self::get_user_name( $run->user_id ),
+			// Run history: whether the run's export was removed meanwhile (retention).
+			'export_expired' => '' === (string) $run->export && $run->export_files > 0,
 			'total'          => max( $run->total, $run->processed ),
 			'processed'      => $run->processed,
 			'succeeded'      => $run->succeeded,
 			'failed'         => $run->failed,
+			'released'       => $run->released,
 			// Files created by the steps (zip), downloadable during and after the run.
 			'export_files'   => \Vendidero\Shiptastic\BulkFulfillments\RunExport::has_export( $run ) ? $run->export_files : 0,
 			'export_url'     => \Vendidero\Shiptastic\BulkFulfillments\RunExport::get_download_url( $run ),
 			'current'        => $current,
+			// Steps of run level phases (start of batch, end of run) and their results.
+			'run_steps'      => RunSteps::prepare( $run ),
 			'message'        => $run->message,
 			'dismissed'      => $run->dismissed,
 			'date_created'   => $run->date_created ? wc_rest_prepare_date_response( $run->date_created ) : null,
@@ -1307,16 +1495,19 @@ class FulfillmentController extends \WC_REST_Controller {
 			'workflow_id' => absint( $request['workflow_id'] ),
 			'status'      => ! empty( $request['active'] ) ? Run::ACTIVE_STATUSES : array(),
 			'dismissed'   => ! empty( $request['undismissed'] ) ? false : null,
-			'limit'       => 20,
+			'finished'    => ! empty( $request['finished'] ),
+			'limit'       => absint( $request['per_page'] ),
+			'offset'      => ( max( 1, absint( $request['page'] ) ) - 1 ) * absint( $request['per_page'] ),
 		);
 
 		if ( 'interactive' === $request['source'] ) {
 			$args['source'] = 'interactive';
-		} else {
+		} elseif ( 'all' !== $request['source'] ) {
 			$args['exclude_source'] = 'interactive';
 		}
 
-		return rest_ensure_response(
+		$total    = Run::query( array_merge( $args, array( 'count' => true ) ) );
+		$response = rest_ensure_response(
 			array_map(
 				function ( $run ) {
 					return self::prepare_run( $run );
@@ -1324,6 +1515,88 @@ class FulfillmentController extends \WC_REST_Controller {
 				Run::query( $args )
 			)
 		);
+
+		$response->header( 'X-WP-Total', $total );
+		$response->header( 'X-WP-TotalPages', (int) ceil( $total / max( 1, absint( $request['per_page'] ) ) ) );
+
+		return $response;
+	}
+
+	/**
+	 * @param QueueItem $queue_item
+	 *
+	 * @return array Shipments of the queue item's package: id, status (+ title), provider (title), tracking id, packaging.
+	 */
+	protected static function get_run_order_shipments( $queue_item ) {
+		$order_shipment = $queue_item->get_shipment_order();
+		$shipments      = array();
+
+		if ( ! $order_shipment ) {
+			return $shipments;
+		}
+
+		foreach ( $order_shipment->get_simple_shipments() as $shipment ) {
+			if ( \Vendidero\Shiptastic\BulkFulfillments\QueueSync::get_package_key( $shipment->get_location(), $shipment->get_shipping_method() ) !== $queue_item->get_package_key() ) {
+				continue;
+			}
+
+			$packaging   = $shipment->get_packaging();
+			$shipments[] = array(
+				'id'             => $shipment->get_id(),
+				'status'         => $shipment->get_status(),
+				'status_title'   => wc_stc_get_shipment_status_name( $shipment->get_status() ),
+				'provider_title' => html_entity_decode( wp_strip_all_tags( (string) $shipment->get_shipping_provider_title() ), ENT_QUOTES, get_bloginfo( 'charset' ) ),
+				'tracking_id'    => (string) $shipment->get_tracking_id(),
+				'packaging'      => $packaging ? html_entity_decode( wp_strip_all_tags( $packaging->get_title() ), ENT_QUOTES, get_bloginfo( 'charset' ) ) : '',
+			);
+		}
+
+		return $shipments;
+	}
+
+	/**
+	 * The orders processed within a run (report): outcome, the steps executed for each order within the run, the
+	 * error of failed orders and the order's files of the run's export.
+	 */
+	public function get_run_orders( $request ) {
+		$run = $this->get_run_object( $request['id'] );
+
+		if ( is_wp_error( $run ) ) {
+			return $run;
+		}
+
+		$items  = RunItems::get_items( $run->get_id() );
+		$orders = array();
+
+		foreach ( $items as $run_item ) {
+			$queue_item = Queue::get( $run_item['queue_id'] );
+			$order      = $queue_item ? wc_get_order( $queue_item->get_order_id() ) : null;
+
+			$orders[] = array_merge(
+				$run_item,
+				array(
+					'order_id'       => $queue_item ? $queue_item->get_order_id() : 0,
+					'order_number'   => $order ? $order->get_order_number() : ( $queue_item ? (string) $queue_item->get_order_id() : '' ),
+					'order_url'      => $order ? esc_url_raw( $order->get_edit_order_url() ) : '',
+					'location'       => $queue_item ? self::get_location_title( $queue_item->get_location() ) : '',
+					'item_count'     => $queue_item ? $queue_item->get_item_count() : 0,
+					'has_backorders' => $queue_item ? $queue_item->has_backorders() : false,
+					// Failed orders (moved to the exceptions): the reason, as long as the order is still an exception.
+					'message'        => $queue_item && 'failed' === $run_item['status'] && 'error' === $queue_item->get_status() ? (string) $queue_item->get_last_error() : '',
+					'files'          => array(),
+					// Shipments of the order's package (incl. shipped ones): steps and files are grouped per shipment.
+					'shipments'      => $queue_item ? self::get_run_order_shipments( $queue_item ) : array(),
+				)
+			);
+		}
+
+		$files = \Vendidero\Shiptastic\BulkFulfillments\RunExport::get_files_by_order( $run, array_filter( wp_list_pluck( $orders, 'order_number' ) ) );
+
+		foreach ( $orders as $index => $data ) {
+			$orders[ $index ]['files'] = isset( $files[ (string) $data['order_number'] ] ) ? $files[ (string) $data['order_number'] ] : array();
+		}
+
+		return rest_ensure_response( $orders );
 	}
 
 	public function start_run( $request ) {
@@ -1380,6 +1653,60 @@ class FulfillmentController extends \WC_REST_Controller {
 	/**
 	 * Hides a finished run from the run lists (overview).
 	 */
+	/**
+	 * Retries a failed step of a run level phase (start of batch, end of run).
+	 */
+	public function retry_run_step( $request ) {
+		return $this->resolve_run_step( $request, 'retry' );
+	}
+
+	/**
+	 * Skips a failed step of a run level phase, the following steps of its phase run.
+	 */
+	public function skip_run_step( $request ) {
+		return $this->resolve_run_step( $request, 'skip' );
+	}
+
+	/**
+	 * @param WP_REST_Request $request
+	 * @param string $type retry|skip
+	 *
+	 * @return WP_REST_Response|WP_Error
+	 */
+	protected function resolve_run_step( $request, $type ) {
+		$run = $this->get_run_object( $request['id'] );
+
+		if ( is_wp_error( $run ) ) {
+			return $run;
+		}
+
+		$source = $run->is_interactive() ? 'interactive' : ( 'scheduled' === $run->source ? 'scheduled' : 'background' );
+		$result = 'retry' === $type ? RunSteps::retry( $run, absint( $request['entry_id'] ), $source ) : RunSteps::skip( $run, absint( $request['entry_id'] ), $source );
+
+		if ( is_wp_error( $result ) ) {
+			return $result;
+		}
+
+		/**
+		 * Action that fires after a failed step of a run level phase was retried or skipped, e.g. to continue a
+		 * stopped automation run.
+		 *
+		 * @param Run    $run
+		 * @param array  $result Result of the phase (status: done|error|none, message).
+		 * @param string $type retry|skip
+		 *
+		 * @package Vendidero/Shiptastic
+		 */
+		do_action( 'woocommerce_shiptastic_fulfillment_run_step_resolved', $run, $result, $type );
+
+		return rest_ensure_response(
+			array(
+				'result' => self::prepare_phase_result( $result ),
+				'run'    => self::prepare_run( Run::get( $run->get_id() ), true ),
+			)
+		);
+	}
+
 	public function dismiss_run( $request ) {
 		$run = $this->get_run_object( $request['id'] );
 
@@ -1574,9 +1901,13 @@ class FulfillmentController extends \WC_REST_Controller {
 					return $released;
 				}
 
-				// Put back during an interactive run: no longer part of it.
+				// Put back during an interactive run: counted as put back (processed = done + failed + put back).
 				if ( $run && $run->is_interactive() ) {
-					Run::update( $run->get_id(), array( 'total' => max( 0, $run->total - 1 ) ) );
+					Run::update( $run->get_id(), array( 'increment' => array( 'processed', 'released' ) ) );
+				}
+
+				if ( $run ) {
+					RunItems::set_status( $run->get_id(), absint( $request['id'] ), 'released' );
 				}
 
 				return self::prepare_queue_item( Queue::get( absint( $request['id'] ) ) );
@@ -1598,6 +1929,10 @@ class FulfillmentController extends \WC_REST_Controller {
 				// Moved to the exceptions during an interactive run.
 				if ( $run && $run->is_interactive() ) {
 					Run::update( $run->get_id(), array( 'increment' => array( 'processed', 'failed' ) ) );
+				}
+
+				if ( $run ) {
+					RunItems::set_status( $run->get_id(), absint( $request['id'] ), 'failed' );
 				}
 
 				return self::prepare_queue_item( Queue::get( absint( $request['id'] ) ) );

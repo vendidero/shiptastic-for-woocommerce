@@ -113,15 +113,6 @@ $range_filters = array(
 							<?php endif; ?>
 						</fieldset>
 					<?php endif; ?>
-					<label class="stc-field is-half">
-						<span class="stc-label"><?php echo esc_html_x( 'Priority', 'shipments', 'shiptastic-for-woocommerce' ); ?></span>
-						<input class="stc-input" type="number" step="1" data-wp-bind--value="state.workflowEditor.form.priority" data-wp-on--input="actions.workflowEditor.setPriority" />
-						<span class="stc-hint"><?php echo esc_html_x( 'Workflows with a higher priority are listed first.', 'shipments', 'shiptastic-for-woocommerce' ); ?></span>
-					</label>
-					<label class="stc-field is-half stc-toggle-field">
-						<input type="checkbox" data-wp-bind--checked="state.workflowEditorData.isActive" data-wp-on--change="actions.workflowEditor.setActive" />
-						<span><?php echo esc_html_x( 'Active', 'shipments', 'shiptastic-for-woocommerce' ); ?></span>
-					</label>
 				</div>
 
 				<?php /* Steps */ ?>
@@ -142,6 +133,13 @@ $range_filters = array(
 								</div>
 							</div>
 							<div class="stc-workflow-step-meta">
+								<?php /* Phase: start of batch, per order, after each shipment, after each order, end of run. */ ?>
+								<span class="stc-tag is-phase" data-wp-bind--hidden="!state.workflowEditorData.stepPhaseText" data-wp-text="state.workflowEditorData.stepPhaseText"></span>
+								<div class="stc-segmented" role="radiogroup" aria-label="<?php echo esc_attr_x( 'When the step runs', 'shipments', 'shiptastic-for-woocommerce' ); ?>" data-wp-bind--hidden="!state.workflowEditorData.hasStepPhaseChoice">
+									<template data-wp-each--choice="state.workflowEditorData.stepPhaseChoices" data-wp-each-key="context.choice.value">
+										<label><input type="radio" data-wp-bind--name="context.choice.name" data-wp-bind--value="context.choice.value" data-wp-bind--checked="context.choice.checked" data-wp-on--change="actions.workflowEditor.setStepPhase" /><span data-wp-text="context.choice.label"></span></label>
+									</template>
+								</div>
 								<span class="stc-tag" data-wp-bind--hidden="!state.workflowEditorData.stepModeText" data-wp-text="state.workflowEditorData.stepModeText"></span>
 								<div class="stc-segmented" role="radiogroup" aria-label="<?php echo esc_attr_x( 'How the step runs', 'shipments', 'shiptastic-for-woocommerce' ); ?>" data-wp-bind--hidden="!state.workflowEditorData.hasStepModeChoice">
 									<template data-wp-each--choice="state.workflowEditorData.stepModeChoices" data-wp-each-key="context.choice.value">
@@ -155,6 +153,7 @@ $range_filters = array(
 									</template>
 								</div>
 							</div>
+							<p class="stc-hint" data-wp-bind--hidden="!state.workflowEditorData.stepPhaseDescription" data-wp-text="state.workflowEditorData.stepPhaseDescription"></p>
 							<p class="stc-hint" data-wp-bind--hidden="!state.workflowEditorData.stepRequires" data-wp-text="state.workflowEditorData.stepRequires"></p>
 							<div class="stc-form-grid" data-wp-bind--hidden="!state.workflowEditorData.stepSettings.length">
 								<template data-wp-each--setting="state.workflowEditorData.stepSettings" data-wp-each-key="context.setting.key">
@@ -267,20 +266,22 @@ $range_filters = array(
 						</fieldset>
 					<?php endforeach; ?>
 
-					<label class="stc-field">
-						<span class="stc-label"><?php echo esc_html_x( 'Backorders', 'shipments', 'shiptastic-for-woocommerce' ); ?></span>
-						<select class="stc-input" data-wp-on--change="actions.workflowEditor.setBackorders">
+					<?php /* Backorders: same layout as the list filters (all orders by default, segmented choice). */ ?>
+					<fieldset class="stc-list-filter stc-backorders-filter">
+						<legend class="stc-label"><?php echo esc_html_x( 'Backorders', 'shipments', 'shiptastic-for-woocommerce' ); ?></legend>
+						<div class="stc-segmented" role="radiogroup">
 							<?php
 							foreach ( array(
 								'any'     => _x( 'All orders', 'shipments', 'shiptastic-for-woocommerce' ),
-								'exclude' => _x( 'Orders without backorders only', 'shipments', 'shiptastic-for-woocommerce' ),
-								'only'    => _x( 'Orders with backorders only', 'shipments', 'shiptastic-for-woocommerce' ),
+								'exclude' => _x( 'Without backorders', 'shipments', 'shiptastic-for-woocommerce' ),
+								'only'    => _x( 'With backorders only', 'shipments', 'shiptastic-for-woocommerce' ),
 							) as $backorders => $backorders_label ) :
 								?>
-								<option value="<?php echo esc_attr( $backorders ); ?>" data-wp-context='<?php echo wp_json_encode( array( 'value' => $backorders ) ); ?>' data-wp-bind--selected="state.workflowEditorData.isBackorders"><?php echo esc_html( $backorders_label ); ?></option>
+								<label data-wp-context='<?php echo wp_json_encode( array( 'value' => $backorders ) ); ?>'><input type="radio" name="stc-filter-backorders" value="<?php echo esc_attr( $backorders ); ?>" data-wp-bind--checked="state.workflowEditorData.isBackorders" data-wp-on--change="actions.workflowEditor.setBackorders" /><span><?php echo esc_html( $backorders_label ); ?></span></label>
 							<?php endforeach; ?>
-						</select>
-					</label>
+						</div>
+						<p class="stc-hint" data-wp-text="state.workflowEditorData.backordersHint"></p>
+					</fieldset>
 				</div>
 
 				<?php

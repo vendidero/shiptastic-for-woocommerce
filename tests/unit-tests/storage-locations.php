@@ -294,8 +294,6 @@ class StorageLocationsTest extends \Vendidero\Shiptastic\Tests\Framework\UnitTes
 
 		$product = WC_Helper_Product::create_simple_product();
 
-		// Pre-existing: Product customs setters/getters use internal meta keys via (update|get)_meta.
-		$this->setExpectedIncorrectUsage( 'is_internal_meta_key' );
 
 		$_POST['_warehouse_name']     = 'main';
 		$_POST['_warehouse_location'] = ' 12-b ';

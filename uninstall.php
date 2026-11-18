@@ -40,6 +40,13 @@ if ( defined( 'WC_SHIPTASTIC_REMOVE_ALL_DATA' ) && true === WC_SHIPTASTIC_REMOVE
 		"{$wpdb->prefix}woocommerce_stc_shipments",
 		"{$wpdb->prefix}woocommerce_stc_shipment_itemmeta",
 		"{$wpdb->prefix}woocommerce_stc_shipment_items",
+		"{$wpdb->prefix}woocommerce_stc_fulfillment_queue",
+		"{$wpdb->prefix}woocommerce_stc_fulfillment_steps",
+		"{$wpdb->prefix}woocommerce_stc_fulfillment_workflowmeta",
+		"{$wpdb->prefix}woocommerce_stc_fulfillment_workflows",
+		"{$wpdb->prefix}woocommerce_stc_fulfillment_run_items",
+		"{$wpdb->prefix}woocommerce_stc_fulfillment_run_steps",
+		"{$wpdb->prefix}woocommerce_stc_fulfillment_runs",
 	);
 
 	foreach ( $custom_tables as $table ) {

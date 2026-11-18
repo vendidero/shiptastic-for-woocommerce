@@ -116,7 +116,6 @@ class Warehouses extends \Vendidero\Shiptastic\Tests\Framework\UnitTestCase {
 		 * Pre-existing: Product::get_customs_description() reads an internal meta key via get_meta()
 		 * which triggers a notice whenever shipment items are created (fails other suites too).
 		 */
-		$this->setExpectedIncorrectUsage( 'is_internal_meta_key' );
 
 		if ( $cache = \Vendidero\Shiptastic\Caches\Helper::get_cache_object( 'shipment-orders' ) ) {
 			$cache->remove( is_numeric( $order ) ? $order : $order->get_id() );

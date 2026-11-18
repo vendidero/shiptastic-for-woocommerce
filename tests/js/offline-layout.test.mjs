@@ -87,3 +87,15 @@ test( 'temporary keys are replaced with the server ids', () => {
     assert.equal( mapStepKey( 'pack:new-ab', { 'new-ab': 12 } ), 'pack:12' );
     assert.equal( mapStepKey( 'pick', { 'new-ab': 12 } ), 'pick' );
 } );
+
+test( 'shipments are processed one after another (steps after each shipment, after each order)', () => {
+    const phased = [
+        { key: 'pick', action: 'pick', scope: 'order', phase: 'item', shipment_id: 0, is_done: true, resets: true },
+        { key: 'pack:10', action: 'pack', scope: 'shipment', phase: 'item', shipment_id: 10, is_done: true },
+        { key: 'label:10', action: 'label', scope: 'shipment', phase: 'after_shipment', shipment_id: 10, is_done: true },
+        { key: 'email', action: 'email', scope: 'order', phase: 'after_item', shipment_id: 0, is_done: false },
+    ];
+    const planned = planSteps( phased, [ { id: 10, items: { 1: 1 } }, { id: 0, key: 'new-x', items: { 1: 1 } } ], [ 'new-x' ], true );
+
+    assert.deepEqual( planned.map( ( step ) => step.key + ':' + step.is_done ), [ 'pick:false', 'pack:10:true', 'label:10:true', 'pack:new-x:false', 'label:new-x:false', 'email:false' ] );
+} );

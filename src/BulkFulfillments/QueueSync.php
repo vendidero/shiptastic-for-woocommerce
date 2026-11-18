@@ -59,7 +59,7 @@ class QueueSync {
 	 * @return bool
 	 */
 	public static function is_enabled() {
-		return (bool) apply_filters( 'woocommerce_shiptastic_fulfillment_queue_enabled', ! empty( FulfillmentWorkflow::get_active_workflow_ids() ) );
+		return (bool) apply_filters( 'woocommerce_shiptastic_fulfillment_queue_enabled', ! empty( FulfillmentWorkflow::get_workflow_ids() ) );
 	}
 
 	/**
@@ -159,11 +159,13 @@ class QueueSync {
 	 *
 	 * @param \Vendidero\Shiptastic\Order $order_shipment
 	 *
-	 * @return array package_key => location, shipping_method, shipping_provider, item_count, weight, has_backorders
+	 * @return array package_key => location, shipping_method, shipping_provider, item_count, weight, has_backorders,
+	 *               is_ready (all items are part of shipments which are ready for shipping: processed, waiting to be
+	 *               shipped)
 	 */
 	public static function get_order_packages( $order_shipment ) {
 		$packages = array();
-		$add      = function ( $location, $method, $provider, $item_count, $weight, $has_backorders ) use ( &$packages ) {
+		$add      = function ( $location, $method, $provider, $item_count, $weight, $has_backorders, $is_ready = false ) use ( &$packages ) {
 			$key = self::get_package_key( $location, $method );
 
 			if ( ! isset( $packages[ $key ] ) ) {
@@ -174,8 +176,13 @@ class QueueSync {
 					'item_count'        => 0,
 					'weight'            => 0.0,
 					'has_backorders'    => false,
+					'is_ready'          => true,
+					'has_shipments'     => false,
 				);
 			}
+
+			// Ready: shipments only (no items left without shipment), all of them ready for shipping.
+			$packages[ $key ]['is_ready'] = $packages[ $key ]['is_ready'] && $is_ready;
 
 			if ( empty( $packages[ $key ]['shipping_provider'] ) ) {
 				$packages[ $key ]['shipping_provider'] = (string) $provider;
@@ -195,7 +202,9 @@ class QueueSync {
 				$provider ? $provider->get_name() : '',
 				array_sum( $package['item_map'] ),
 				$package['weight'],
-				! empty( $package['has_backorders'] )
+				! empty( $package['has_backorders'] ),
+				// Only backordered units left (never added automatically): does not hold the package.
+				0 === array_sum( $package['item_map'] )
 			);
 		}
 
@@ -210,8 +219,15 @@ class QueueSync {
 				$shipment->get_shipping_provider(),
 				$shipment->get_item_count(),
 				(float) wc_get_weight( $shipment->get_content_weight(), get_option( 'woocommerce_weight_unit', 'kg' ), $shipment->get_weight_unit() ),
-				false
+				false,
+				$shipment->has_status( 'ready-for-shipping' )
 			);
+
+			$packages[ self::get_package_key( (string) $shipment->get_location(), (string) $shipment->get_shipping_method() ) ]['has_shipments'] = true;
+		}
+
+		foreach ( $packages as $key => $package ) {
+			$packages[ $key ]['is_ready'] = $package['is_ready'] && $package['has_shipments'];
 		}
 
 		/**
@@ -286,6 +302,7 @@ class QueueSync {
 				'queue_item_count'        => $package['item_count'],
 				'queue_weight'            => wc_format_decimal( $package['weight'], 4 ),
 				'queue_has_backorders'    => $package['has_backorders'] ? 1 : 0,
+				'queue_is_ready'          => ! empty( $package['is_ready'] ) ? 1 : 0,
 			);
 
 			if ( ! isset( $existing[ $key ] ) ) {

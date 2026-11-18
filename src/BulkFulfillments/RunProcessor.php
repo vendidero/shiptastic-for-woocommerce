@@ -30,8 +30,8 @@ class RunProcessor {
 	public static function start_interactive( $workflow, $user_id = 0 ) {
 		$user_id = $user_id ? absint( $user_id ) : get_current_user_id();
 
-		if ( ! $workflow->get_id() || ! $workflow->is_active() ) {
-			return new WP_Error( 'workflow_inactive', _x( 'The workflow is inactive.', 'shipments', 'shiptastic-for-woocommerce' ), array( 'status' => 400 ) );
+		if ( ! $workflow->get_id() ) {
+			return new WP_Error( 'workflow_not_found', _x( 'The workflow does not exist.', 'shipments', 'shiptastic-for-woocommerce' ), array( 'status' => 404 ) );
 		}
 
 		if ( 'interactive' !== $workflow->get_mode() ) {
@@ -76,7 +76,14 @@ class RunProcessor {
 			return $run;
 		}
 
+		// Steps at the end of the run (e.g. a shipment list) for the orders completed within it.
+		$finished = RunSteps::finish( $run, 'interactive' );
+		$run      = $finished['run'];
+
 		foreach ( Queue::get_by_token( $run->lock_token ) as $item ) {
+			// Still reserved when the run ends: put back (counted like orders put back during the run).
+			RunItems::set_status( $run->get_id(), $item->get_id(), 'released' );
+			Run::update( $run->get_id(), array( 'increment' => array( 'processed', 'released' ) ) );
 			Queue::release( $item->get_id(), $run->lock_token );
 		}
 

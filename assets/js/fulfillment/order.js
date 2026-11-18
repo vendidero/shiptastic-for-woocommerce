@@ -5,43 +5,16 @@
  * - Uses the WooCommerce core REST API (wc/v3/orders, permissions checked by WooCommerce).
  * - The address form renders the fields of the edit order page (incl. custom fields added via
  *   `woocommerce_admin_shipping_fields`): requested via `stc_address_fields=1`, saved via `stc_shipping`.
- * - Countries/states are loaded on demand (wc/v3/data/countries) when the overlay is opened the first time.
+ * - Countries/states: preloaded and cached by countries.js (wc/v3/data/countries).
  * - Saving notifies extensions (hook orderDetailsSaved), e.g. to retry an order a run failed on.
  */
 import { store, getContext, getConfig } from '@wordpress/interactivity';
 import * as api from './api.js';
 import * as hooks from './hooks.js';
+import { loadCountries } from './countries.js';
 
 const NAMESPACE = 'shiptastic/fulfillment';
 const i18n = () => getConfig( NAMESPACE ).i18n.orderDetails;
-
-let countriesRequest = null;
-
-/**
- * Loads the countries (incl. states) once.
- *
- * @return {Promise}
- */
-function loadCountries() {
-    if ( ! countriesRequest ) {
-        countriesRequest = api.request( 'wc/v3/data/countries', { root: true } )
-            .then( ( countries ) => {
-                state.countries = countries
-                    .map( ( country ) => ( {
-                        code: country.code,
-                        name: country.name,
-                        states: ( country.states || [] ).map( ( region ) => ( { code: region.code, name: region.name } ) ),
-                    } ) )
-                    .sort( ( a, b ) => a.name.localeCompare( b.name ) );
-            } )
-            .catch( ( error ) => {
-                countriesRequest = null;
-                throw error;
-            } );
-    }
-
-    return countriesRequest;
-}
 
 /**
  * @param {Object} order Order (wc/v3/orders) response incl. stc_shipping_fields.
@@ -272,4 +245,3 @@ const { state, actions } = store( NAMESPACE, {
     },
 } );
 
-export { loadCountries };

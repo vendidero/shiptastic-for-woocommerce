@@ -112,6 +112,11 @@ class Queue {
 			$where[] = $wpdb->prepare( 'queue_order_id = %d', $args['order_id'] );
 		}
 
+		// Ready for shipping: processed, waiting to be shipped (see QueueSync::get_order_packages()).
+		if ( ! is_null( $args['ready'] ) ) {
+			$where[] = $args['ready'] ? 'queue_is_ready = 1' : 'queue_is_ready = 0';
+		}
+
 		if ( ! empty( $args['workflow'] ) && is_a( $args['workflow'], '\Vendidero\Shiptastic\BulkFulfillments\Workflow' ) ) {
 			$where   = array_merge( $where, self::get_filter_conditions( $args['workflow'] ) );
 			$where[] = "( queue_status <> 'pending' OR ( " . self::get_open_steps_condition( $args['workflow'] ) . ' ) )';
@@ -128,6 +133,7 @@ class Queue {
 				'location' => null,
 				'order_id' => 0,
 				'workflow' => null,
+				'ready'    => null,
 				'limit'    => 50,
 				'offset'   => 0,
 			)
@@ -174,16 +180,16 @@ class Queue {
 	/**
 	 * @param Workflow|null $workflow Count items of a workflow only (see query()).
 	 *
-	 * @return array status => count
+	 * @return array status => count, pending items ready for shipping are counted as `ready` (not pending)
 	 */
 	public static function count_by_status( $workflow = null ) {
 		global $wpdb;
 
-		$counts = array_fill_keys( array( 'pending', 'locked', 'error', 'done', 'removed' ), 0 );
+		$counts = array_fill_keys( array( 'pending', 'ready', 'locked', 'error', 'done', 'removed' ), 0 );
 		$where  = self::get_query_conditions( self::parse_query_args( array( 'workflow' => $workflow ) ) );
 
 		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- Conditions are prepared fragments.
-		foreach ( $wpdb->get_results( "SELECT queue_status AS status, COUNT(*) AS count FROM {$wpdb->stc_fulfillment_queue} WHERE " . implode( ' AND ', $where ) . ' GROUP BY queue_status' ) as $row ) {
+		foreach ( $wpdb->get_results( "SELECT IF( queue_status = 'pending' AND queue_is_ready = 1, 'ready', queue_status ) AS status, COUNT(*) AS count FROM {$wpdb->stc_fulfillment_queue} WHERE " . implode( ' AND ', $where ) . ' GROUP BY 1' ) as $row ) {
 			$counts[ $row->status ] = absint( $row->count );
 		}
 
@@ -196,7 +202,7 @@ class Queue {
 	 * @return string SQL condition: the item still has open (not done) steps for the workflow.
 	 */
 	public static function get_open_steps_condition( $workflow ) {
-		return self::get_done_count_condition( $workflow->get_step_actions() );
+		return self::get_done_count_condition( $workflow->get_item_actions() );
 	}
 
 	/**
@@ -320,7 +326,7 @@ class Queue {
 		$source  = in_array( $args['source'], self::get_lock_sources(), true ) ? $args['source'] : 'interactive';
 		$limit   = is_null( $args['limit'] ) ? self::get_claim_limit( $source ) : max( 1, absint( $args['limit'] ) );
 		$ttl     = is_null( $args['ttl'] ) ? self::get_lock_ttl( $source ) : absint( $args['ttl'] );
-		$actions = $workflow->get_step_actions();
+		$actions = $workflow->get_item_actions();
 
 		if ( ! $workflow->get_id() || empty( $actions ) ) {
 			return array();

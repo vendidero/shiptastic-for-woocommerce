@@ -31,6 +31,8 @@ class Run {
 			'processed'        => 0,
 			'succeeded'        => 0,
 			'failed'           => 0,
+			// Orders put back (released unprocessed, e.g. "Put back" or still reserved when the run ended).
+			'released'         => 0,
 			'current_queue_id' => 0,
 			'current_step'     => '',
 			'lock_token'       => '',
@@ -54,7 +56,7 @@ class Run {
 				}
 			}
 
-			foreach ( array( 'id', 'workflow_id', 'user_id', 'total', 'processed', 'succeeded', 'failed', 'current_queue_id', 'export_files' ) as $int ) {
+			foreach ( array( 'id', 'workflow_id', 'user_id', 'total', 'processed', 'succeeded', 'failed', 'released', 'current_queue_id', 'export_files' ) as $int ) {
 				$this->data[ $int ] = absint( $this->data[ $int ] );
 			}
 
@@ -197,7 +199,7 @@ class Run {
 		foreach ( (array) $changes as $key => $value ) {
 			if ( 'increment' === $key ) {
 				foreach ( (array) $value as $counter ) {
-					if ( in_array( $counter, array( 'processed', 'succeeded', 'failed', 'total' ), true ) ) {
+					if ( in_array( $counter, array( 'processed', 'succeeded', 'failed', 'released', 'total' ), true ) ) {
 						$set[] = "run_{$counter} = run_{$counter} + 1";
 					}
 				}
@@ -247,10 +249,15 @@ class Run {
 				'status'          => array(),
 				'dismissed'       => null,
 				'limit'           => 20,
+				'offset'          => 0,
+				// Return the number of matching runs instead of the runs.
+				'count'           => false,
 				// Sources to include/exclude, e.g. automation runs only: exclude_source => interactive.
 				'source'          => array(),
 				'exclude_source'  => array(),
 				'modified_before' => '',
+				// Finished runs (history): ended (completed/cancelled) and something happened (orders processed or files).
+				'finished'        => false,
 			)
 		);
 		$where = array( '1=1' );
@@ -261,6 +268,10 @@ class Run {
 
 		if ( ! empty( $args['exclude_source'] ) ) {
 			$where[] = "run_source NOT IN ('" . implode( "','", array_map( 'esc_sql', (array) $args['exclude_source'] ) ) . "')";
+		}
+
+		if ( $args['finished'] ) {
+			$where[] = "run_status IN ('completed','cancelled') AND ( run_succeeded + run_failed > 0 OR run_export_files > 0 )";
 		}
 
 		if ( ! empty( $args['modified_before'] ) ) {
@@ -284,8 +295,13 @@ class Run {
 			$where[] = $wpdb->prepare( 'run_dismissed = %d', $args['dismissed'] ? 1 : 0 );
 		}
 
+		if ( $args['count'] ) {
+			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- Conditions are prepared fragments.
+			return absint( $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->stc_fulfillment_runs} WHERE " . implode( ' AND ', $where ) ) );
+		}
+
 		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- Conditions are prepared fragments.
-		$rows = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$wpdb->stc_fulfillment_runs} WHERE " . implode( ' AND ', $where ) . ' ORDER BY run_id DESC LIMIT %d', absint( $args['limit'] ) ) );
+		$rows = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$wpdb->stc_fulfillment_runs} WHERE " . implode( ' AND ', $where ) . ' ORDER BY run_id DESC LIMIT %d, %d', absint( $args['offset'] ), absint( $args['limit'] ) ) );
 
 		return array_map(
 			function ( $row ) {
