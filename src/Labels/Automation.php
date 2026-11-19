@@ -91,7 +91,17 @@ class Automation {
 	 */
 	public static function maybe_adjust_shipment_status( $shipment ) {
 		if ( $provider = $shipment->get_shipping_provider_instance() ) {
-			if ( 'simple' === $shipment->get_type() && $provider->automatically_set_shipment_status_shipped( $shipment ) ) {
+			/**
+			 * Filter whether a shipment is marked as shipped right after its label was created (provider setting).
+			 *
+			 * @param bool $mark_shipped
+			 * @param Shipment $shipment
+			 *
+			 * @package Vendidero/Shiptastic
+			 */
+			$mark_shipped = apply_filters( 'woocommerce_shiptastic_shipment_mark_shipped_after_label_creation', 'simple' === $shipment->get_type() && $provider->automatically_set_shipment_status_shipped( $shipment ), $shipment );
+
+			if ( $mark_shipped ) {
 				$shipment->set_status( 'shipped' );
 			} else {
 				$hook_prefix = 'simple' === $shipment->get_type() ? '' : $shipment->get_type() . '_';

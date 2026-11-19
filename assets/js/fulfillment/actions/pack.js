@@ -26,6 +26,23 @@ function packResult( view ) {
 }
 
 /**
+ * Mirrors the packaging chosen within the pack step (suggestion or manual choice) to the shipment of the current
+ * order's layout, so that the shipments overlay shows the same packaging. It is saved with the step (or with the
+ * overlay, in case the shipments are saved before).
+ *
+ * @param {number|string} shipmentId
+ * @param {number}        packagingId
+ */
+function syncLayoutPackaging( shipmentId, packagingId ) {
+    const item = state.currentItem;
+    const shipment = item && item.layout && shipmentId ? ( item.layout.shipments || [] ).find( ( candidate ) => String( candidate.id || candidate.key ) === String( shipmentId ) ) : null;
+
+    if ( shipment && ( shipment.packaging_id || 0 ) !== ( packagingId || 0 ) ) {
+        shipment.packaging_id = packagingId || 0;
+    }
+}
+
+/**
  * @param {Object} view
  * @return {boolean} Whether the packaging needs to be chosen manually (no packaging fits the items).
  */
@@ -87,6 +104,7 @@ const { state, callbacks } = store( NAMESPACE, {
                 state.form.packagingManual = true;
                 state.form.packagingSuggested = false;
                 state.form.packagingNotice = '';
+                syncLayoutPackaging( state.view.shipmentId, state.form.packaging_id );
             },
         },
     },
@@ -123,6 +141,8 @@ const { state, callbacks } = store( NAMESPACE, {
                 form.packagingSuggested = choice.suggested;
                 form.packagingNotice = replaced && chosen ? format( ( i18n().packaging || {} ).changed, replaced.title, chosen.title ) : '';
             }
+
+            syncLayoutPackaging( view.shipmentId, form.packaging_id );
 
             return form;
         },

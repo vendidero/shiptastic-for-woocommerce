@@ -68,15 +68,25 @@ const isAuthError = ( error ) => !! error && ( 401 === error.status || 'rest_coo
 const SYNC_INTERVAL = 30;
 
 /**
- * Numbers shipment-scope steps in case an action runs for multiple shipments, e.g. Pack 1, Pack 2.
+ * @param {Object} step A step running per shipment.
+ * @return {string} The shipment's position within the order's shipments, e.g. "Shipment 1/2".
+ */
+function shipmentPosition( step ) {
+    const item = state.currentItem;
+    const steps = item && item.steps ? item.steps.filter( ( candidate ) => candidate.action === step.action && candidate.shipment_id ) : [];
+    const index = steps.findIndex( ( candidate ) => String( candidate.shipment_id ) === String( step.shipment_id ) );
+
+    return sprintf( config.i18n.shipmentStep, Math.max( 1, index + 1 ), Math.max( 1, steps.length ) );
+}
+
+/**
+ * Steps running per shipment name their shipment, e.g. "Pack · Shipment 1/2".
  *
  * @param {Object} step
  * @return {string}
  */
 function stepLabel( step ) {
-    const same = state.visibleSteps.filter( ( candidate ) => candidate.action === step.action );
-
-    return same.length > 1 ? step.title + ' ' + ( same.findIndex( ( candidate ) => candidate.key === step.key ) + 1 ) : step.title;
+    return step.shipment_id ? step.title + ' · ' + shipmentPosition( step ) : step.title;
 }
 
 /**
@@ -183,6 +193,26 @@ function applyRunExport( run ) {
         state.run.exportFiles = run.export_files || 0;
         state.run.exportUrl = run.export_url || '';
     }
+}
+
+/**
+ * Labels created within the request (create label steps, incl. automatic ones): offered for printing right away,
+ * replacing the previous offer.
+ *
+ * @param {Object} data Queue item response.
+ */
+function applyCreatedLabels( data ) {
+    if ( ! data || ! Array.isArray( data.labels ) || 0 === data.labels.length ) {
+        return;
+    }
+
+    state.printLabels = data.labels
+        .filter( ( label ) => label.url )
+        .map( ( label ) => ( {
+            key: String( label.shipment_id ),
+            title: sprintf( config.i18n.labelCreated, '#' + label.shipment_id, data.order_number || '' ),
+            url: label.url,
+        } ) );
 }
 
 /**
@@ -391,7 +421,7 @@ const { state, actions, callbacks } = store( NAMESPACE, {
             return state.hasStepError && ! state.isInputStep && ! state.isExternalItem && !! state.currentOrderUrl;
         },
         /**
-         * Numbers shipment-scope steps in case an action runs for multiple shipments, e.g. Pack 1, Pack 2.
+         * Steps running per shipment name their shipment, e.g. "Pack · Shipment #4554".
          */
         get stepTitle() {
             const { step } = getContext();
@@ -402,6 +432,19 @@ const { state, actions, callbacks } = store( NAMESPACE, {
         },
         get stepCountText() {
             return sprintf( config.i18n.stepCount, Math.max( 1, state.currentStepIndex + 1 ), state.visibleSteps.length );
+        },
+        // Shipment of the current (per shipment) step: position within the order and its id (cards, e.g. pack).
+        get currentShipmentPosition() {
+            return state.currentStep && state.currentStep.shipment_id ? shipmentPosition( state.currentStep ) : '';
+        },
+        get currentShipmentNumber() {
+            const id = state.currentStep ? state.currentStep.shipment_id : 0;
+
+            if ( ! id ) {
+                return '';
+            }
+
+            return /^\d+$/.test( String( id ) ) ? '#' + id : config.i18n.newShipmentStep;
         },
         get currentStepTitle() {
             return state.currentStep ? stepLabel( state.currentStep ) : '';
@@ -536,8 +579,12 @@ const { state, actions, callbacks } = store( NAMESPACE, {
         get progressText() {
             return hooks.applyFilters( 'progressText', sprintf( config.i18n.orderProgress, state.run.done + 1, state.run.total ) );
         },
+        // Actions may name the submit button (callbacks.submitLabel_{action}), e.g. "Create label".
         get submitLabel() {
-            return config.i18n.continue;
+            const step = state.currentStep;
+            const custom = step ? callbacks[ 'submitLabel_' + step.action ] : null;
+
+            return ( custom && custom() ) || config.i18n.continue;
         },
         get emptyRunText() {
             return state.waitingText || state.readyText || config.i18n.noItems;
@@ -560,6 +607,9 @@ const { state, actions, callbacks } = store( NAMESPACE, {
         },
         dismissNotice() {
             state.notice = { message: '', type: '' };
+        },
+        dismissPrintLabels() {
+            state.printLabels = [];
         },
         handleError( error ) {
             if ( ! state.online ) {
@@ -841,6 +891,7 @@ const { state, actions, callbacks } = store( NAMESPACE, {
          */
         *applyResponse( data, reset = false ) {
             applyRunExport( data.run );
+            applyCreatedLabels( data );
 
             if ( data.current && 'completed' === data.current.status ) {
                 yield actions.finishCurrent();
@@ -1769,6 +1820,15 @@ const { state, actions, callbacks } = store( NAMESPACE, {
 
             const initForm = step ? callbacks[ 'initForm_' + step.action ] : null;
             state.form = initForm ? initForm( state.view ) : {};
+        },
+        /**
+         * Deep links: the loading view ends as soon as another screen is shown (e.g. the run, while its current step is
+         * still being loaded in the background).
+         */
+        endRouteLoading() {
+            if ( state.routeLoading && 'loading' !== state.screen ) {
+                state.routeLoading = false;
+            }
         },
         persist() {
             // Orders of runs of extensions are not part of the (stored) interactive run.

@@ -37,7 +37,7 @@ $queue_tabs = array(
 			<span class="stc-badge is-warning" data-wp-bind--hidden="state.online"><?php echo esc_html_x( 'Offline', 'shipments', 'shiptastic-for-woocommerce' ); ?></span>
 			<?php /* Changes made offline, waiting to be synced (outbox). */ ?>
 			<span class="stc-badge is-info stc-sync-badge" role="status" data-wp-bind--hidden="!state.syncText" data-wp-class--is-running="state.sync.running" data-wp-text="state.syncText"></span>
-			<p class="stc-page-subtitle" data-wp-bind--hidden="!state.showOrderBreadcrumb"><span class="stc-subtitle-workflow" data-wp-text="state.currentWorkflowTitle"></span><span data-wp-text="state.progressText"></span></p>
+			<p class="stc-page-subtitle" data-wp-bind--hidden="!state.showOrderBreadcrumb"><span class="stc-subtitle-workflow" data-wp-text="state.currentWorkflowTitle"></span><span data-wp-text="state.progressText"></span><span class="stc-subtitle-address" data-wp-bind--hidden="!state.currentItem.shipping_address" data-wp-bind--title="state.currentItem.shipping_address" data-wp-text="state.currentItem.shipping_address"></span></p>
 		</div>
 		<div class="stc-page-actions">
 			<button type="button" class="stc-button is-small" data-wp-on--click="actions.shipments.open" data-wp-bind--hidden="!state.showShipmentsButton" data-wp-text="state.shipmentsButtonText"></button>
@@ -45,15 +45,28 @@ $queue_tabs = array(
 		</div>
 	</header>
 
-	<?php /* Notices: on top of the screen, during a run in the bottom right corner (above the action bar). */ ?>
-	<div class="stc-notice" role="status" data-wp-bind--hidden="!state.notice.message" data-wp-class--is-error="state.isErrorNotice" data-wp-class--is-success="state.isSuccessNotice" data-wp-class--is-run="state.isRunScreen" data-wp-class--is-raised="state.autoStepsText">
-		<p data-wp-text="state.notice.message"></p>
-		<button type="button" class="stc-icon-button" data-wp-on--click="actions.dismissNotice" aria-label="<?php echo esc_attr_x( 'Dismiss', 'shipments', 'shiptastic-for-woocommerce' ); ?>">&times;</button>
+	<?php /* Bottom right corner (during a run above the action bar): labels created right now (print) + notices. */ ?>
+	<div class="stc-toasts" data-wp-class--is-run="state.isRunScreen" data-wp-class--is-raised="state.autoStepsText">
+		<div class="stc-print-offer" role="status" data-wp-bind--hidden="!state.printLabels.length">
+			<ul>
+				<template data-wp-each--label="state.printLabels" data-wp-each-key="context.label.key">
+					<li>
+						<span data-wp-text="context.label.title"></span>
+						<a class="stc-button is-small is-primary" target="_blank" rel="noopener" data-wp-bind--href="context.label.url"><?php echo esc_html_x( 'Print label', 'shipments', 'shiptastic-for-woocommerce' ); ?></a>
+					</li>
+				</template>
+			</ul>
+			<button type="button" class="stc-icon-button" data-wp-on--click="actions.dismissPrintLabels" aria-label="<?php echo esc_attr_x( 'Dismiss', 'shipments', 'shiptastic-for-woocommerce' ); ?>">&times;</button>
+		</div>
+		<div class="stc-notice" role="status" data-wp-bind--hidden="!state.notice.message" data-wp-class--is-error="state.isErrorNotice" data-wp-class--is-success="state.isSuccessNotice">
+			<p data-wp-text="state.notice.message"></p>
+			<button type="button" class="stc-icon-button" data-wp-on--click="actions.dismissNotice" aria-label="<?php echo esc_attr_x( 'Dismiss', 'shipments', 'shiptastic-for-woocommerce' ); ?>">&times;</button>
+		</div>
 	</div>
 
 	<main class="stc-main">
 		<?php /* Deep links (e.g. a run): shown until the run/report is opened, instead of flashing the overview. */ ?>
-		<section class="stc-screen" data-wp-bind--hidden="!state.routeLoading">
+		<section class="stc-screen" data-wp-bind--hidden="!state.routeLoading" data-wp-watch="callbacks.endRouteLoading">
 			<div class="stc-empty stc-run-loading" role="status">
 				<span class="stc-spinner" aria-hidden="true"></span>
 				<p><?php echo esc_html_x( 'Loading…', 'shipments', 'shiptastic-for-woocommerce' ); ?></p>

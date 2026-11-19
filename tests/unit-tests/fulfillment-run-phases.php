@@ -536,6 +536,11 @@ class FulfillmentRunPhasesTest extends \Vendidero\Shiptastic\Tests\Framework\Uni
 		$editor  = $this->request( 'GET', '/workflows/editor' )->get_data();
 		$actions = array_column( $editor['actions'], null, 'name' );
 		$this->assertEquals( array( 'after_shipment', 'item' ), wp_list_pluck( $actions['test_after_shipment']['phases'], 'value' ) );
-		$this->assertEquals( 'item', $actions['mark_ready']['default_phase'] );
+		// Shipment scope actions run right after each shipment's steps by default, the default is listed first.
+		$this->assertEquals( 'after_shipment', $actions['mark_ready']['default_phase'] );
+		$this->assertEquals( array( 'after_shipment', 'item' ), wp_list_pluck( $actions['mark_ready']['phases'], 'value' ) );
+		$this->assertEquals( 'Per shipment', $actions['mark_ready']['phases'][0]['label'] );
+		$this->assertEquals( 'After shipments', $actions['mark_ready']['phases'][1]['shipment_label'] );
+		$this->assertEquals( 'after_shipment', $actions['create_label']['default_phase'] );
 	}
 }

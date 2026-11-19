@@ -153,6 +153,33 @@ const PHASES = [ 'before_queue', 'item', 'after_shipment', 'after_item', 'after_
 
 /**
  * @param {Object} step
+ * @param {Object} action
+ * @return {string} order or shipment: the step's scope choice, the action's default scope otherwise.
+ */
+function getStepScope( step, action ) {
+    const scope = step.settings && step.settings.scope;
+
+    return scope && action.scopes.includes( scope ) ? scope : action.default_scope;
+}
+
+/**
+ * Label + description of a phase for a step: the item phase runs per shipment for shipment scope steps.
+ *
+ * @param {Object} phase  Phase data of the action.
+ * @param {Object} step
+ * @param {Object} action
+ * @return {Object} label, description
+ */
+function getPhaseTexts( phase, step, action ) {
+    if ( 'item' === phase.value && phase.shipment_label && 'shipment' === getStepScope( step, action ) ) {
+        return { label: phase.shipment_label, description: phase.shipment_description || phase.description };
+    }
+
+    return { label: phase.label, description: phase.description };
+}
+
+/**
+ * @param {Object} step
  * @return {string} The phase the step runs in (see RunPhases): its choice in case the action supports it, the
  *                  action's default phase otherwise.
  */
@@ -227,6 +254,34 @@ function toggleFilter( filter, value, checked ) {
     }
 
     state.workflowEditor.form.filters = { ...state.workflowEditor.form.filters, [ filter ]: values };
+    markDirty();
+}
+
+/**
+ * @param {*} value Multiselect setting value: list of values (legacy single values are converted, empty = all).
+ * @return {string[]}
+ */
+function getSettingValues( value ) {
+    if ( Array.isArray( value ) ) {
+        return value.map( String );
+    }
+
+    return undefined === value || null === value || '' === value ? [] : [ String( value ) ];
+}
+
+function getSettingLimitKey( step, setting ) {
+    return 'setting-' + step.key + '-' + setting.key;
+}
+
+function toggleSettingValue( value, checked ) {
+    const { step, setting } = getContext();
+    const values = state.workflowEditorData.settingValues.filter( ( candidate ) => candidate !== value );
+
+    if ( checked ) {
+        values.push( value );
+    }
+
+    step.settings = { ...step.settings, [ setting.key ]: values };
     markDirty();
 }
 
@@ -362,7 +417,7 @@ const { state, actions } = store( NAMESPACE, {
 
                 const current = getStepPhase( step );
 
-                return action.phases.map( ( phase ) => ( { value: phase.value, label: phase.label, checked: phase.value === current, name: step.key + '-phase' } ) );
+                return action.phases.map( ( phase ) => ( { value: phase.value, label: getPhaseTexts( phase, step, action ).label, checked: phase.value === current, name: step.key + '-phase' } ) );
             },
             get hasStepPhaseChoice() {
                 return state.workflowEditorData.stepPhaseChoices.length > 0;
@@ -378,7 +433,7 @@ const { state, actions } = store( NAMESPACE, {
 
                 const data = ( action.phases || [] ).find( ( candidate ) => candidate.value === phase );
 
-                return data ? data.label : '';
+                return data ? getPhaseTexts( data, step, action ).label : '';
             },
             // Explains the step's phase in case it does not run per order.
             get stepPhaseDescription() {
@@ -387,7 +442,49 @@ const { state, actions } = store( NAMESPACE, {
                 const phase = getStepPhase( step );
                 const data = action && 'item' !== phase ? ( action.phases || [] ).find( ( candidate ) => candidate.value === phase ) : null;
 
-                return data ? data.description : '';
+                return data ? getPhaseTexts( data, step, action ).description : '';
+            },
+            // The phase's explanation below its choice (fixed phases: tooltip of the badge).
+            get stepPhaseChoiceDescription() {
+                const { step } = getContext();
+                const action = getAction( step.action );
+
+                if ( ! action || ! state.workflowEditorData.hasStepPhaseChoice ) {
+                    return '';
+                }
+
+                const phase = getStepPhase( step );
+                const data = ( action.phases || [] ).find( ( candidate ) => candidate.value === phase );
+
+                return data ? getPhaseTexts( data, step, action ).description : '';
+            },
+            // Tooltips of the badges (fixed mode/scope of a step).
+            get stepModeDescription() {
+                const { step } = getContext();
+                const action = getAction( step.action );
+
+                if ( ! action ) {
+                    return '';
+                }
+
+                const modes = getStepModes( action );
+                const mode = [ 'before_queue', 'after_queue' ].includes( getStepPhase( step ) ) ? 'background' : ( modes[ 0 ] || action.default_mode );
+
+                return ( i18n().modeDescriptions || {} )[ mode ] || '';
+            },
+            get stepScopeDescription() {
+                const { step } = getContext();
+                const action = getAction( step.action );
+
+                return action ? ( i18n().scopeDescriptions || {} )[ action.default_scope ] || '' : '';
+            },
+            get hasStepChoices() {
+                const data = state.workflowEditorData;
+                return data.hasStepPhaseChoice || data.hasStepModeChoice || data.hasStepScopeChoice;
+            },
+            // Configuration section: choices or settings of the action.
+            get hasStepConfig() {
+                return state.workflowEditorData.hasStepChoices || state.workflowEditorData.stepSettings.length > 0;
             },
             get isRunLevelStep() {
                 const { step } = getContext();
@@ -402,7 +499,7 @@ const { state, actions } = store( NAMESPACE, {
                     return [];
                 }
 
-                const current = step.settings.scope && action.scopes.includes( step.settings.scope ) ? step.settings.scope : action.default_scope;
+                const current = getStepScope( step, action );
 
                 return action.scopes.map( ( scope ) => ( { value: scope, label: i18n().scopes[ scope ] || scope, checked: scope === current, name: step.key + '-scope' } ) );
             },
@@ -413,7 +510,12 @@ const { state, actions } = store( NAMESPACE, {
                 const { step } = getContext();
                 const action = getAction( step.action );
 
-                return action && ! state.workflowEditorData.hasStepScopeChoice && 'item' === getStepPhase( step ) ? i18n().scopes[ action.default_scope ] || '' : '';
+                // The phase choice names the scope already ("Per order", "Per shipment").
+                if ( ! action || state.workflowEditorData.hasStepScopeChoice || state.workflowEditorData.hasStepPhaseChoice || 'item' !== getStepPhase( step ) ) {
+                    return '';
+                }
+
+                return i18n().scopes[ action.default_scope ] || '';
             },
             get settingValue() {
                 const { step, setting } = getContext();
@@ -436,6 +538,38 @@ const { state, actions } = store( NAMESPACE, {
             get isSettingInput() {
                 const { setting } = getContext();
                 return 'number' === setting.type || 'text' === setting.type;
+            },
+            get isSettingMultiselect() {
+                const { setting } = getContext();
+                return 'multiselect' === setting.type;
+            },
+            // Settings presented as a labeled select/input field.
+            get isSettingField() {
+                return state.workflowEditorData.isSettingSelect || state.workflowEditorData.isSettingInput;
+            },
+            // Multiselects: same behavior as the list filters (all options by default, restricted on request).
+            get settingValues() {
+                return getSettingValues( state.workflowEditorData.settingValue );
+            },
+            get settingSelected() {
+                const { setting } = getContext();
+                const options = setting.options || [];
+
+                return state.workflowEditorData.settingValues.map( ( value ) => options.find( ( option ) => option.value === value ) || { value, label: value } );
+            },
+            get settingAvailable() {
+                const { setting } = getContext();
+                const selected = state.workflowEditorData.settingValues;
+
+                return ( setting.options || [] ).filter( ( option ) => ! selected.includes( option.value ) );
+            },
+            get isSettingLimited() {
+                const { step, setting } = getContext();
+                return state.workflowEditorData.settingValues.length > 0 || !! state.workflowEditor.limited[ getSettingLimitKey( step, setting ) ];
+            },
+            get settingRadioName() {
+                const { step, setting } = getContext();
+                return 'stc-setting-' + getSettingLimitKey( step, setting );
             },
             get isSelectedSettingOption() {
                 const { option } = getContext();
@@ -666,6 +800,34 @@ const { state, actions } = store( NAMESPACE, {
 
                 step.settings = { ...step.settings, [ setting.key ]: value };
                 markDirty();
+            },
+            // Multiselect settings
+            includeAllSettingValues() {
+                const { step, setting } = getContext();
+
+                state.workflowEditor.limited = { ...state.workflowEditor.limited, [ getSettingLimitKey( step, setting ) ]: false };
+
+                if ( state.workflowEditorData.settingValues.length > 0 ) {
+                    step.settings = { ...step.settings, [ setting.key ]: [] };
+                    markDirty();
+                }
+            },
+            limitSettingValues() {
+                const { step, setting } = getContext();
+                state.workflowEditor.limited = { ...state.workflowEditor.limited, [ getSettingLimitKey( step, setting ) ]: true };
+            },
+            addSettingValue( event ) {
+                const value = event.target.value;
+
+                event.target.value = '';
+
+                if ( value ) {
+                    toggleSettingValue( value, true );
+                }
+            },
+            removeSettingValue() {
+                const { option } = getContext();
+                toggleSettingValue( option.value, false );
             },
             // Filters
             includeAll() {

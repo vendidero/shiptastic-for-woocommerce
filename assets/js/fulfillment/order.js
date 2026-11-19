@@ -17,6 +17,23 @@ const NAMESPACE = 'shiptastic/fulfillment';
 const i18n = () => getConfig( NAMESPACE ).i18n.orderDetails;
 
 /**
+ * @param {Object} order Order (wc/v3/orders) response.
+ * @return {string} E.g. "Max Mustermann (ACME), Musterstr. 12, 12222 Berlin, DE" (shipping address, billing as fallback).
+ */
+function shortAddress( order ) {
+    const shipping = order.shipping || {};
+    const address = shipping.address_1 || shipping.city ? shipping : order.billing || {};
+    const join = ( ...parts ) => parts.map( ( part ) => String( part || '' ).trim() ).filter( Boolean );
+    let name = join( address.first_name, address.last_name ).join( ' ' );
+
+    if ( address.company ) {
+        name = name ? `${ name } (${ address.company })` : address.company;
+    }
+
+    return join( name, join( address.address_1, address.address_2 ).join( ' ' ), join( address.postcode, address.city ).join( ' ' ), address.country ).join( ', ' );
+}
+
+/**
  * @param {Object} order Order (wc/v3/orders) response incl. stc_shipping_fields.
  * @return {Object} Data shown in the overlay.
  */
@@ -216,13 +233,17 @@ const { state, actions } = store( NAMESPACE, {
                 state.orderDetails.error = '';
 
                 try {
-                    const details = toDetails(
-                        yield api.request( `wc/v3/orders/${ item.order_id }`, {
-                            root: true,
-                            method: 'PUT',
-                            body: { stc_address_fields: 1, stc_shipping: values, billing: { email: form.email || '' } },
-                        } )
-                    );
+                    const response = yield api.request( `wc/v3/orders/${ item.order_id }`, {
+                        root: true,
+                        method: 'PUT',
+                        body: { stc_address_fields: 1, stc_shipping: values, billing: { email: form.email || '' } },
+                    } );
+                    const details = toDetails( response );
+
+                    // The compact address of the run header (same format as the server's).
+                    if ( state.currentItem && state.currentItem.id === item.id ) {
+                        state.currentItem.shipping_address = shortAddress( response );
+                    }
 
                     state.orderDetails.data = details;
                     state.orderDetails.form = toForm( details );

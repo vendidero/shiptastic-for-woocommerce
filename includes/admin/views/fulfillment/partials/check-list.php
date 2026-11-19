@@ -9,7 +9,7 @@ defined( 'ABSPATH' ) || exit;
 $scan_id = 'stc-scan-' . wp_unique_id();
 ?>
 <div class="stc-checklist-progress">
-	<span class="stc-checklist-progress-text" data-wp-text="state.checklist.progressText"></span>
+	<span class="stc-checklist-progress-text"><span data-wp-text="state.checklist.progressText"></span><span class="stc-checklist-weight" data-wp-bind--hidden="!state.checklist.weightText" data-wp-text="state.checklist.weightText"></span></span>
 	<span class="stc-progress-bar" aria-hidden="true"><span class="stc-progress-bar-value" data-wp-bind--style="state.checklist.progressStyle"></span></span>
 </div>
 <div class="stc-scan">
@@ -22,7 +22,7 @@ $scan_id = 'stc-scan-' . wp_unique_id();
 			<span class="stc-location" data-wp-bind--hidden="!context.item.location" data-wp-text="context.item.location"></span>
 			<div class="stc-item-body">
 				<strong data-wp-text="context.item.name"></strong>
-				<span class="stc-meta" data-wp-text="context.item.sku"></span>
+				<span class="stc-meta" data-wp-text="state.checklist.itemMeta"></span>
 			</div>
 			<div class="stc-stepper">
 				<button type="button" class="stc-stepper-button" data-wp-on--click="actions.checklist.decrement" aria-label="<?php echo esc_attr_x( 'Decrease', 'shipments', 'shiptastic-for-woocommerce' ); ?>">&minus;</button>

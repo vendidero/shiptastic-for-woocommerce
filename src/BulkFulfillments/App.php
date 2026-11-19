@@ -361,6 +361,9 @@ JS;
 					/* translators: %d quantity */
 					'backordered'       => _x( '%d on backorder', 'shipments', 'shiptastic-for-woocommerce' ),
 					'offline'           => _x( 'You are offline.', 'shipments', 'shiptastic-for-woocommerce' ),
+					/* translators: 1: position of the shipment within the order 2: number of shipments */
+					'shipmentStep'      => _x( 'Shipment %1$d/%2$d', 'shipments', 'shiptastic-for-woocommerce' ),
+					'newShipmentStep'   => _x( 'New shipment', 'shipments', 'shiptastic-for-woocommerce' ),
 					'loading'           => _x( 'Loading…', 'shipments', 'shiptastic-for-woocommerce' ),
 					/* translators: %s order number */
 					'savedOffline'      => _x( 'Order #%s is saved on this device and will be synced once you are back online.', 'shipments', 'shiptastic-for-woocommerce' ),
@@ -399,6 +402,10 @@ JS;
 					'stepCount'         => _x( 'Step %1$d of %2$d', 'shipments', 'shiptastic-for-woocommerce' ),
 					'autoNext'          => _x( 'Then automatically: %s', 'shipments', 'shiptastic-for-woocommerce' ),
 					'autoDone'          => _x( 'Done automatically: %s', 'shipments', 'shiptastic-for-woocommerce' ),
+					/* translators: 1: shipment number 2: order number */
+					'labelCreated'      => _x( 'Label for shipment %1$s (order #%2$s)', 'shipments', 'shiptastic-for-woocommerce' ),
+					'createLabel'       => _x( 'Create label', 'shipments', 'shiptastic-for-woocommerce' ),
+					'labelFormLoading'  => _x( 'Loading label settings…', 'shipments', 'shiptastic-for-woocommerce' ),
 					'autoRunTitle'      => _x( 'Running automatically…', 'shipments', 'shiptastic-for-woocommerce' ),
 					'autoRunDone'       => _x( 'Done', 'shipments', 'shiptastic-for-woocommerce' ),
 					'autoPaused'        => _x( 'Paused: a step failed', 'shipments', 'shiptastic-for-woocommerce' ),
@@ -410,36 +417,45 @@ JS;
 					/* translators: %d number of files */
 					'downloadFiles'     => _x( 'Download files (%d)', 'shipments', 'shiptastic-for-woocommerce' ),
 					'workflowEditor'    => array(
-						'backordersHints' => array(
+						'backordersHints'   => array(
 							'any'     => _x( 'Orders are included regardless of backordered items.', 'shipments', 'shiptastic-for-woocommerce' ),
 							'exclude' => _x( 'Orders containing backordered items are left out.', 'shipments', 'shiptastic-for-woocommerce' ),
 							'only'    => _x( 'Only orders containing backordered items are included.', 'shipments', 'shiptastic-for-woocommerce' ),
 						),
-						'newTitle'        => _x( 'New workflow', 'shipments', 'shiptastic-for-woocommerce' ),
-						'editTitle'       => _x( 'Edit workflow', 'shipments', 'shiptastic-for-woocommerce' ),
-						'saved'           => _x( 'Workflow saved.', 'shipments', 'shiptastic-for-woocommerce' ),
-						'deleted'         => _x( 'Workflow deleted.', 'shipments', 'shiptastic-for-woocommerce' ),
-						'confirmDelete'   => _x( 'Delete this workflow? Orders are not affected.', 'shipments', 'shiptastic-for-woocommerce' ),
-						'discardChanges'  => _x( 'Discard your changes to the workflow?', 'shipments', 'shiptastic-for-woocommerce' ),
-						'rangeAny'        => _x( 'All orders, no limit.', 'shipments', 'shiptastic-for-woocommerce' ),
+						'newTitle'          => _x( 'New workflow', 'shipments', 'shiptastic-for-woocommerce' ),
+						'editTitle'         => _x( 'Edit workflow', 'shipments', 'shiptastic-for-woocommerce' ),
+						'saved'             => _x( 'Workflow saved.', 'shipments', 'shiptastic-for-woocommerce' ),
+						'deleted'           => _x( 'Workflow deleted.', 'shipments', 'shiptastic-for-woocommerce' ),
+						'confirmDelete'     => _x( 'Delete this workflow? Orders are not affected.', 'shipments', 'shiptastic-for-woocommerce' ),
+						'discardChanges'    => _x( 'Discard your changes to the workflow?', 'shipments', 'shiptastic-for-woocommerce' ),
+						'rangeAny'          => _x( 'All orders, no limit.', 'shipments', 'shiptastic-for-woocommerce' ),
 						/* translators: %s minimum incl. unit */
-						'rangeMin'        => _x( 'Orders with at least %s.', 'shipments', 'shiptastic-for-woocommerce' ),
+						'rangeMin'          => _x( 'Orders with at least %s.', 'shipments', 'shiptastic-for-woocommerce' ),
 						/* translators: %s maximum incl. unit */
-						'rangeMax'        => _x( 'Orders with at most %s.', 'shipments', 'shiptastic-for-woocommerce' ),
+						'rangeMax'          => _x( 'Orders with at most %s.', 'shipments', 'shiptastic-for-woocommerce' ),
 						/* translators: 1: minimum 2: maximum incl. unit */
-						'rangeBetween'    => _x( 'Orders with %1$s to %2$s.', 'shipments', 'shiptastic-for-woocommerce' ),
+						'rangeBetween'      => _x( 'Orders with %1$s to %2$s.', 'shipments', 'shiptastic-for-woocommerce' ),
 						/* translators: %s list of steps */
-						'requires'        => _x( 'Requires %s (added automatically).', 'shipments', 'shiptastic-for-woocommerce' ),
-						'modes'           => array(
+						'requires'          => _x( 'Requires %s (added automatically).', 'shipments', 'shiptastic-for-woocommerce' ),
+						'modes'             => array(
 							'background'  => _x( 'Automatically', 'shipments', 'shiptastic-for-woocommerce' ),
 							'interactive' => _x( 'Interactive', 'shipments', 'shiptastic-for-woocommerce' ),
 						),
-						'modeHints'       => array(
+						'modeHints'         => array(
 							'background'  => _x( 'Automatically', 'shipments', 'shiptastic-for-woocommerce' ),
 							'interactive' => _x( 'Interactive', 'shipments', 'shiptastic-for-woocommerce' ),
 						),
-						'proMode'         => _x( 'Available with Shiptastic Pro', 'shipments', 'shiptastic-for-woocommerce' ),
-						'scopes'          => array(
+						'proMode'           => _x( 'Available with Shiptastic Pro', 'shipments', 'shiptastic-for-woocommerce' ),
+						// Tooltips of the step badges.
+						'modeDescriptions'  => array(
+							'background'  => _x( 'Runs automatically, without user interaction.', 'shipments', 'shiptastic-for-woocommerce' ),
+							'interactive' => _x( 'Staff completes this step within the app.', 'shipments', 'shiptastic-for-woocommerce' ),
+						),
+						'scopeDescriptions' => array(
+							'order'    => _x( 'Runs once for each order.', 'shipments', 'shiptastic-for-woocommerce' ),
+							'shipment' => _x( 'Runs once for each shipment of an order, one shipment after another.', 'shipments', 'shiptastic-for-woocommerce' ),
+						),
+						'scopes'            => array(
 							'order'    => _x( 'Once per order', 'shipments', 'shiptastic-for-woocommerce' ),
 							'shipment' => _x( 'Once per shipment', 'shipments', 'shiptastic-for-woocommerce' ),
 						),
@@ -533,6 +549,10 @@ JS;
 					),
 					/* translators: 1: checked items 2: total items */
 					'checklistProgress' => _x( '%1$d/%2$d items', 'shipments', 'shiptastic-for-woocommerce' ),
+					/* translators: %s weight, e.g. 0.5 kg */
+					'weightEach'        => _x( '%s each', 'shipments-weight', 'shiptastic-for-woocommerce' ),
+					/* translators: 1: quantity 2: weight of one unit 3: total weight */
+					'weightTimes'       => _x( '%1$s × %2$s = %3$s', 'shipments-weight', 'shiptastic-for-woocommerce' ),
 					/* translators: %s list of items */
 					'notPicked'         => _x( 'Not picked yet: %s', 'shipments', 'shiptastic-for-woocommerce' ),
 					/* translators: %s list of items */
@@ -723,6 +743,8 @@ JS;
 					'type'    => '',
 					'message' => '',
 				),
+				// Labels created right now, offered for printing (key, title, url).
+				'printLabels'     => array(),
 			)
 		);
 	}

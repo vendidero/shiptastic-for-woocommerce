@@ -20,6 +20,7 @@ import * as api from './api.js';
 import * as hooks from './hooks.js';
 import * as outbox from './outbox.js';
 import { getPackagingOptions, proposeShipments, choosePackaging } from './packing.js';
+import { formatWeight, itemWeightText } from './weight.js';
 
 const NAMESPACE = 'shiptastic/fulfillment';
 const i18n = () => getConfig( NAMESPACE ).i18n;
@@ -254,7 +255,7 @@ const { state, actions } = store( NAMESPACE, {
                         const quantity = unassigned( item.id );
                         const available = Math.max( 0, item.total - assigned( item.id ) );
 
-                        return { id: item.id, name: item.name, sku: item.sku, quantity, backordered: Math.max( 0, quantity - available ) };
+                        return { id: item.id, name: item.name, sku: item.sku, weight: item.weight || 0, quantity, backordered: Math.max( 0, quantity - available ) };
                     } )
                     .filter( ( item ) => item.quantity > 0 );
             },
@@ -263,7 +264,7 @@ const { state, actions } = store( NAMESPACE, {
             },
             get poolItemMeta() {
                 const { pool_item: item } = getContext();
-                const parts = [ item.sku ];
+                const parts = [ item.sku, itemWeightText( item.weight, item.quantity ) ];
 
                 if ( item.backordered > 0 ) {
                     parts.push( format( i18n().backordered, item.backordered ) );
@@ -282,8 +283,11 @@ const { state, actions } = store( NAMESPACE, {
                     .map( ( id ) => toLineId( id ) )
                     .filter( ( id ) => shipment.items[ id ] > 0 )
                     .map( ( id ) => {
-                        const item = getItem( id ) || { name: '#' + id, sku: '' };
-                        return { id, name: item.name, sku: item.sku, quantity: shipment.items[ id ] };
+                        const item = getItem( id ) || { name: '#' + id, sku: '', weight: 0 };
+                        const quantity = shipment.items[ id ];
+
+                        // SKU + weight of the shipment's units (follows the quantity).
+                        return { id, name: item.name, sku: item.sku, quantity, meta: [ item.sku, itemWeightText( item.weight, quantity ) ].filter( Boolean ).join( ' · ' ) };
                     } );
             },
             get isEmptyShipment() {
@@ -375,7 +379,7 @@ const { state, actions } = store( NAMESPACE, {
                 const content = '' !== shipment.weight && undefined !== shipment.weight ? parseFloat( shipment.weight ) || 0 : state.shipmentFields.contentWeight;
                 const total = round( content + ( packaging ? packaging.weight : 0 ) );
 
-                return format( i18n().totalWeight, total + ' ' + getConfig( NAMESPACE ).weightUnit );
+                return format( i18n().totalWeight, formatWeight( total ) );
             },
             get exceedsMaxWeight() {
                 const { shipment } = getContext();

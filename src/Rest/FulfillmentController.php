@@ -265,6 +265,23 @@ class FulfillmentController extends \WC_REST_Controller {
 			)
 		);
 
+		// Label form of a package shipment (create label step: edit the whole label within the app).
+		register_rest_route(
+			$this->namespace,
+			$base . '/queue/(?P<id>[\d]+)/shipments/(?P<shipment_id>[\d]+)/label-form',
+			array(
+				'methods'             => WP_REST_Server::READABLE,
+				'callback'            => array( $this, 'get_label_form' ),
+				'permission_callback' => array( $this, 'can_fulfill' ),
+				'args'                => array(
+					'token' => array(
+						'type'     => 'string',
+						'required' => true,
+					),
+				),
+			)
+		);
+
 		register_rest_route(
 			$this->namespace,
 			$base . '/runs',
@@ -550,13 +567,29 @@ class FulfillmentController extends \WC_REST_Controller {
 					);
 				}
 
-				$settings[] = array(
+				$type    = isset( $field['type'] ) && in_array( $field['type'], array( 'select', 'multiselect', 'checkbox', 'number', 'text' ), true ) ? $field['type'] : 'text';
+				$setting = array(
 					'key'     => (string) $key,
-					'type'    => isset( $field['type'] ) && in_array( $field['type'], array( 'select', 'checkbox', 'number', 'text' ), true ) ? $field['type'] : 'text',
+					'type'    => $type,
 					'label'   => wp_strip_all_tags( isset( $field['label'] ) ? $field['label'] : $key ),
 					'default' => isset( $field['default'] ) ? $field['default'] : '',
 					'options' => $options,
 				);
+
+				/*
+				 * Multiselects are presented like the list filters of a workflow: all options by default, restricted to
+				 * the selected options on request.
+				 */
+				if ( 'multiselect' === $type ) {
+					$setting['default'] = array_values( array_map( 'strval', (array) ( isset( $field['default'] ) ? $field['default'] : array() ) ) );
+					$setting['texts']   = array(
+						'all'   => wp_strip_all_tags( isset( $field['all_label'] ) ? $field['all_label'] : _x( 'All', 'shipments', 'shiptastic-for-woocommerce' ) ),
+						'add'   => wp_strip_all_tags( isset( $field['add_label'] ) ? $field['add_label'] : _x( '+ Add…', 'shipments', 'shiptastic-for-woocommerce' ) ),
+						'empty' => wp_strip_all_tags( isset( $field['empty_label'] ) ? $field['empty_label'] : _x( 'Nothing selected yet - all options are included.', 'shipments', 'shiptastic-for-woocommerce' ) ),
+					);
+				}
+
+				$settings[] = $setting;
 			}
 
 			$actions[] = array(
@@ -575,15 +608,24 @@ class FulfillmentController extends \WC_REST_Controller {
 					array_map(
 						function ( $phase ) {
 							$descriptions = RunPhases::get_descriptions();
-
-							return array(
+							$data         = array(
 								'value'       => $phase,
 								'label'       => RunPhases::get_title( $phase ),
 								'description' => isset( $descriptions[ $phase ] ) ? $descriptions[ $phase ] : '',
 								'run_level'   => RunPhases::is_run_level( $phase ),
 							);
+
+							// The item phase of shipment scope steps runs per shipment.
+							if ( RunPhases::ITEM === $phase ) {
+								$texts                        = RunPhases::get_item_shipment_texts();
+								$data['shipment_label']       = $texts['title'];
+								$data['shipment_description'] = $texts['description'];
+							}
+
+							return $data;
 						},
-						$action::get_phases()
+						// The default phase first.
+						array_unique( array_merge( array( $action::get_default_phase() ), $action::get_phases() ) )
 					)
 				),
 				'default_phase' => $action::get_default_phase(),
@@ -788,6 +830,8 @@ class FulfillmentController extends \WC_REST_Controller {
 			'shipping_method'   => $item->get_shipping_method(),
 			'shipping_provider' => $item->get_shipping_provider(),
 			'country'           => $item->get_country(),
+			// Compact shipping address (run header): name (company), street, postcode + city, country.
+			'shipping_address'  => $order ? self::get_short_address( $order ) : '',
 			'item_count'        => $item->get_item_count(),
 			'weight'            => $item->get_weight(),
 			'has_backorders'    => $item->has_backorders(),
@@ -847,6 +891,40 @@ class FulfillmentController extends \WC_REST_Controller {
 		}
 
 		return $data;
+	}
+
+	/**
+	 * @param \WC_Order $order
+	 *
+	 * @return string E.g. "Max Mustermann (ACME), Musterstr. 12, 12222 Berlin, DE" (shipping address, billing address
+	 *                as fallback).
+	 */
+	public static function get_short_address( $order ) {
+		$type = $order->has_shipping_address() ? 'shipping' : 'billing';
+		$get  = function ( $prop ) use ( $order, $type ) {
+			$getter = "get_{$type}_{$prop}";
+
+			return is_callable( array( $order, $getter ) ) ? trim( (string) $order->$getter() ) : '';
+		};
+
+		$name    = trim( $get( 'first_name' ) . ' ' . $get( 'last_name' ) );
+		$company = $get( 'company' );
+
+		if ( '' !== $company ) {
+			$name = '' !== $name ? sprintf( '%1$s (%2$s)', $name, $company ) : $company;
+		}
+
+		return implode(
+			', ',
+			array_filter(
+				array(
+					$name,
+					trim( $get( 'address_1' ) . ' ' . $get( 'address_2' ) ),
+					trim( $get( 'postcode' ) . ' ' . $get( 'city' ) ),
+					$get( 'country' ),
+				)
+			)
+		);
 	}
 
 	/**
@@ -1245,6 +1323,9 @@ class FulfillmentController extends \WC_REST_Controller {
 		if ( ( $run = self::get_token_run( $token ) ) && $run->is_interactive() ) { // phpcs:ignore Generic.CodeAnalysis.AssignmentInCondition.Found, Squiz.PHP.DisallowMultipleAssignments.FoundInControlStructure
 			$data['run'] = self::prepare_run_export( $run );
 		}
+
+		// Labels created within the request (incl. automatic steps), offered for printing right away.
+		$data['labels'] = \Vendidero\Shiptastic\BulkFulfillments\Actions\CreateLabel::get_created_labels();
 
 		if ( $submitted_step ) {
 			list( $action, $shipment_id ) = array_pad( explode( ':', $submitted_step ), 2, 0 );
@@ -1840,6 +1921,29 @@ class FulfillmentController extends \WC_REST_Controller {
 	 * Applies the shipment layout (shipments overlay) of a locked item and continues the workflow, e.g. steps of
 	 * changed shipments are reopened.
 	 */
+	public function get_label_form( $request ) {
+		$context = $this->get_locked_context( $request );
+
+		if ( is_wp_error( $context ) ) {
+			return $context;
+		}
+
+		$shipments   = Runner::get_package_shipments( $context['item'] );
+		$shipment_id = absint( $request['shipment_id'] );
+
+		if ( ! isset( $shipments[ $shipment_id ] ) ) {
+			return new WP_Error( 'shipment_invalid', _x( 'The shipment is not part of the order.', 'shipments', 'shiptastic-for-woocommerce' ), array( 'status' => 404 ) );
+		}
+
+		$html = \Vendidero\Shiptastic\BulkFulfillments\Actions\CreateLabel::get_form_html( $shipments[ $shipment_id ] );
+
+		if ( '' === $html ) {
+			return new WP_Error( 'label_form_unavailable', _x( 'There are no label settings for this shipment.', 'shipments', 'shiptastic-for-woocommerce' ), array( 'status' => 400 ) );
+		}
+
+		return rest_ensure_response( array( 'html' => $html ) );
+	}
+
 	public function update_shipments( $request ) {
 		return $this->idempotent(
 			$request,

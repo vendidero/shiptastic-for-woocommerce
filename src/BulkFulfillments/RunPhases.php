@@ -36,7 +36,7 @@ class RunPhases {
 		return array(
 			self::BEFORE_QUEUE   => _x( 'Start of batch', 'shipments-phase', 'shiptastic-for-woocommerce' ),
 			self::ITEM           => _x( 'Per order', 'shipments-phase', 'shiptastic-for-woocommerce' ),
-			self::AFTER_SHIPMENT => _x( 'After each shipment', 'shipments-phase', 'shiptastic-for-woocommerce' ),
+			self::AFTER_SHIPMENT => _x( 'Per shipment', 'shipments-phase', 'shiptastic-for-woocommerce' ),
 			self::AFTER_ITEM     => _x( 'After each order', 'shipments-phase', 'shiptastic-for-woocommerce' ),
 			self::AFTER_QUEUE    => _x( 'End of run', 'shipments-phase', 'shiptastic-for-woocommerce' ),
 		);
@@ -49,9 +49,21 @@ class RunPhases {
 		return array(
 			self::BEFORE_QUEUE   => _x( 'Runs once for each batch of orders before they are worked on, e.g. one picking list for the batch.', 'shipments', 'shiptastic-for-woocommerce' ),
 			self::ITEM           => _x( 'Runs for each order (or each shipment).', 'shipments', 'shiptastic-for-woocommerce' ),
-			self::AFTER_SHIPMENT => _x( 'Runs for each shipment right after its steps, before the next shipment.', 'shipments', 'shiptastic-for-woocommerce' ),
+			self::AFTER_SHIPMENT => _x( 'Runs for each shipment right after its previous steps, before the next shipment, e.g. pack a shipment and create its label, then continue with the next shipment.', 'shipments', 'shiptastic-for-woocommerce' ),
 			self::AFTER_ITEM     => _x( 'Runs for each order after all its other steps.', 'shipments', 'shiptastic-for-woocommerce' ),
 			self::AFTER_QUEUE    => _x( 'Runs once at the end of the run for the orders completed within it, e.g. a shipment list.', 'shipments', 'shiptastic-for-woocommerce' ),
+		);
+	}
+
+	/**
+	 * Title + description of the item phase for shipment scope steps (each shipment instead of each order).
+	 *
+	 * @return array title, description
+	 */
+	public static function get_item_shipment_texts() {
+		return array(
+			'title'       => _x( 'After shipments', 'shipments-phase', 'shiptastic-for-woocommerce' ),
+			'description' => _x( 'Runs for each shipment once all shipments went through the previous steps, e.g. pack all shipments, then create their labels.', 'shipments', 'shiptastic-for-woocommerce' ),
 		);
 	}
 

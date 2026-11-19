@@ -120,59 +120,96 @@ $range_filters = array(
 				<ol class="stc-workflow-steps">
 					<template data-wp-each--step="state.workflowEditorData.visibleSteps" data-wp-each-key="context.step.key">
 						<li class="stc-card stc-workflow-step">
+							<?php /* Header: what the step does, fixed properties as badges (descriptions as tooltips), ordering. */ ?>
 							<div class="stc-workflow-step-header">
 								<span class="stc-workflow-step-number" data-wp-text="state.workflowEditorData.stepNumber"></span>
-								<div class="stc-workflow-step-title">
-									<strong data-wp-text="state.workflowEditorData.stepTitle"></strong>
-									<span class="stc-hint" data-wp-text="state.workflowEditorData.stepDescription"></span>
+								<strong class="stc-workflow-step-title" data-wp-text="state.workflowEditorData.stepTitle"></strong>
+								<div class="stc-workflow-step-badges">
+									<span class="stc-tag is-phase" tabindex="0" data-wp-bind--hidden="!state.workflowEditorData.stepPhaseText" data-wp-bind--title="state.workflowEditorData.stepPhaseDescription" data-wp-text="state.workflowEditorData.stepPhaseText"></span>
+									<span class="stc-tag" tabindex="0" data-wp-bind--hidden="!state.workflowEditorData.stepModeText" data-wp-bind--title="state.workflowEditorData.stepModeDescription" data-wp-text="state.workflowEditorData.stepModeText"></span>
+									<span class="stc-tag" tabindex="0" data-wp-bind--hidden="!state.workflowEditorData.stepScopeText" data-wp-bind--title="state.workflowEditorData.stepScopeDescription" data-wp-text="state.workflowEditorData.stepScopeText"></span>
 								</div>
 								<div class="stc-workflow-step-actions">
 									<button type="button" class="stc-icon-button" data-wp-on--click="actions.workflowEditor.moveStepUp" data-wp-bind--disabled="!state.workflowEditorData.canMoveUp" aria-label="<?php echo esc_attr_x( 'Move up', 'shipments', 'shiptastic-for-woocommerce' ); ?>">&uarr;</button>
 									<button type="button" class="stc-icon-button" data-wp-on--click="actions.workflowEditor.moveStepDown" data-wp-bind--disabled="!state.workflowEditorData.canMoveDown" aria-label="<?php echo esc_attr_x( 'Move down', 'shipments', 'shiptastic-for-woocommerce' ); ?>">&darr;</button>
 									<button type="button" class="stc-icon-button" data-wp-on--click="actions.workflowEditor.removeStep" aria-label="<?php echo esc_attr_x( 'Remove step', 'shipments', 'shiptastic-for-woocommerce' ); ?>">&times;</button>
 								</div>
-							</div>
-							<div class="stc-workflow-step-meta">
-								<?php /* Phase: start of batch, per order, after each shipment, after each order, end of run. */ ?>
-								<span class="stc-tag is-phase" data-wp-bind--hidden="!state.workflowEditorData.stepPhaseText" data-wp-text="state.workflowEditorData.stepPhaseText"></span>
-								<div class="stc-segmented" role="radiogroup" aria-label="<?php echo esc_attr_x( 'When the step runs', 'shipments', 'shiptastic-for-woocommerce' ); ?>" data-wp-bind--hidden="!state.workflowEditorData.hasStepPhaseChoice">
-									<template data-wp-each--choice="state.workflowEditorData.stepPhaseChoices" data-wp-each-key="context.choice.value">
-										<label><input type="radio" data-wp-bind--name="context.choice.name" data-wp-bind--value="context.choice.value" data-wp-bind--checked="context.choice.checked" data-wp-on--change="actions.workflowEditor.setStepPhase" /><span data-wp-text="context.choice.label"></span></label>
-									</template>
-								</div>
-								<span class="stc-tag" data-wp-bind--hidden="!state.workflowEditorData.stepModeText" data-wp-text="state.workflowEditorData.stepModeText"></span>
-								<div class="stc-segmented" role="radiogroup" aria-label="<?php echo esc_attr_x( 'How the step runs', 'shipments', 'shiptastic-for-woocommerce' ); ?>" data-wp-bind--hidden="!state.workflowEditorData.hasStepModeChoice">
-									<template data-wp-each--choice="state.workflowEditorData.stepModeChoices" data-wp-each-key="context.choice.value">
-										<label data-wp-class--is-pro="context.choice.isPro" data-wp-bind--title="context.choice.title"><input type="radio" data-wp-bind--name="context.choice.name" data-wp-bind--value="context.choice.value" data-wp-bind--checked="context.choice.checked" data-wp-bind--disabled="context.choice.isPro" data-wp-on--change="actions.workflowEditor.setStepMode" /><span><span data-wp-text="context.choice.label"></span><?php echo \Vendidero\Shiptastic\BulkFulfillments\App::get_pro_badge( array( 'data-wp-bind--hidden' => '!context.choice.isPro' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></span></label>
-									</template>
-								</div>
-								<span class="stc-tag" data-wp-bind--hidden="!state.workflowEditorData.stepScopeText" data-wp-text="state.workflowEditorData.stepScopeText"></span>
-								<div class="stc-segmented" role="radiogroup" aria-label="<?php echo esc_attr_x( 'How often the step runs', 'shipments', 'shiptastic-for-woocommerce' ); ?>" data-wp-bind--hidden="!state.workflowEditorData.hasStepScopeChoice">
-									<template data-wp-each--choice="state.workflowEditorData.stepScopeChoices" data-wp-each-key="context.choice.value">
-										<label><input type="radio" data-wp-bind--name="context.choice.name" data-wp-bind--value="context.choice.value" data-wp-bind--checked="context.choice.checked" data-wp-on--change="actions.workflowEditor.setStepScope" /><span data-wp-text="context.choice.label"></span></label>
-									</template>
+								<?php /* Second row: description + dependencies, using the whole width below the title. */ ?>
+								<div class="stc-workflow-step-description">
+									<span class="stc-hint" data-wp-text="state.workflowEditorData.stepDescription"></span>
+									<span class="stc-hint" data-wp-bind--hidden="!state.workflowEditorData.stepRequires" data-wp-text="state.workflowEditorData.stepRequires"></span>
 								</div>
 							</div>
-							<p class="stc-hint" data-wp-bind--hidden="!state.workflowEditorData.stepPhaseDescription" data-wp-text="state.workflowEditorData.stepPhaseDescription"></p>
-							<p class="stc-hint" data-wp-bind--hidden="!state.workflowEditorData.stepRequires" data-wp-text="state.workflowEditorData.stepRequires"></p>
-							<div class="stc-form-grid" data-wp-bind--hidden="!state.workflowEditorData.stepSettings.length">
-								<template data-wp-each--setting="state.workflowEditorData.stepSettings" data-wp-each-key="context.setting.key">
-									<div class="stc-field is-half">
-										<label class="stc-toggle-field" data-wp-bind--hidden="!state.workflowEditorData.isSettingCheckbox">
-											<input type="checkbox" data-wp-bind--checked="state.workflowEditorData.settingChecked" data-wp-on--change="actions.workflowEditor.setSetting" />
-											<span data-wp-text="context.setting.label"></span>
-										</label>
-										<label class="stc-field" data-wp-bind--hidden="state.workflowEditorData.isSettingCheckbox">
-											<span class="stc-label" data-wp-text="context.setting.label"></span>
-											<select class="stc-input" data-wp-bind--hidden="!state.workflowEditorData.isSettingSelect" data-wp-on--change="actions.workflowEditor.setSetting">
-												<template data-wp-each--option="context.setting.options" data-wp-each-key="context.option.value">
-													<option data-wp-bind--value="context.option.value" data-wp-bind--selected="state.workflowEditorData.isSelectedSettingOption" data-wp-text="context.option.label"></option>
-												</template>
-											</select>
-											<input class="stc-input" data-wp-bind--hidden="!state.workflowEditorData.isSettingInput" data-wp-bind--type="context.setting.type" data-wp-bind--value="state.workflowEditorData.settingValue" data-wp-on--input="actions.workflowEditor.setSetting" />
-										</label>
+							<?php /* Configuration: choices (phase, mode, scope) in case the action supports several, the action's settings. */ ?>
+							<div class="stc-workflow-step-config" data-wp-bind--hidden="!state.workflowEditorData.hasStepConfig">
+								<div class="stc-workflow-step-choices" data-wp-bind--hidden="!state.workflowEditorData.hasStepChoices">
+									<div class="stc-workflow-step-choice" data-wp-bind--hidden="!state.workflowEditorData.hasStepPhaseChoice">
+										<span class="stc-label"><?php echo esc_html_x( 'When', 'shipments-step-phase', 'shiptastic-for-woocommerce' ); ?></span>
+										<div class="stc-segmented" role="radiogroup" aria-label="<?php echo esc_attr_x( 'When the step runs', 'shipments', 'shiptastic-for-woocommerce' ); ?>">
+											<template data-wp-each--choice="state.workflowEditorData.stepPhaseChoices" data-wp-each-key="context.choice.value">
+												<label><input type="radio" data-wp-bind--name="context.choice.name" data-wp-bind--value="context.choice.value" data-wp-bind--checked="context.choice.checked" data-wp-on--change="actions.workflowEditor.setStepPhase" /><span data-wp-text="context.choice.label"></span></label>
+											</template>
+										</div>
 									</div>
-								</template>
+									<div class="stc-workflow-step-choice" data-wp-bind--hidden="!state.workflowEditorData.hasStepModeChoice">
+										<span class="stc-label"><?php echo esc_html_x( 'How', 'shipments-step-mode', 'shiptastic-for-woocommerce' ); ?></span>
+										<div class="stc-segmented" role="radiogroup" aria-label="<?php echo esc_attr_x( 'How the step runs', 'shipments', 'shiptastic-for-woocommerce' ); ?>">
+											<template data-wp-each--choice="state.workflowEditorData.stepModeChoices" data-wp-each-key="context.choice.value">
+												<label data-wp-class--is-pro="context.choice.isPro" data-wp-bind--title="context.choice.title"><input type="radio" data-wp-bind--name="context.choice.name" data-wp-bind--value="context.choice.value" data-wp-bind--checked="context.choice.checked" data-wp-bind--disabled="context.choice.isPro" data-wp-on--change="actions.workflowEditor.setStepMode" /><span><span data-wp-text="context.choice.label"></span><?php echo \Vendidero\Shiptastic\BulkFulfillments\App::get_pro_badge( array( 'data-wp-bind--hidden' => '!context.choice.isPro' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></span></label>
+											</template>
+										</div>
+									</div>
+									<div class="stc-workflow-step-choice" data-wp-bind--hidden="!state.workflowEditorData.hasStepScopeChoice">
+										<span class="stc-label"><?php echo esc_html_x( 'How often', 'shipments-step-scope', 'shiptastic-for-woocommerce' ); ?></span>
+										<div class="stc-segmented" role="radiogroup" aria-label="<?php echo esc_attr_x( 'How often the step runs', 'shipments', 'shiptastic-for-woocommerce' ); ?>">
+											<template data-wp-each--choice="state.workflowEditorData.stepScopeChoices" data-wp-each-key="context.choice.value">
+												<label><input type="radio" data-wp-bind--name="context.choice.name" data-wp-bind--value="context.choice.value" data-wp-bind--checked="context.choice.checked" data-wp-on--change="actions.workflowEditor.setStepScope" /><span data-wp-text="context.choice.label"></span></label>
+											</template>
+										</div>
+									</div>
+								</div>
+								<p class="stc-hint" data-wp-bind--hidden="!state.workflowEditorData.stepPhaseChoiceDescription" data-wp-text="state.workflowEditorData.stepPhaseChoiceDescription"></p>
+								<div class="stc-form-grid" data-wp-bind--hidden="!state.workflowEditorData.stepSettings.length">
+									<template data-wp-each--setting="state.workflowEditorData.stepSettings" data-wp-each-key="context.setting.key">
+										<div class="stc-field" data-wp-class--is-half="!state.workflowEditorData.isSettingMultiselect">
+											<?php /* Multiselect: same layout as the list filters of the workflow (all options or only selected ones). */ ?>
+											<fieldset class="stc-list-filter" data-wp-bind--hidden="!state.workflowEditorData.isSettingMultiselect">
+												<legend class="stc-label" data-wp-text="context.setting.label"></legend>
+												<div class="stc-segmented" role="radiogroup">
+													<label><input type="radio" value="all" data-wp-bind--name="state.workflowEditorData.settingRadioName" data-wp-bind--checked="!state.workflowEditorData.isSettingLimited" data-wp-on--change="actions.workflowEditor.includeAllSettingValues" /><span data-wp-text="context.setting.texts.all"></span></label>
+													<label><input type="radio" value="selected" data-wp-bind--name="state.workflowEditorData.settingRadioName" data-wp-bind--checked="state.workflowEditorData.isSettingLimited" data-wp-on--change="actions.workflowEditor.limitSettingValues" /><span><?php echo esc_html_x( 'Only selected', 'shipments', 'shiptastic-for-woocommerce' ); ?></span></label>
+												</div>
+												<div class="stc-list-filter-selection" data-wp-bind--hidden="!state.workflowEditorData.isSettingLimited">
+													<ul class="stc-chips">
+														<template data-wp-each--option="state.workflowEditorData.settingSelected" data-wp-each-key="context.option.value">
+															<li class="stc-chip"><span data-wp-text="context.option.label"></span><button type="button" data-wp-on--click="actions.workflowEditor.removeSettingValue" aria-label="<?php echo esc_attr_x( 'Remove', 'shipments', 'shiptastic-for-woocommerce' ); ?>">&times;</button></li>
+														</template>
+													</ul>
+													<select class="stc-input" data-wp-on--change="actions.workflowEditor.addSettingValue" data-wp-bind--hidden="!state.workflowEditorData.settingAvailable.length">
+														<option value="" data-wp-text="context.setting.texts.add"></option>
+														<template data-wp-each--option="state.workflowEditorData.settingAvailable" data-wp-each-key="context.option.value">
+															<option data-wp-bind--value="context.option.value" data-wp-text="context.option.label"></option>
+														</template>
+													</select>
+													<p class="stc-hint" data-wp-bind--hidden="state.workflowEditorData.settingSelected.length" data-wp-text="context.setting.texts.empty"></p>
+												</div>
+											</fieldset>
+											<label class="stc-toggle-field" data-wp-bind--hidden="!state.workflowEditorData.isSettingCheckbox">
+												<input type="checkbox" data-wp-bind--checked="state.workflowEditorData.settingChecked" data-wp-on--change="actions.workflowEditor.setSetting" />
+												<span data-wp-text="context.setting.label"></span>
+											</label>
+											<label class="stc-field" data-wp-bind--hidden="!state.workflowEditorData.isSettingField">
+												<span class="stc-label" data-wp-text="context.setting.label"></span>
+												<select class="stc-input" data-wp-bind--hidden="!state.workflowEditorData.isSettingSelect" data-wp-on--change="actions.workflowEditor.setSetting">
+													<template data-wp-each--option="context.setting.options" data-wp-each-key="context.option.value">
+														<option data-wp-bind--value="context.option.value" data-wp-bind--selected="state.workflowEditorData.isSelectedSettingOption" data-wp-text="context.option.label"></option>
+													</template>
+												</select>
+												<input class="stc-input" data-wp-bind--hidden="!state.workflowEditorData.isSettingInput" data-wp-bind--type="context.setting.type" data-wp-bind--value="state.workflowEditorData.settingValue" data-wp-on--input="actions.workflowEditor.setSetting" />
+											</label>
+										</div>
+									</template>
+								</div>
 							</div>
 						</li>
 					</template>

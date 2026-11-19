@@ -6,6 +6,7 @@
  * Steps using the list validate it via callbacks.validateChecklist( message ), e.g. as callbacks.validate_pick.
  */
 import { store, getContext, getConfig, withSyncEvent } from '@wordpress/interactivity';
+import { formatWeight, itemWeightText } from './weight.js';
 
 const NAMESPACE = 'shiptastic/fulfillment';
 
@@ -31,6 +32,16 @@ const { state, actions, callbacks } = store( NAMESPACE, {
             },
             get total() {
                 return ( state.view.items || [] ).reduce( ( sum, item ) => sum + item.quantity, 0 );
+            },
+            // Item meta: SKU + weight of the counted units (follows the count).
+            get itemMeta() {
+                const { item } = getContext();
+                return [ item.sku, itemWeightText( item.weight, state.checklist.count ) ].filter( Boolean ).join( ' · ' );
+            },
+            // Weight of the units counted so far.
+            get weightText() {
+                const weight = ( state.view.items || [] ).reduce( ( sum, item ) => sum + ( parseFloat( item.weight ) || 0 ) * ( state.form.counted[ item.id ] || 0 ), 0 );
+                return weight > 0 ? formatWeight( weight ) : '';
             },
             get progressText() {
                 return getConfig( NAMESPACE ).i18n.checklistProgress.replace( '%1$d', state.checklist.checked ).replace( '%2$d', state.checklist.total );

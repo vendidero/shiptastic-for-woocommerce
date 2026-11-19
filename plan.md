@@ -784,6 +784,9 @@ Namespace `wc/v3/shiptastic/fulfillment` (or own `shiptastic/v1`):
      moved. Editor data: `phases` (value, label, description, run_level) + `default_phase`. Run screen: steps after
      each shipment/order are tagged within the step list. Offline layout planning mirrors the per shipment block.
    - **Built-in**: `mark_ready` supports `item` and `after_shipment`.
+   - Default: shipment scope actions supporting `after_shipment` default to it (`Action::get_default_phase()`, listed
+     first in the editor). Editor names for shipment scope steps: `after_shipment` = "Per shipment", `item` = "After
+     shipments" (all shipments went through the previous steps first).
    - **Hooks**: `woocommerce_shiptastic_fulfillment_before_run_step`, `_after_run_step`, `_run_step_resolved`.
    - Uninstall now drops the fulfillment tables (queue, steps, workflows(+meta), runs, run items, run steps).
    - Tests: `tests/unit-tests/fulfillment-run-phases.php` (free), `tests/unit-tests/run-phases-automation.php` (Pro).
@@ -798,6 +801,23 @@ Namespace `wc/v3/shiptastic/fulfillment` (or own `shiptastic/v1`):
      PDFs added to the run export.
    - Both are also available as bulk actions within the shipments table (no run needed).
    Decided: end of run steps run for stopped/cancelled runs too (completed orders), a batch is one claim (chunk).
+8d. ✅ **Create label step** (`Actions\CreateLabel`, `create_label`): shipment scope, phases `after_shipment` (default)/`item`,
+   modes interactive (default) + background, requires network. `Shipment::create_label()` with the provider's defaults
+   or the props of the label form. Setting `shipping_providers` (multiselect, empty = all): shipments of other providers
+   are skipped, so are shipments of providers without label support or not needing a label (tracking number); no
+   provider → error. Existing labels count as done. The label file is added to the run's files.
+   - Interactive: review (product/print format from the label fields' selected options, checked services, weight,
+     dimensions, packaging) + "Create label" (submit label via `callbacks.submitLabel_{action}`). "Edit label
+     settings" loads the provider's label form (`GET queue/{id}/shipments/{shipment_id}/label-form`, same markup as
+     the admin label modal) into the step; `create_label.js` mirrors the modal's behavior (more services toggle,
+     `data-products-supported`, `data-exclude-if-checked`, `data-show-if-*`, `show-if-trigger`) and submits visible
+     fields as `props`.
+   - Labels created within a request (incl. automatic steps) are returned as `labels` with step responses and offered
+     for printing (bottom right "Print label", opens the PDF in a new tab) until dismissed or replaced.
+   - Shipments stay unshipped during fulfillment: filter `woocommerce_shiptastic_shipment_mark_shipped_after_label_creation`
+     (Labels\Automation), `QueueSync::prevent_shipped_during_fulfillment()` returns false while the package's queue
+     item is locked, so later steps of the shipment keep running.
+   - Tests: `tests/unit-tests/fulfillment-create-label.php`.
 9. **Polish**: scanner support, gestures, a11y, performance budget check, docs for third-party actions.
 
 ---

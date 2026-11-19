@@ -46,7 +46,7 @@ defined( 'ABSPATH' ) || exit;
 								<span class="stc-drag-handle" data-stc-drag-handle aria-hidden="true" data-wp-bind--hidden="state.shipmentFields.isLocked">&#x2807;</span>
 								<div class="stc-item-body">
 									<strong data-wp-text="context.line.name"></strong>
-									<span class="stc-meta" data-wp-text="context.line.sku"></span>
+									<span class="stc-meta" data-wp-text="context.line.meta"></span>
 								</div>
 								<div class="stc-stepper">
 									<button type="button" class="stc-stepper-button" data-wp-on--click="actions.shipments.lineDecrement" data-wp-bind--disabled="state.shipmentFields.isLocked" aria-label="<?php echo esc_attr_x( 'Decrease', 'shipments', 'shiptastic-for-woocommerce' ); ?>">&minus;</button>

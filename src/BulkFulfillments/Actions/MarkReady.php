@@ -30,10 +30,11 @@ class MarkReady extends Action {
 	}
 
 	/**
-	 * Per shipment (default) or right after each shipment's steps (e.g. after packing it, before the next shipment).
+	 * Right after each shipment's steps (default, e.g. after packing it, before the next shipment) or once all
+	 * shipments went through the previous steps.
 	 */
 	public static function get_phases() {
-		return array( \Vendidero\Shiptastic\BulkFulfillments\RunPhases::ITEM, \Vendidero\Shiptastic\BulkFulfillments\RunPhases::AFTER_SHIPMENT );
+		return array( \Vendidero\Shiptastic\BulkFulfillments\RunPhases::AFTER_SHIPMENT, \Vendidero\Shiptastic\BulkFulfillments\RunPhases::ITEM );
 	}
 
 	/**

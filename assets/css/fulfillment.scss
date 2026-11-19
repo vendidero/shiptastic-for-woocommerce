@@ -160,23 +160,61 @@
   }
 }
 
-.stc-notice {
+// Bottom right corner on all screens (above the shipments overlay): label print offers + notices.
+.stc-toasts {
   position: fixed;
-  top: calc(12px + env(safe-area-inset-top));
-  left: 50%;
-  // Above the shipments overlay.
+  right: 12px;
+  bottom: calc(24px + env(safe-area-inset-bottom));
   z-index: 40;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  max-width: min(360px, calc(100% - 24px));
+  pointer-events: none;
+
+  > * {
+    pointer-events: auto;
+  }
+
+  @media (min-width: 1520px) {
+    right: 24px;
+  }
+
+  // During a run: above the action bar (which is centered and limited in width).
+  &.is-run {
+    bottom: calc(84px + env(safe-area-inset-bottom));
+
+    &.is-raised {
+      bottom: calc(108px + env(safe-area-inset-bottom));
+    }
+
+    // Wide screens: next to the action bar.
+    @media (min-width: 1520px) {
+      &,
+      &.is-raised {
+        bottom: calc(24px + env(safe-area-inset-bottom));
+      }
+    }
+  }
+}
+
+.stc-notice,
+.stc-print-offer {
   display: flex;
   align-items: center;
   gap: 8px;
-  width: calc(100% - 24px);
-  max-width: 736px;
+  max-width: 100%;
   padding: 4px 4px 4px 12px;
   border-left: 4px solid var(--stc-color-primary);
   border-radius: 4px;
   background: var(--stc-color-surface);
   box-shadow: 0 2px 12px rgba(0, 0, 0, .15);
-  transform: translateX(-50%);
+  animation: stc-notice-in .2s ease-out;
+
+  &[hidden] {
+    display: none;
+  }
 
   p {
     flex: 1;
@@ -190,29 +228,31 @@
   &.is-success {
     border-left-color: var(--stc-color-success);
   }
+}
 
-  // During a run: bottom right corner, above the action bar (which is centered and limited in width).
-  &.is-run {
-    top: auto;
-    right: 12px;
-    bottom: calc(84px + env(safe-area-inset-bottom));
-    left: auto;
-    width: auto;
-    max-width: min(360px, calc(100% - 24px));
-    transform: none;
-    animation: stc-notice-in .2s ease-out;
+// Labels created right now: print (opens the PDF in a new tab).
+.stc-print-offer {
+  align-items: flex-start;
+  border-left-color: var(--stc-color-success);
 
-    &.is-raised {
-      bottom: calc(108px + env(safe-area-inset-bottom));
-    }
+  ul {
+    display: grid;
+    flex: 1;
+    gap: 6px;
+    margin: 0;
+    padding: 6px 0;
+    list-style: none;
+  }
 
-    // Wide screens: next to the action bar.
-    @media (min-width: 1520px) {
-      &,
-      &.is-raised {
-        right: 24px;
-        bottom: calc(24px + env(safe-area-inset-bottom));
-      }
+  li {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+
+    .stc-button {
+      flex-shrink: 0;
+      white-space: nowrap;
     }
   }
 }
@@ -901,30 +941,38 @@ select.stc-input {
 
 /* Pack step: packaging + dimensions to use */
 .stc-pack-summary {
-  display: flex;
-  align-items: center;
-  gap: 12px;
+  display: grid;
+  gap: 10px;
   padding: 12px;
   border: 1px solid var(--stc-color-border);
-  border-left: 4px solid var(--stc-color-primary);
   border-radius: var(--stc-radius);
   background: var(--stc-color-surface);
 
-  .stc-pack-summary-body {
+  .stc-pack-summary-header {
     display: flex;
-    flex: 1;
-    flex-direction: column;
-    gap: 2px;
-    min-width: 0;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    min-height: 24px;
   }
 
-  .stc-label {
+  .stc-pack-summary-title {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 8px;
+    min-width: 0;
+    font-size: 14px;
+  }
+
+  .stc-pack-summary-meta {
     color: var(--stc-color-muted);
     font-size: 13px;
+    font-variant-numeric: tabular-nums;
   }
 
   .stc-pack-packaging {
-    font-size: 17px;
+    font-size: 15px;
 
     &.is-missing {
       color: #9a6700;
@@ -935,32 +983,30 @@ select.stc-input {
   .stc-pack-packaging-choice {
     display: grid;
     gap: 4px;
-    margin: 4px 0;
 
-    .stc-field {
-      display: grid;
-      gap: 4px;
+    label {
+      display: block;
     }
 
     select.stc-pack-packaging {
-      font-size: 15px;
+      width: 100%;
+      min-height: 36px;
+      font-size: 14px;
     }
 
     &[hidden] {
       display: none;
     }
   }
-
-  .stc-pack-dimensions {
-    font-size: 15px;
-    font-variant-numeric: tabular-nums;
-  }
 }
 
 /* Step navigation: summary + segmented progress, full list on demand (scales to many steps). */
 .stc-step-nav {
   position: relative;
-  margin-bottom: 16px;
+  // Header area of the run (step title + progress), separated from the step's content below.
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--stc-color-border);
 }
 
 .stc-step-summary {
@@ -1116,6 +1162,17 @@ select.stc-input {
 
 .stc-subtitle-workflow {
   display: none;
+}
+
+// Compact shipping address of the current order (run header).
+.stc-subtitle-address {
+  &::before {
+    content: " · ";
+  }
+
+  &[hidden] {
+    display: none;
+  }
 }
 
 @media (min-width: 782px) {
@@ -1412,7 +1469,31 @@ select.stc-input {
 
 .stc-address-form {
   display: grid;
-  gap: 12px;
+  gap: 10px;
+
+  // Compact fields (dense form within the order details).
+  .stc-form-grid {
+    gap: 8px 10px;
+  }
+
+  .stc-field {
+    gap: 2px;
+  }
+
+  .stc-label {
+    font-size: 12px;
+  }
+
+  .stc-input {
+    min-height: 38px;
+    padding: 6px 10px;
+    font-size: 14px;
+  }
+
+  select.stc-input {
+    padding-right: 32px;
+    background-position: right 10px center;
+  }
 
   .stc-step-error {
     margin: 0;
@@ -1473,17 +1554,81 @@ select.stc-input {
 
 .stc-workflow-step {
   display: grid;
-  gap: 8px;
+  gap: 12px;
 
   p {
     margin: 0;
   }
 }
 
-.stc-workflow-step-header {
+// Fixed properties of a step (phase, mode, scope) next to its title, explained via tooltips.
+.stc-workflow-step-badges {
   display: flex;
-  align-items: flex-start;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 4px;
+  max-width: 100%;
+
+  .stc-tag {
+    cursor: help;
+    white-space: nowrap;
+  }
+
+  &:not(:has(> :not([hidden]))) {
+    display: none;
+  }
+}
+
+// Configuration of a step (choices, settings), separated from its title/description.
+.stc-workflow-step-config {
+  display: grid;
   gap: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--stc-color-border);
+
+  &[hidden] {
+    display: none;
+  }
+}
+
+.stc-workflow-step-choices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 24px;
+
+  &[hidden] {
+    display: none;
+  }
+}
+
+.stc-workflow-step-choice {
+  display: grid;
+  gap: 4px;
+
+  // Same as the labels of the step settings.
+  .stc-label {
+    font-size: 13px;
+    font-weight: 500;
+  }
+
+  &[hidden] {
+    display: none;
+  }
+}
+
+.stc-workflow-step-header {
+  // Row 1: number, title, badges, actions - row 2: description (whole width below the title).
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 4px 12px;
+}
+
+.stc-workflow-step-description {
+  display: flex;
+  grid-column: 2 / -1;
+  flex-direction: column;
+  min-width: 0;
 }
 
 .stc-workflow-step-number {
@@ -1501,15 +1646,12 @@ select.stc-input {
 }
 
 .stc-workflow-step-title {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
   min-width: 0;
 }
 
 .stc-workflow-step-actions {
   display: flex;
-  margin: -8px -8px 0 0;
+  margin: -8px -8px -8px 0;
 
   .stc-icon-button {
     font-size: 18px;
@@ -1601,23 +1743,17 @@ select.stc-input {
 }
 
 .stc-confirm-step {
-  display: grid;
-  justify-items: start;
-  gap: 8px;
-
   p {
     margin: 0;
   }
-}
 
-.stc-workflow-step-meta {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
+  // Without shipment (order scope): the link stays on the right.
+  .stc-pack-summary-header {
+    justify-content: flex-end;
 
-  &:not(:has(> :not([hidden]))) {
-    display: none;
+    .stc-pack-summary-title:not([hidden]) {
+      margin-right: auto;
+    }
   }
 }
 
@@ -2306,5 +2442,285 @@ option.is-unfit {
     &.is-released {
       background: #a7aaad;
     }
+  }
+}
+
+/* Text button, e.g. the link to the shipments overlay within the pack step. */
+.stc-link-button {
+  padding: 2px 0;
+  border: 0;
+  background: none;
+  color: var(--stc-color-primary);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+
+  &:hover,
+  &:focus-visible {
+    text-decoration: underline;
+  }
+}
+
+// Create label step: review (provider defaults), existing label, label form of the provider (loaded on request).
+.stc-label-existing {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+
+  &[hidden] {
+    display: none;
+  }
+
+  .stc-hint {
+    display: block;
+  }
+}
+
+.stc-label-overview {
+  display: grid;
+  gap: 14px;
+
+  &[hidden] {
+    display: none;
+  }
+}
+
+.stc-label-caption {
+  display: block;
+  color: var(--stc-color-muted);
+  font-size: 12px;
+}
+
+.stc-label-product {
+  display: grid;
+  gap: 2px;
+
+  &[hidden] {
+    display: none;
+  }
+
+  strong {
+    font-size: 16px;
+  }
+}
+
+.stc-label-services {
+  display: grid;
+  gap: 4px;
+
+  &[hidden] {
+    display: none;
+  }
+}
+
+.stc-label-service-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+
+  &[hidden] {
+    display: none;
+  }
+}
+
+// Package facts side by side (packaging, dimensions, total weight).
+.stc-label-package {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 8px;
+  margin: 0;
+
+  > div {
+    padding: 8px 10px;
+    border-radius: 4px;
+    background: var(--stc-color-background);
+  }
+
+  dd {
+    display: grid;
+    gap: 2px;
+    margin: 2px 0 0;
+  }
+
+  .stc-hint {
+    font-size: 12px;
+  }
+}
+
+.stc-label-form-toggle[hidden],
+.stc-label-form[hidden] {
+  display: none;
+}
+
+.stc-label-form {
+  padding-top: 12px;
+  border-top: 1px solid var(--stc-color-border);
+
+  .hide-default,
+  .woocommerce-help-tip,
+  [hidden] {
+    display: none !important;
+  }
+
+  // Compact two column grid (wide screens), nested wrappers of the provider's markup span the whole row.
+  .wc-stc-shipment-label-admin-fields,
+  .show-more-wrapper,
+  .wc-stc-shipment-label-wrapper,
+  .columns {
+    display: grid;
+    grid-column: 1 / -1;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 8px 12px;
+
+    @media (min-width: 600px) {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  .show-more-trigger {
+    grid-column: 1 / -1;
+  }
+
+  // A service + its details (e.g. insurance amount) within one cell, details indented below the checkbox.
+  .stc-label-service {
+    display: grid;
+    align-content: start;
+    gap: 6px;
+
+    > :not(:first-child) {
+      margin-left: 24px;
+    }
+
+    .columns {
+      grid-column: auto;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    &:not(:has(p.form-field:not([hidden]))) {
+      display: none;
+    }
+  }
+
+  // Wrappers containing hidden fields only would add empty grid rows.
+  .columns:not(:has(p.form-field:not([hidden]))),
+  .wc-stc-shipment-label-wrapper:not(:has(p.form-field:not([hidden]))) {
+    display: none;
+  }
+
+  p.form-field {
+    display: grid;
+    gap: 2px;
+    margin: 0;
+
+    label {
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    // Same as .stc-input (incl. the select arrow, compact), overriding the admin styles of the provider's markup.
+    input:not([type=checkbox]):not([type=radio]),
+    select,
+    textarea {
+      box-sizing: border-box;
+      width: 100%;
+      max-width: none;
+      min-height: 38px;
+      margin: 0;
+      padding: 6px 10px;
+      border: 1px solid #949494;
+      border-radius: 4px;
+      background-color: #fff;
+      color: var(--stc-color-text);
+      font: inherit;
+      font-size: 14px;
+      line-height: 1.4;
+      box-shadow: none;
+
+      &:focus {
+        outline: 2px solid var(--stc-color-primary);
+        outline-offset: -1px;
+      }
+    }
+
+    select:not([multiple]) {
+      padding-right: 32px;
+      overflow: hidden;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%231e1e1e' stroke-width='1.5'/%3E%3C/svg%3E");
+      background-position: right 10px center;
+      background-repeat: no-repeat;
+      background-size: 12px 8px;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      appearance: none;
+      -webkit-appearance: none;
+      cursor: pointer;
+    }
+
+    select[multiple] {
+      min-height: 80px;
+    }
+
+    .description {
+      color: var(--stc-color-muted);
+      font-size: 12px;
+    }
+
+    // Checkboxes (e.g. services): box + label on one line.
+    &:has(> input[type=checkbox]) {
+      grid-template-columns: auto 1fr;
+      align-items: center;
+      column-gap: 8px;
+      align-self: start;
+      min-height: 32px;
+
+      > input[type=checkbox] {
+        grid-row: 1;
+        grid-column: 1;
+        width: 16px;
+        height: 16px;
+        margin: 0;
+      }
+
+      > label {
+        grid-row: 1;
+        grid-column: 2;
+        font-size: 14px;
+        font-weight: 400;
+      }
+
+      > .description {
+        grid-column: 2;
+      }
+    }
+  }
+
+  .show-more-trigger {
+    margin: 0;
+
+    a {
+      color: var(--stc-color-primary);
+      text-decoration: none;
+    }
+
+    .dashicons {
+      font-size: 16px;
+      vertical-align: text-bottom;
+    }
+  }
+}
+
+// Weight of the counted units next to the check list progress.
+.stc-checklist-weight {
+  &::before {
+    content: " · ";
+  }
+
+  &[hidden] {
+    display: none;
   }
 }

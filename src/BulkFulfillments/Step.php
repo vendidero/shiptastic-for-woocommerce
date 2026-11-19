@@ -78,7 +78,7 @@ class Step {
 			'shipment_id' => $this->shipment_id,
 			'mode'        => $this->mode,
 			'phase'       => $this->phase,
-			'phase_title' => RunPhases::get_title( $this->phase ),
+			'phase_title' => RunPhases::ITEM === $this->phase && $this->shipment_id ? RunPhases::get_item_shipment_texts()['title'] : RunPhases::get_title( $this->phase ),
 			'injected'    => $this->injected,
 			'is_done'     => $this->is_done,
 			// Interactive steps of actions not requiring a connection can be done offline (prefetched view data).

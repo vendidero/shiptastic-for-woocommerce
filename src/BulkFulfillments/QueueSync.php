@@ -47,10 +47,42 @@ class QueueSync {
 		add_action( self::SYNC_HOOK, array( __CLASS__, 'sync_order' ), 10, 1 );
 		add_action( self::RECONCILE_HOOK, array( __CLASS__, 'reconcile' ), 10, 0 );
 
+		// Shipments being fulfilled stay unshipped until the workflow is done (e.g. later steps after the label).
+		add_filter( 'woocommerce_shiptastic_shipment_mark_shipped_after_label_creation', array( __CLASS__, 'prevent_shipped_during_fulfillment' ), 10, 2 );
+
 		add_action( 'admin_init', array( __CLASS__, 'maybe_schedule_reconcile' ) );
 		add_action( 'woocommerce_shiptastic_new_fulfillment_workflow', array( __CLASS__, 'maybe_schedule_reconcile' ) );
 		add_action( 'woocommerce_shiptastic_fulfillment_workflow_updated', array( __CLASS__, 'maybe_schedule_reconcile' ) );
 		add_action( 'woocommerce_shiptastic_fulfillment_workflow_deleted', array( __CLASS__, 'maybe_schedule_reconcile' ) );
+	}
+
+	/**
+	 * Prevents shipping providers from marking a shipment as shipped (after creating its label) while its package is
+	 * worked on within the fulfillment process (locked queue item).
+	 *
+	 * @param bool $mark_shipped
+	 * @param \Vendidero\Shiptastic\Shipment $shipment
+	 *
+	 * @return bool
+	 */
+	public static function prevent_shipped_during_fulfillment( $mark_shipped, $shipment ) {
+		if ( ! $mark_shipped || 'simple' !== $shipment->get_type() ) {
+			return $mark_shipped;
+		}
+
+		return self::is_in_fulfillment( $shipment ) ? false : $mark_shipped;
+	}
+
+	/**
+	 * @param \Vendidero\Shiptastic\Shipment $shipment
+	 *
+	 * @return bool Whether the shipment's package is currently worked on (locked queue item).
+	 */
+	public static function is_in_fulfillment( $shipment ) {
+		$items = Queue::get_by_order( $shipment->get_order_id() );
+		$key   = self::get_package_key( $shipment->get_location(), $shipment->get_shipping_method() );
+
+		return isset( $items[ $key ] ) && $items[ $key ]->is_locked();
 	}
 
 	/**
