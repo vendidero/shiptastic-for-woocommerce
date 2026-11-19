@@ -30,14 +30,6 @@ class MarkReady extends Action {
 	}
 
 	/**
-	 * Right after each shipment's steps (default, e.g. after packing it, before the next shipment) or once all
-	 * shipments went through the previous steps.
-	 */
-	public static function get_phases() {
-		return array( \Vendidero\Shiptastic\BulkFulfillments\RunPhases::AFTER_SHIPMENT, \Vendidero\Shiptastic\BulkFulfillments\RunPhases::ITEM );
-	}
-
-	/**
 	 * Runs automatically by default, may be confirmed per shipment within the app instead.
 	 */
 	public static function get_modes() {

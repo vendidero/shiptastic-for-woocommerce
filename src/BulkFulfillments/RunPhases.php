@@ -48,8 +48,8 @@ class RunPhases {
 	public static function get_descriptions() {
 		return array(
 			self::BEFORE_QUEUE   => _x( 'Runs once for each batch of orders before they are worked on, e.g. one picking list for the batch.', 'shipments', 'shiptastic-for-woocommerce' ),
-			self::ITEM           => _x( 'Runs for each order (or each shipment).', 'shipments', 'shiptastic-for-woocommerce' ),
-			self::AFTER_SHIPMENT => _x( 'Runs for each shipment right after its previous steps, before the next shipment, e.g. pack a shipment and create its label, then continue with the next shipment.', 'shipments', 'shiptastic-for-woocommerce' ),
+			self::ITEM           => _x( 'Runs once for each order: before the per shipment steps in case it is listed before them, after all shipments otherwise.', 'shipments', 'shiptastic-for-woocommerce' ),
+			self::AFTER_SHIPMENT => _x( 'Runs for each shipment after its other steps, before the next shipment.', 'shipments', 'shiptastic-for-woocommerce' ),
 			self::AFTER_ITEM     => _x( 'Runs for each order after all its other steps.', 'shipments', 'shiptastic-for-woocommerce' ),
 			self::AFTER_QUEUE    => _x( 'Runs once at the end of the run for the orders completed within it, e.g. a shipment list.', 'shipments', 'shiptastic-for-woocommerce' ),
 		);
@@ -62,9 +62,87 @@ class RunPhases {
 	 */
 	public static function get_item_shipment_texts() {
 		return array(
-			'title'       => _x( 'After shipments', 'shipments-phase', 'shiptastic-for-woocommerce' ),
-			'description' => _x( 'Runs for each shipment once all shipments went through the previous steps, e.g. pack all shipments, then create their labels.', 'shipments', 'shiptastic-for-woocommerce' ),
+			'title'       => _x( 'Per shipment', 'shipments-phase', 'shiptastic-for-woocommerce' ),
+			'description' => _x( 'Runs for each shipment of the order, one shipment after another together with the other per shipment steps, e.g. pack shipment 1 and create its label, then shipment 2.', 'shipments', 'shiptastic-for-woocommerce' ),
 		);
+	}
+
+	/**
+	 * The choices of when a step of an action runs (workflow editor), combining phase and scope, in execution order:
+	 * start of batch, per order, per shipment, after each order, end of run. The item phase is offered per supported
+	 * scope, after_shipment is not offered (per shipment steps already run shipment by shipment, saved after_shipment
+	 * steps are presented as per shipment).
+	 *
+	 * @param string $action Action class name.
+	 *
+	 * @return array[] value (phase or item:{scope}), phase, scope, label, description, run_level
+	 */
+	public static function get_choices( $action ) {
+		$descriptions = self::get_descriptions();
+		$choices      = array();
+
+		foreach ( array_keys( self::get_phases() ) as $phase ) {
+			if ( self::AFTER_SHIPMENT === $phase || ! $action::supports_phase( $phase ) ) {
+				continue;
+			}
+
+			if ( self::ITEM === $phase ) {
+				foreach ( array( 'order', 'shipment' ) as $scope ) {
+					if ( ! $action::supports_scope( $scope ) ) {
+						continue;
+					}
+
+					$shipment  = self::get_item_shipment_texts();
+					$choices[] = array(
+						'value'       => self::ITEM . ':' . $scope,
+						'phase'       => self::ITEM,
+						'scope'       => $scope,
+						'label'       => 'shipment' === $scope ? $shipment['title'] : self::get_title( self::ITEM ),
+						'description' => 'shipment' === $scope ? $shipment['description'] : $descriptions[ self::ITEM ],
+						'run_level'   => false,
+					);
+				}
+			} else {
+				$choices[] = array(
+					'value'       => $phase,
+					'phase'       => $phase,
+					'scope'       => self::get_fixed_scope( $phase ),
+					'label'       => self::get_title( $phase ),
+					'description' => $descriptions[ $phase ],
+					'run_level'   => self::is_run_level( $phase ),
+				);
+			}
+		}
+
+		// E.g. an action supporting after_shipment only.
+		if ( empty( $choices ) && $action::supports_phase( self::AFTER_SHIPMENT ) ) {
+			$shipment  = self::get_item_shipment_texts();
+			$choices[] = array(
+				'value'       => self::AFTER_SHIPMENT,
+				'phase'       => self::AFTER_SHIPMENT,
+				'scope'       => 'shipment',
+				'label'       => $shipment['title'],
+				'description' => $descriptions[ self::AFTER_SHIPMENT ],
+				'run_level'   => false,
+			);
+		}
+
+		return $choices;
+	}
+
+	/**
+	 * @param string $action Action class name.
+	 *
+	 * @return string The default choice (see get_choices()): the default phase, combined with the default scope.
+	 */
+	public static function get_default_choice( $action ) {
+		$phase = $action::get_default_phase();
+
+		if ( self::ITEM === $phase ) {
+			return self::ITEM . ':' . $action::get_default_scope();
+		}
+
+		return $phase;
 	}
 
 	public static function exists( $phase ) {

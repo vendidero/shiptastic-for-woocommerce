@@ -105,13 +105,16 @@ class Runner {
 		$entries   = array();
 		$planned   = array();
 
-		$plan = function ( $action_name, $settings, $injected, $depth = 0 ) use ( &$plan, &$entries, &$planned, $workflow ) {
-			$action = ActionRegistry::get( $action_name );
+		$plan = function ( $action_name, $settings, $injected, $depth = 0, $instance = '' ) use ( &$plan, &$entries, &$planned, $workflow ) {
+			$action  = ActionRegistry::get( $action_name );
+			$log_key = Step::build_log_key( $action_name, $instance );
 
-			if ( ! $action || isset( $planned[ $action_name ] ) || $depth > 10 ) {
+			// Several steps of an action (instances) are planned each, required actions once.
+			if ( ! $action || isset( $planned[ $log_key ] ) || ( $injected && isset( $planned[ $action_name ] ) ) || $depth > 10 ) {
 				return;
 			}
 
+			$planned[ $log_key ]     = true;
 			$planned[ $action_name ] = true;
 
 			foreach ( $action::get_requires() as $required ) {
@@ -145,6 +148,7 @@ class Runner {
 
 			$entries[] = array(
 				'action'   => $action_name,
+				'instance' => $instance,
 				'settings' => array_merge( $settings, array( 'scope' => $scope ) ),
 				'injected' => $injected,
 				'mode'     => $workflow->get_step_mode( $action_name, $settings, $injected ),
@@ -158,7 +162,7 @@ class Runner {
 				continue;
 			}
 
-			$plan( $step['action'], $step['settings'], false );
+			$plan( $step['action'], $step['settings'], false, 0, isset( $step['instance'] ) ? $step['instance'] : '' );
 		}
 
 		$before          = array();
@@ -215,12 +219,13 @@ class Runner {
 			return new Step(
 				array(
 					'action'      => $entry['action'],
+					'instance'    => $entry['instance'],
 					'shipment_id' => $shipment_id,
 					'mode'        => $entry['mode'],
 					'settings'    => $entry['settings'],
 					'phase'       => $entry['phase'],
 					'injected'    => $entry['injected'],
-					'is_done'     => self::is_done( $log, $entry['action'], $shipment_id, $workflow ),
+					'is_done'     => self::is_done( $log, Step::build_log_key( $entry['action'], $entry['instance'] ), $shipment_id, $workflow ),
 				)
 			);
 		};
@@ -322,7 +327,7 @@ class Runner {
 
 		StepLog::record(
 			$item->get_id(),
-			$step->action,
+			$step->get_log_key(),
 			array(
 				'status'      => $step_result->get_status(),
 				'shipment_id' => $step->shipment_id,
@@ -368,12 +373,12 @@ class Runner {
 	 *               automated (Step[]: workflow steps which ran automatically and succeeded within this call)
 	 */
 	public static function execute( $queue_id, $workflow, $token, $args = array() ) {
-		$args = wp_parse_args(
+		$args     = wp_parse_args(
 			$args,
 			array(
-				'source' => 'interactive',
-				'step'   => '',
-				'data'   => null,
+				'source'     => 'interactive',
+				'step'       => '',
+				'data'       => null,
 				// The run the item is processed in (e.g. an interactive run): files of the steps are added to its export.
 				'run'        => null,
 				'auto_steps' => null,
@@ -529,8 +534,8 @@ class Runner {
 		$view_data = (array) $step->get_action()->get_view_data( $context );
 		$log       = self::get_log( $item );
 
-		if ( isset( $log[ $step->action ][ $step->shipment_id ] ) && ! empty( $log[ $step->action ][ $step->shipment_id ]['data'] ) ) {
-			$view_data['previous'] = $log[ $step->action ][ $step->shipment_id ]['data'];
+		if ( isset( $log[ $step->get_log_key() ][ $step->shipment_id ] ) && ! empty( $log[ $step->get_log_key() ][ $step->shipment_id ]['data'] ) ) {
+			$view_data['previous'] = $log[ $step->get_log_key() ][ $step->shipment_id ]['data'];
 		}
 
 		return $view_data;
@@ -613,17 +618,17 @@ class Runner {
 		$log = self::get_log( $item );
 
 		foreach ( array_unique( array( $step->shipment_id, 0 ) ) as $shipment_id ) {
-			if ( ! isset( $log[ $step->action ][ $shipment_id ] ) ) {
+			if ( ! isset( $log[ $step->get_log_key() ][ $shipment_id ] ) ) {
 				continue;
 			}
 
 			StepLog::record(
 				$queue_id,
-				$step->action,
+				$step->get_log_key(),
 				array(
 					'status'      => 'open',
 					'shipment_id' => $shipment_id,
-					'data'        => $log[ $step->action ][ $shipment_id ]['data'],
+					'data'        => $log[ $step->get_log_key() ][ $shipment_id ]['data'],
 					'workflow_id' => $workflow->get_id(),
 				)
 			);
@@ -650,14 +655,14 @@ class Runner {
 		$log = self::get_log( $item );
 
 		foreach ( array_keys( self::get_package_shipments( $item ) ) as $shipment_id ) {
-			if ( ! self::is_done( $log, $step->action, $shipment_id, $workflow ) ) {
+			if ( ! self::is_done( $log, $step->get_log_key(), $shipment_id, $workflow ) ) {
 				return;
 			}
 		}
 
 		StepLog::record(
 			$item->get_id(),
-			$step->action,
+			$step->get_log_key(),
 			array(
 				'status'      => 'done',
 				'workflow_id' => $workflow->get_id(),

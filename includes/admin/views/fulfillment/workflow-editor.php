@@ -127,7 +127,6 @@ $range_filters = array(
 								<div class="stc-workflow-step-badges">
 									<span class="stc-tag is-phase" tabindex="0" data-wp-bind--hidden="!state.workflowEditorData.stepPhaseText" data-wp-bind--title="state.workflowEditorData.stepPhaseDescription" data-wp-text="state.workflowEditorData.stepPhaseText"></span>
 									<span class="stc-tag" tabindex="0" data-wp-bind--hidden="!state.workflowEditorData.stepModeText" data-wp-bind--title="state.workflowEditorData.stepModeDescription" data-wp-text="state.workflowEditorData.stepModeText"></span>
-									<span class="stc-tag" tabindex="0" data-wp-bind--hidden="!state.workflowEditorData.stepScopeText" data-wp-bind--title="state.workflowEditorData.stepScopeDescription" data-wp-text="state.workflowEditorData.stepScopeText"></span>
 								</div>
 								<div class="stc-workflow-step-actions">
 									<button type="button" class="stc-icon-button" data-wp-on--click="actions.workflowEditor.moveStepUp" data-wp-bind--disabled="!state.workflowEditorData.canMoveUp" aria-label="<?php echo esc_attr_x( 'Move up', 'shipments', 'shiptastic-for-woocommerce' ); ?>">&uarr;</button>
@@ -140,7 +139,7 @@ $range_filters = array(
 									<span class="stc-hint" data-wp-bind--hidden="!state.workflowEditorData.stepRequires" data-wp-text="state.workflowEditorData.stepRequires"></span>
 								</div>
 							</div>
-							<?php /* Configuration: choices (phase, mode, scope) in case the action supports several, the action's settings. */ ?>
+							<?php /* Configuration: choices (when: phase + scope, mode) in case the action supports several, the action's settings. */ ?>
 							<div class="stc-workflow-step-config" data-wp-bind--hidden="!state.workflowEditorData.hasStepConfig">
 								<div class="stc-workflow-step-choices" data-wp-bind--hidden="!state.workflowEditorData.hasStepChoices">
 									<div class="stc-workflow-step-choice" data-wp-bind--hidden="!state.workflowEditorData.hasStepPhaseChoice">
@@ -156,14 +155,6 @@ $range_filters = array(
 										<div class="stc-segmented" role="radiogroup" aria-label="<?php echo esc_attr_x( 'How the step runs', 'shipments', 'shiptastic-for-woocommerce' ); ?>">
 											<template data-wp-each--choice="state.workflowEditorData.stepModeChoices" data-wp-each-key="context.choice.value">
 												<label data-wp-class--is-pro="context.choice.isPro" data-wp-bind--title="context.choice.title"><input type="radio" data-wp-bind--name="context.choice.name" data-wp-bind--value="context.choice.value" data-wp-bind--checked="context.choice.checked" data-wp-bind--disabled="context.choice.isPro" data-wp-on--change="actions.workflowEditor.setStepMode" /><span><span data-wp-text="context.choice.label"></span><?php echo \Vendidero\Shiptastic\BulkFulfillments\App::get_pro_badge( array( 'data-wp-bind--hidden' => '!context.choice.isPro' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></span></label>
-											</template>
-										</div>
-									</div>
-									<div class="stc-workflow-step-choice" data-wp-bind--hidden="!state.workflowEditorData.hasStepScopeChoice">
-										<span class="stc-label"><?php echo esc_html_x( 'How often', 'shipments-step-scope', 'shiptastic-for-woocommerce' ); ?></span>
-										<div class="stc-segmented" role="radiogroup" aria-label="<?php echo esc_attr_x( 'How often the step runs', 'shipments', 'shiptastic-for-woocommerce' ); ?>">
-											<template data-wp-each--choice="state.workflowEditorData.stepScopeChoices" data-wp-each-key="context.choice.value">
-												<label><input type="radio" data-wp-bind--name="context.choice.name" data-wp-bind--value="context.choice.value" data-wp-bind--checked="context.choice.checked" data-wp-on--change="actions.workflowEditor.setStepScope" /><span data-wp-text="context.choice.label"></span></label>
 											</template>
 										</div>
 									</div>

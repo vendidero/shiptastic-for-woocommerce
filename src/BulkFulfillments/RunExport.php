@@ -173,7 +173,7 @@ class RunExport {
 	 */
 	protected static function get_step_folder( $run, $step ) {
 		$workflow = $run->get_workflow();
-		$position = $workflow ? array_search( $step->action, $workflow->get_step_actions(), true ) : false;
+		$position = $workflow ? array_search( $step->get_log_key(), $workflow->get_step_log_keys(), true ) : false;
 		$action   = $step->get_action();
 		$title    = $action ? $action::get_title() : $step->action;
 

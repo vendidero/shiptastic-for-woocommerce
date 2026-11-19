@@ -536,11 +536,40 @@ class FulfillmentRunPhasesTest extends \Vendidero\Shiptastic\Tests\Framework\Uni
 		$editor  = $this->request( 'GET', '/workflows/editor' )->get_data();
 		$actions = array_column( $editor['actions'], null, 'name' );
 		$this->assertEquals( array( 'after_shipment', 'item' ), wp_list_pluck( $actions['test_after_shipment']['phases'], 'value' ) );
-		// Shipment scope actions run right after each shipment's steps by default, the default is listed first.
-		$this->assertEquals( 'after_shipment', $actions['mark_ready']['default_phase'] );
-		$this->assertEquals( array( 'after_shipment', 'item' ), wp_list_pluck( $actions['mark_ready']['phases'], 'value' ) );
-		$this->assertEquals( 'Per shipment', $actions['mark_ready']['phases'][0]['label'] );
-		$this->assertEquals( 'After shipments', $actions['mark_ready']['phases'][1]['shipment_label'] );
-		$this->assertEquals( 'after_shipment', $actions['create_label']['default_phase'] );
+		// When a step runs: phase + scope combined, after_shipment is not offered (per shipment steps run shipment by shipment).
+		$this->assertEquals( array( 'item:shipment' ), wp_list_pluck( $actions['mark_ready']['when'], 'value' ) );
+		$this->assertEquals( 'Per shipment', $actions['mark_ready']['when'][0]['label'] );
+		$this->assertEquals( 'item:shipment', $actions['create_label']['default_when'] );
+		$this->assertEquals( array( 'item:shipment' ), wp_list_pluck( $actions['test_after_shipment']['when'], 'value' ) );
+		$this->assertEquals( 'item:order', $actions['pick']['default_when'] );
+	}
+
+	public function test_when_choices_and_after_shipment_migration() {
+		// Per order + per shipment + run level choices, in execution order.
+		$choices = \Vendidero\Shiptastic\BulkFulfillments\RunPhases::get_choices( 'Test_Phase_Batch_Action' );
+		$this->assertNotEmpty( $choices );
+
+		foreach ( $choices as $choice ) {
+			$this->assertNotEquals( 'after_shipment', $choice['phase'] );
+			$this->assertNotEmpty( $choice['label'] );
+			$this->assertNotEmpty( $choice['description'] );
+		}
+
+		// Steps saved with the after_shipment phase become per shipment steps.
+		$workflow = new Workflow();
+		$workflow->set_steps(
+			array(
+				'pick',
+				array(
+					'action'   => 'mark_ready',
+					'settings' => array( 'phase' => 'after_shipment' ),
+				),
+			)
+		);
+
+		$steps = array_column( $workflow->get_steps(), 'settings', 'action' );
+		$this->assertEquals( 'item', $steps['mark_ready']['phase'] );
+		$this->assertEquals( 'shipment', $steps['mark_ready']['scope'] );
+		$this->assertEquals( 'item', Workflow::get_step_phase( 'mark_ready', array( 'phase' => 'after_shipment' ) ) );
 	}
 }

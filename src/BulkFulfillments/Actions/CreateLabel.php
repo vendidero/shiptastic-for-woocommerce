@@ -3,7 +3,6 @@
 namespace Vendidero\Shiptastic\BulkFulfillments\Actions;
 
 use Vendidero\Shiptastic\BulkFulfillments\Action;
-use Vendidero\Shiptastic\BulkFulfillments\RunPhases;
 use Vendidero\Shiptastic\BulkFulfillments\StepResult;
 
 defined( 'ABSPATH' ) || exit;
@@ -43,14 +42,6 @@ class CreateLabel extends Action {
 
 	public static function get_scopes() {
 		return array( 'shipment' );
-	}
-
-	/**
-	 * Right after each shipment's steps (default, e.g. label 1 right after packing shipment 1) or once all shipments
-	 * went through the previous steps (pack all, then create all labels).
-	 */
-	public static function get_phases() {
-		return array( RunPhases::AFTER_SHIPMENT, RunPhases::ITEM );
 	}
 
 	public static function get_modes() {

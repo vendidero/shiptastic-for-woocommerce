@@ -83,7 +83,8 @@ function toForm( workflow ) {
             id: workflow.id,
             title: workflow.title,
             mode: workflow.mode,
-            steps: workflow.steps.map( ( step ) => ( { key: 'step-' + ( ++stepCounter ), action: step.action, settings: { ...( Array.isArray( step.settings ) ? {} : step.settings ) } } ) ),
+            // The instance tells several steps of an action apart (assigned by the server, kept as is).
+            steps: workflow.steps.map( ( step ) => ( { key: 'step-' + ( ++stepCounter ), action: step.action, instance: step.instance || '', settings: { ...( Array.isArray( step.settings ) ? {} : step.settings ) } } ) ),
             filters: { ...form.filters, ...workflow.filters },
         },
         workflow
@@ -151,43 +152,47 @@ function getRequiredActions( name ) {
 
 const PHASES = [ 'before_queue', 'item', 'after_shipment', 'after_item', 'after_queue' ];
 
-/**
- * @param {Object} step
- * @param {Object} action
- * @return {string} order or shipment: the step's scope choice, the action's default scope otherwise.
- */
-function getStepScope( step, action ) {
-    const scope = step.settings && step.settings.scope;
-
-    return scope && action.scopes.includes( scope ) ? scope : action.default_scope;
-}
+const FALLBACK_WHEN = { value: 'item:order', phase: 'item', scope: 'order', label: '', description: '' };
 
 /**
- * Label + description of a phase for a step: the item phase runs per shipment for shipment scope steps.
+ * When a step runs (phase + scope combined, see RunPhases::get_choices()): start of batch, per order, per shipment,
+ * after each order, end of run. Steps saved with the after_shipment phase run per shipment.
  *
- * @param {Object} phase  Phase data of the action.
  * @param {Object} step
- * @param {Object} action
- * @return {Object} label, description
+ * @return {Object} The action's choice: value, phase, scope, label, description, run_level.
  */
-function getPhaseTexts( phase, step, action ) {
-    if ( 'item' === phase.value && phase.shipment_label && 'shipment' === getStepScope( step, action ) ) {
-        return { label: phase.shipment_label, description: phase.shipment_description || phase.description };
+function getStepWhen( step ) {
+    const action = getAction( step.action );
+    const choices = action && action.when ? action.when : [];
+    const fallback = choices.find( ( choice ) => choice.value === ( action && action.default_when ) ) || choices[ 0 ] || FALLBACK_WHEN;
+    const settings = step.settings || {};
+    let phase = settings.phase;
+    let scope = settings.scope;
+
+    if ( 'after_shipment' === phase && choices.some( ( choice ) => 'item:shipment' === choice.value ) ) {
+        phase = 'item';
+        scope = 'shipment';
     }
 
-    return { label: phase.label, description: phase.description };
+    if ( ! choices.some( ( choice ) => choice.phase === phase ) ) {
+        phase = fallback.phase;
+    }
+
+    if ( 'item' === phase && ( ! scope || ! choices.some( ( choice ) => choice.value === 'item:' + scope ) ) ) {
+        scope = 'item' === fallback.phase ? fallback.scope : ( action && action.default_scope ) || 'order';
+    }
+
+    const value = 'item' === phase ? 'item:' + scope : phase;
+
+    return choices.find( ( choice ) => choice.value === value ) || fallback;
 }
 
 /**
  * @param {Object} step
- * @return {string} The phase the step runs in (see RunPhases): its choice in case the action supports it, the
- *                  action's default phase otherwise.
+ * @return {string} The phase the step runs in (see RunPhases).
  */
 function getStepPhase( step ) {
-    const action = getAction( step.action );
-    const phases = action && action.phases ? action.phases.map( ( phase ) => phase.value ) : [ 'item' ];
-
-    return step.settings && phases.includes( step.settings.phase ) ? step.settings.phase : ( action && action.default_phase ) || 'item';
+    return getStepWhen( step ).phase;
 }
 
 /**
@@ -404,61 +409,37 @@ const { state, actions } = store( NAMESPACE, {
                 return i18n().modeHints[ modes.length > 0 ? modes[ 0 ] : action.default_mode ] || '';
             },
             /*
-             * Phase (start of batch, per order, after each shipment, after each order, end of run): a choice in case
-             * the action supports several phases, a hint for actions running outside the per order phase otherwise.
+             * When the step runs (start of batch, per order, per shipment, after each order, end of run): a choice in
+             * case the action supports several, a badge otherwise.
              */
             get stepPhaseChoices() {
                 const { step } = getContext();
                 const action = getAction( step.action );
+                const choices = action && action.when ? action.when : [];
 
-                if ( ! action || ! action.phases || action.phases.length < 2 ) {
+                if ( choices.length < 2 ) {
                     return [];
                 }
 
-                const current = getStepPhase( step );
+                const current = getStepWhen( step ).value;
 
-                return action.phases.map( ( phase ) => ( { value: phase.value, label: getPhaseTexts( phase, step, action ).label, checked: phase.value === current, name: step.key + '-phase' } ) );
+                return choices.map( ( choice ) => ( { ...choice, checked: choice.value === current, name: step.key + '-when' } ) );
             },
             get hasStepPhaseChoice() {
                 return state.workflowEditorData.stepPhaseChoices.length > 0;
             },
             get stepPhaseText() {
-                const { step } = getContext();
-                const action = getAction( step.action );
-                const phase = getStepPhase( step );
-
-                if ( ! action || state.workflowEditorData.hasStepPhaseChoice || 'item' === phase ) {
-                    return '';
-                }
-
-                const data = ( action.phases || [] ).find( ( candidate ) => candidate.value === phase );
-
-                return data ? getPhaseTexts( data, step, action ).label : '';
+                return state.workflowEditorData.hasStepPhaseChoice ? '' : getStepWhen( getContext().step ).label || '';
             },
-            // Explains the step's phase in case it does not run per order.
+            // Tooltip of the badge.
             get stepPhaseDescription() {
-                const { step } = getContext();
-                const action = getAction( step.action );
-                const phase = getStepPhase( step );
-                const data = action && 'item' !== phase ? ( action.phases || [] ).find( ( candidate ) => candidate.value === phase ) : null;
-
-                return data ? getPhaseTexts( data, step, action ).description : '';
+                return getStepWhen( getContext().step ).description || '';
             },
-            // The phase's explanation below its choice (fixed phases: tooltip of the badge).
+            // Explanation below the choice.
             get stepPhaseChoiceDescription() {
-                const { step } = getContext();
-                const action = getAction( step.action );
-
-                if ( ! action || ! state.workflowEditorData.hasStepPhaseChoice ) {
-                    return '';
-                }
-
-                const phase = getStepPhase( step );
-                const data = ( action.phases || [] ).find( ( candidate ) => candidate.value === phase );
-
-                return data ? getPhaseTexts( data, step, action ).description : '';
+                return state.workflowEditorData.hasStepPhaseChoice ? getStepWhen( getContext().step ).description || '' : '';
             },
-            // Tooltips of the badges (fixed mode/scope of a step).
+            // Tooltip of the mode badge.
             get stepModeDescription() {
                 const { step } = getContext();
                 const action = getAction( step.action );
@@ -472,15 +453,9 @@ const { state, actions } = store( NAMESPACE, {
 
                 return ( i18n().modeDescriptions || {} )[ mode ] || '';
             },
-            get stepScopeDescription() {
-                const { step } = getContext();
-                const action = getAction( step.action );
-
-                return action ? ( i18n().scopeDescriptions || {} )[ action.default_scope ] || '' : '';
-            },
             get hasStepChoices() {
                 const data = state.workflowEditorData;
-                return data.hasStepPhaseChoice || data.hasStepModeChoice || data.hasStepScopeChoice;
+                return data.hasStepPhaseChoice || data.hasStepModeChoice;
             },
             // Configuration section: choices or settings of the action.
             get hasStepConfig() {
@@ -489,33 +464,6 @@ const { state, actions } = store( NAMESPACE, {
             get isRunLevelStep() {
                 const { step } = getContext();
                 return [ 'before_queue', 'after_queue' ].includes( getStepPhase( step ) );
-            },
-            get stepScopeChoices() {
-                const { step } = getContext();
-                const action = getAction( step.action );
-
-                // The phase defines the scope (after each shipment/order, run level phases).
-                if ( ! action || action.scopes.length < 2 || 'item' !== getStepPhase( step ) ) {
-                    return [];
-                }
-
-                const current = getStepScope( step, action );
-
-                return action.scopes.map( ( scope ) => ( { value: scope, label: i18n().scopes[ scope ] || scope, checked: scope === current, name: step.key + '-scope' } ) );
-            },
-            get hasStepScopeChoice() {
-                return state.workflowEditorData.stepScopeChoices.length > 0;
-            },
-            get stepScopeText() {
-                const { step } = getContext();
-                const action = getAction( step.action );
-
-                // The phase choice names the scope already ("Per order", "Per shipment").
-                if ( ! action || state.workflowEditorData.hasStepScopeChoice || state.workflowEditorData.hasStepPhaseChoice || 'item' !== getStepPhase( step ) ) {
-                    return '';
-                }
-
-                return i18n().scopes[ action.default_scope ] || '';
             },
             get settingValue() {
                 const { step, setting } = getContext();
@@ -577,7 +525,8 @@ const { state, actions } = store( NAMESPACE, {
             },
             get availableActions() {
                 const listed = state.workflowEditor.form.steps.map( ( step ) => step.action );
-                return ( state.workflowChoices.actions || [] ).filter( ( action ) => ! listed.includes( action.name ) && hooks.applyFilters( 'workflowActionAvailable', true, action, state.workflowEditor.form ) );
+                // Actions allowing several steps (e.g. printing at different times) can be added again.
+                return ( state.workflowChoices.actions || [] ).filter( ( action ) => ( action.multiple || ! listed.includes( action.name ) ) && hooks.applyFilters( 'workflowActionAvailable', true, action, state.workflowEditor.form ) );
             },
             get canAddStep() {
                 return state.workflowEditorData.availableActions.length > 0;
@@ -725,12 +674,15 @@ const { state, actions } = store( NAMESPACE, {
                     settings.mode = getStepModes( action )[ 0 ];
                 }
 
-                if ( action && action.scopes.length > 1 ) {
-                    settings.scope = action.default_scope;
-                }
+                // When the step runs (phase + scope).
+                if ( action && action.when && action.when.length > 1 ) {
+                    const when = action.when.find( ( choice ) => choice.value === action.default_when ) || action.when[ 0 ];
 
-                if ( action && action.phases && action.phases.length > 1 ) {
-                    settings.phase = action.default_phase;
+                    settings.phase = when.phase;
+
+                    if ( 'item' === when.phase ) {
+                        settings.scope = when.scope;
+                    }
                 }
 
                 const steps = [ ...state.workflowEditor.form.steps ];
@@ -752,18 +704,16 @@ const { state, actions } = store( NAMESPACE, {
             },
             setStepPhase() {
                 const { step, choice } = getContext();
-                step.settings = { ...step.settings, phase: choice.value };
+                const { scope, ...settings } = step.settings || {};
+
+                // The scope is part of the choice for per order/per shipment steps, fixed otherwise.
+                step.settings = 'item' === choice.phase ? { ...settings, phase: choice.phase, scope: choice.scope } : { ...settings, phase: choice.phase };
                 state.workflowEditor.form.steps = sortByPhase( [ ...state.workflowEditor.form.steps ] );
                 markDirty();
             },
             setStepMode() {
                 const { step, choice } = getContext();
                 step.settings = { ...step.settings, mode: choice.value };
-                markDirty();
-            },
-            setStepScope() {
-                const { step, choice } = getContext();
-                step.settings = { ...step.settings, scope: choice.value };
                 markDirty();
             },
             removeStep() {
@@ -887,7 +837,7 @@ const { state, actions } = store( NAMESPACE, {
                     {
                         title: form.title.trim(),
                         mode: form.mode,
-                        steps: getVisibleSteps().map( ( step ) => ( { action: step.action, settings: step.settings } ) ),
+                        steps: getVisibleSteps().map( ( step ) => ( step.instance ? { action: step.action, instance: step.instance, settings: step.settings } : { action: step.action, settings: step.settings } ) ),
                         filters: form.filters,
                     },
                     form

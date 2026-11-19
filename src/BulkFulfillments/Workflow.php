@@ -179,6 +179,7 @@ class Workflow extends WC_Data {
 	 */
 	public static function sanitize_steps( $steps ) {
 		$sanitized = array();
+		$instances = array();
 
 		foreach ( array_values( (array) $steps ) as $step ) {
 			$step = wp_parse_args(
@@ -195,10 +196,51 @@ class Workflow extends WC_Data {
 				continue;
 			}
 
-			$sanitized[] = array(
+			$settings = (array) $step['settings'];
+
+			/*
+			 * Per shipment steps run shipment by shipment anyway: steps saved with the after_shipment phase (no longer
+			 * offered) become per shipment steps (item phase, shipment scope), placed after the other per shipment steps.
+			 */
+			if ( isset( $settings['phase'] ) && RunPhases::AFTER_SHIPMENT === $settings['phase'] && ( $instance = ActionRegistry::get( $action ) ) && $instance::supports_phase( RunPhases::ITEM ) && $instance::supports_scope( 'shipment' ) ) { // phpcs:ignore Generic.CodeAnalysis.AssignmentInCondition.Found, Squiz.PHP.DisallowMultipleAssignments.FoundInControlStructure
+				$settings['phase'] = RunPhases::ITEM;
+				$settings['scope'] = 'shipment';
+			}
+
+			/*
+			 * Several steps of an action (actions allowing it): further steps are told apart by their instance (kept
+			 * once assigned, the step's results are logged with it), duplicates of other actions are dropped.
+			 */
+			$instance = isset( $step['instance'] ) ? sanitize_key( (string) $step['instance'] ) : '';
+			$instance = str_replace( '-', '', $instance );
+
+			if ( isset( $instances[ $action ] ) ) {
+				$handler = ActionRegistry::get( $action );
+
+				if ( $handler && ! $handler::allows_multiple() ) {
+					continue;
+				}
+
+				while ( '' === $instance || in_array( $instance, $instances[ $action ], true ) ) {
+					$instance = strtolower( wp_generate_password( 4, false ) );
+				}
+			} elseif ( '' !== $instance ) {
+				// Keep the instance of a step whose first step of the action was removed (its results are logged with it).
+				$instances[ $action ] = array( '' );
+			}
+
+			$instances[ $action ][] = $instance;
+
+			$entry = array(
 				'action'   => $action,
-				'settings' => (array) $step['settings'],
+				'settings' => $settings,
 			);
+
+			if ( '' !== $instance ) {
+				$entry['instance'] = $instance;
+			}
+
+			$sanitized[] = $entry;
 		}
 
 		return $sanitized;
@@ -335,10 +377,20 @@ class Workflow extends WC_Data {
 	}
 
 	/**
-	 * @return string[] Actions of steps running per order (all phases except the run level ones).
+	 * @return string[] Log keys (actions, incl. the instance of further steps of an action, see Step::get_log_key()) of
+	 *                  steps running per order (all phases except the run level ones).
 	 */
 	public function get_item_actions() {
-		return array_values( array_unique( wp_list_pluck( $this->get_phase_steps( array( RunPhases::ITEM, RunPhases::AFTER_SHIPMENT, RunPhases::AFTER_ITEM ) ), 'action' ) ) );
+		return array_values( array_unique( array_map( array( __CLASS__, 'get_step_log_key' ), $this->get_phase_steps( array( RunPhases::ITEM, RunPhases::AFTER_SHIPMENT, RunPhases::AFTER_ITEM ) ) ) ) );
+	}
+
+	/**
+	 * @param array $step A step of the workflow (action, settings, instance).
+	 *
+	 * @return string See Step::get_log_key().
+	 */
+	public static function get_step_log_key( $step ) {
+		return Step::build_log_key( $step['action'], isset( $step['instance'] ) ? $step['instance'] : '' );
 	}
 
 	/**
@@ -403,6 +455,13 @@ class Workflow extends WC_Data {
 	 */
 	public function get_step_actions() {
 		return array_values( array_unique( wp_list_pluck( $this->get_steps(), 'action' ) ) );
+	}
+
+	/**
+	 * @return string[] Log keys of the workflow's steps in order (see Step::get_log_key()).
+	 */
+	public function get_step_log_keys() {
+		return array_values( array_map( array( __CLASS__, 'get_step_log_key' ), $this->get_steps() ) );
 	}
 
 	/**

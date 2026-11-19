@@ -40,6 +40,8 @@ class ActionRegistry {
 	 * @return Action|null
 	 */
 	public static function get( $name ) {
+		// Log keys of further steps of an action (e.g. print_documents--k3x9).
+		$name    = Step::get_log_key_action( $name );
 		$classes = self::get_action_classes();
 
 		if ( ! isset( $classes[ $name ] ) || ! class_exists( $classes[ $name ] ) || ! is_subclass_of( $classes[ $name ], '\Vendidero\Shiptastic\BulkFulfillments\Action' ) ) {

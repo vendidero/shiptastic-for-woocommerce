@@ -463,6 +463,8 @@ class FulfillmentController extends \WC_REST_Controller {
 			$action    = ActionRegistry::get( $step['action'] );
 			$actions[] = array(
 				'action'   => $step['action'],
+				// Tells several steps of an action apart (empty for the first one).
+				'instance' => isset( $step['instance'] ) ? $step['instance'] : '',
 				'title'    => $action ? $action::get_title() : $step['action'],
 				'settings' => $step['settings'],
 				'mode'     => $workflow->get_step_mode( $step['action'], $step['settings'] ),
@@ -629,7 +631,12 @@ class FulfillmentController extends \WC_REST_Controller {
 					)
 				),
 				'default_phase' => $action::get_default_phase(),
+				// When a step runs: phase + scope combined (start of batch, per order, per shipment, ...).
+				'when'          => RunPhases::get_choices( $action ),
+				'default_when'  => RunPhases::get_default_choice( $action ),
 				'requires'      => array_values( $action::get_requires() ),
+				// Whether a workflow may contain several steps of the action.
+				'multiple'      => (bool) $action::allows_multiple(),
 				'settings'      => $settings,
 			);
 		}

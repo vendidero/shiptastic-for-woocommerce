@@ -158,6 +158,7 @@ class RunSteps {
 			$steps[] = new Step(
 				array(
 					'action'   => $step['action'],
+					'instance' => isset( $step['instance'] ) ? $step['instance'] : '',
 					'mode'     => 'background',
 					'settings' => (array) $step['settings'],
 					'phase'    => $phase,
@@ -286,7 +287,7 @@ class RunSteps {
 		$result   = self::get_default_result( $run );
 
 		foreach ( self::get_phase_steps( $workflow, $phase ) as $step ) {
-			$entry = self::get_entry( $run->get_id(), $batch, $phase, $step->action );
+			$entry = self::get_entry( $run->get_id(), $batch, $phase, $step->get_log_key() );
 
 			if ( $entry && in_array( $entry['status'], array( 'done', 'skipped' ), true ) ) {
 				$result['status'] = 'done';
@@ -299,7 +300,7 @@ class RunSteps {
 					$run->get_id(),
 					$batch,
 					$phase,
-					$step->action,
+					$step->get_log_key(),
 					array(
 						'status' => 'skipped',
 						'error'  => _x( 'No order was completed.', 'shipments', 'shiptastic-for-woocommerce' ),
@@ -336,7 +337,7 @@ class RunSteps {
 				$run->get_id(),
 				$batch,
 				$phase,
-				$step->action,
+				$step->get_log_key(),
 				array(
 					'status'    => $step_result->is_error() ? 'error' : 'done',
 					'queue_ids' => $queue_ids,
@@ -361,7 +362,7 @@ class RunSteps {
 					$result,
 					array(
 						'status'  => 'error',
-						'entry'   => self::get_entry( $run->get_id(), $batch, $phase, $step->action ),
+						'entry'   => self::get_entry( $run->get_id(), $batch, $phase, $step->get_log_key() ),
 						'message' => $step_result->get_message(),
 						'code'    => $step_result->get_code(),
 					)
@@ -413,7 +414,7 @@ class RunSteps {
 		}
 
 		foreach ( self::get_phase_steps( $run->get_workflow(), RunPhases::BEFORE_QUEUE ) as $step ) {
-			$entry = self::get_entry( $run->get_id(), $batch, RunPhases::BEFORE_QUEUE, $step->action );
+			$entry = self::get_entry( $run->get_id(), $batch, RunPhases::BEFORE_QUEUE, $step->get_log_key() );
 
 			if ( $entry && in_array( $entry['status'], array( 'pending', 'error' ), true ) ) {
 				$action = $step->get_action();

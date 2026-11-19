@@ -28,8 +28,7 @@ abstract class Action {
 	}
 
 	/**
-	 * The phases a step of this action may run in (the first phase is the default, except for shipment scope actions
-	 * supporting after_shipment, see get_default_phase()), see RunPhases: before_queue
+	 * The phases a step of this action may run in (the first phase is the default), see RunPhases: before_queue
 	 * (start of batch), item (per order/shipment), after_shipment, after_item (after each order) and after_queue (end
 	 * of run). Actions supporting several phases let workflow editors choose per step (setting `phase`).
 	 *
@@ -42,18 +41,8 @@ abstract class Action {
 		return array( RunPhases::ITEM );
 	}
 
-	/**
-	 * Shipment scope actions supporting the after_shipment phase run right after each shipment's steps by default
-	 * (e.g. pack shipment 1, create its label, then pack shipment 2), the first phase otherwise.
-	 *
-	 * @return string
-	 */
 	public static function get_default_phase() {
 		$phases = static::get_phases();
-
-		if ( static::supports_phase( RunPhases::AFTER_SHIPMENT ) && 'shipment' === static::get_default_scope() ) {
-			return RunPhases::AFTER_SHIPMENT;
-		}
 
 		return $phases[0];
 	}
@@ -100,6 +89,16 @@ abstract class Action {
 	 */
 	public static function is_repeatable() {
 		return false;
+	}
+
+	/**
+	 * Whether a workflow may contain several steps of the action, e.g. printing documents at different times with
+	 * different settings. Defaults to repeatable actions (an action done once for all workflows runs once anyway).
+	 *
+	 * @return bool
+	 */
+	public static function allows_multiple() {
+		return static::is_repeatable();
 	}
 
 	/**

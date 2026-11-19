@@ -50,6 +50,39 @@ class Test_Fulfillment_Label_Action extends Action {
 }
 
 /**
+ * A repeatable background action (e.g. printing) which may be part of a workflow several times.
+ */
+class Test_Fulfillment_Print_Action extends Action {
+	public static $printed = array();
+
+	public static function get_name() {
+		return 'test_print';
+	}
+
+	public static function get_title() {
+		return 'Test print';
+	}
+
+	public static function get_description() {
+		return '';
+	}
+
+	public static function get_modes() {
+		return array( 'background' );
+	}
+
+	public static function is_repeatable() {
+		return true;
+	}
+
+	public function run( $context ) {
+		self::$printed[] = $context->get_setting( 'document', '' );
+
+		return StepResult::done();
+	}
+}
+
+/**
  * A background action failing for every order.
  */
 class Test_Fulfillment_Failing_Action extends Action {
@@ -102,6 +135,7 @@ class FulfillmentRunnerTest extends \Vendidero\Shiptastic\Tests\Framework\UnitTe
 	public function register_test_actions( $actions ) {
 		$actions['test_label'] = 'Test_Fulfillment_Label_Action';
 		$actions['test_fail']  = 'Test_Fulfillment_Failing_Action';
+		$actions['test_print'] = 'Test_Fulfillment_Print_Action';
 
 		return $actions;
 	}
@@ -198,6 +232,83 @@ class FulfillmentRunnerTest extends \Vendidero\Shiptastic\Tests\Framework\UnitTe
 		$this->assertEquals( array( 'create_shipments', 'pick' ), $this->create_workflow( array( 'pick', 'create_shipments' ) )->get_step_actions() );
 		$this->assertEquals( array( 'create_shipments', 'pack', 'pick' ), $this->create_workflow( array( 'pack', 'pick', 'create_shipments' ) )->get_step_actions() );
 		$this->assertEquals( array( 'create_shipments' ), Workflow::get_required_actions( 'mark_ready' ) );
+	}
+
+	public function test_several_steps_of_an_action() {
+		$this->assertTrue( Test_Fulfillment_Print_Action::allows_multiple() );
+		$this->assertFalse( \Vendidero\Shiptastic\BulkFulfillments\Actions\Pick::allows_multiple() );
+
+		Test_Fulfillment_Print_Action::$printed = array();
+
+		$order    = $this->create_order();
+		$workflow = $this->create_workflow(
+			array(
+				array(
+					'action'   => 'test_print',
+					'settings' => array( 'document' => 'picking_list' ),
+				),
+				'pick',
+				// Duplicates of actions not allowing several steps are dropped.
+				'pick',
+				array(
+					'action'   => 'test_print',
+					'settings' => array( 'document' => 'label' ),
+				),
+			)
+		);
+
+		$steps = $workflow->get_steps();
+		$this->assertEquals( array( 'test_print', 'pick', 'test_print' ), wp_list_pluck( $steps, 'action' ) );
+		$this->assertArrayNotHasKey( 'instance', $steps[0] );
+		$this->assertNotEmpty( $steps[2]['instance'] );
+
+		$instance = $steps[2]['instance'];
+
+		// The instance is kept once assigned, also in case the first step of the action is removed.
+		$workflow->set_steps( array( 'pick', $steps[2] ) );
+		$workflow->save();
+		$workflow = new Workflow( $workflow->get_id() );
+		$this->assertEquals( $instance, $workflow->get_steps()[1]['instance'] );
+		$this->assertContains( 'test_print--' . $instance, $workflow->get_item_actions() );
+
+		$workflow->set_steps( $steps );
+		$workflow->save();
+		$workflow = new Workflow( $workflow->get_id() );
+
+		$item  = current( Queue::claim( $workflow, array( 'user_id' => 1 ) ) );
+		$token = $item->get_lock_token();
+
+		// Both steps are planned with their own key, the first one runs before picking.
+		$planned = Runner::get_steps( Queue::get( $item->get_id() ), $workflow );
+		$keys    = array_map(
+			function ( $step ) {
+				return $step->get_key();
+			},
+			$planned
+		);
+		$this->assertContains( 'test_print', $keys );
+		$this->assertContains( 'test_print--' . $instance, $keys );
+
+		$result = Runner::execute( $item->get_id(), $workflow, $token );
+		$this->assertEquals( 'pick', $result['step']->action );
+		$this->assertEquals( array( 'picking_list' ), Test_Fulfillment_Print_Action::$printed );
+
+		$result = Runner::execute(
+			$item->get_id(),
+			$workflow,
+			$token,
+			array(
+				'step' => 'pick',
+				'data' => array( 'picked' => array( $this->get_item_id( $order ) => 2 ) ),
+			)
+		);
+
+		$this->assertEquals( 'completed', $result['status'] );
+		$this->assertEquals( array( 'picking_list', 'label' ), Test_Fulfillment_Print_Action::$printed );
+
+		$logged = wp_list_pluck( StepLog::get_entries( $item->get_id() ), 'action' );
+		$this->assertContains( 'test_print', $logged );
+		$this->assertContains( 'test_print--' . $instance, $logged );
 	}
 
 	public function test_step_plan_injects_dependencies() {

@@ -11,6 +11,14 @@ class Step {
 
 	public $action = '';
 
+	/**
+	 * Distinguishes several steps of the same action within a workflow (e.g. printing documents at different times),
+	 * empty for the first one.
+	 *
+	 * @var string
+	 */
+	public $instance = '';
+
 	public $shipment_id = 0;
 
 	public $mode = 'interactive';
@@ -47,7 +55,36 @@ class Step {
 	 * @return string
 	 */
 	public function get_key() {
-		return $this->action . ( $this->shipment_id ? ':' . $this->shipment_id : '' );
+		return $this->get_log_key() . ( $this->shipment_id ? ':' . $this->shipment_id : '' );
+	}
+
+	/**
+	 * @return string The key the step's results are logged with (StepLog, RunSteps): the action, e.g. print_documents,
+	 *                followed by the instance for further steps of the same action, e.g. print_documents--k3x9.
+	 */
+	public function get_log_key() {
+		return self::build_log_key( $this->action, $this->instance );
+	}
+
+	/**
+	 * @param string $action
+	 * @param string $instance
+	 *
+	 * @return string
+	 */
+	public static function build_log_key( $action, $instance = '' ) {
+		return $action . ( '' !== (string) $instance ? '--' . $instance : '' );
+	}
+
+	/**
+	 * @param string $log_key
+	 *
+	 * @return string The action of a log key (see get_log_key()).
+	 */
+	public static function get_log_key_action( $log_key ) {
+		$parts = explode( '--', (string) $log_key, 2 );
+
+		return $parts[0];
 	}
 
 	/**
@@ -72,6 +109,7 @@ class Step {
 		return array(
 			'key'         => $this->get_key(),
 			'action'      => $this->action,
+			'instance'    => $this->instance,
 			'title'       => $action ? $action::get_title() : $this->action,
 			'description' => $action ? $action::get_description() : '',
 			'modes'       => $action ? array_values( $action::get_modes() ) : array(),

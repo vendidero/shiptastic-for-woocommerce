@@ -784,9 +784,24 @@ Namespace `wc/v3/shiptastic/fulfillment` (or own `shiptastic/v1`):
      moved. Editor data: `phases` (value, label, description, run_level) + `default_phase`. Run screen: steps after
      each shipment/order are tagged within the step list. Offline layout planning mirrors the per shipment block.
    - **Built-in**: `mark_ready` supports `item` and `after_shipment`.
-   - Default: shipment scope actions supporting `after_shipment` default to it (`Action::get_default_phase()`, listed
-     first in the editor). Editor names for shipment scope steps: `after_shipment` = "Per shipment", `item` = "After
-     shipments" (all shipments went through the previous steps first).
+   - **Editor: one "When" choice** (phase + scope combined, `RunPhases::get_choices()`, editor data `when` +
+     `default_when`): Start of batch (`before_queue`), Per order (`item` + order), Per shipment (`item` + shipment),
+     After each order (`after_item`), End of run (`after_queue`) - only the ones an action supports, a badge for a
+     single choice. "How often" (scope choice) is gone. `after_shipment` is not offered anymore: per shipment steps
+     run shipment by shipment anyway (only difference: placed last within each shipment's block). Saved
+     `after_shipment` steps are shown as "Per shipment" and become `item` + `shipment` on save
+     (`Workflow::sanitize_steps()`), the runner still supports the phase (e.g. Pro's print documents declares it).
+     Per order steps listed after the first per shipment step run after all shipments.
+   - `mark_ready`/`create_label`: phase `item` only (shipment scope), i.e. "Per shipment".
+   - **Several steps of an action** (`Action::allows_multiple()`, defaults to `is_repeatable()`, e.g. Pro's print
+     documents: a picking list at the start of the batch, labels per shipment, a shipment list at the end of the run):
+     further steps of an action carry an `instance` (stored with the workflow step, assigned in
+     `Workflow::sanitize_steps()`, kept once assigned - also if the first step is removed); duplicates of other
+     actions are dropped. Their results are logged with the log key `{action}--{instance}` (`Step::get_log_key()`:
+     StepLog, RunSteps, claims via `Workflow::get_item_actions()`, export folders), step keys become
+     `{action}--{instance}:{shipment_id}`. The first step of an action keeps the plain action name (existing logs
+     stay valid). `ActionRegistry::get()` resolves log keys. Editor: `multiple` per action, such actions stay
+     addable. Test: `FulfillmentRunnerTest::test_several_steps_of_an_action`.
    - **Hooks**: `woocommerce_shiptastic_fulfillment_before_run_step`, `_after_run_step`, `_run_step_resolved`.
    - Uninstall now drops the fulfillment tables (queue, steps, workflows(+meta), runs, run items, run steps).
    - Tests: `tests/unit-tests/fulfillment-run-phases.php` (free), `tests/unit-tests/run-phases-automation.php` (Pro).
@@ -801,7 +816,7 @@ Namespace `wc/v3/shiptastic/fulfillment` (or own `shiptastic/v1`):
      PDFs added to the run export.
    - Both are also available as bulk actions within the shipments table (no run needed).
    Decided: end of run steps run for stopped/cancelled runs too (completed orders), a batch is one claim (chunk).
-8d. ✅ **Create label step** (`Actions\CreateLabel`, `create_label`): shipment scope, phases `after_shipment` (default)/`item`,
+8d. ✅ **Create label step** (`Actions\CreateLabel`, `create_label`): shipment scope ("Per shipment"),
    modes interactive (default) + background, requires network. `Shipment::create_label()` with the provider's defaults
    or the props of the label form. Setting `shipping_providers` (multiselect, empty = all): shipments of other providers
    are skipped, so are shipments of providers without label support or not needing a label (tracking number); no

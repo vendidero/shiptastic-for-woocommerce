@@ -417,47 +417,39 @@ JS;
 					/* translators: %d number of files */
 					'downloadFiles'     => _x( 'Download files (%d)', 'shipments', 'shiptastic-for-woocommerce' ),
 					'workflowEditor'    => array(
-						'backordersHints'   => array(
+						'backordersHints'  => array(
 							'any'     => _x( 'Orders are included regardless of backordered items.', 'shipments', 'shiptastic-for-woocommerce' ),
 							'exclude' => _x( 'Orders containing backordered items are left out.', 'shipments', 'shiptastic-for-woocommerce' ),
 							'only'    => _x( 'Only orders containing backordered items are included.', 'shipments', 'shiptastic-for-woocommerce' ),
 						),
-						'newTitle'          => _x( 'New workflow', 'shipments', 'shiptastic-for-woocommerce' ),
-						'editTitle'         => _x( 'Edit workflow', 'shipments', 'shiptastic-for-woocommerce' ),
-						'saved'             => _x( 'Workflow saved.', 'shipments', 'shiptastic-for-woocommerce' ),
-						'deleted'           => _x( 'Workflow deleted.', 'shipments', 'shiptastic-for-woocommerce' ),
-						'confirmDelete'     => _x( 'Delete this workflow? Orders are not affected.', 'shipments', 'shiptastic-for-woocommerce' ),
-						'discardChanges'    => _x( 'Discard your changes to the workflow?', 'shipments', 'shiptastic-for-woocommerce' ),
-						'rangeAny'          => _x( 'All orders, no limit.', 'shipments', 'shiptastic-for-woocommerce' ),
+						'newTitle'         => _x( 'New workflow', 'shipments', 'shiptastic-for-woocommerce' ),
+						'editTitle'        => _x( 'Edit workflow', 'shipments', 'shiptastic-for-woocommerce' ),
+						'saved'            => _x( 'Workflow saved.', 'shipments', 'shiptastic-for-woocommerce' ),
+						'deleted'          => _x( 'Workflow deleted.', 'shipments', 'shiptastic-for-woocommerce' ),
+						'confirmDelete'    => _x( 'Delete this workflow? Orders are not affected.', 'shipments', 'shiptastic-for-woocommerce' ),
+						'discardChanges'   => _x( 'Discard your changes to the workflow?', 'shipments', 'shiptastic-for-woocommerce' ),
+						'rangeAny'         => _x( 'All orders, no limit.', 'shipments', 'shiptastic-for-woocommerce' ),
 						/* translators: %s minimum incl. unit */
-						'rangeMin'          => _x( 'Orders with at least %s.', 'shipments', 'shiptastic-for-woocommerce' ),
+						'rangeMin'         => _x( 'Orders with at least %s.', 'shipments', 'shiptastic-for-woocommerce' ),
 						/* translators: %s maximum incl. unit */
-						'rangeMax'          => _x( 'Orders with at most %s.', 'shipments', 'shiptastic-for-woocommerce' ),
+						'rangeMax'         => _x( 'Orders with at most %s.', 'shipments', 'shiptastic-for-woocommerce' ),
 						/* translators: 1: minimum 2: maximum incl. unit */
-						'rangeBetween'      => _x( 'Orders with %1$s to %2$s.', 'shipments', 'shiptastic-for-woocommerce' ),
+						'rangeBetween'     => _x( 'Orders with %1$s to %2$s.', 'shipments', 'shiptastic-for-woocommerce' ),
 						/* translators: %s list of steps */
-						'requires'          => _x( 'Requires %s (added automatically).', 'shipments', 'shiptastic-for-woocommerce' ),
-						'modes'             => array(
+						'requires'         => _x( 'Requires %s (added automatically).', 'shipments', 'shiptastic-for-woocommerce' ),
+						'modes'            => array(
 							'background'  => _x( 'Automatically', 'shipments', 'shiptastic-for-woocommerce' ),
 							'interactive' => _x( 'Interactive', 'shipments', 'shiptastic-for-woocommerce' ),
 						),
-						'modeHints'         => array(
+						'modeHints'        => array(
 							'background'  => _x( 'Automatically', 'shipments', 'shiptastic-for-woocommerce' ),
 							'interactive' => _x( 'Interactive', 'shipments', 'shiptastic-for-woocommerce' ),
 						),
-						'proMode'           => _x( 'Available with Shiptastic Pro', 'shipments', 'shiptastic-for-woocommerce' ),
-						// Tooltips of the step badges.
-						'modeDescriptions'  => array(
+						'proMode'          => _x( 'Available with Shiptastic Pro', 'shipments', 'shiptastic-for-woocommerce' ),
+						// Tooltips of the mode badges.
+						'modeDescriptions' => array(
 							'background'  => _x( 'Runs automatically, without user interaction.', 'shipments', 'shiptastic-for-woocommerce' ),
 							'interactive' => _x( 'Staff completes this step within the app.', 'shipments', 'shiptastic-for-woocommerce' ),
-						),
-						'scopeDescriptions' => array(
-							'order'    => _x( 'Runs once for each order.', 'shipments', 'shiptastic-for-woocommerce' ),
-							'shipment' => _x( 'Runs once for each shipment of an order, one shipment after another.', 'shipments', 'shiptastic-for-woocommerce' ),
-						),
-						'scopes'            => array(
-							'order'    => _x( 'Once per order', 'shipments', 'shiptastic-for-woocommerce' ),
-							'shipment' => _x( 'Once per shipment', 'shipments', 'shiptastic-for-woocommerce' ),
 						),
 					),
 					'orderDetails'      => array(
