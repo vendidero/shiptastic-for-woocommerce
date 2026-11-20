@@ -8,21 +8,24 @@ use Vendidero\Shiptastic\BulkFulfillments\StepResult;
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Marks a shipment as ready for shipping (automatable). Validates the shipment first, e.g. a shipping provider is
- * needed to create labels later on.
+ * Updates the status of a shipment, e.g. to ready for shipping (default). Validates the shipment first, e.g. a shipping
+ * provider is needed to create labels later on. Replaces the former `mark_ready` step (saved steps are migrated, see
+ * Workflow::migrate_steps()).
+ *
+ * Note: shipments set to shipped/delivered leave the fulfillment process (no further steps for them).
  */
-class MarkReady extends Action {
+class UpdateShipmentStatus extends Action {
 
 	public static function get_name() {
-		return 'mark_ready';
+		return 'update_shipment_status';
 	}
 
 	public static function get_title() {
-		return _x( 'Mark as ready for shipping', 'shipments', 'shiptastic-for-woocommerce' );
+		return _x( 'Update shipment status', 'shipments', 'shiptastic-for-woocommerce' );
 	}
 
 	public static function get_description() {
-		return _x( 'Validate the shipment and mark it as ready for shipping.', 'shipments', 'shiptastic-for-woocommerce' );
+		return _x( 'Validate the shipment and update its status, e.g. to ready for shipping.', 'shipments', 'shiptastic-for-woocommerce' );
 	}
 
 	public static function get_scopes() {
@@ -36,8 +39,30 @@ class MarkReady extends Action {
 		return array( 'background', 'interactive' );
 	}
 
+	/**
+	 * @return array status => title of the statuses a shipment may be updated to.
+	 */
+	public static function get_statuses() {
+		$statuses = array_intersect_key( wc_stc_get_shipment_statuses(), array_flip( array( 'processing', 'ready-for-shipping', 'shipped', 'delivered' ) ) );
+
+		/**
+		 * Filter the statuses offered by the update shipment status step.
+		 *
+		 * @param array $statuses status => title
+		 *
+		 * @package Vendidero/Shiptastic
+		 */
+		return (array) apply_filters( 'woocommerce_shiptastic_fulfillment_update_shipment_statuses', $statuses );
+	}
+
 	public static function get_settings_schema() {
 		return array(
+			'status'                    => array(
+				'type'    => 'select',
+				'label'   => _x( 'New status', 'shipments', 'shiptastic-for-woocommerce' ),
+				'default' => 'ready-for-shipping',
+				'options' => self::get_statuses(),
+			),
 			'require_shipping_provider' => array(
 				'type'    => 'checkbox',
 				'label'   => _x( 'Require a shipping provider', 'shipments', 'shiptastic-for-woocommerce' ),
@@ -54,10 +79,36 @@ class MarkReady extends Action {
 	/**
 	 * @param \Vendidero\Shiptastic\BulkFulfillments\StepContext $context
 	 *
+	 * @return string The status to set.
+	 */
+	protected function get_status( $context ) {
+		$status = (string) $context->get_setting( 'status', 'ready-for-shipping' );
+
+		return array_key_exists( $status, self::get_statuses() ) ? $status : 'ready-for-shipping';
+	}
+
+	/**
+	 * Review screen (interactive mode): the status the shipment is updated to.
+	 */
+	public function get_view_data( $context ) {
+		$data     = parent::get_view_data( $context );
+		$statuses = self::get_statuses();
+		$status   = $this->get_status( $context );
+
+		/* translators: %s shipment status */
+		$data['description'] = sprintf( _x( 'Validate the shipment and update its status to %s.', 'shipments', 'shiptastic-for-woocommerce' ), $statuses[ $status ] );
+
+		return $data;
+	}
+
+	/**
+	 * @param \Vendidero\Shiptastic\BulkFulfillments\StepContext $context
+	 *
 	 * @return StepResult
 	 */
 	public function run( $context ) {
 		$shipment = $context->get_shipment();
+		$status   = $this->get_status( $context );
 
 		if ( ! $shipment ) {
 			return StepResult::error( _x( 'There is no shipment, e.g. because all items are on backorder.', 'shipments', 'shiptastic-for-woocommerce' ), 'no_shipment' );
@@ -79,26 +130,27 @@ class MarkReady extends Action {
 		}
 
 		/**
-		 * Filter to validate a shipment before it is marked as ready for shipping.
+		 * Filter to validate a shipment before its status is updated within a fulfillment workflow.
 		 *
 		 * @param true|\WP_Error $valid
 		 * @param \Vendidero\Shiptastic\Shipment $shipment
+		 * @param string $status The new status.
 		 * @param \Vendidero\Shiptastic\BulkFulfillments\StepContext $context
 		 *
 		 * @package Vendidero/Shiptastic
 		 */
-		$valid = apply_filters( 'woocommerce_shiptastic_fulfillment_validate_ready_for_shipping', true, $shipment, $context );
+		$valid = apply_filters( 'woocommerce_shiptastic_fulfillment_validate_shipment_status', true, $shipment, $status, $context );
 
 		if ( is_wp_error( $valid ) ) {
 			return StepResult::from_wp_error( $valid );
 		}
 
 		// Validated in any case, e.g. packing may have set the status already.
-		if ( ! $shipment->has_status( 'ready-for-shipping' ) ) {
-			$shipment->set_status( 'ready-for-shipping' );
+		if ( ! $shipment->has_status( $status ) ) {
+			$shipment->set_status( $status );
 			$shipment->save();
 		}
 
-		return StepResult::done( array( 'status' => 'ready-for-shipping' ) );
+		return StepResult::done( array( 'status' => $status ) );
 	}
 }

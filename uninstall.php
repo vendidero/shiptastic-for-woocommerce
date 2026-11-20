@@ -41,6 +41,7 @@ if ( defined( 'WC_SHIPTASTIC_REMOVE_ALL_DATA' ) && true === WC_SHIPTASTIC_REMOVE
 		"{$wpdb->prefix}woocommerce_stc_shipment_itemmeta",
 		"{$wpdb->prefix}woocommerce_stc_shipment_items",
 		"{$wpdb->prefix}woocommerce_stc_fulfillment_queue",
+		"{$wpdb->prefix}woocommerce_stc_fulfillment_queue_tags",
 		"{$wpdb->prefix}woocommerce_stc_fulfillment_steps",
 		"{$wpdb->prefix}woocommerce_stc_fulfillment_workflowmeta",
 		"{$wpdb->prefix}woocommerce_stc_fulfillment_workflows",

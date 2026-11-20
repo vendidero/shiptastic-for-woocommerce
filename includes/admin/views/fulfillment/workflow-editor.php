@@ -23,7 +23,32 @@ $list_filters = array(
 		'add'   => _x( '+ Add a country…', 'shipments', 'shiptastic-for-woocommerce' ),
 		'empty' => _x( 'No country selected yet: all countries are included.', 'shipments', 'shiptastic-for-woocommerce' ),
 	),
+	// Queue item tags: product categories, shipping classes, payment methods (see QueueTags), offered with Shiptastic Pro.
+	'tags'               => array(
+		'autocomplete' => true,
+		'label'        => _x( 'Including', 'shipments', 'shiptastic-for-woocommerce' ),
+		'all'          => _x( 'Any order', 'shipments', 'shiptastic-for-woocommerce' ),
+		'selected'     => _x( 'Only orders with', 'shipments', 'shiptastic-for-woocommerce' ),
+		'add'          => _x( 'Search categories, shipping classes, payment methods…', 'shipments', 'shiptastic-for-woocommerce' ),
+		'empty'        => _x( 'Nothing selected yet: all orders are included. Orders matching any of the selected ones are included.', 'shipments', 'shiptastic-for-woocommerce' ),
+	),
+	'exclude_tags'       => array(
+		'autocomplete' => true,
+		'label'        => _x( 'Excluding', 'shipments', 'shiptastic-for-woocommerce' ),
+		'all'          => _x( 'None', 'shipments', 'shiptastic-for-woocommerce' ),
+		'selected'     => _x( 'Skip orders with', 'shipments', 'shiptastic-for-woocommerce' ),
+		'add'          => _x( 'Search categories, shipping classes, payment methods…', 'shipments', 'shiptastic-for-woocommerce' ),
+		'empty'        => _x( 'Nothing selected yet: no orders are excluded. Orders matching any of the selected ones are skipped.', 'shipments', 'shiptastic-for-woocommerce' ),
+	),
 );
+
+// Without Shiptastic Pro: the tag filters are presented with a pro marker (not selectable).
+$pro_list_filters = array();
+
+if ( ! \Vendidero\Shiptastic\BulkFulfillments\QueueTags::has_editor_filters() ) {
+	$pro_list_filters = array_intersect_key( $list_filters, array_flip( array( 'tags', 'exclude_tags' ) ) );
+	unset( $list_filters['tags'], $list_filters['exclude_tags'] );
+}
 
 $weight_unit   = get_option( 'woocommerce_weight_unit', 'kg' );
 $range_filters = array(
@@ -214,15 +239,26 @@ $range_filters = array(
 				do_action( 'woocommerce_shiptastic_fulfillment_app_workflow_editor_after_steps' );
 				?>
 				<p class="stc-empty" data-wp-bind--hidden="state.workflowEditorData.hasSteps"><?php echo esc_html_x( 'Add the first step.', 'shipments', 'shiptastic-for-woocommerce' ); ?></p>
-				<label class="stc-field" data-wp-bind--hidden="!state.workflowEditorData.canAddStep">
-					<span class="screen-reader-text"><?php echo esc_html_x( 'Add a step', 'shipments', 'shiptastic-for-woocommerce' ); ?></span>
-					<select class="stc-input" data-wp-on--change="actions.workflowEditor.addStep">
-						<option value=""><?php echo esc_html_x( '+ Add a step…', 'shipments', 'shiptastic-for-woocommerce' ); ?></option>
+				<?php /* Step picker: the available steps (title, description), steps of Shiptastic Pro with a pro marker (not selectable). */ ?>
+				<div class="stc-step-picker" data-wp-bind--hidden="!state.workflowEditorData.canAddStep" data-wp-on--keydown="actions.workflowEditor.onPickerKeydown" data-wp-on--focusout="actions.workflowEditor.onPickerFocusout">
+					<button type="button" class="stc-input stc-step-picker-toggle" aria-haspopup="true" data-wp-bind--aria-expanded="state.workflowEditor.pickerOpen" data-wp-on--click="actions.workflowEditor.togglePicker"><?php echo esc_html_x( '+ Add a step…', 'shipments', 'shiptastic-for-woocommerce' ); ?></button>
+					<ul class="stc-step-picker-list" data-wp-bind--hidden="!state.workflowEditor.pickerOpen">
 						<template data-wp-each--action="state.workflowEditorData.availableActions" data-wp-each-key="context.action.name">
-							<option data-wp-bind--value="context.action.name" data-wp-text="context.action.title"></option>
+							<li>
+								<button type="button" class="stc-step-picker-option" data-wp-on--click="actions.workflowEditor.pickStep">
+									<strong data-wp-text="context.action.title"></strong>
+									<span class="stc-hint" data-wp-bind--hidden="!context.action.description" data-wp-text="context.action.description"></span>
+								</button>
+							</li>
 						</template>
-					</select>
-				</label>
+						<template data-wp-each--action="state.workflowEditorData.proActions" data-wp-each-key="context.action.name">
+							<li class="stc-step-picker-option is-pro" aria-disabled="true">
+								<strong><span data-wp-text="context.action.title"></span> <?php echo \Vendidero\Shiptastic\BulkFulfillments\App::get_pro_badge(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></strong>
+								<span class="stc-hint" data-wp-text="context.action.description"></span>
+							</li>
+						</template>
+					</ul>
+				</div>
 
 				<?php /* Filters */ ?>
 				<h3 class="stc-section-title"><?php echo esc_html_x( 'Orders', 'shipments', 'shiptastic-for-woocommerce' ); ?></h3>
@@ -231,16 +267,16 @@ $range_filters = array(
 
 					<?php
 					/*
-					 * List filters (locations, shipping providers, countries): all options are included by default, the
-					 * user may restrict the workflow to selected options on request.
+					 * List filters (locations, shipping providers, countries, including/excluding tags): all options are
+					 * included by default, the user may restrict the workflow to selected options on request.
 					 */
 					foreach ( $list_filters as $list_filter => $list_filter_texts ) :
 						?>
-						<fieldset class="stc-list-filter" data-wp-context='<?php echo wp_json_encode( array( 'list' => $list_filter ) ); ?>'>
+						<fieldset class="stc-list-filter is-<?php echo esc_attr( str_replace( '_', '-', $list_filter ) ); ?>" data-wp-context='<?php echo wp_json_encode( array( 'list' => $list_filter ) ); ?>'>
 							<legend class="stc-label"><?php echo esc_html( $list_filter_texts['label'] ); ?></legend>
 							<div class="stc-segmented" role="radiogroup">
 								<label><input type="radio" name="stc-filter-<?php echo esc_attr( $list_filter ); ?>" value="all" data-wp-bind--checked="!state.workflowEditorData.isListLimited" data-wp-on--change="actions.workflowEditor.includeAll" /><span><?php echo esc_html( $list_filter_texts['all'] ); ?></span></label>
-								<label><input type="radio" name="stc-filter-<?php echo esc_attr( $list_filter ); ?>" value="selected" data-wp-bind--checked="state.workflowEditorData.isListLimited" data-wp-on--change="actions.workflowEditor.limitList" /><span><?php echo esc_html_x( 'Only selected', 'shipments', 'shiptastic-for-woocommerce' ); ?></span></label>
+								<label><input type="radio" name="stc-filter-<?php echo esc_attr( $list_filter ); ?>" value="selected" data-wp-bind--checked="state.workflowEditorData.isListLimited" data-wp-on--change="actions.workflowEditor.limitList" /><span><?php echo esc_html( isset( $list_filter_texts['selected'] ) ? $list_filter_texts['selected'] : _x( 'Only selected', 'shipments', 'shiptastic-for-woocommerce' ) ); ?></span></label>
 							</div>
 							<div class="stc-list-filter-selection" data-wp-bind--hidden="!state.workflowEditorData.isListLimited">
 								<ul class="stc-chips">
@@ -248,13 +284,37 @@ $range_filters = array(
 										<li class="stc-chip"><span data-wp-text="context.choice.label"></span><button type="button" data-wp-on--click="actions.workflowEditor.removeListValue" aria-label="<?php echo esc_attr_x( 'Remove', 'shipments', 'shiptastic-for-woocommerce' ); ?>">&times;</button></li>
 									</template>
 								</ul>
-								<select class="stc-input" data-wp-on--change="actions.workflowEditor.addListValue" data-wp-bind--hidden="!state.workflowEditorData.listAvailable.length">
-									<option value=""><?php echo esc_html( $list_filter_texts['add'] ); ?></option>
-									<template data-wp-each--choice="state.workflowEditorData.listAvailable" data-wp-each-key="context.choice.value">
-										<option data-wp-bind--value="context.choice.value" data-wp-text="context.choice.label"></option>
-									</template>
-								</select>
+								<?php if ( ! empty( $list_filter_texts['autocomplete'] ) ) : ?>
+									<?php /* Autocomplete (async search), e.g. categories, shipping classes, payment methods. */ ?>
+									<div class="stc-autocomplete" data-wp-on--focusout="actions.workflowEditor.onTagFocusout">
+										<input class="stc-input" type="search" role="combobox" aria-autocomplete="list" data-wp-bind--aria-expanded="state.workflowEditorData.showTagResults" autocomplete="off" placeholder="<?php echo esc_attr( $list_filter_texts['add'] ); ?>" data-wp-bind--value="state.workflowEditorData.tagQuery" data-wp-on--input="actions.workflowEditor.searchTags" data-wp-on--focus="actions.workflowEditor.searchTags" data-wp-on--keydown="actions.workflowEditor.onTagKeydown" />
+										<ul class="stc-autocomplete-list" role="listbox" data-wp-bind--hidden="!state.workflowEditorData.showTagResults">
+											<template data-wp-each--result="state.workflowEditorData.tagResults" data-wp-each-key="context.result.value">
+												<li><button type="button" role="option" data-wp-on--click="actions.workflowEditor.addTag" data-wp-on--keydown="actions.workflowEditor.onTagResultKeydown" data-wp-text="context.result.label"></button></li>
+											</template>
+											<li class="stc-hint" data-wp-bind--hidden="!state.workflowEditorData.isTagSearching"><?php echo esc_html_x( 'Searching…', 'shipments', 'shiptastic-for-woocommerce' ); ?></li>
+											<li class="stc-hint" data-wp-bind--hidden="!state.workflowEditorData.hasNoTagResults"><?php echo esc_html_x( 'No matches.', 'shipments', 'shiptastic-for-woocommerce' ); ?></li>
+										</ul>
+									</div>
+								<?php else : ?>
+									<select class="stc-input" data-wp-on--change="actions.workflowEditor.addListValue" data-wp-bind--hidden="!state.workflowEditorData.listAvailable.length">
+										<option value=""><?php echo esc_html( $list_filter_texts['add'] ); ?></option>
+										<template data-wp-each--choice="state.workflowEditorData.listAvailable" data-wp-each-key="context.choice.value">
+											<option data-wp-bind--value="context.choice.value" data-wp-text="context.choice.label"></option>
+										</template>
+									</select>
+								<?php endif; ?>
 								<p class="stc-hint" data-wp-bind--hidden="state.workflowEditorData.listSelected.length"><?php echo esc_html( $list_filter_texts['empty'] ); ?></p>
+							</div>
+						</fieldset>
+					<?php endforeach; ?>
+
+					<?php foreach ( $pro_list_filters as $list_filter => $list_filter_texts ) : ?>
+						<fieldset class="stc-list-filter is-pro is-<?php echo esc_attr( str_replace( '_', '-', $list_filter ) ); ?>" disabled>
+							<legend class="stc-label"><?php echo esc_html( $list_filter_texts['label'] ); ?> <?php echo \Vendidero\Shiptastic\BulkFulfillments\App::get_pro_badge(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></legend>
+							<div class="stc-segmented" role="radiogroup">
+								<label><input type="radio" checked /><span><?php echo esc_html( $list_filter_texts['all'] ); ?></span></label>
+								<label><input type="radio" /><span><?php echo esc_html( $list_filter_texts['selected'] ); ?></span></label>
 							</div>
 						</fieldset>
 					<?php endforeach; ?>

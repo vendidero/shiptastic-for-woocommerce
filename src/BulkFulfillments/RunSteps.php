@@ -313,6 +313,23 @@ class RunSteps {
 			$action  = $step->get_action();
 			$context = new RunContext( $run, $workflow, $step, $phase, $batch, $queue_ids, $source );
 
+			// Steps not applying, e.g. printing without documents: skipped silently (not shown).
+			if ( $action && ! $action->is_applicable( $context ) ) {
+				self::record(
+					$run->get_id(),
+					$batch,
+					$phase,
+					$step->get_log_key(),
+					array(
+						'status'    => 'skipped',
+						'queue_ids' => $queue_ids,
+						'data'      => array( 'not_applicable' => true ),
+					)
+				);
+				$result['status'] = 'done';
+				continue;
+			}
+
 			/**
 			 * Action that fires before a step of a run level phase (start of batch, end of run) runs.
 			 *
@@ -525,6 +542,14 @@ class RunSteps {
 	 * @return array[] REST/app data of the run's run level steps.
 	 */
 	public static function prepare( $run ) {
-		return array_map( array( __CLASS__, 'prepare_entry' ), self::get_entries( $run->get_id() ) );
+		// Steps which did not apply (e.g. printing without documents) are not shown.
+		$entries = array_filter(
+			self::get_entries( $run->get_id() ),
+			function ( $entry ) {
+				return empty( $entry['data']['not_applicable'] );
+			}
+		);
+
+		return array_values( array_map( array( __CLASS__, 'prepare_entry' ), $entries ) );
 	}
 }

@@ -5,10 +5,29 @@
  *
  * Steps using the list validate it via callbacks.validateChecklist( message ), e.g. as callbacks.validate_pick.
  */
-import { store, getContext, getConfig, withSyncEvent } from '@wordpress/interactivity';
+import { store, getContext, getConfig, getElement, withSyncEvent } from '@wordpress/interactivity';
 import { formatWeight, itemWeightText } from './weight.js';
 
 const NAMESPACE = 'shiptastic/fulfillment';
+
+/*
+ * Keyboard wedge scanners (hand scanners acting as keyboard) outside the scan field: characters typed in a fast burst
+ * (< 50ms apart), finished with Enter, count as a scan.
+ */
+const WEDGE_MAX_INTERVAL = 50;
+const WEDGE_MIN_LENGTH = 3;
+let wedge = { code: '', last: 0 };
+
+const isEditable = ( element ) => !! element && ( element.isContentEditable || [ 'INPUT', 'TEXTAREA', 'SELECT' ].includes( element.tagName ) );
+
+// Haptic feedback (devices supporting it, e.g. Android scanners/phones).
+const vibrate = ( pattern ) => {
+    if ( navigator.vibrate ) {
+        try {
+            navigator.vibrate( pattern );
+        } catch ( error ) {}
+    }
+};
 
 const { state, actions, callbacks } = store( NAMESPACE, {
     state: {
@@ -16,6 +35,11 @@ const { state, actions, callbacks } = store( NAMESPACE, {
             get count() {
                 const { item } = getContext();
                 return state.form.counted && state.form.counted[ item.id ] ? state.form.counted[ item.id ] : 0;
+            },
+            // The item just scanned (flash).
+            get isItemScanned() {
+                const { item } = getContext();
+                return state.checklist.scanned === String( item.id );
             },
             get isItemComplete() {
                 const { item } = getContext();
@@ -84,15 +108,15 @@ const { state, actions, callbacks } = store( NAMESPACE, {
             all() {
                 ( state.view.items || [] ).forEach( ( item ) => actions.checklist.set( item, item.quantity ) );
             },
-            onScanKeydown: withSyncEvent( ( event ) => {
-                if ( 'Enter' !== event.key ) {
-                    return;
-                }
-
-                event.preventDefault();
-
-                const code = event.target.value.trim().toLowerCase();
-                event.target.value = '';
+            /**
+             * Counts the item matching a scanned code (SKU/GTIN), with feedback: the item flashes (+ short vibration),
+             * unknown codes and items counted completely already are pointed out.
+             *
+             * @param {string} scanned
+             */
+            scan( scanned ) {
+                const code = String( scanned || '' ).trim().toLowerCase();
+                const i18n = getConfig( NAMESPACE ).i18n;
 
                 if ( ! code ) {
                     return;
@@ -102,11 +126,63 @@ const { state, actions, callbacks } = store( NAMESPACE, {
                 const item = matches.find( ( candidate ) => ( state.form.counted[ candidate.id ] || 0 ) < candidate.quantity ) || matches[ 0 ];
 
                 if ( ! item ) {
-                    actions.notify( getConfig( NAMESPACE ).i18n.unknownCode, 'error', 3000 );
+                    vibrate( [ 80, 40, 80 ] );
+                    actions.notify( i18n.unknownCode, 'error', 3000 );
+                    return;
+                }
+
+                if ( ( state.form.counted[ item.id ] || 0 ) >= item.quantity ) {
+                    vibrate( [ 80, 40, 80 ] );
+                    actions.notify( i18n.alreadyComplete.replace( '%s', item.name ), 'error', 3000 );
                     return;
                 }
 
                 actions.checklist.set( item, ( state.form.counted[ item.id ] || 0 ) + 1 );
+                vibrate( 30 );
+
+                // Flash the item (restarted for repeated scans of the same item).
+                state.checklist.scanned = '';
+                window.requestAnimationFrame( () => {
+                    state.checklist.scanned = String( item.id );
+                } );
+            },
+            onScanKeydown: withSyncEvent( ( event ) => {
+                if ( 'Enter' !== event.key ) {
+                    return;
+                }
+
+                event.preventDefault();
+
+                const code = event.target.value;
+                event.target.value = '';
+                actions.checklist.scan( code );
+            } ),
+            // Keyboard wedge scanners while the focus is not within a field (only the visible check list reacts).
+            onDocumentKeydown: withSyncEvent( ( event ) => {
+                const { ref } = getElement();
+
+                if ( ! ref || ! ref.offsetParent || isEditable( event.target ) || event.ctrlKey || event.metaKey || event.altKey ) {
+                    return;
+                }
+
+                const now = Date.now();
+
+                if ( now - wedge.last > WEDGE_MAX_INTERVAL ) {
+                    wedge.code = '';
+                }
+
+                wedge.last = now;
+
+                if ( 'Enter' === event.key ) {
+                    if ( wedge.code.length >= WEDGE_MIN_LENGTH ) {
+                        event.preventDefault();
+                        actions.checklist.scan( wedge.code );
+                    }
+
+                    wedge = { code: '', last: 0 };
+                } else if ( 1 === event.key.length ) {
+                    wedge.code += event.key;
+                }
             } ),
         },
     },

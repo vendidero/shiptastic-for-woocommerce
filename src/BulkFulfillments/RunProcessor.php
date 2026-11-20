@@ -76,7 +76,7 @@ class RunProcessor {
 			return $run;
 		}
 
-		// Steps at the end of the run (e.g. a shipment list) for the orders completed within it.
+		// Steps at the end of the run (e.g. a carrier manifest) for the orders completed within it.
 		$finished = RunSteps::finish( $run, 'interactive' );
 		$run      = $finished['run'];
 

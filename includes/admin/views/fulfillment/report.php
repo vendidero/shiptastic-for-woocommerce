@@ -5,6 +5,13 @@
  * errors of automation runs).
  */
 defined( 'ABSPATH' ) || exit;
+
+$report_tabs = array(
+	'completed' => _x( 'Completed', 'shipments-run-order', 'shiptastic-for-woocommerce' ),
+	'failed'    => _x( 'Exceptions', 'shipments-run-order', 'shiptastic-for-woocommerce' ),
+	'released'  => _x( 'Put back', 'shipments-run-order', 'shiptastic-for-woocommerce' ),
+	'claimed'   => _x( 'In progress', 'shipments-run-order', 'shiptastic-for-woocommerce' ),
+);
 ?>
 <section class="stc-screen stc-report" data-wp-bind--hidden="!state.isReportScreen">
 	<div class="stc-card stc-report-summary">
@@ -72,9 +79,17 @@ defined( 'ABSPATH' ) || exit;
 			<li class="stc-list-item stc-skeleton"><span class="stc-skeleton-line is-short"></span><span class="stc-skeleton-line"></span></li>
 		<?php endfor; ?>
 	</ul>
+	<?php /* Tabs like the queue: the orders' outcome within the run (in progress only while orders are claimed). */ ?>
+	<nav class="stc-tabs" role="tablist" data-wp-bind--hidden="!state.showReportTabs">
+		<?php foreach ( $report_tabs as $report_status => $report_title ) : ?>
+			<button type="button" role="tab" class="stc-tab" data-wp-context='<?php echo wp_json_encode( array( 'reportStatus' => $report_status ) ); ?>' data-wp-on--click="actions.report.showTab" data-wp-class--is-active="state.isActiveReportTab" data-wp-bind--aria-selected="state.isActiveReportTab" data-wp-bind--hidden="state.isReportTabHidden">
+				<?php echo esc_html( $report_title ); ?> <span class="stc-count" data-wp-text="state.reportTabCount"></span>
+			</button>
+		<?php endforeach; ?>
+	</nav>
 	<p class="stc-empty" data-wp-bind--hidden="!state.showNoReportOrders" data-wp-text="state.noReportOrdersText"></p>
 	<ul class="stc-list stc-run-orders" data-wp-bind--hidden="state.report.ordersLoading">
-		<template data-wp-each--runorder="state.report.orders" data-wp-each-key="context.runorder.queue_id">
+		<template data-wp-each--runorder="state.reportTabOrders" data-wp-each-key="context.runorder.queue_id">
 			<li class="stc-list-item">
 				<div class="stc-list-body">
 					<strong><a target="_blank" data-wp-bind--href="context.runorder.order_url">#<span data-wp-text="context.runorder.order_number"></span></a></strong>
@@ -111,7 +126,6 @@ defined( 'ABSPATH' ) || exit;
 						</template>
 					</ul>
 				</div>
-				<span class="stc-badge" data-wp-class--is-completed="state.isRunOrderCompleted" data-wp-class--is-stopped="state.isRunOrderFailed" data-wp-text="state.runOrderStatusText"></span>
 			</li>
 		</template>
 	</ul>

@@ -197,7 +197,7 @@ class QueueSync {
 	 */
 	public static function get_order_packages( $order_shipment ) {
 		$packages = array();
-		$add      = function ( $location, $method, $provider, $item_count, $weight, $has_backorders, $is_ready = false ) use ( &$packages ) {
+		$add      = function ( $location, $method, $provider, $item_count, $weight, $has_backorders, $is_ready = false, $order_item_ids = array() ) use ( &$packages ) {
 			$key = self::get_package_key( $location, $method );
 
 			if ( ! isset( $packages[ $key ] ) ) {
@@ -210,8 +210,12 @@ class QueueSync {
 					'has_backorders'    => false,
 					'is_ready'          => true,
 					'has_shipments'     => false,
+					// Order items of the package (tags, see QueueTags).
+					'order_item_ids'    => array(),
 				);
 			}
+
+			$packages[ $key ]['order_item_ids'] = array_values( array_unique( array_merge( $packages[ $key ]['order_item_ids'], array_map( 'absint', (array) $order_item_ids ) ) ) );
 
 			// Ready: shipments only (no items left without shipment), all of them ready for shipping.
 			$packages[ $key ]['is_ready'] = $packages[ $key ]['is_ready'] && $is_ready;
@@ -236,7 +240,8 @@ class QueueSync {
 				$package['weight'],
 				! empty( $package['has_backorders'] ),
 				// Only backordered units left (never added automatically): does not hold the package.
-				0 === array_sum( $package['item_map'] )
+				0 === array_sum( $package['item_map'] ),
+				array_keys( $package['item_map'] )
 			);
 		}
 
@@ -252,7 +257,13 @@ class QueueSync {
 				$shipment->get_item_count(),
 				(float) wc_get_weight( $shipment->get_content_weight(), get_option( 'woocommerce_weight_unit', 'kg' ), $shipment->get_weight_unit() ),
 				false,
-				$shipment->has_status( 'ready-for-shipping' )
+				$shipment->has_status( 'ready-for-shipping' ),
+				array_map(
+					function ( $item ) {
+						return $item->get_order_item_id();
+					},
+					$shipment->get_items()
+				)
 			);
 
 			$packages[ self::get_package_key( (string) $shipment->get_location(), (string) $shipment->get_shipping_method() ) ]['has_shipments'] = true;
@@ -354,10 +365,15 @@ class QueueSync {
 					)
 				);
 
+				QueueTags::set( $wpdb->insert_id, QueueTags::get_package_tags( $order, isset( $package['order_item_ids'] ) ? $package['order_item_ids'] : array(), $package ) );
+
 				continue;
 			}
 
-			$item    = $existing[ $key ];
+			$item = $existing[ $key ];
+
+			QueueTags::set( $item->get_id(), QueueTags::get_package_tags( $order, isset( $package['order_item_ids'] ) ? $package['order_item_ids'] : array(), $package ) );
+
 			$changed = array_diff_assoc( array_map( 'strval', $columns ), array_map( 'strval', array_intersect_key( $item->get_data_raw(), $columns ) ) );
 
 			if ( $item->is_locked() ) {

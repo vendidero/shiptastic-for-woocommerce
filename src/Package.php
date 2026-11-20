@@ -1155,6 +1155,7 @@ class Package {
 			'stc_warehouses'               => 'woocommerce_stc_warehouses',
 			'stc_warehousemeta'            => 'woocommerce_stc_warehousemeta',
 			'stc_fulfillment_queue'        => 'woocommerce_stc_fulfillment_queue',
+			'stc_fulfillment_queue_tags'   => 'woocommerce_stc_fulfillment_queue_tags',
 			'stc_fulfillment_steps'        => 'woocommerce_stc_fulfillment_steps',
 			'stc_fulfillment_workflows'    => 'woocommerce_stc_fulfillment_workflows',
 			'stc_fulfillment_workflowmeta' => 'woocommerce_stc_fulfillment_workflowmeta',

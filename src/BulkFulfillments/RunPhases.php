@@ -15,7 +15,7 @@ defined( 'ABSPATH' ) || exit;
  *   processed one after another: Pack 1 → Print label 1 → Pack 2 → Print label 2).
  * - after_item (after each order): once per order, after all its other steps.
  * - after_queue (end of run): once when the run ends, over the orders completed within the run (also for stopped or
- *   cancelled runs, skipped in case no order was completed, e.g. a shipment list). Run level, runs automatically.
+ *   cancelled runs, skipped in case no order was completed, e.g. a carrier manifest). Run level, runs automatically.
  */
 class RunPhases {
 
@@ -51,7 +51,7 @@ class RunPhases {
 			self::ITEM           => _x( 'Runs once for each order: before the per shipment steps in case it is listed before them, after all shipments otherwise.', 'shipments', 'shiptastic-for-woocommerce' ),
 			self::AFTER_SHIPMENT => _x( 'Runs for each shipment after its other steps, before the next shipment.', 'shipments', 'shiptastic-for-woocommerce' ),
 			self::AFTER_ITEM     => _x( 'Runs for each order after all its other steps.', 'shipments', 'shiptastic-for-woocommerce' ),
-			self::AFTER_QUEUE    => _x( 'Runs once at the end of the run for the orders completed within it, e.g. a shipment list.', 'shipments', 'shiptastic-for-woocommerce' ),
+			self::AFTER_QUEUE    => _x( 'Runs once at the end of the run for the orders completed within it, e.g. a carrier manifest.', 'shipments', 'shiptastic-for-woocommerce' ),
 		);
 	}
 

@@ -91,6 +91,30 @@ class FulfillmentController extends \WC_REST_Controller {
 			)
 		);
 
+		// Tags of the including/excluding filters (categories, shipping classes, payment methods), loaded separately.
+		register_rest_route(
+			$this->namespace,
+			$base . '/workflows/tags',
+			array(
+				'methods'             => WP_REST_Server::READABLE,
+				'callback'            => array( $this, 'get_workflow_tag_choices' ),
+				'permission_callback' => array( $this, 'can_manage' ),
+				'args'                => array(
+					'search'  => array(
+						'description' => _x( 'Search term (autocomplete).', 'shipments', 'shiptastic-for-woocommerce' ),
+						'type'        => 'string',
+						'default'     => '',
+					),
+					'include' => array(
+						'description' => _x( 'Tags to return, e.g. to label selected tags.', 'shipments', 'shiptastic-for-woocommerce' ),
+						'type'        => 'array',
+						'items'       => array( 'type' => 'string' ),
+						'default'     => array(),
+					),
+				),
+			)
+		);
+
 		register_rest_route(
 			$this->namespace,
 			$base . '/workflows/(?P<id>[\d]+)',
@@ -260,6 +284,85 @@ class FulfillmentController extends \WC_REST_Controller {
 						'description' => _x( 'Whether to continue the workflow afterwards. Disabled while fixing an order of a stopped automation (the automation continues it).', 'shipments', 'shiptastic-for-woocommerce' ),
 						'type'        => 'boolean',
 						'default'     => true,
+					),
+				),
+			)
+		);
+
+		// Document uploads of document steps (e.g. shipping documents): multipart, field `file`.
+		register_rest_route(
+			$this->namespace,
+			$base . '/queue/(?P<id>[\d]+)/documents',
+			array(
+				'methods'             => WP_REST_Server::CREATABLE,
+				'callback'            => array( $this, 'upload_document' ),
+				'permission_callback' => array( $this, 'can_fulfill' ),
+				'args'                => array(
+					'token'       => array(
+						'type'     => 'string',
+						'required' => true,
+					),
+					'type'        => array(
+						'description' => _x( 'Document type, e.g. packing_slip, commercial_invoice or abd.', 'shipments', 'shiptastic-for-woocommerce' ),
+						'type'        => 'string',
+						'required'    => true,
+					),
+					'shipment_id' => array(
+						'description' => _x( 'The package shipment, 0 for all package shipments (e.g. order documents).', 'shipments', 'shiptastic-for-woocommerce' ),
+						'type'        => 'integer',
+						'default'     => 0,
+					),
+				),
+			)
+		);
+
+		// Settings form of a document (e.g. commercial invoice) of a package shipment, see Documents::get_form_html().
+		register_rest_route(
+			$this->namespace,
+			$base . '/queue/(?P<id>[\d]+)/shipments/(?P<shipment_id>[\d]+)/document-form',
+			array(
+				'methods'             => WP_REST_Server::READABLE,
+				'callback'            => array( $this, 'get_document_form' ),
+				'permission_callback' => array( $this, 'can_fulfill' ),
+				'args'                => array(
+					'token' => array(
+						'type'     => 'string',
+						'required' => true,
+					),
+					'type'  => array(
+						'type'     => 'string',
+						'required' => true,
+					),
+				),
+			)
+		);
+
+		// Document actions of a package shipment: regenerate (e.g. a packing slip) or save (settings form), see Documents::run_action().
+		register_rest_route(
+			$this->namespace,
+			$base . '/queue/(?P<id>[\d]+)/shipments/(?P<shipment_id>[\d]+)/document-action',
+			array(
+				'methods'             => WP_REST_Server::CREATABLE,
+				'callback'            => array( $this, 'run_document_action' ),
+				'permission_callback' => array( $this, 'can_fulfill' ),
+				'args'                => array(
+					'token'  => array(
+						'type'     => 'string',
+						'required' => true,
+					),
+					'type'   => array(
+						'type'     => 'string',
+						'required' => true,
+					),
+					'action' => array(
+						'type'     => 'string',
+						'enum'     => array( 'regenerate', 'save' ),
+						'required' => true,
+					),
+					'form'   => array(
+						'description' => _x( 'Values of the document settings form (save).', 'shipments', 'shiptastic-for-woocommerce' ),
+						'type'        => 'object',
+						'default'     => array(),
 					),
 				),
 			)
@@ -565,7 +668,7 @@ class FulfillmentController extends \WC_REST_Controller {
 				foreach ( (array) ( isset( $field['options'] ) ? $field['options'] : array() ) as $value => $label ) {
 					$options[] = array(
 						'value' => (string) $value,
-						'label' => wp_strip_all_tags( $label ),
+						'label' => self::plain_text( $label ),
 					);
 				}
 
@@ -573,7 +676,7 @@ class FulfillmentController extends \WC_REST_Controller {
 				$setting = array(
 					'key'     => (string) $key,
 					'type'    => $type,
-					'label'   => wp_strip_all_tags( isset( $field['label'] ) ? $field['label'] : $key ),
+					'label'   => self::plain_text( isset( $field['label'] ) ? $field['label'] : $key ),
 					'default' => isset( $field['default'] ) ? $field['default'] : '',
 					'options' => $options,
 				);
@@ -585,9 +688,9 @@ class FulfillmentController extends \WC_REST_Controller {
 				if ( 'multiselect' === $type ) {
 					$setting['default'] = array_values( array_map( 'strval', (array) ( isset( $field['default'] ) ? $field['default'] : array() ) ) );
 					$setting['texts']   = array(
-						'all'   => wp_strip_all_tags( isset( $field['all_label'] ) ? $field['all_label'] : _x( 'All', 'shipments', 'shiptastic-for-woocommerce' ) ),
-						'add'   => wp_strip_all_tags( isset( $field['add_label'] ) ? $field['add_label'] : _x( '+ Add…', 'shipments', 'shiptastic-for-woocommerce' ) ),
-						'empty' => wp_strip_all_tags( isset( $field['empty_label'] ) ? $field['empty_label'] : _x( 'Nothing selected yet - all options are included.', 'shipments', 'shiptastic-for-woocommerce' ) ),
+						'all'   => self::plain_text( isset( $field['all_label'] ) ? $field['all_label'] : _x( 'All', 'shipments', 'shiptastic-for-woocommerce' ) ),
+						'add'   => self::plain_text( isset( $field['add_label'] ) ? $field['add_label'] : _x( '+ Add…', 'shipments', 'shiptastic-for-woocommerce' ) ),
+						'empty' => self::plain_text( isset( $field['empty_label'] ) ? $field['empty_label'] : _x( 'Nothing selected yet - all options are included.', 'shipments', 'shiptastic-for-woocommerce' ) ),
 					);
 				}
 
@@ -680,7 +783,7 @@ class FulfillmentController extends \WC_REST_Controller {
 		/**
 		 * Filter to adjust the choices of the fulfillment workflow editor.
 		 *
-		 * @param array $data actions, modes, locations, providers, weight_unit
+		 * @param array $data actions, modes, locations, providers, pro_actions, weight_unit
 		 *
 		 * @package Vendidero/Shiptastic
 		 */
@@ -692,8 +795,66 @@ class FulfillmentController extends \WC_REST_Controller {
 					'modes'       => $modes,
 					'locations'   => $locations,
 					'providers'   => $providers,
+					// Steps available with Shiptastic Pro (not selectable, presented with a pro marker).
+					'pro_actions' => array_map(
+						function ( $name, $data ) {
+							return array(
+								'name'        => (string) $name,
+								'title'       => wp_strip_all_tags( $data['title'] ),
+								'description' => wp_strip_all_tags( isset( $data['description'] ) ? $data['description'] : '' ),
+							);
+						},
+						array_keys( App::get_pro_actions() ),
+						array_values( App::get_pro_actions() )
+					),
 					'weight_unit' => get_option( 'woocommerce_weight_unit', 'kg' ),
 				)
+			)
+		);
+	}
+
+	/**
+	 * Tags offered by the including/excluding filters (autocomplete: search, include), see QueueTags::get_choices().
+	 * Response: items (value, label), complete (the complete list, to be filtered locally).
+	 */
+	public function get_workflow_tag_choices( $request ) {
+		if ( ! \Vendidero\Shiptastic\BulkFulfillments\QueueTags::has_editor_filters() ) {
+			return rest_ensure_response(
+				array(
+					'items'    => array(),
+					'complete' => true,
+				)
+			);
+		}
+
+		$search  = sanitize_text_field( wp_unslash( (string) $request['search'] ) );
+		$include = (array) $request['include'];
+
+		/*
+		 * Without a search: the complete list in case it is small enough (complete = true, the app filters it locally
+		 * afterwards), the first results otherwise (searched on the server).
+		 */
+		if ( '' === $search && empty( $include ) ) {
+			$max   = absint( apply_filters( 'woocommerce_shiptastic_fulfillment_queue_tag_choices_local_max', 200 ) );
+			$items = \Vendidero\Shiptastic\BulkFulfillments\QueueTags::get_choices( array( 'limit' => $max + 1 ) );
+
+			return rest_ensure_response(
+				array(
+					'items'    => count( $items ) > $max ? array_slice( $items, 0, 20 ) : $items,
+					'complete' => count( $items ) <= $max,
+				)
+			);
+		}
+
+		return rest_ensure_response(
+			array(
+				'items'    => \Vendidero\Shiptastic\BulkFulfillments\QueueTags::get_choices(
+					array(
+						'search'  => $search,
+						'include' => $include,
+					)
+				),
+				'complete' => false,
 			)
 		);
 	}
@@ -1928,6 +2089,128 @@ class FulfillmentController extends \WC_REST_Controller {
 	 * Applies the shipment layout (shipments overlay) of a locked item and continues the workflow, e.g. steps of
 	 * changed shipments are reopened.
 	 */
+	public function upload_document( $request ) {
+		$context = $this->get_locked_context( $request );
+
+		if ( is_wp_error( $context ) ) {
+			return $context;
+		}
+
+		$type = sanitize_key( (string) $request['type'] );
+
+		if ( ! array_key_exists( $type, \Vendidero\Shiptastic\BulkFulfillments\Documents::get_types() ) ) {
+			return new WP_Error( 'document_invalid', _x( 'This document type is not supported.', 'shipments', 'shiptastic-for-woocommerce' ), array( 'status' => 400 ) );
+		}
+
+		$shipments   = Runner::get_package_shipments( $context['item'] );
+		$shipment_id = absint( $request['shipment_id'] );
+
+		if ( $shipment_id ) {
+			if ( ! isset( $shipments[ $shipment_id ] ) ) {
+				return new WP_Error( 'shipment_invalid', _x( 'The shipment is not part of the order.', 'shipments', 'shiptastic-for-woocommerce' ), array( 'status' => 404 ) );
+			}
+
+			$shipments = array( $shipment_id => $shipments[ $shipment_id ] );
+		}
+
+		if ( empty( $shipments ) ) {
+			return new WP_Error( 'no_shipment', _x( 'There is no shipment, e.g. because all items are on backorder.', 'shipments', 'shiptastic-for-woocommerce' ), array( 'status' => 400 ) );
+		}
+
+		$files  = $request->get_file_params();
+		$result = \Vendidero\Shiptastic\BulkFulfillments\Documents::store_upload( $shipments, $type, isset( $files['file'] ) ? $files['file'] : array() );
+
+		if ( is_wp_error( $result ) ) {
+			return $result;
+		}
+
+		$shipment = wc_stc_get_shipment( key( $shipments ) );
+		$file     = $shipment ? \Vendidero\Shiptastic\BulkFulfillments\Documents::get_file( $shipment, $type ) : null;
+
+		return rest_ensure_response(
+			array(
+				'type'        => $type,
+				'shipment_id' => $shipment_id,
+				'file'        => $file ? array(
+					'name' => $file['name'],
+					'url'  => $file['url'],
+				) : null,
+			)
+		);
+	}
+
+	/**
+	 * Texts shown as plain text within the app (e.g. setting labels): tags stripped, entities decoded (e.g. a currency
+	 * symbol like &euro;).
+	 *
+	 * @param string $text
+	 *
+	 * @return string
+	 */
+	protected static function plain_text( $text ) {
+		return html_entity_decode( wp_strip_all_tags( (string) $text ), ENT_QUOTES, get_bloginfo( 'charset' ) );
+	}
+
+	public function get_document_form( $request ) {
+		$context = $this->get_locked_context( $request );
+
+		if ( is_wp_error( $context ) ) {
+			return $context;
+		}
+
+		$shipments   = Runner::get_package_shipments( $context['item'] );
+		$shipment_id = absint( $request['shipment_id'] );
+
+		if ( ! isset( $shipments[ $shipment_id ] ) ) {
+			return new WP_Error( 'shipment_invalid', _x( 'The shipment is not part of the order.', 'shipments', 'shiptastic-for-woocommerce' ), array( 'status' => 404 ) );
+		}
+
+		$html = \Vendidero\Shiptastic\BulkFulfillments\Documents::get_form_html( sanitize_key( (string) $request['type'] ), $shipments[ $shipment_id ] );
+
+		if ( '' === $html ) {
+			return new WP_Error( 'document_form_unavailable', _x( 'There are no settings for this document.', 'shipments', 'shiptastic-for-woocommerce' ), array( 'status' => 400 ) );
+		}
+
+		return rest_ensure_response( array( 'html' => $html ) );
+	}
+
+	public function run_document_action( $request ) {
+		$context = $this->get_locked_context( $request );
+
+		if ( is_wp_error( $context ) ) {
+			return $context;
+		}
+
+		$shipments   = Runner::get_package_shipments( $context['item'] );
+		$shipment_id = absint( $request['shipment_id'] );
+		$type        = sanitize_key( (string) $request['type'] );
+
+		if ( ! isset( $shipments[ $shipment_id ] ) ) {
+			return new WP_Error( 'shipment_invalid', _x( 'The shipment is not part of the order.', 'shipments', 'shiptastic-for-woocommerce' ), array( 'status' => 404 ) );
+		}
+
+		$result = \Vendidero\Shiptastic\BulkFulfillments\Documents::run_action( (string) $request['action'], $type, $shipments[ $shipment_id ], (array) $request['form'] );
+
+		if ( is_wp_error( $result ) ) {
+			return $result;
+		}
+
+		// Re-read: extensions link created documents as attachments.
+		$shipment = wc_stc_get_shipment( $shipment_id );
+		$file     = $shipment ? \Vendidero\Shiptastic\BulkFulfillments\Documents::get_file( $shipment, $type ) : null;
+
+		return rest_ensure_response(
+			array(
+				'type'        => $type,
+				'shipment_id' => $shipment_id,
+				'file'        => $file ? array(
+					'name' => $file['name'],
+					'url'  => $file['url'],
+				) : null,
+			)
+		);
+	}
+
 	public function get_label_form( $request ) {
 		$context = $this->get_locked_context( $request );
 

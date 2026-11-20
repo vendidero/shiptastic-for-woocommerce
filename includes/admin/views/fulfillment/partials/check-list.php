@@ -8,8 +8,8 @@ defined( 'ABSPATH' ) || exit;
 
 $scan_id = 'stc-scan-' . wp_unique_id();
 ?>
-<div class="stc-checklist-progress">
-	<span class="stc-checklist-progress-text"><span data-wp-text="state.checklist.progressText"></span><span class="stc-checklist-weight" data-wp-bind--hidden="!state.checklist.weightText" data-wp-text="state.checklist.weightText"></span></span>
+<div class="stc-checklist-progress" data-wp-on-document--keydown="actions.checklist.onDocumentKeydown">
+	<span class="stc-checklist-progress-text" aria-live="polite"><span data-wp-text="state.checklist.progressText"></span><span class="stc-checklist-weight" data-wp-bind--hidden="!state.checklist.weightText" data-wp-text="state.checklist.weightText"></span></span>
 	<span class="stc-progress-bar" aria-hidden="true"><span class="stc-progress-bar-value" data-wp-bind--style="state.checklist.progressStyle"></span></span>
 </div>
 <div class="stc-scan">
@@ -18,7 +18,7 @@ $scan_id = 'stc-scan-' . wp_unique_id();
 </div>
 <ul class="stc-item-list">
 	<template data-wp-each--item="state.view.items" data-wp-each-key="context.item.id">
-		<li class="stc-item is-swipeable" data-stc-swipe data-wp-on--stcswipe="actions.checklist.onSwipe" data-wp-class--is-complete="state.checklist.isItemComplete" data-wp-class--is-missing="state.checklist.isItemMissing">
+		<li class="stc-item is-swipeable" data-stc-swipe data-wp-on--stcswipe="actions.checklist.onSwipe" data-wp-class--is-complete="state.checklist.isItemComplete" data-wp-class--is-missing="state.checklist.isItemMissing" data-wp-class--is-scanned="state.checklist.isItemScanned">
 			<span class="stc-location" data-wp-bind--hidden="!context.item.location" data-wp-text="context.item.location"></span>
 			<div class="stc-item-body">
 				<strong data-wp-text="context.item.name"></strong>

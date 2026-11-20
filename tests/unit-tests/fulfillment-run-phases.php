@@ -537,8 +537,8 @@ class FulfillmentRunPhasesTest extends \Vendidero\Shiptastic\Tests\Framework\Uni
 		$actions = array_column( $editor['actions'], null, 'name' );
 		$this->assertEquals( array( 'after_shipment', 'item' ), wp_list_pluck( $actions['test_after_shipment']['phases'], 'value' ) );
 		// When a step runs: phase + scope combined, after_shipment is not offered (per shipment steps run shipment by shipment).
-		$this->assertEquals( array( 'item:shipment' ), wp_list_pluck( $actions['mark_ready']['when'], 'value' ) );
-		$this->assertEquals( 'Per shipment', $actions['mark_ready']['when'][0]['label'] );
+		$this->assertEquals( array( 'item:shipment' ), wp_list_pluck( $actions['update_shipment_status']['when'], 'value' ) );
+		$this->assertEquals( 'Per shipment', $actions['update_shipment_status']['when'][0]['label'] );
 		$this->assertEquals( 'item:shipment', $actions['create_label']['default_when'] );
 		$this->assertEquals( array( 'item:shipment' ), wp_list_pluck( $actions['test_after_shipment']['when'], 'value' ) );
 		$this->assertEquals( 'item:order', $actions['pick']['default_when'] );
@@ -561,15 +561,15 @@ class FulfillmentRunPhasesTest extends \Vendidero\Shiptastic\Tests\Framework\Uni
 			array(
 				'pick',
 				array(
-					'action'   => 'mark_ready',
+					'action'   => 'update_shipment_status',
 					'settings' => array( 'phase' => 'after_shipment' ),
 				),
 			)
 		);
 
 		$steps = array_column( $workflow->get_steps(), 'settings', 'action' );
-		$this->assertEquals( 'item', $steps['mark_ready']['phase'] );
-		$this->assertEquals( 'shipment', $steps['mark_ready']['scope'] );
-		$this->assertEquals( 'item', Workflow::get_step_phase( 'mark_ready', array( 'phase' => 'after_shipment' ) ) );
+		$this->assertEquals( 'item', $steps['update_shipment_status']['phase'] );
+		$this->assertEquals( 'shipment', $steps['update_shipment_status']['scope'] );
+		$this->assertEquals( 'item', Workflow::get_step_phase( 'update_shipment_status', array( 'phase' => 'after_shipment' ) ) );
 	}
 }

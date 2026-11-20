@@ -16,6 +16,11 @@ const format = ( text, ...values ) => {
 
 const RUNS_PER_PAGE = 10;
 
+// Order tabs of the report (outcome within the run), in display order.
+const REPORT_TABS = [ 'completed', 'failed', 'released', 'claimed' ];
+
+const countByStatus = ( orders, status ) => orders.filter( ( order ) => order.status === status ).length;
+
 /**
  * @param {Object} run
  * @return {boolean} Whether the run belongs to the history: ended (finished or cancelled) and something happened
@@ -285,10 +290,30 @@ const { state, actions } = store( NAMESPACE, {
             return i18n().ordersTitle;
         },
         get showNoReportOrders() {
-            return ! state.report.ordersLoading && 0 === state.report.orders.length;
+            return ! state.report.ordersLoading && 0 === state.reportTabOrders.length;
         },
         get noReportOrdersText() {
-            return i18n().noOrders;
+            return 0 === state.report.orders.length ? i18n().noOrders : i18n().noTabOrders;
+        },
+        // Tabs like the queue: orders by their outcome within the run.
+        get showReportTabs() {
+            return ! state.report.ordersLoading && state.report.orders.length > 0;
+        },
+        get reportTabOrders() {
+            return state.report.orders.filter( ( order ) => order.status === state.report.tab );
+        },
+        get isActiveReportTab() {
+            const { reportStatus } = getContext();
+            return reportStatus === state.report.tab;
+        },
+        get reportTabCount() {
+            const { reportStatus } = getContext();
+            return countByStatus( state.report.orders, reportStatus );
+        },
+        // In progress: only while orders of the run are claimed.
+        get isReportTabHidden() {
+            const { reportStatus } = getContext();
+            return 'claimed' === reportStatus && 0 === countByStatus( state.report.orders, reportStatus ) && state.report.tab !== reportStatus;
         },
         // Like the queue: location · number of items.
         get runOrderMeta() {
@@ -296,18 +321,6 @@ const { state, actions } = store( NAMESPACE, {
             const texts = getConfig( NAMESPACE ).i18n;
 
             return [ runorder.location || texts.defaultLocation, format( texts.items, runorder.item_count || 0 ) ].join( ' · ' );
-        },
-        get runOrderStatusText() {
-            const { runorder } = getContext();
-            return i18n().orderStatus[ runorder.status ] || runorder.status;
-        },
-        get isRunOrderFailed() {
-            const { runorder } = getContext();
-            return 'failed' === runorder.status;
-        },
-        get isRunOrderCompleted() {
-            const { runorder } = getContext();
-            return 'completed' === runorder.status;
         },
         // Steps of the order itself (e.g. picking), shipment steps are listed with their shipment.
         get runOrderSteps() {
@@ -387,6 +400,12 @@ const { state, actions } = store( NAMESPACE, {
     },
     actions: {
         report: {
+            showTab() {
+                const { reportStatus } = getContext();
+
+                state.report.tab = reportStatus;
+                state.report.tabChosen = true;
+            },
             /**
              * Adds/updates a run within the overview's list (removed in case it is no longer listed).
              *
@@ -448,6 +467,11 @@ const { state, actions } = store( NAMESPACE, {
 
                     if ( state.report.run && state.report.run.id === runId ) {
                         state.report.orders = orders;
+
+                        // The first tab containing orders (kept while the report refreshes).
+                        if ( ! REPORT_TABS.includes( state.report.tab ) || ( 0 === countByStatus( orders, state.report.tab ) && ! state.report.tabChosen ) ) {
+                            state.report.tab = REPORT_TABS.find( ( status ) => countByStatus( orders, status ) > 0 ) || REPORT_TABS[ 0 ];
+                        }
                     }
                 } catch ( error ) {
                     state.report.orders = [];
@@ -472,7 +496,7 @@ const { state, actions } = store( NAMESPACE, {
              * @param {Object} run
              */
             *show( run ) {
-                state.report = { run, loading: true, orders: [], ordersLoading: true };
+                state.report = { run, loading: true, orders: [], ordersLoading: true, tab: '', tabChosen: false };
                 state.screen = 'report';
                 window.scrollTo( 0, 0 );
 
@@ -525,7 +549,7 @@ const { state, actions } = store( NAMESPACE, {
              */
             *leave() {
                 state.screen = 'overview';
-                state.report = { run: null, loading: false, orders: [], ordersLoading: false };
+                state.report = { run: null, loading: false, orders: [], ordersLoading: false, tab: '', tabChosen: false };
 
                 yield actions.loadQueue();
                 yield actions.report.loadRuns();

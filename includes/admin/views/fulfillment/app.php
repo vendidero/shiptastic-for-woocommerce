@@ -14,7 +14,7 @@ $queue_tabs = array(
 	'error'   => _x( 'Exceptions', 'shipments-queue-status', 'shiptastic-for-woocommerce' ),
 );
 ?>
-<div class="stc-app" data-wp-interactive="shiptastic/fulfillment" data-wp-init="callbacks.init" data-wp-watch="callbacks.syncUrl" data-wp-class--is-busy="state.busy" data-wp-class--is-run="state.isSubScreen">
+<div class="stc-app" data-wp-interactive="shiptastic/fulfillment" data-wp-init="callbacks.init" data-wp-watch="callbacks.syncUrl" data-wp-class--is-busy="state.busy" data-wp-class--is-run="state.isSubScreen" data-wp-on-document--keydown="actions.closeSheetOnEscape">
 	<header class="stc-page-header">
 		<div class="stc-page-header-main">
 			<button type="button" class="stc-icon-button stc-header-back" data-wp-on--click="actions.goToOverview" data-wp-bind--hidden="!state.isSubScreen" aria-label="<?php echo esc_attr_x( 'Back to overview', 'shipments', 'shiptastic-for-woocommerce' ); ?>">&larr;</button>
@@ -64,7 +64,7 @@ $queue_tabs = array(
 		</div>
 	</div>
 
-	<main class="stc-main">
+	<main class="stc-main" data-wp-watch="callbacks.manageSheetFocus">
 		<?php /* Deep links (e.g. a run): shown until the run/report is opened, instead of flashing the overview. */ ?>
 		<section class="stc-screen" data-wp-bind--hidden="!state.routeLoading" data-wp-watch="callbacks.endRouteLoading">
 			<div class="stc-empty stc-run-loading" role="status">

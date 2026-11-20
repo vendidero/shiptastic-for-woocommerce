@@ -376,20 +376,20 @@ class FulfillmentControllerTest extends \Vendidero\Shiptastic\Tests\Framework\Un
 
 		$actions = array_column( $data['actions'], null, 'name' );
 		// Steps of actions supporting user interaction run interactively, others (e.g. creating shipments) automatically
-		$this->assertEquals( array( 'interactive' ), $actions['mark_ready']['modes'] );
-		$this->assertEquals( 'interactive', $actions['mark_ready']['default_mode'] );
+		$this->assertEquals( array( 'interactive' ), $actions['update_shipment_status']['modes'] );
+		$this->assertEquals( 'interactive', $actions['update_shipment_status']['default_mode'] );
 		$this->assertEquals( array( 'background' ), $actions['create_shipments']['modes'] );
 		$this->assertEquals( array( 'interactive' ), wp_list_pluck( $data['modes'], 'value' ) );
 		// Running steps supporting user interaction automatically requires Shiptastic Pro (presented with a pro marker)
 		$this->assertFalse( \Vendidero\Shiptastic\BulkFulfillments\App::has_automation() );
-		$this->assertEquals( array( 'background' ), $actions['mark_ready']['pro_modes'] );
+		$this->assertEquals( array( 'background' ), $actions['update_shipment_status']['pro_modes'] );
 		$this->assertEquals( array(), $actions['create_shipments']['pro_modes'] );
 		$this->assertEquals( array(), $actions['pick']['pro_modes'] );
 		$this->assertEquals( 'interactive', $actions['pick']['default_mode'] );
 		$this->assertEquals( 'shipment', $actions['pack']['default_scope'] );
 		$this->assertEquals( array( 'shipment' ), $actions['pack']['scopes'] );
 		$this->assertEmpty( $actions['pack']['settings'] );
-		$this->assertEquals( 'checkbox', array_column( $actions['mark_ready']['settings'], null, 'key' )['require_shipping_provider']['type'] );
+		$this->assertEquals( 'checkbox', array_column( $actions['update_shipment_status']['settings'], null, 'key' )['require_shipping_provider']['type'] );
 
 		// Locations: default, groups and warehouses without group
 		$locations = wp_list_pluck( $data['locations'], 'value' );

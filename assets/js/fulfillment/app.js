@@ -38,6 +38,9 @@ import { getRoute } from './router.js';
 import { preloadCountries } from './countries.js';
 
 const NAMESPACE = 'shiptastic/fulfillment';
+
+// The open sheet and the element to return the focus to once it closes (see callbacks.manageSheetFocus).
+const sheetFocus = { sheet: '', returnTo: null };
 const config = getConfig( NAMESPACE );
 
 api.setup( config );
@@ -234,6 +237,26 @@ const { state, actions, callbacks } = store( NAMESPACE, {
         get isOverviewScreen() {
             return 'overview' === state.screen;
         },
+        // The top-most open sheet: documents (settings), order (details), shipments, workflow (editor), empty for none.
+        get activeSheet() {
+            if ( state.documents && state.documents.sheet && state.documents.sheet.open ) {
+                return 'documents';
+            }
+
+            if ( state.orderDetails && state.orderDetails.open ) {
+                return 'order';
+            }
+
+            if ( state.overlay && state.overlay.open ) {
+                return 'shipments';
+            }
+
+            if ( state.workflowEditor && state.workflowEditor.open ) {
+                return 'workflow';
+            }
+
+            return '';
+        },
         get isRunScreen() {
             return 'run' === state.screen;
         },
@@ -356,7 +379,8 @@ const { state, actions, callbacks } = store( NAMESPACE, {
         get visibleSteps() {
             const failed = state.currentStep && state.hasStepError ? state.currentStep.key : '';
 
-            return state.currentItem && state.currentItem.steps ? state.currentItem.steps.filter( ( step ) => ! step.injected || step.key === failed ) : [];
+            // Injected dependencies and steps not applying (e.g. printing without documents) are not shown.
+            return state.currentItem && state.currentItem.steps ? state.currentItem.steps.filter( ( step ) => ( ! step.injected && ! step.hidden ) || step.key === failed ) : [];
         },
         // Steps running after each shipment/order are tagged within the step list.
         get stepPhaseTag() {
@@ -913,11 +937,42 @@ const { state, actions, callbacks } = store( NAMESPACE, {
             yield callbacks.persist();
         },
         *handleItemError( error ) {
-            // The lock is gone (expired and claimed by someone else, released or deleted).
-            if ( error && [ 403, 404, 409 ].includes( error.status ) ) {
+            // The order changed on the server (e.g. a step was recorded although its request failed): reload it.
+            if ( error && 'queue_version_conflict' === error.code ) {
+                yield actions.reloadCurrent( config.i18n.orderReloaded );
+            } else if ( error && [ 403, 404, 409 ].includes( error.status ) ) {
+                // The lock is gone (expired and claimed by someone else, released or deleted).
                 yield actions.finishCurrent( config.i18n.lockLost );
             } else {
                 actions.handleError( error );
+            }
+        },
+        /**
+         * Replaces the local state of the current order with the server's (current step, steps, version), e.g. after a
+         * version conflict or a failed request the server may have processed partially.
+         *
+         * @param {string} notice Shown once reloaded.
+         */
+        *reloadCurrent( notice = '' ) {
+            const item = state.currentItem;
+
+            if ( ! item || ! state.online || outbox.hasItem( item.id ) ) {
+                return;
+            }
+
+            try {
+                // Without a version: never conflicts, the lock is still verified.
+                yield actions.continueResponse( yield api.request( `queue/${ item.id }/run`, { method: 'POST', body: { token: item.lock_token, auto_steps: 0 } } ) );
+
+                if ( notice ) {
+                    actions.notify( notice, 'info', 5000 );
+                }
+            } catch ( error ) {
+                if ( error && [ 403, 404, 409 ].includes( error.status ) ) {
+                    yield actions.finishCurrent( config.i18n.lockLost );
+                } else {
+                    actions.handleError( error );
+                }
             }
         },
         *submitStep() {
@@ -984,6 +1039,11 @@ const { state, actions, callbacks } = store( NAMESPACE, {
                 if ( isNetworkError( error ) && step.offline ) {
                     state.busy = false;
                     yield actions.submitOffline( item, step, payload, idempotencyKey );
+                } else if ( error && error.status >= 500 ) {
+                    // A server error: the step may have been recorded anyway, the order is re-synced (the error is shown).
+                    state.busy = false;
+                    yield actions.reloadCurrent();
+                    actions.handleError( error );
                 } else {
                     yield actions.handleItemError( error );
                 }
@@ -1465,11 +1525,39 @@ const { state, actions, callbacks } = store( NAMESPACE, {
                 state.stepListOpen = false;
             }
         },
-        closeStepListOnEscape( event ) {
+        closeStepListOnEscape: withSyncEvent( ( event ) => {
             if ( state.stepListOpen && 'Escape' === event.key ) {
+                event.preventDefault();
                 state.stepListOpen = false;
             }
-        },
+        } ),
+        /*
+         * Escape closes the top-most sheet (document settings, order details, shipments, workflow editor), unless an
+         * element within it handled the key already (e.g. the step picker or an autocomplete).
+         */
+        closeSheetOnEscape: withSyncEvent( ( event ) => {
+            if ( 'Escape' !== event.key || event.defaultPrevented || state.stepListOpen ) {
+                return;
+            }
+
+            const sheet = state.activeSheet;
+
+            if ( ! sheet ) {
+                return;
+            }
+
+            event.preventDefault();
+
+            if ( 'documents' === sheet ) {
+                actions.documents.closeForm();
+            } else if ( 'order' === sheet ) {
+                actions.orderDetails.close();
+            } else if ( 'shipments' === sheet ) {
+                actions.shipments.close();
+            } else if ( 'workflow' === sheet ) {
+                actions.workflowEditor.close();
+            }
+        } ),
         *reopenStep() {
             const context = getContext();
             state.stepListOpen = false;
@@ -1825,6 +1913,42 @@ const { state, actions, callbacks } = store( NAMESPACE, {
          * Deep links: the loading view ends as soon as another screen is shown (e.g. the run, while its current step is
          * still being loaded in the background).
          */
+        /*
+         * Focus follows the sheets: an opened sheet gets the focus (its close button), closing it returns the focus to
+         * where it was before (e.g. the button which opened the sheet).
+         */
+        manageSheetFocus() {
+            const sheet = state.activeSheet;
+
+            if ( sheet === sheetFocus.sheet ) {
+                return;
+            }
+
+            const previous = sheetFocus.sheet;
+
+            sheetFocus.sheet = sheet;
+
+            if ( sheet ) {
+                if ( ! previous ) {
+                    sheetFocus.returnTo = document.activeElement;
+                }
+
+                window.requestAnimationFrame( () => {
+                    // Sheets are fixed (no offsetParent): visible ones have client rects.
+                    const element = [ ...document.querySelectorAll( '.stc-sheet' ) ].filter( ( candidate ) => ! candidate.hidden && candidate.getClientRects().length > 0 ).pop();
+                    const target = element ? element.querySelector( '.stc-sheet-header .stc-icon-button, .stc-sheet-header button, .stc-sheet-header a' ) : null;
+
+                    if ( target ) {
+                        target.focus();
+                    }
+                } );
+            } else if ( sheetFocus.returnTo && document.contains( sheetFocus.returnTo ) ) {
+                const returnTo = sheetFocus.returnTo;
+
+                sheetFocus.returnTo = null;
+                window.requestAnimationFrame( () => returnTo.focus() );
+            }
+        },
         endRouteLoading() {
             if ( state.routeLoading && 'loading' !== state.screen ) {
                 state.routeLoading = false;

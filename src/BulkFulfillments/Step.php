@@ -39,6 +39,13 @@ class Step {
 
 	public $is_done = false;
 
+	/**
+	 * Whether the step is not shown, e.g. because it does not apply (see Action::is_applicable()).
+	 *
+	 * @var bool
+	 */
+	public $hidden = false;
+
 	public function __construct( $args = array() ) {
 		foreach ( wp_parse_args( $args, get_object_vars( $this ) ) as $key => $value ) {
 			if ( property_exists( $this, $key ) ) {
@@ -119,6 +126,7 @@ class Step {
 			'phase_title' => RunPhases::ITEM === $this->phase && $this->shipment_id ? RunPhases::get_item_shipment_texts()['title'] : RunPhases::get_title( $this->phase ),
 			'injected'    => $this->injected,
 			'is_done'     => $this->is_done,
+			'hidden'      => $this->hidden,
 			// Interactive steps of actions not requiring a connection can be done offline (prefetched view data).
 			'offline'     => $this->is_offline_capable(),
 			// Used to update the steps in case the shipments are edited offline (see ShipmentLayout::reopen_steps()).

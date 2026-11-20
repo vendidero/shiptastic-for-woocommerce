@@ -185,6 +185,19 @@ abstract class Action {
 	}
 
 	/**
+	 * Whether the step applies to the order/shipment (or run level phase), e.g. printing documents only in case
+	 * documents exist. Steps not applying are not shown and are skipped silently once reached (in case they still do
+	 * not apply then, e.g. a label created by a previous step). Evaluated whenever the steps are planned, keep it cheap.
+	 *
+	 * @param StepContext|RunContext $context
+	 *
+	 * @return bool
+	 */
+	public function is_applicable( $context ) {
+		return true;
+	}
+
+	/**
 	 * Runs the step in background mode. Steps of run level phases (before_queue, after_queue) receive a RunContext
 	 * (the run's orders/shipments of the batch or the completed orders) instead of a StepContext.
 	 *

@@ -80,6 +80,13 @@ class Test_Fulfillment_Print_Action extends Action {
 
 		return StepResult::done();
 	}
+
+	/**
+	 * Applies in case something is printable (e.g. documents exist).
+	 */
+	public function is_applicable( $context ) {
+		return 'yes' === get_option( 'stc_test_printable', 'yes' );
+	}
 }
 
 /**
@@ -231,7 +238,7 @@ class FulfillmentRunnerTest extends \Vendidero\Shiptastic\Tests\Framework\UnitTe
 		// Required actions come first, the chosen order is kept otherwise
 		$this->assertEquals( array( 'create_shipments', 'pick' ), $this->create_workflow( array( 'pick', 'create_shipments' ) )->get_step_actions() );
 		$this->assertEquals( array( 'create_shipments', 'pack', 'pick' ), $this->create_workflow( array( 'pack', 'pick', 'create_shipments' ) )->get_step_actions() );
-		$this->assertEquals( array( 'create_shipments' ), Workflow::get_required_actions( 'mark_ready' ) );
+		$this->assertEquals( array( 'create_shipments' ), Workflow::get_required_actions( 'update_shipment_status' ) );
 	}
 
 	public function test_several_steps_of_an_action() {
@@ -309,6 +316,107 @@ class FulfillmentRunnerTest extends \Vendidero\Shiptastic\Tests\Framework\UnitTe
 		$logged = wp_list_pluck( StepLog::get_entries( $item->get_id() ), 'action' );
 		$this->assertContains( 'test_print', $logged );
 		$this->assertContains( 'test_print--' . $instance, $logged );
+	}
+
+	public function test_steps_not_applying() {
+		update_option( 'stc_test_printable', 'no' );
+		Test_Fulfillment_Print_Action::$printed = array();
+
+		$order    = $this->create_order();
+		$workflow = $this->create_workflow( array( 'pick', 'test_print' ) );
+		$item     = current( Queue::claim( $workflow, array( 'user_id' => 1 ) ) );
+		$token    = $item->get_lock_token();
+
+		// Not applying: planned, but hidden.
+		$planned = array_column( array_map( function ( $step ) { return $step->to_array(); }, Runner::get_steps( Queue::get( $item->get_id() ), $workflow ) ), null, 'action' );
+		$this->assertTrue( $planned['test_print']['hidden'] );
+		$this->assertFalse( $planned['pick']['hidden'] );
+
+		$result = Runner::execute( $item->get_id(), $workflow, $token );
+		$this->assertEquals( 'pick', $result['step']->action );
+
+		// Reached: skipped silently (not run, not reported as automated), the order completes.
+		$result = Runner::execute(
+			$item->get_id(),
+			$workflow,
+			$token,
+			array(
+				'step' => 'pick',
+				'data' => array( 'picked' => array( $this->get_item_id( $order ) => 2 ) ),
+			)
+		);
+
+		$this->assertEquals( 'completed', $result['status'] );
+		$this->assertEmpty( $result['automated'] );
+		$this->assertEmpty( Test_Fulfillment_Print_Action::$printed );
+
+		$entries = array_column( StepLog::get_entries( $item->get_id() ), null, 'action' );
+		$this->assertEquals( 'skipped', $entries['test_print']['status'] );
+		$this->assertTrue( $entries['test_print']['data']['not_applicable'] );
+
+		delete_option( 'stc_test_printable' );
+	}
+
+	public function test_status_steps() {
+		// Saved steps of the former mark_ready action become update_shipment_status steps (ready for shipping).
+		$workflow = new Workflow();
+		$workflow->set_steps(
+			array(
+				array(
+					'action'   => 'mark_ready',
+					'settings' => array( 'require_packaging' => true ),
+				),
+			)
+		);
+		$step = current( wp_list_filter( $workflow->get_steps(), array( 'action' => 'update_shipment_status' ) ) );
+		$this->assertEquals( 'ready-for-shipping', $step['settings']['status'] );
+		$this->assertTrue( $step['settings']['require_packaging'] );
+		$this->assertEquals( 'update_shipment_status', Workflow::migrate_steps( array( 'mark_ready' ) )[0]['action'] );
+
+		// Shipment status (automatic, interactive in free) and order status (automatic, after each order).
+		$this->assertContains( 'shipped', array_keys( \Vendidero\Shiptastic\BulkFulfillments\Actions\UpdateShipmentStatus::get_statuses() ) );
+		$this->assertEquals( array( 'background' ), Workflow::get_action_modes( 'update_order_status' ) );
+		$this->assertEquals( 'after_item', \Vendidero\Shiptastic\BulkFulfillments\Actions\UpdateOrderStatus::get_default_phase() );
+
+		$order    = $this->create_order( 1 );
+		$workflow = $this->create_workflow(
+			array(
+				array(
+					'action'   => 'update_shipment_status',
+					'settings' => array(
+						'mode'                      => 'interactive',
+						'status'                    => 'processing',
+						'require_shipping_provider' => false,
+					),
+				),
+				array(
+					'action'   => 'update_order_status',
+					'settings' => array( 'status' => 'on-hold' ),
+				),
+			)
+		);
+
+		$item   = current( Queue::claim( $workflow, array( 'user_id' => 1 ) ) );
+		$token  = $item->get_lock_token();
+		$result = Runner::execute( $item->get_id(), $workflow, $token );
+
+		$this->assertEquals( 'update_shipment_status', $result['step']->action );
+		$this->assertStringContainsString( 'Processing', $result['view_data']['description'] );
+
+		$shipment_id = $result['step']->shipment_id;
+		$result      = Runner::execute(
+			$item->get_id(),
+			$workflow,
+			$token,
+			array(
+				'step' => $result['step']->get_key(),
+				'data' => array(),
+			)
+		);
+
+		$this->assertEquals( 'completed', $result['status'] );
+		$this->assertEquals( 'processing', wc_stc_get_shipment( $shipment_id )->get_status() );
+		$this->assertEquals( 'on-hold', wc_get_order( $order->get_id() )->get_status() );
 	}
 
 	public function test_step_plan_injects_dependencies() {
@@ -511,33 +619,33 @@ class FulfillmentRunnerTest extends \Vendidero\Shiptastic\Tests\Framework\UnitTe
 
 		// Actions supporting user interaction run interactively (extensions may allow choosing the mode per step),
 		// actions without user interaction (e.g. creating shipments) run automatically
-		$workflow = $this->create_workflow( array( 'pick', 'mark_ready' ) );
-		$this->assertEquals( array( 'interactive' ), Workflow::get_action_modes( 'mark_ready' ) );
+		$workflow = $this->create_workflow( array( 'pick', 'update_shipment_status' ) );
+		$this->assertEquals( array( 'interactive' ), Workflow::get_action_modes( 'update_shipment_status' ) );
 		$this->assertEquals( array( 'background' ), Workflow::get_action_modes( 'create_shipments' ) );
-		$this->assertEquals( 'interactive', $workflow->get_step_mode( 'mark_ready' ) );
-		$this->assertEquals( 'interactive', $workflow->get_step_mode( 'mark_ready', array( 'mode' => 'background' ) ) );
+		$this->assertEquals( 'interactive', $workflow->get_step_mode( 'update_shipment_status' ) );
+		$this->assertEquals( 'interactive', $workflow->get_step_mode( 'update_shipment_status', array( 'mode' => 'background' ) ) );
 		$this->assertEquals( 'interactive', $workflow->get_step_mode( 'pick' ) );
 		$this->assertEquals( 'background', $workflow->get_step_mode( 'create_shipments' ) );
-		$this->assertStringContainsString( 'stc-confirm-step', \Vendidero\Shiptastic\BulkFulfillments\Actions\MarkReady::get_template() );
+		$this->assertStringContainsString( 'stc-confirm-step', \Vendidero\Shiptastic\BulkFulfillments\Actions\UpdateShipmentStatus::get_template() );
 
 		// Confirmed within the app via the generic review screen
 		$this->create_order( 1 );
 		$workflow = $this->create_workflow(
 			array(
 				array(
-					'action'   => 'mark_ready',
+					'action'   => 'update_shipment_status',
 					'settings' => array( 'mode' => 'interactive' ),
 				),
 			)
 		);
-		$this->assertEquals( 'interactive', $workflow->get_step_mode( 'mark_ready', array( 'mode' => 'interactive' ) ) );
+		$this->assertEquals( 'interactive', $workflow->get_step_mode( 'update_shipment_status', array( 'mode' => 'interactive' ) ) );
 
 		$item   = current( Queue::claim( $workflow, array( 'user_id' => 1 ) ) );
 		$token  = $item->get_lock_token();
 		$result = Runner::execute( $item->get_id(), $workflow, $token );
 
 		$this->assertEquals( 'needs_input', $result['status'] );
-		$this->assertEquals( 'mark_ready', $result['step']->action );
+		$this->assertEquals( 'update_shipment_status', $result['step']->action );
 		$this->assertEquals( $result['step']->shipment_id, $result['view_data']['shipmentId'] );
 		$this->assertNotEmpty( $result['view_data']['description'] );
 

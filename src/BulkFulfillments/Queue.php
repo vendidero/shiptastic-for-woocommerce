@@ -281,6 +281,14 @@ class Queue {
 			$conditions[] = $wpdb->prepare( 'queue_weight <= %f', $filters['max_weight'] );
 		}
 
+		if ( ! empty( $filters['tags'] ) ) {
+			$conditions[] = QueueTags::get_condition( $filters['tags'] );
+		}
+
+		if ( ! empty( $filters['exclude_tags'] ) ) {
+			$conditions[] = QueueTags::get_condition( $filters['exclude_tags'], true );
+		}
+
 		if ( 'exclude' === $filters['backorders'] ) {
 			$conditions[] = 'queue_has_backorders = 0';
 		} elseif ( 'only' === $filters['backorders'] ) {

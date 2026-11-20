@@ -123,7 +123,7 @@ class Pack extends Action {
 			return StepResult::from_wp_error( $applied );
 		}
 
-		// The shipment status is not changed: marking it as ready for shipping is a separate step (mark_ready).
+		// The shipment status is not changed: updating it (e.g. to ready for shipping) is a separate step (update_shipment_status).
 		$shipment->save();
 
 		return StepResult::done( $props );

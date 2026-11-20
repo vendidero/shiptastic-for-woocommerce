@@ -201,6 +201,45 @@ JS;
 	}
 
 	/**
+	 * Steps (actions) available with Shiptastic Pro: presented with a pro marker (not selectable) within the workflow
+	 * editor in case they are not registered.
+	 *
+	 * @return array[] name => title, description
+	 */
+	public static function get_pro_actions() {
+		$actions = array(
+			'create_invoice'          => array(
+				'title'       => _x( 'Create invoice', 'shipments-pro-action', 'shiptastic-for-woocommerce' ),
+				'description' => _x( 'Create and finalize the invoice of the order (Germanized Pro).', 'shipments-pro-action', 'shiptastic-for-woocommerce' ),
+			),
+			'create_picking_list'     => array(
+				'title'       => _x( 'Create picking list', 'shipments-pro-action', 'shiptastic-for-woocommerce' ),
+				'description' => _x( 'One picking list for the batch, sorted along the walking path.', 'shipments-pro-action', 'shiptastic-for-woocommerce' ),
+			),
+			'create_carrier_manifest' => array(
+				'title'       => _x( 'Create carrier manifests', 'shipments-pro-action', 'shiptastic-for-woocommerce' ),
+				'description' => _x( 'One carrier manifest per shipping provider at the end of the run, signed on pickup.', 'shipments-pro-action', 'shiptastic-for-woocommerce' ),
+			),
+			'print_documents'         => array(
+				'title'       => _x( 'Print documents', 'shipments-pro-action', 'shiptastic-for-woocommerce' ),
+				'description' => _x( 'Print labels and documents to your printers (cloud printing).', 'shipments-pro-action', 'shiptastic-for-woocommerce' ),
+			),
+		);
+
+		/**
+		 * Filter the steps presented as Shiptastic Pro features within the workflow editor.
+		 *
+		 * @param array[] $actions name => title, description
+		 *
+		 * @package Vendidero/Shiptastic
+		 */
+		$actions = (array) apply_filters( 'woocommerce_shiptastic_fulfillment_pro_actions', $actions );
+
+		// Registered (e.g. Shiptastic Pro is active): regular steps.
+		return array_diff_key( $actions, ActionRegistry::get_action_classes() );
+	}
+
+	/**
 	 * Pro marker (badge linking to Shiptastic Pro), like the pro markers within the settings.
 	 *
 	 * @param array $attributes Additional HTML attributes.
@@ -350,6 +389,8 @@ JS;
 				// Pro features (automations) are presented with a pro marker in case they are not available.
 				'pro'               => array(
 					'automation' => self::has_automation(),
+					// Including/excluding filters (queue tags): their choices are loaded separately.
+					'tagFilters' => QueueTags::has_editor_filters(),
 					'url'        => esc_url_raw( self::get_pro_url() ),
 				),
 				'i18n'              => array(
@@ -396,6 +437,8 @@ JS;
 					'noItems'           => _x( 'No orders left for this workflow.', 'shipments', 'shiptastic-for-woocommerce' ),
 					'confirmStop'       => _x( 'Stop? Unfinished orders are put back into the queue.', 'shipments', 'shiptastic-for-woocommerce' ),
 					'unknownCode'       => _x( 'No item matches the scanned code.', 'shipments', 'shiptastic-for-woocommerce' ),
+					/* translators: %s item name */
+					'alreadyComplete'   => _x( '%s is complete already.', 'shipments', 'shiptastic-for-woocommerce' ),
 					/* translators: 1: current order 2: number of orders */
 					'orderProgress'     => _x( 'Order %1$d of %2$d', 'shipments', 'shiptastic-for-woocommerce' ),
 					/* translators: 1: current step 2: number of steps */
@@ -405,6 +448,16 @@ JS;
 					/* translators: 1: shipment number 2: order number */
 					'labelCreated'      => _x( 'Label for shipment %1$s (order #%2$s)', 'shipments', 'shiptastic-for-woocommerce' ),
 					'createLabel'       => _x( 'Create label', 'shipments', 'shiptastic-for-woocommerce' ),
+					// Document steps (uploads).
+					'documentUpload'    => _x( 'Upload', 'shipments-document', 'shiptastic-for-woocommerce' ),
+					'documentReplace'   => _x( 'Replace', 'shipments-document', 'shiptastic-for-woocommerce' ),
+					'documentUploading' => _x( 'Uploading…', 'shipments-document', 'shiptastic-for-woocommerce' ),
+					'documentSave'      => _x( 'Save', 'shipments-document', 'shiptastic-for-woocommerce' ),
+					'documentSaving'    => _x( 'Saving…', 'shipments-document', 'shiptastic-for-woocommerce' ),
+					/* translators: %s document title */
+					'documentSaved'     => _x( '%s saved.', 'shipments-document', 'shiptastic-for-woocommerce' ),
+					/* translators: %s document titles */
+					'documentsMissing'  => _x( 'Please upload: %s.', 'shipments-document', 'shiptastic-for-woocommerce' ),
 					'labelFormLoading'  => _x( 'Loading label settings…', 'shipments', 'shiptastic-for-woocommerce' ),
 					'autoRunTitle'      => _x( 'Running automatically…', 'shipments', 'shiptastic-for-woocommerce' ),
 					'autoRunDone'       => _x( 'Done', 'shipments', 'shiptastic-for-woocommerce' ),
@@ -497,13 +550,8 @@ JS;
 						'period'            => _x( '%1$s – %2$s', 'shipments', 'shiptastic-for-woocommerce' ),
 						'ordersTitle'       => _x( 'Orders', 'shipments', 'shiptastic-for-woocommerce' ),
 						'noOrders'          => _x( 'No orders are recorded for this run.', 'shipments', 'shiptastic-for-woocommerce' ),
+						'noTabOrders'       => _x( 'No orders.', 'shipments', 'shiptastic-for-woocommerce' ),
 						'filesExpired'      => _x( 'The files of this run were removed after the retention period.', 'shipments', 'shiptastic-for-woocommerce' ),
-						'orderStatus'       => array(
-							'claimed'   => _x( 'In progress', 'shipments-run-order', 'shiptastic-for-woocommerce' ),
-							'completed' => _x( 'Completed', 'shipments-run-order', 'shiptastic-for-woocommerce' ),
-							'failed'    => _x( 'Moved to exceptions', 'shipments-run-order', 'shiptastic-for-woocommerce' ),
-							'released'  => _x( 'Put back', 'shipments-run-order', 'shiptastic-for-woocommerce' ),
-						),
 						'backOverview'      => _x( 'Back to overview', 'shipments', 'shiptastic-for-woocommerce' ),
 						/* translators: %s scope, e.g. a step title */
 						'screenTitle'       => _x( 'Run: %s', 'shipments', 'shiptastic-for-woocommerce' ),
@@ -541,6 +589,7 @@ JS;
 					),
 					/* translators: 1: checked items 2: total items */
 					'checklistProgress' => _x( '%1$d/%2$d items', 'shipments', 'shiptastic-for-woocommerce' ),
+					'orderReloaded'     => _x( 'The order was changed in the meantime and has been reloaded.', 'shipments', 'shiptastic-for-woocommerce' ),
 					/* translators: %s weight, e.g. 0.5 kg */
 					'weightEach'        => _x( '%s each', 'shipments-weight', 'shiptastic-for-woocommerce' ),
 					/* translators: 1: quantity 2: weight of one unit 3: total weight */
@@ -597,11 +646,11 @@ JS;
 			'woocommerce_shiptastic_fulfillment_app_state',
 			array(
 				// Deep links (run, workflow editor): a loading screen instead of the overview until the client opened them.
-				'screen'          => self::get_route_param( 'run' ) ? 'loading' : 'overview',
+				'screen'            => self::get_route_param( 'run' ) ? 'loading' : 'overview',
 				// Plain flag (getters are not available while rendering on the server): the loading view shows right away.
-				'routeLoading'    => '' !== self::get_route_param( 'run' ),
+				'routeLoading'      => '' !== self::get_route_param( 'run' ),
 				// Active interactive runs of the user (continued instead of started anew).
-				'sessions'        => array_map(
+				'sessions'          => array_map(
 					function ( $run ) {
 						return array(
 							'id'          => $run->get_id(),
@@ -616,9 +665,9 @@ JS;
 						)
 					)
 				),
-				'workflows'       => $workflows,
-				'counts'          => Queue::count_by_status(),
-				'queue'           => array(
+				'workflows'         => $workflows,
+				'counts'            => Queue::count_by_status(),
+				'queue'             => array(
 					'status'     => 'pending',
 					'items'      => array(),
 					'page'       => 1,
@@ -628,7 +677,7 @@ JS;
 					'loading'    => true,
 					'workflowId' => 0,
 				),
-				'run'             => array(
+				'run'               => array(
 					'workflowId' => 0,
 					'items'      => array(),
 					'total'      => 0,
@@ -639,34 +688,34 @@ JS;
 					'waiting'    => array(),
 				),
 				// Offline outbox (outbox.js): pending mutations, replay state, items which could not be synced.
-				'sync'            => array(
+				'sync'              => array(
 					'pending'   => 0,
 					'running'   => false,
 					'authError' => false,
 					'conflicts' => array(),
 				),
-				'currentKey'      => '',
-				'showValidation'  => false,
-				'stepListOpen'    => false,
+				'currentKey'        => '',
+				'showValidation'    => false,
+				'stepListOpen'      => false,
 				// Progress panel of the automatic steps (app.js actions.runAutomaticSteps()).
-				'autoSteps'       => array(
+				'autoSteps'         => array(
 					'active' => false,
 					'paused' => false,
 					'slow'   => false,
 					'steps'  => array(),
 				),
 				// A failed step at the start of the current batch (run level): the batch's orders wait for retry/skip.
-				'runStepError'    => array(
+				'runStepError'      => array(
 					'id'      => 0,
 					'title'   => '',
 					'message' => '',
 				),
 				// An automatic step handled interactively after it failed (key + error message).
-				'manualStep'      => array(
+				'manualStep'        => array(
 					'key'     => '',
 					'message' => '',
 				),
-				'workflowEditor'  => array(
+				'workflowEditor'    => array(
 					'open'    => '' !== self::get_route_param( 'workflow' ),
 					'loading' => '' !== self::get_route_param( 'workflow' ),
 					'saving'  => false,
@@ -682,7 +731,9 @@ JS;
 					),
 				),
 				// Loaded on demand (workflow editor).
-				'workflowChoices' => array(
+				// Labels of tags (including/excluding filters, autocomplete): value => label.
+				'workflowTagLabels' => new \stdClass(),
+				'workflowChoices'   => array(
 					'loaded'    => false,
 					'actions'   => array(),
 					'locations' => array(),
@@ -691,8 +742,8 @@ JS;
 					'modes'     => array(),
 				),
 				// Loaded on demand (order details).
-				'countries'       => array(),
-				'orderDetails'    => array(
+				'countries'         => array(),
+				'orderDetails'      => array(
 					'open'    => false,
 					'loading' => false,
 					'saving'  => false,
@@ -702,22 +753,25 @@ JS;
 					'form'    => new \stdClass(),
 				),
 				// Runs listed in the overview, the run shown on the report screen.
-				'runs'            => array(),
-				'report'          => array(
+				'runs'              => array(),
+				'report'            => array(
 					'run'           => null,
 					'loading'       => false,
 					// Orders processed within the run (GET runs/{id}/orders).
 					'orders'        => array(),
 					'ordersLoading' => false,
+					// Order tab (completed, failed, released, claimed) and whether the user chose it.
+					'tab'           => '',
+					'tabChosen'     => false,
 				),
 				// Run history (overview): pagination.
-				'runsPage'        => 1,
-				'runsHasMore'     => false,
+				'runsPage'          => 1,
+				'runsHasMore'       => false,
 				// The history is loaded right after the app started (placeholder rows meanwhile).
-				'runsLoading'     => true,
-				'packaging'       => ShipmentLayout::get_packaging_data(),
-				'providers'       => ShipmentLayout::get_provider_data(),
-				'overlay'         => array(
+				'runsLoading'       => true,
+				'packaging'         => ShipmentLayout::get_packaging_data(),
+				'providers'         => ShipmentLayout::get_provider_data(),
+				'overlay'           => array(
 					'open'      => false,
 					'saving'    => false,
 					'dirty'     => false,
@@ -727,16 +781,16 @@ JS;
 					// Shipments proposed for items assigned for the first time (packaging suggestions).
 					'proposed'  => false,
 				),
-				'view'            => new \stdClass(),
-				'form'            => new \stdClass(),
-				'busy'            => false,
-				'online'          => true,
-				'notice'          => array(
+				'view'              => new \stdClass(),
+				'form'              => new \stdClass(),
+				'busy'              => false,
+				'online'            => true,
+				'notice'            => array(
 					'type'    => '',
 					'message' => '',
 				),
 				// Labels created right now, offered for printing (key, title, url).
-				'printLabels'     => array(),
+				'printLabels'       => array(),
 			)
 		);
 	}

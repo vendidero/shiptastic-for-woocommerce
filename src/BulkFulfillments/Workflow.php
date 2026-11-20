@@ -136,6 +136,9 @@ class Workflow extends WC_Data {
 				'locations'          => array(),
 				'shipping_providers' => array(),
 				'countries'          => array(),
+				// Queue item tags (QueueTags): orders having any of the tags, orders having none of the exclude tags.
+				'tags'               => array(),
+				'exclude_tags'       => array(),
 				'min_items'          => '',
 				'max_items'          => '',
 				'min_weight'         => '',
@@ -159,6 +162,10 @@ class Workflow extends WC_Data {
 			$sanitized[ $list ] = array_values( array_unique( $values ) );
 		}
 
+		foreach ( array( 'tags', 'exclude_tags' ) as $list ) {
+			$sanitized[ $list ] = QueueTags::sanitize( (array) $filters[ $list ] );
+		}
+
 		foreach ( array( 'min_items', 'max_items' ) as $int_filter ) {
 			$sanitized[ $int_filter ] = '' === $filters[ $int_filter ] || null === $filters[ $int_filter ] ? '' : absint( $filters[ $int_filter ] );
 		}
@@ -180,6 +187,7 @@ class Workflow extends WC_Data {
 	public static function sanitize_steps( $steps ) {
 		$sanitized = array();
 		$instances = array();
+		$steps     = self::migrate_steps( array_values( (array) $steps ) );
 
 		foreach ( array_values( (array) $steps ) as $step ) {
 			$step = wp_parse_args(
@@ -301,7 +309,34 @@ class Workflow extends WC_Data {
 	}
 
 	public function get_steps( $context = 'view' ) {
-		return $this->get_prop( 'steps', $context );
+		$steps = $this->get_prop( 'steps', $context );
+
+		return 'view' === $context ? self::migrate_steps( (array) $steps ) : $steps;
+	}
+
+	/**
+	 * Steps of renamed actions: mark_ready became update_shipment_status (status ready for shipping).
+	 *
+	 * @param array $steps
+	 *
+	 * @return array
+	 */
+	public static function migrate_steps( $steps ) {
+		foreach ( $steps as $index => $step ) {
+			if ( is_array( $step ) && isset( $step['action'] ) && 'mark_ready' === $step['action'] ) {
+				$settings = isset( $step['settings'] ) ? (array) $step['settings'] : array();
+
+				$steps[ $index ]['action']   = 'update_shipment_status';
+				$steps[ $index ]['settings'] = array_merge( array( 'status' => 'ready-for-shipping' ), $settings );
+			} elseif ( 'mark_ready' === $step ) {
+				$steps[ $index ] = array(
+					'action'   => 'update_shipment_status',
+					'settings' => array( 'status' => 'ready-for-shipping' ),
+				);
+			}
+		}
+
+		return $steps;
 	}
 
 	public function set_steps( $steps ) {

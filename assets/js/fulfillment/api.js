@@ -32,7 +32,8 @@ export async function refreshNonce() {
 
 /**
  * @param {string} path Relative to the fulfillment namespace, or to the REST root in case `root` is set (e.g. wc/v3/orders/1).
- * @param {Object} options method, body, query, root (use the REST root instead of the fulfillment namespace)
+ * @param {Object} options method, body (object sent as JSON or FormData sent as multipart), query, root (use the REST
+ *                         root instead of the fulfillment namespace)
  */
 export async function request( path, { method = 'GET', body = null, query = null, root = false } = {} ) {
     let url = ( root ? config.restRoot : config.restUrl ).replace( /\/$/, '' ) + '/' + path.replace( /^\//, '' );
@@ -41,14 +42,16 @@ export async function request( path, { method = 'GET', body = null, query = null
         url += ( url.includes( '?' ) ? '&' : '?' ) + new URLSearchParams( query ).toString();
     }
 
+    // FormData (file uploads) is sent as multipart, the browser sets the content type incl. boundary.
+    const isForm = 'undefined' !== typeof FormData && body instanceof FormData;
     const send = () => fetch( url, {
         method,
         credentials: 'same-origin',
-        headers: {
+        headers: isForm ? { 'X-WP-Nonce': config.nonce } : {
             'Content-Type': 'application/json',
             'X-WP-Nonce': config.nonce,
         },
-        body: body ? JSON.stringify( body ) : undefined,
+        body: isForm ? body : ( body ? JSON.stringify( body ) : undefined ),
     } );
 
     let response = await send();

@@ -245,6 +245,37 @@ class General extends Tab {
 					'type' => 'sectionend',
 					'id'   => 'shipments_shipper_address',
 				),
+				array(
+					'title' => _x( 'Bank account', 'shipments', 'shiptastic-for-woocommerce' ),
+					'type'  => 'title',
+					'desc'  => _x( 'Used by shipping providers that pay out collected cash-on-delivery amounts (e.g. Nachnahme).', 'shipments', 'shiptastic-for-woocommerce' ),
+					'id'    => 'shipments_bank_account',
+				),
+				array(
+					'title'        => _x( 'Account holder', 'shipments', 'shiptastic-for-woocommerce' ),
+					'type'         => 'text',
+					'id'           => 'woocommerce_shiptastic_bank_account_holder',
+					'default'      => '',
+					'skip_install' => true,
+				),
+				array(
+					'title'        => _x( 'IBAN', 'shipments', 'shiptastic-for-woocommerce' ),
+					'type'         => 'text',
+					'id'           => 'woocommerce_shiptastic_bank_account_iban',
+					'default'      => '',
+					'skip_install' => true,
+				),
+				array(
+					'title'        => _x( 'BIC', 'shipments', 'shiptastic-for-woocommerce' ),
+					'type'         => 'text',
+					'id'           => 'woocommerce_shiptastic_bank_account_bic',
+					'default'      => '',
+					'skip_install' => true,
+				),
+				array(
+					'type' => 'sectionend',
+					'id'   => 'shipments_bank_account',
+				),
 			)
 		);
 

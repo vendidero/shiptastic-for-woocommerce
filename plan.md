@@ -748,7 +748,7 @@ Namespace `wc/v3/shiptastic/fulfillment` (or own `shiptastic/v1`):
    module URL to `?ver={plugin version}-{filemtime}` (`App::get_versioned_module_urls()`,
    `FulfillmentScriptModules::print_import_map()`), registered modules use the same version.
 8c. ✅ **Run phases** (prerequisite for the Shiptastic Pro plugin `plugins/fulfillment-documents`: StoreaBill based
-   picking lists + shipment lists per provider, requested 2026-11-18). Steps run in one of five phases
+   picking lists + carrier manifests per provider, requested 2026-11-18). Steps run in one of five phases
    (`RunPhases`, step setting `phase`, actions declare `Action::get_phases()`, first = default, `supports_phase()`):
    - `before_queue` **Start of batch**: once per batch, before its orders are worked on. A batch is one claim of a run
      (interactive: each claim/refill, automations: each claimed chunk, `Queue::get_claim_limit()`). Item steps the
@@ -794,7 +794,7 @@ Namespace `wc/v3/shiptastic/fulfillment` (or own `shiptastic/v1`):
      Per order steps listed after the first per shipment step run after all shipments.
    - `mark_ready`/`create_label`: phase `item` only (shipment scope), i.e. "Per shipment".
    - **Several steps of an action** (`Action::allows_multiple()`, defaults to `is_repeatable()`, e.g. Pro's print
-     documents: a picking list at the start of the batch, labels per shipment, a shipment list at the end of the run):
+     documents: a picking list at the start of the batch, labels per shipment, a carrier manifest at the end of the run):
      further steps of an action carry an `instance` (stored with the workflow step, assigned in
      `Workflow::sanitize_steps()`, kept once assigned - also if the first step is removed); duplicates of other
      actions are dropped. Their results are logged with the log key `{action}--{instance}` (`Step::get_log_key()`:
@@ -810,8 +810,8 @@ Namespace `wc/v3/shiptastic/fulfillment` (or own `shiptastic/v1`):
      the per-shipment breakdown): one numbered StoreaBill document for the batch's shipments - aggregated pick lines
      (product / inner box, location, quantity, orders) sorted along the walking path + per-shipment section; PDF added
      to the run export (later: cloud printing).
-   - `create_shipment_list` (phase `after_queue`, background, requires `create_label`, settings: providers,
-     only shipments with tracking number): one numbered StoreaBill document per shipping provider of the run's
+   - `create_carrier_manifest` (renamed from `create_shipment_list`, phase `after_queue`, background, requires `create_label`, settings: providers,
+     only shipments with tracking number): one numbered StoreaBill document (`carrier_manifest`) per shipping provider of the run's
      shipments (shipment, order, recipient, packages, weight, dimensions, tracking number, signature fields);
      PDFs added to the run export.
    - Both are also available as bulk actions within the shipments table (no run needed).
@@ -833,7 +833,63 @@ Namespace `wc/v3/shiptastic/fulfillment` (or own `shiptastic/v1`):
      (Labels\Automation), `QueueSync::prevent_shipped_during_fulfillment()` returns false while the package's queue
      item is locked, so later steps of the shipment keep running.
    - Tests: `tests/unit-tests/fulfillment-create-label.php`.
-9. **Polish**: scanner support, gestures, a11y, performance budget check, docs for third-party actions.
+8e. ✅ **Shipping documents step** (`create_shipping_documents`, "Shipping documents", per shipment, interactive):
+   optional uploads in Shiptastic, document creation in Pro (Pro replaces the action by name via
+   `woocommerce_shiptastic_fulfillment_actions`, e.g. extending the free class, and adds the per order invoice step
+   `create_invoice` - Pro only, incl. an `invoice` attachment type if needed).
+   - Packing slip + commercial invoice (setting `documents`, empty = both; commercial invoices for exports only, i.e.
+     the attachment type is supported) and - grouped with them - the export declaration (`abd`) when
+     `Documents::needs_export_declaration()` (base country supports ABD, export, goods value `get_total()` above
+     setting `abd_threshold`, default 1000, filter `woocommerce_shiptastic_fulfillment_needs_export_declaration`).
+   - All documents are optional (rows may be marked `required`, e.g. by Pro: shown as "Required", checked on
+     continue). Existing attachments count (e.g. StoreaBill packing slips; only `Attachment` interface methods used).
+   - Upload: `POST queue/{id}/documents` (multipart: token, type, shipment_id - 0 = all package shipments, file; PDF
+     only; types `Documents::get_types()`, filter `woocommerce_shiptastic_fulfillment_document_types`),
+     `documents.js` uploads when a file is chosen; `api.request()` sends FormData as multipart. Uploaded files are
+     added to the run's files. Tests: `tests/unit-tests/fulfillment-documents.php`.
+8f. ✅ **Steps not applying** (`Action::is_applicable( StepContext|RunContext )`, default true): e.g. Pro's print
+   documents applies only in case documents exist (unless cloud printing is not configured). Planned steps not
+   applying are flagged `hidden` (not shown in the app's step list, re-evaluated with every plan, e.g. once a label was
+   created by a previous step); once reached and still not applying, they are skipped silently (StepLog/RunSteps
+   entry `skipped` with data `not_applicable`, no automated/report entry, run level ones not listed in the report).
+8g. ✅ **Queue tags** (`BulkFulfillments\QueueTags`, table `stc_fulfillment_queue_tags`: queue_tag_queue_id + queue_tag):
+   workflow filters on data which is not a queue column stay SQL. Tags are computed whenever the queue syncs an order
+   (`QueueSync::sync_order()`, per package: its order items incl. the items of unshipped shipments):
+   `cat:{slug}` (product categories incl. parents, variations: parent's), `class:{slug}` (shipping classes),
+   `pay:{gateway}` (payment method), extensions via `woocommerce_shiptastic_fulfillment_queue_item_tags` (+ editor
+   choices via `woocommerce_shiptastic_fulfillment_queue_tag_choices`). Workflow filters `tags` ("Including": any of)
+   and `exclude_tags` ("Excluding": none of) → `EXISTS`/`NOT EXISTS` conditions within claims and counts. The editor
+   offers both filters with Shiptastic Pro only (`woocommerce_shiptastic_fulfillment_workflow_tag_filters_enabled`,
+   `QueueTags::has_editor_filters()`, enabled by Pro's Automation module); tags are maintained and saved filters apply
+   in any case. Backfill:
+   `QueueTags::maybe_backfill()` (installer, versioned option) resets the reconcile cursor, the reconcile re-syncs the
+   eligible orders. Test: `tests/unit-tests/fulfillment-queue-tags.php`.
+8h. ✅ **Status steps + pro markers**:
+   - `update_shipment_status` ("Update shipment status", replaces `mark_ready`): per shipment, setting `status`
+     (processing, ready for shipping (default), shipped, delivered; filter
+     `woocommerce_shiptastic_fulfillment_update_shipment_statuses`) + the former validations (shipping provider,
+     packaging, filter `woocommerce_shiptastic_fulfillment_validate_shipment_status`). Saved `mark_ready` steps are
+     migrated when read/saved (`Workflow::migrate_steps()`, status ready for shipping), logged `mark_ready` results count
+     for it (`Runner::get_log()`). Shipped/delivered shipments leave the process (no further steps for them).
+   - `update_order_status` ("Update order status"): per order, "After each order" by default, automatic, setting
+     `status` (order statuses except pending/failed/refunded/checkout-draft, default completed), order note naming the
+     workflow.
+   - Pro markers (outlined, border/text follow the surrounding text color, `App::get_pro_badge()`): background workflow
+     mode, automatic step mode, Pro steps within the step picker (`App::get_pro_actions()`, editor data `pro_actions`,
+     not selectable) and the including/excluding filters (disabled) in case Shiptastic Pro is not active. The add step
+     select became a picker (title + description per step).
+9. **Polish** (docs for third-party actions: later):
+   - ✅ Scanner: keyboard wedge scanners work without focusing the scan field (check list: characters typed within
+     < 50 ms, ≥ 3, finished with Enter, only the visible check list reacts, not within fields). Feedback: the scanned
+     item flashes + short vibration, unknown codes and items complete already are pointed out (+ longer vibration).
+   - ✅ A11y: Escape closes the top-most sheet (documents, order details, shipments, workflow editor; elements handling
+     Escape themselves - step picker, autocomplete, step list - prevent it), focus moves into opened sheets and returns
+     to the opener, visible keyboard focus (`:focus-visible`), reduced motion (no animations, static scan highlight),
+     check list progress as polite live region, autocomplete as combobox (arrow keys, Enter adds the first result).
+   - ✅ Performance budget (measured 2026-11-20): JS at app load ≤ 100 KB gzip (70 KB, 24 modules, unminified),
+     CSS ≤ 15 KB gzip (8 KB), REST list endpoints < 150 ms (queue 98 ms first call, others 3-25 ms, CLI without
+     Xdebug). Possible later: minify the modules, load workflows.js/report.js on demand.
+   - Gestures: swipe (± 1), drag & drop, steppers exist; nothing changed.
 
 ---
 

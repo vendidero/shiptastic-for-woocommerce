@@ -10,7 +10,7 @@
  * Choices are loaded on demand when the editor is opened the first time: Shiptastic specific ones from
  * `workflows/editor` (preloaded for managers), countries (wc/v3/data/countries, preloaded and cached, countries.js).
  */
-import { store, getContext, getConfig } from '@wordpress/interactivity';
+import { store, getContext, getConfig, getElement, withSyncEvent } from '@wordpress/interactivity';
 import * as api from './api.js';
 import * as hooks from './hooks.js';
 import { loadCountries } from './countries.js';
@@ -19,6 +19,26 @@ const NAMESPACE = 'shiptastic/fulfillment';
 const i18n = () => getConfig( NAMESPACE ).i18n.workflowEditor;
 
 let choicesRequest = null;
+
+// Autocomplete of the including/excluding filters (queue tags): debounce timers and request ids per list.
+const tagSearchTimers = {};
+const tagSearchRequests = {};
+
+// The complete list of tags (in case the server returned it, see workflows/tags): searched locally afterwards.
+let allTags = null;
+// The complete list was requested but is too large: searched on the server.
+let tagsTooMany = false;
+
+/**
+ * @param {Object[]} tags  value, label
+ * @param {string}   query
+ * @return {Object[]} Tags matching the query (label or value), max. 20.
+ */
+function filterTags( tags, query ) {
+    const needle = String( query || '' ).trim().toLowerCase();
+
+    return tags.filter( ( tag ) => ! needle || ( tag.label + ' ' + tag.value ).toLowerCase().includes( needle ) ).slice( 0, 20 );
+}
 let stepCounter = 0;
 
 /**
@@ -45,6 +65,39 @@ function loadChoices() {
     return choicesRequest;
 }
 
+const isTagList = ( list ) => 'tags' === list || 'exclude_tags' === list;
+
+/**
+ * Remembers labels of tags (results, selected tags) - the chips show them.
+ *
+ * @param {Object[]} choices value, label
+ */
+function rememberTagLabels( choices ) {
+    const labels = { ...( state.workflowTagLabels || {} ) };
+
+    ( choices || [] ).forEach( ( choice ) => {
+        labels[ choice.value ] = choice.label;
+    } );
+
+    state.workflowTagLabels = labels;
+}
+
+/**
+ * Loads the labels of the selected tags of the edited workflow (unknown ones only).
+ */
+function loadSelectedTagLabels() {
+    const filters = state.workflowEditor.form.filters || {};
+    const known = state.workflowTagLabels || {};
+    const include = [ ...( filters.tags || [] ), ...( filters.exclude_tags || [] ) ].filter( ( value ) => ! known[ value ] );
+
+    if ( 0 === include.length || ! getConfig( NAMESPACE ).pro?.tagFilters ) {
+        return;
+    }
+
+    // Comma separated (REST array param).
+    api.request( 'workflows/tags', { query: { include: include.join( ',' ) } } ).then( ( response ) => rememberTagLabels( response.items ) ).catch( () => {} );
+}
+
 /**
  * Loads the editor choices in the background once the browser is idle (app start, managers only), so that opening
  * the workflow editor does not wait for them.
@@ -65,7 +118,7 @@ function defaultForm() {
         title: '',
         mode: 'interactive',
         steps: [],
-        filters: { locations: [], shipping_providers: [], countries: [], min_items: '', max_items: '', min_weight: '', max_weight: '', backorders: 'any' },
+        filters: { locations: [], shipping_providers: [], countries: [], tags: [], exclude_tags: [], min_items: '', max_items: '', min_weight: '', max_weight: '', backorders: 'any' },
     };
 }
 
@@ -529,7 +582,11 @@ const { state, actions } = store( NAMESPACE, {
                 return ( state.workflowChoices.actions || [] ).filter( ( action ) => ( action.multiple || ! listed.includes( action.name ) ) && hooks.applyFilters( 'workflowActionAvailable', true, action, state.workflowEditor.form ) );
             },
             get canAddStep() {
-                return state.workflowEditorData.availableActions.length > 0;
+                return state.workflowEditorData.availableActions.length > 0 || state.workflowEditorData.proActions.length > 0;
+            },
+            // Steps available with Shiptastic Pro: shown with a pro marker, not selectable.
+            get proActions() {
+                return state.workflowChoices.pro_actions || [];
             },
             // Filters
             get listChoices() {
@@ -539,7 +596,38 @@ const { state, actions } = store( NAMESPACE, {
                     return state.countries.map( ( country ) => ( { value: country.code, label: country.name } ) );
                 }
 
+                // Including/excluding: queue item tags (categories, shipping classes, payment methods).
+                if ( isTagList( list ) ) {
+                    return Object.entries( state.workflowTagLabels || {} ).map( ( [ value, label ] ) => ( { value, label } ) );
+                }
+
                 return ( 'locations' === list ? state.workflowChoices.locations : state.workflowChoices.providers ) || [];
+            },
+            // Autocomplete of the including/excluding filters (per list: query, results, loading, open).
+            get tagSearch() {
+                const { list } = getContext();
+                return ( state.workflowEditor.tagSearch || {} )[ list ] || { query: '', results: [], loading: false, open: false, searched: false };
+            },
+            get tagQuery() {
+                return state.workflowEditorData.tagSearch.query;
+            },
+            // Results without the selected tags.
+            get tagResults() {
+                const { list } = getContext();
+                const selected = state.workflowEditor.form.filters[ list ] || [];
+
+                return state.workflowEditorData.tagSearch.results.filter( ( result ) => ! selected.includes( result.value ) );
+            },
+            get isTagSearching() {
+                return state.workflowEditorData.tagSearch.loading;
+            },
+            get hasNoTagResults() {
+                const search = state.workflowEditorData.tagSearch;
+                return search.searched && ! search.loading && 0 === state.workflowEditorData.tagResults.length;
+            },
+            get showTagResults() {
+                const search = state.workflowEditorData.tagSearch;
+                return search.open && ( search.loading || search.searched );
             },
             get listSelected() {
                 const { list } = getContext();
@@ -622,7 +710,10 @@ const { state, actions } = store( NAMESPACE, {
              * @param {Object|null} workflow
              */
             *show( workflow ) {
-                state.workflowEditor = { open: true, loading: true, saving: false, dirty: false, error: '', limited: {}, form: workflow ? toForm( workflow ) : emptyForm() };
+                state.workflowEditor = { open: true, loading: true, saving: false, dirty: false, error: '', limited: {}, pickerOpen: false, tagSearch: {}, form: workflow ? toForm( workflow ) : emptyForm() };
+
+                // Labels of the selected tags (including/excluding filters), in the background.
+                loadSelectedTagLabels();
 
                 try {
                     yield loadChoices();
@@ -657,14 +748,35 @@ const { state, actions } = store( NAMESPACE, {
                 markDirty();
             },
             // Steps
-            addStep( event ) {
-                const name = event.target.value;
+            // Step picker (available steps + steps of Shiptastic Pro).
+            togglePicker() {
+                state.workflowEditor.pickerOpen = ! state.workflowEditor.pickerOpen;
+            },
+            // Escape closes the picker only (not the editor).
+            onPickerKeydown: withSyncEvent( ( event ) => {
+                if ( 'Escape' === event.key && state.workflowEditor.pickerOpen ) {
+                    event.preventDefault();
+                    state.workflowEditor.pickerOpen = false;
+                }
+            } ),
+            // Closes the picker once the focus left it (e.g. tabbing/clicking elsewhere).
+            onPickerFocusout( event ) {
+                const { ref } = getElement();
 
+                if ( ref && event.relatedTarget && ! ref.contains( event.relatedTarget ) ) {
+                    state.workflowEditor.pickerOpen = false;
+                }
+            },
+            pickStep() {
+                const { action } = getContext();
+
+                state.workflowEditor.pickerOpen = false;
+                actions.workflowEditor.addStep( action.name );
+            },
+            addStep( name ) {
                 if ( ! name ) {
                     return;
                 }
-
-                event.target.value = '';
 
                 const action = getAction( name );
                 const settings = {};
@@ -802,6 +914,126 @@ const { state, actions } = store( NAMESPACE, {
 
                 if ( value ) {
                     toggleFilter( list, value, true );
+                }
+            },
+            // Autocomplete: searches (debounced) when typing or focusing the field.
+            searchTags( event ) {
+                const { list } = getContext();
+                const query = event.target.value;
+                const update = ( props ) => {
+                    const all = state.workflowEditor.tagSearch || {};
+                    const current = all[ list ] || { query: '', results: [], loading: false, open: false, searched: false };
+
+                    state.workflowEditor.tagSearch = { ...all, [ list ]: { ...current, ...props } };
+                };
+
+                window.clearTimeout( tagSearchTimers[ list ] );
+
+                // The complete list is known: searched locally, right away.
+                if ( allTags ) {
+                    update( { query, open: true, loading: false, searched: true, results: filterTags( allTags, query ) } );
+                    return;
+                }
+
+                update( { query, open: true, loading: true } );
+
+                tagSearchTimers[ list ] = window.setTimeout( () => {
+                    const request = ( tagSearchRequests[ list ] || 0 ) + 1;
+
+                    tagSearchRequests[ list ] = request;
+
+                    // First the complete list (in case it is small enough, see workflows/tags), the search otherwise.
+                    api.request( 'workflows/tags', { query: { search: tagsTooMany ? query : '' } } )
+                        .then( ( response ) => {
+                            const items = response.items || [];
+
+                            rememberTagLabels( items );
+
+                            if ( response.complete ) {
+                                allTags = items;
+                            } else if ( ! tagsTooMany ) {
+                                tagsTooMany = true;
+
+                                // Too many for a local search: search the current query on the server.
+                                if ( request === tagSearchRequests[ list ] && state.workflowEditor.tagSearch[ list ].query ) {
+                                    return api.request( 'workflows/tags', { query: { search: state.workflowEditor.tagSearch[ list ].query } } ).then( ( searched ) => {
+                                        rememberTagLabels( searched.items );
+                                        return searched.items || [];
+                                    } );
+                                }
+                            }
+
+                            return items;
+                        } )
+                        .then( ( items ) => {
+                            if ( request === tagSearchRequests[ list ] ) {
+                                const current = state.workflowEditor.tagSearch[ list ].query;
+                                update( { results: allTags ? filterTags( allTags, current ) : items, loading: false, searched: true } );
+                            }
+                        } )
+                        .catch( () => update( { results: [], loading: false, searched: true } ) );
+                }, allTags ? 0 : 250 );
+            },
+            addTag() {
+                const { list, result } = getContext();
+                const all = state.workflowEditor.tagSearch || {};
+
+                toggleFilter( list, result.value, true );
+                state.workflowEditor.tagSearch = { ...all, [ list ]: { ...( all[ list ] || {} ), query: '', open: false } };
+            },
+            /*
+             * Keyboard: Escape closes the results only (not the editor), arrow down moves to the results, Enter adds the
+             * first result.
+             */
+            onTagKeydown: withSyncEvent( ( event ) => {
+                const { list } = getContext();
+                const all = state.workflowEditor.tagSearch || {};
+                const search = all[ list ] || {};
+
+                if ( 'Escape' === event.key && search.open ) {
+                    event.preventDefault();
+                    state.workflowEditor.tagSearch = { ...all, [ list ]: { ...search, open: false } };
+                } else if ( 'ArrowDown' === event.key ) {
+                    const first = event.target.parentElement.querySelector( '.stc-autocomplete-list button' );
+
+                    if ( first ) {
+                        event.preventDefault();
+                        first.focus();
+                    }
+                } else if ( 'Enter' === event.key ) {
+                    const first = event.target.parentElement.querySelector( '.stc-autocomplete-list button' );
+
+                    event.preventDefault();
+
+                    if ( first && search.open ) {
+                        first.click();
+                    }
+                }
+            } ),
+            // Keyboard within the results: arrow up/down moves between them (up from the first one: back to the field).
+            onTagResultKeydown: withSyncEvent( ( event ) => {
+                if ( ! [ 'ArrowDown', 'ArrowUp' ].includes( event.key ) ) {
+                    return;
+                }
+
+                const buttons = [ ...event.target.closest( '.stc-autocomplete-list' ).querySelectorAll( 'button' ) ];
+                const index = buttons.indexOf( event.target );
+                const next = 'ArrowDown' === event.key ? buttons[ index + 1 ] : buttons[ index - 1 ] || event.target.closest( '.stc-autocomplete' ).querySelector( 'input' );
+
+                event.preventDefault();
+
+                if ( next ) {
+                    next.focus();
+                }
+            } ),
+            // Closes the results once the focus left the field/results.
+            onTagFocusout( event ) {
+                const { list } = getContext();
+                const { ref } = getElement();
+                const all = state.workflowEditor.tagSearch || {};
+
+                if ( ref && ! ( event.relatedTarget && ref.contains( event.relatedTarget ) ) ) {
+                    state.workflowEditor.tagSearch = { ...all, [ list ]: { ...( all[ list ] || {} ), open: false } };
                 }
             },
             removeListValue() {

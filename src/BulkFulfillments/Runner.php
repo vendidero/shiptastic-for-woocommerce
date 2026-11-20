@@ -54,6 +54,13 @@ class Runner {
 			$log[ $entry['action'] ][ $entry['shipment_id'] ] = $entry;
 		}
 
+		// Results of renamed actions (mark_ready became update_shipment_status).
+		foreach ( isset( $log['mark_ready'] ) ? $log['mark_ready'] : array() as $shipment_id => $entry ) {
+			if ( ! isset( $log['update_shipment_status'][ $shipment_id ] ) ) {
+				$log['update_shipment_status'][ $shipment_id ] = $entry;
+			}
+		}
+
 		return $log;
 	}
 
@@ -244,6 +251,17 @@ class Runner {
 
 		foreach ( array_merge( array_values( $after ), $after_item ) as $entry ) {
 			$steps[] = $create( $entry, 0 );
+		}
+
+		// Steps not applying (e.g. printing without documents) are not shown, neither are the ones skipped because of that.
+		foreach ( $steps as $step ) {
+			$log_key = $step->get_log_key();
+
+			if ( $step->is_done ) {
+				$step->hidden = ! empty( $log[ $log_key ][ $step->shipment_id ]['data']['not_applicable'] );
+			} elseif ( ( $action = $step->get_action() ) && ! $action->is_applicable( new StepContext( $item, $workflow, $step ) ) ) { // phpcs:ignore Generic.CodeAnalysis.AssignmentInCondition.Found, Squiz.PHP.DisallowMultipleAssignments.FoundInControlStructure
+				$step->hidden = true;
+			}
 		}
 
 		/**
@@ -447,6 +465,24 @@ class Runner {
 
 			$action  = $step->get_action();
 			$context = new StepContext( $item, $workflow, $step, $args['source'], $token );
+
+			// Steps not applying (any more), e.g. printing without documents: skipped silently.
+			if ( $action && ! $action->is_applicable( $context ) ) {
+				StepLog::record(
+					$item->get_id(),
+					$step->get_log_key(),
+					array(
+						'status'      => 'skipped',
+						'shipment_id' => $step->shipment_id,
+						'data'        => array( 'not_applicable' => true ),
+						'workflow_id' => $workflow->get_id(),
+					)
+				);
+
+				self::maybe_record_rollup( $item, $workflow, $step );
+				Queue::bump_version( $item->get_id(), $token );
+				continue;
+			}
 
 			// An automatic step handled interactively (e.g. the user jumps into a failed step to fix it).
 			if ( 'background' === $step->mode && '' !== (string) $args['manual'] && $args['manual'] === $step->get_key() && $action::supports_mode( 'interactive' ) ) {

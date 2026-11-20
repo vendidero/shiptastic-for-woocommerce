@@ -25,11 +25,14 @@ class ActionRegistry {
 		return (array) apply_filters(
 			'woocommerce_shiptastic_fulfillment_actions',
 			array(
-				'create_shipments' => '\Vendidero\Shiptastic\BulkFulfillments\Actions\CreateShipments',
-				'pick'             => '\Vendidero\Shiptastic\BulkFulfillments\Actions\Pick',
-				'pack'             => '\Vendidero\Shiptastic\BulkFulfillments\Actions\Pack',
-				'mark_ready'       => '\Vendidero\Shiptastic\BulkFulfillments\Actions\MarkReady',
-				'create_label'     => '\Vendidero\Shiptastic\BulkFulfillments\Actions\CreateLabel',
+				'create_shipments'          => '\Vendidero\Shiptastic\BulkFulfillments\Actions\CreateShipments',
+				'pick'                      => '\Vendidero\Shiptastic\BulkFulfillments\Actions\Pick',
+				'pack'                      => '\Vendidero\Shiptastic\BulkFulfillments\Actions\Pack',
+				'update_shipment_status'    => '\Vendidero\Shiptastic\BulkFulfillments\Actions\UpdateShipmentStatus',
+				'update_order_status'       => '\Vendidero\Shiptastic\BulkFulfillments\Actions\UpdateOrderStatus',
+				'create_label'              => '\Vendidero\Shiptastic\BulkFulfillments\Actions\CreateLabel',
+				// Uploads within Shiptastic, replaced by Shiptastic Pro (document creation).
+				'create_shipping_documents' => '\Vendidero\Shiptastic\BulkFulfillments\Actions\CreateShippingDocuments',
 			)
 		);
 	}

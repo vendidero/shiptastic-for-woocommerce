@@ -25,7 +25,11 @@ class Install {
 		self::maybe_create_return_reasons();
 		self::maybe_insert_encryption_key();
 		self::maybe_create_packaging();
+		self::maybe_set_default_bank_account();
 		self::update_providers();
+
+		// Queue tags (workflow filters): fill them for the queued orders once.
+		\Vendidero\Shiptastic\BulkFulfillments\QueueTags::maybe_backfill();
 
 		if ( ! $current_version ) {
 			self::maybe_sync_fulfillments();
@@ -99,6 +103,42 @@ class Install {
 	private static function update( $db_version ) {
 		if ( version_compare( $db_version, '5.0.0', '<' ) ) {
 			update_option( 'woocommerce_shiptastic_allow_customer_self_arranged_returns', 'no' );
+		}
+	}
+
+	/**
+	 * Seed the business bank account (account holder / IBAN / BIC) from the first
+	 * WooCommerce BACS ("Direct bank transfer") account that has an IBAN, as a sane
+	 * default. Runs on install/update, is idempotent and never overrides a bank
+	 * account the merchant has already configured.
+	 */
+	protected static function maybe_set_default_bank_account() {
+		$already_set = get_option( 'woocommerce_shiptastic_bank_account_iban', '' )
+			|| get_option( 'woocommerce_shiptastic_bank_account_bic', '' )
+			|| get_option( 'woocommerce_shiptastic_bank_account_holder', '' );
+
+		if ( $already_set ) {
+			return;
+		}
+
+		$accounts = get_option( 'woocommerce_bacs_accounts', array() );
+
+		if ( empty( $accounts ) || ! is_array( $accounts ) ) {
+			return;
+		}
+
+		foreach ( $accounts as $account ) {
+			$iban = isset( $account['iban'] ) ? trim( (string) $account['iban'] ) : '';
+
+			if ( '' === $iban ) {
+				continue;
+			}
+
+			update_option( 'woocommerce_shiptastic_bank_account_iban', $iban );
+			update_option( 'woocommerce_shiptastic_bank_account_bic', isset( $account['bic'] ) ? trim( (string) $account['bic'] ) : '' );
+			update_option( 'woocommerce_shiptastic_bank_account_holder', isset( $account['account_name'] ) ? trim( (string) $account['account_name'] ) : '' );
+
+			break;
 		}
 	}
 
@@ -796,6 +836,12 @@ CREATE TABLE {$wpdb->prefix}woocommerce_stc_fulfillment_queue (
   KEY queue_workflow_status (queue_workflow_id,queue_status),
   KEY queue_lock_token (queue_lock_token),
   KEY queue_lock_expires (queue_lock_expires_gmt)
+) $collate;
+CREATE TABLE {$wpdb->prefix}woocommerce_stc_fulfillment_queue_tags (
+  queue_tag_queue_id bigint(20) unsigned NOT NULL,
+  queue_tag varchar(191) NOT NULL DEFAULT '',
+  PRIMARY KEY  (queue_tag_queue_id,queue_tag),
+  KEY queue_tag (queue_tag)
 ) $collate;
 CREATE TABLE {$wpdb->prefix}woocommerce_stc_fulfillment_steps (
   step_id bigint(20) unsigned NOT NULL auto_increment,

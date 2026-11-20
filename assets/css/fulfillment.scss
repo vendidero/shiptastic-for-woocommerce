@@ -376,6 +376,11 @@
   margin-bottom: 8px;
   overflow-x: auto;
 
+  &[hidden],
+  .stc-tab[hidden] {
+    display: none;
+  }
+
   .stc-tab {
     min-height: var(--stc-touch);
     padding: 0 12px;
@@ -1298,14 +1303,16 @@ select.stc-input {
   }
 }
 
-// Pro marker, same as the pro markers within the Shiptastic settings (.wc-shiptastic-pro-outlined).
+// Pro marker (like Germanized's .wc-gzd-pro-outlined): outlined, border and text follow the surrounding text color.
 .stc-pro-badge {
   display: inline-block;
+  position: relative;
+  top: -1px;
   padding: 1px 3px;
-  border: 1px solid #222;
+  border: 1px solid currentColor;
   border-radius: 3px;
   background: transparent;
-  color: #222;
+  color: inherit;
   font-size: 9px;
   font-style: normal;
   font-weight: 600;
@@ -1314,15 +1321,100 @@ select.stc-input {
   text-decoration: none;
   text-transform: uppercase;
   vertical-align: middle;
+  opacity: 1 !important;
 
   &:hover,
   &:focus {
-    border-color: var(--stc-color-primary);
     color: var(--stc-color-primary);
   }
 
   &[hidden] {
     display: none;
+  }
+
+  // Within flex containers (e.g. buttons) the space before the marker collapses.
+  .stc-button & {
+    margin-left: 6px;
+  }
+
+  // On primary (colored) backgrounds: keep the text color.
+  .stc-button.is-primary &:hover,
+  .stc-button.is-primary &:focus {
+    color: inherit;
+  }
+}
+
+// Step picker (workflow editor): available steps + steps of Shiptastic Pro (not selectable).
+.stc-step-picker {
+  position: relative;
+
+  &[hidden] {
+    display: none;
+  }
+}
+
+.stc-step-picker-toggle {
+  text-align: left;
+  cursor: pointer;
+}
+
+.stc-step-picker-list {
+  position: absolute;
+  z-index: 5;
+  right: 0;
+  left: 0;
+  max-height: 360px;
+  margin: 4px 0 0;
+  padding: 4px;
+  overflow-y: auto;
+  border: 1px solid var(--stc-color-border);
+  border-radius: 4px;
+  background: var(--stc-color-surface);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, .12);
+  list-style: none;
+
+  &[hidden] {
+    display: none;
+  }
+}
+
+.stc-step-picker-option {
+  display: grid;
+  gap: 2px;
+  width: 100%;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--stc-color-text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+
+  &:hover,
+  &:focus {
+    outline: none;
+    background: #f6f7fe;
+  }
+
+  &.is-pro {
+    cursor: default;
+
+    &:hover {
+      background: transparent;
+    }
+
+    > strong {
+      color: var(--stc-color-muted);
+    }
+  }
+}
+
+// Filters of Shiptastic Pro (not available): disabled, the pro marker links to Shiptastic Pro.
+.stc-list-filter.is-pro {
+  .stc-segmented {
+    opacity: .6;
+    pointer-events: none;
   }
 }
 
@@ -1665,10 +1757,29 @@ select.stc-input {
 
 .stc-workflow-filters {
   display: grid;
-  gap: 16px;
+  // Filters side by side on wider screens (like the half-fields of the step settings).
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+  gap: 16px 24px;
 
   > .stc-hint {
+    grid-column: 1 / -1;
     margin: 0;
+  }
+
+  > fieldset {
+    min-width: 0;
+  }
+
+  // The whole row: countries (pairs the remaining filters: including/excluding, items/weight), backorders (three
+  // longer choices).
+  > .stc-list-filter.is-countries,
+  > .stc-backorders-filter {
+    grid-column: 1 / -1;
+  }
+
+  @media (min-width: 600px) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
@@ -1692,6 +1803,15 @@ select.stc-input {
   flex-direction: row;
   align-self: end;
   min-height: var(--stc-touch);
+}
+
+// Step settings: checkboxes next to a field (label + input) align with the input, not with the label.
+.stc-form-grid > .stc-field:has(> .stc-toggle-field:not([hidden])) {
+  justify-content: flex-end;
+
+  > .stc-toggle-field {
+    min-height: var(--stc-touch);
+  }
 }
 
 .stc-chips {
@@ -1915,6 +2035,16 @@ option.is-unfit {
     box-shadow: none;
     outline: none;
     text-align: right;
+
+    // Same size as the prefix/unit (typed values keep the input size, avoiding the iOS zoom on focus).
+    &::placeholder {
+      font-size: 13px;
+    }
+
+    // The placeholder sits on the (larger) input's baseline: lift it to the prefix's line.
+    &:placeholder-shown {
+      padding-bottom: 11px;
+    }
   }
 
   .is-invalid & {
@@ -2607,8 +2737,8 @@ option.is-unfit {
   }
 
   // Wrappers containing hidden fields only would add empty grid rows.
-  .columns:not(:has(p.form-field:not([hidden]))),
-  .wc-stc-shipment-label-wrapper:not(:has(p.form-field:not([hidden]))) {
+  .columns:has(p.form-field):not(:has(p.form-field:not([hidden]))),
+  .wc-stc-shipment-label-wrapper:has(p.form-field):not(:has(p.form-field:not([hidden]))) {
     display: none;
   }
 
@@ -2722,5 +2852,241 @@ option.is-unfit {
 
   &[hidden] {
     display: none;
+  }
+}
+
+// Document steps: one row per document (status, file or missing, upload/replace).
+.stc-document-list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.stc-document {
+  display: grid;
+  // Wide content (e.g. the commercial invoice's item table) scrolls within the row.
+  grid-template-columns: minmax(0, 1fr);
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--stc-color-border);
+  border-radius: 4px;
+
+  &.is-missing {
+    border-color: var(--stc-color-error);
+  }
+
+  > .stc-hint[hidden] {
+    display: none;
+  }
+}
+
+.stc-document-main {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  .stc-icon-button[hidden],
+  .stc-link-button[hidden] {
+    display: none;
+  }
+}
+
+// Recreate a document (spins while it is being created).
+.stc-document-regenerate {
+  min-width: 36px;
+  min-height: 36px;
+  color: var(--stc-color-primary);
+  font-size: 20px;
+
+  &.is-busy {
+    animation: stc-spin 1s linear infinite;
+    cursor: progress;
+  }
+}
+
+
+.stc-document-sheet[hidden] {
+  display: none;
+}
+
+// Settings of a document (e.g. commercial invoice), compact like the label form.
+.stc-document-form {
+  min-width: 0;
+
+  // Items: one grid row per item (header row with the column titles), scrolls sideways on narrow screens.
+  .commercial-invoice-items {
+    display: grid;
+    gap: 6px;
+    margin: 0 0 12px !important;
+    overflow-x: auto;
+
+    > .columns {
+      display: grid;
+      grid-column: auto;
+      grid-template-columns: minmax(90px, 1fr) minmax(140px, 2fr) minmax(90px, 1fr) minmax(80px, 1fr) minmax(130px, 1.4fr) minmax(70px, .7fr) minmax(70px, .7fr);
+      align-items: center;
+      gap: 6px;
+      min-width: 720px;
+    }
+
+    h4 {
+      margin: 0;
+      color: var(--stc-color-muted);
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    .commercial-invoice-item {
+      font-size: 13px;
+    }
+
+    p.form-field {
+      margin: 0;
+    }
+  }
+
+  .commercial-invoice-data > .columns {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.stc-document-status {
+  flex-shrink: 0;
+  width: 10px;
+  height: 10px;
+  border: 2px solid var(--stc-color-border);
+  border-radius: 50%;
+
+  .is-done & {
+    border-color: var(--stc-color-success);
+    background: var(--stc-color-success);
+  }
+}
+
+.stc-document-body {
+  display: grid;
+  flex: 1;
+  gap: 2px;
+  min-width: 0;
+
+  [hidden] {
+    display: none;
+  }
+}
+
+.stc-document-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.stc-document-file {
+  overflow: hidden;
+  color: var(--stc-color-primary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.stc-document-upload {
+  flex-shrink: 0;
+  cursor: pointer;
+
+  &.is-busy {
+    opacity: .6;
+    cursor: progress;
+  }
+
+  &:focus-within {
+    outline: 2px solid var(--stc-color-primary);
+    outline-offset: 1px;
+  }
+}
+
+// Autocomplete (async search), e.g. the including/excluding filters' categories, shipping classes, payment methods.
+.stc-autocomplete {
+  position: relative;
+}
+
+.stc-autocomplete-list {
+  position: absolute;
+  z-index: 5;
+  right: 0;
+  left: 0;
+  max-height: 280px;
+  margin: 4px 0 0;
+  padding: 4px;
+  overflow-y: auto;
+  border: 1px solid var(--stc-color-border);
+  border-radius: 4px;
+  background: var(--stc-color-surface);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, .12);
+  list-style: none;
+
+  &[hidden],
+  > [hidden] {
+    display: none;
+  }
+
+  > .stc-hint {
+    padding: 6px 10px;
+  }
+
+  button {
+    width: 100%;
+    padding: 8px 10px;
+    border: 0;
+    border-radius: 4px;
+    background: transparent;
+    color: var(--stc-color-text);
+    font: inherit;
+    font-size: 14px;
+    text-align: left;
+    cursor: pointer;
+
+    &:hover,
+    &:focus {
+      outline: none;
+      background: #f6f7fe;
+    }
+  }
+}
+
+// Check list: the item just scanned flashes.
+.stc-item.is-scanned {
+  animation: stc-scan-flash .7s ease-out;
+}
+
+@keyframes stc-scan-flash {
+  from {
+    background: #dff3e4;
+    box-shadow: 0 0 0 2px var(--stc-color-success);
+  }
+}
+
+// Keyboard focus: visible on all interactive elements of the app (inputs have their own focus style).
+.stc-app,
+.stc-sheet {
+  :is(button, a, [tabindex]):focus-visible {
+    outline: 2px solid var(--stc-color-primary);
+    outline-offset: 2px;
+  }
+}
+
+// Reduced motion: no animations/transitions (spinners, notices, skeletons, flashes).
+@media (prefers-reduced-motion: reduce) {
+  .stc-app *,
+  .stc-app *::before,
+  .stc-app *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  // The scanned item: highlighted instead of flashing.
+  .stc-item.is-scanned {
+    box-shadow: 0 0 0 2px var(--stc-color-success);
   }
 }
